@@ -27,7 +27,9 @@ async function readBlob<T>(pathname: string, fallback: T): Promise<T> {
   if (hasVercelBlob()) {
     try {
       const { blobs } = await list();
-      const blob = blobs.find((b) => b.pathname === pathname);
+      const normalize = (p: string) => p.replace(/^\//, "").toLowerCase();
+      const targetPath = normalize(pathname);
+      const blob = blobs.find((b) => normalize(b.pathname) === targetPath);
       if (!blob) return fallback;
 
       const response = await fetch(blob.url);
@@ -59,7 +61,6 @@ async function writeBlob<T>(pathname: string, data: T): Promise<void> {
       await put(pathname, JSON.stringify(data), {
         access: "public",
         addRandomSuffix: false,
-        allowOverwrite: true,
         contentType: "application/json",
       });
       return;
@@ -75,6 +76,49 @@ async function writeBlob<T>(pathname: string, data: T): Promise<void> {
   } catch (err) {
     console.error("Local file write error", err);
   }
+}
+
+export async function getBlobDiagnostics(): Promise<Record<string, any>> {
+  const diagnostics: Record<string, any> = {
+    hasTokenEnv: !!process.env.BLOB_READ_WRITE_TOKEN,
+    tokenPrefix: process.env.BLOB_READ_WRITE_TOKEN 
+      ? process.env.BLOB_READ_WRITE_TOKEN.substring(0, 10) + "..." 
+      : "none",
+    nodeEnv: process.env.NODE_ENV || "development",
+  };
+
+  if (process.env.BLOB_READ_WRITE_TOKEN) {
+    try {
+      const listResult = await list();
+      diagnostics.blobListSuccess = true;
+      diagnostics.blobCount = listResult.blobs.length;
+      diagnostics.blobs = listResult.blobs.map((b) => ({
+        pathname: b.pathname,
+        size: b.size,
+        url: b.url,
+      }));
+    } catch (err: any) {
+      diagnostics.blobListSuccess = false;
+      diagnostics.blobListError = err?.message || String(err);
+    }
+
+    try {
+      const testPathname = "grocerylist/diagnostics-test.json";
+      await put(testPathname, JSON.stringify({ testedAt: Date.now() }), {
+        access: "public",
+        addRandomSuffix: false,
+        contentType: "application/json",
+      });
+      diagnostics.blobWriteSuccess = true;
+    } catch (err: any) {
+      diagnostics.blobWriteSuccess = false;
+      diagnostics.blobWriteError = err?.message || String(err);
+    }
+  } else {
+    diagnostics.message = "BLOB_READ_WRITE_TOKEN is not defined in process.env. Falling back to local local-db.";
+  }
+
+  return diagnostics;
 }
 
 export async function blobGetGroceryItems(): Promise<GroceryItem[]> {

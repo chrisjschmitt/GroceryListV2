@@ -13,6 +13,7 @@ import {
   blobGetPrices,
   blobGetScrapeConfig,
   blobSetScrapeConfig,
+  getBlobDiagnostics,
 } from "./src/lib/blob-store";
 
 // Use standard memory storage for multer CSV upload
@@ -149,6 +150,20 @@ async function startServer() {
       res.json({ success: true });
     } catch {
       res.status(500).json({ error: "Failed to update scrape configuration" });
+    }
+  });
+
+  // 9. GET /api/diagnose
+  app.get("/api/diagnose", async (req, res) => {
+    try {
+      const report = await getBlobDiagnostics();
+      res.json(report);
+    } catch (error: any) {
+      console.error("GET /api/diagnose handler error:", error);
+      res.status(500).json({
+        error: "Diagnostics handler threw an exception",
+        details: error?.message || String(error),
+      });
     }
   });
 
