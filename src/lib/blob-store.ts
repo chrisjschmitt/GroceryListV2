@@ -1,4 +1,4 @@
-import { put, get } from "@vercel/blob";
+import { put, list } from "@vercel/blob";
 import { GroceryItem, RegularItem, SyncMetadata, PriceData, ScrapeConfig } from "./types";
 import fs from "fs";
 import path from "path";
@@ -26,11 +26,13 @@ const hasVercelBlob = () => !!process.env.BLOB_READ_WRITE_TOKEN;
 async function readBlob<T>(pathname: string, fallback: T): Promise<T> {
   if (hasVercelBlob()) {
     try {
-      const response = await get(pathname, {
-        access: "private",
-      });
-      if (!response || response.statusCode !== 200) return fallback;
-      const text = await new Response(response.stream).text();
+      const { blobs } = await list();
+      const blob = blobs.find((b) => b.pathname === pathname);
+      if (!blob) return fallback;
+
+      const response = await fetch(blob.url);
+      if (!response.ok) return fallback;
+      const text = await response.text();
       return JSON.parse(text) as T;
     } catch (err) {
       console.warn("Vercel Blob read error, using local fallback", err);
