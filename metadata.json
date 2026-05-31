@@ -1,0 +1,6 @@
+{
+  "name": "Grocery List",
+  "description": "Compare prices across local stores and save on your grocery bill",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
