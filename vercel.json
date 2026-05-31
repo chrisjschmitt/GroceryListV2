@@ -1,9 +1,14 @@
 {
   "version": 2,
+  "functions": {
+    "api/**/*.ts": {
+      "bundle": true
+    }
+  },
   "rewrites": [
     {
       "source": "/api/(.*)",
-      "destination": "/api/index.ts"
+      "destination": "/api"
     }
   ]
 }

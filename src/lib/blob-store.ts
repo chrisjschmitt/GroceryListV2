@@ -10,7 +10,10 @@ const PRICES_BLOB = "grocerylist/prices.json";
 const SCRAPE_CONFIG_BLOB = "grocerylist/scrape-config.json";
 
 // We keep a local database file structure in case no BLOB_READ_WRITE_TOKEN is defined.
-const LOCAL_DIR = path.join(process.cwd(), "db-storage");
+const isServerless = !!(process.env.VERCEL || process.env.NODE_ENV === "production");
+const LOCAL_DIR = isServerless
+  ? path.join("/tmp", "db-storage")
+  : path.join(process.cwd(), "db-storage");
 
 function getLocalPath(pathname: string): string {
   if (!fs.existsSync(LOCAL_DIR)) {
