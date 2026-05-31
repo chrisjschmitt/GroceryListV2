@@ -57,14 +57,14 @@ async function writeBlob<T>(pathname: string, data: T): Promise<void> {
   if (hasVercelBlob()) {
     try {
       await put(pathname, JSON.stringify(data), {
-        access: "private",
+        access: "public",
         addRandomSuffix: false,
         allowOverwrite: true,
         contentType: "application/json",
       });
       return;
     } catch (err) {
-      console.warn("Vercel Blob write error, writing locally instead", err);
+      console.warn("Vercel Blob write error, writing locally instead. Details:", err);
     }
   }
 

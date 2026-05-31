@@ -34,7 +34,8 @@ app.get("/api/sync", async (req, res) => {
     ]);
     res.json({ groceryItems, regularItems, syncMeta, prices });
   } catch (error) {
-    res.status(500).json({ error: "Failed to fetch sync data" });
+    console.error("GET /api/sync error:", error);
+    res.status(500).json({ error: "Failed to fetch sync data", details: String(error) });
   }
 });
 
@@ -53,7 +54,8 @@ app.put("/api/sync", async (req, res) => {
     const syncMeta = await blobUpdateSyncMeta(deviceName || "Unknown");
     res.json({ success: true, syncMeta });
   } catch (error) {
-    res.status(500).json({ error: "Failed to update sync data" });
+    console.error("PUT /api/sync error:", error);
+    res.status(500).json({ error: "Failed to update sync data", details: String(error) });
   }
 });
 
@@ -63,7 +65,8 @@ app.get("/api/prices", async (req, res) => {
     const prices = await blobGetPrices();
     res.json({ prices });
   } catch (error) {
-    res.status(500).json({ error: "Failed to fetch prices data" });
+    console.error("GET /api/prices error:", error);
+    res.status(500).json({ error: "Failed to fetch prices data", details: String(error) });
   }
 });
 
@@ -73,7 +76,8 @@ app.get("/api/regular-items", async (req, res) => {
     const items = await blobGetRegularItems();
     res.json({ items });
   } catch (error) {
-    res.status(500).json({ error: "Failed to fetch regular items" });
+    console.error("GET /api/regular-items error:", error);
+    res.status(500).json({ error: "Failed to fetch regular items", details: String(error) });
   }
 });
 
@@ -94,7 +98,8 @@ app.post("/api/regular-items", upload.single("file"), async (req, res) => {
 
     res.json({ items, errors });
   } catch (error) {
-    res.status(500).json({ error: "Failed to upload and parse CSV" });
+    console.error("POST /api/regular-items error:", error);
+    res.status(500).json({ error: "Failed to upload and parse CSV", details: String(error) });
   }
 });
 
@@ -104,7 +109,8 @@ app.delete("/api/regular-items", async (req, res) => {
     await blobSetRegularItems([]);
     res.json({ success: true });
   } catch (error) {
-    res.status(500).json({ error: "Failed to clear regular items" });
+    console.error("DELETE /api/regular-items error:", error);
+    res.status(500).json({ error: "Failed to clear regular items", details: String(error) });
   }
 });
 
@@ -119,7 +125,8 @@ app.put("/api/regular-items", async (req, res) => {
     await blobSetRegularItems(items);
     res.json({ success: true, items });
   } catch (error) {
-    res.status(500).json({ error: "Failed to update regular items" });
+    console.error("PUT /api/regular-items error:", error);
+    res.status(500).json({ error: "Failed to update regular items", details: String(error) });
   }
 });
 
@@ -129,7 +136,8 @@ app.get("/api/scrape-config", async (req, res) => {
     const config = await blobGetScrapeConfig();
     res.json(config);
   } catch (error) {
-    res.status(500).json({ error: "Failed to fetch scrape configuration" });
+    console.error("GET /api/scrape-config error:", error);
+    res.status(500).json({ error: "Failed to fetch scrape configuration", details: String(error) });
   }
 });
 
@@ -144,7 +152,8 @@ app.put("/api/scrape-config", async (req, res) => {
     await blobSetScrapeConfig(config);
     res.json({ success: true });
   } catch (error) {
-    res.status(500).json({ error: "Failed to update scrape configuration" });
+    console.error("PUT /api/scrape-config error:", error);
+    res.status(500).json({ error: "Failed to update scrape configuration", details: String(error) });
   }
 });
 
