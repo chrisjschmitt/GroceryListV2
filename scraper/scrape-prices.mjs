@@ -207,31 +207,39 @@ async function scrapeFoodBasics(page, context, storeConfig, configItems) {
       attempts++;
       try {
         if (attempts > 1) {
-          const backoffDelay = Math.floor(Math.random() * 3000) + 2000; // randomized backoff 2-5 seconds
-          console.log(`  └ Retry ${attempts}/3 in ${backoffDelay}ms...`);
+          const backoffDelay = Math.floor(Math.random() * 4000) + 3000; // randomized backoff 3-7 seconds
+          console.log(`  └ Retry ${attempts}/3: Cooling down for ${backoffDelay}ms before recreation...`);
           await new Promise((r) => setTimeout(r, backoffDelay));
+
+          // Close original failed page, and initialize a completely fresh, fully warm localized page
+          try {
+            await page.close().catch(() => {});
+          } catch {}
+          
+          console.log("  └ Opening a new sterile browser tab...");
+          page = await context.newPage();
+          await page.addInitScript(() => {
+            Object.defineProperty(navigator, "webdriver", { get: () => false });
+          });
+
+          console.log("  └ Warm-routing/re-localizing on new page...");
+          await page.goto(base_url, {
+            waitUntil: "domcontentloaded",
+            timeout: NAVIGATION_TIMEOUT,
+          });
+          await waitForChallenge(page);
         }
 
-        // Close current page and open a fresh page inside the loop to clear navigation fingerprints,
-        // page-level variables, and reset state. Cookies are kept in the context.
-        try {
-          await page.close().catch(() => {});
-        } catch {}
-        page = await context.newPage();
-        await page.addInitScript(() => {
-          Object.defineProperty(navigator, "webdriver", { get: () => false });
-        });
-
+        console.log(`  └ Navigating directly to: ${item.url}`);
         await page.goto(item.url, {
           waitUntil: "domcontentloaded",
           timeout: NAVIGATION_TIMEOUT,
         });
         await waitForChallenge(page);
-        await page.waitForTimeout(2000);
+        await page.waitForTimeout(3000); // 3 seconds stable paint transition
 
-        // Locating interactive nodes - state: "attached" is used so cookie banners/modal dialogs
-        // don't obstruct locator visibility or cause false timeout errors.
-        await page.locator(".pi--prices, .pi--price, .pricing__amount, [data-main-price]").first().waitFor({
+        // Locating interactive nodes: added standard itemprop price formats and typical retail CSS elements
+        await page.locator(".pi--prices, .pi--price, .pricing__amount, [data-main-price], [itemprop='price'], .pricing__price, .price-update").first().waitFor({
           state: "attached",
           timeout: SELECTOR_TIMEOUT,
         });
