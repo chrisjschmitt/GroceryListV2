@@ -75,3 +75,15 @@ export interface SyncMetadata {
   lastSavedBy: string;
   lastSavedTime: number;
 }
+
+export interface TelemetryEntry {
+  timestamp: string;
+  store_key?: string;
+  upc?: string;
+  item_config_name?: string;
+  error_phase?: string;
+  error_message?: string;
+  severity?: "success" | "warning" | "error" | "info";
+  message?: string;
+}
+

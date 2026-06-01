@@ -1,5 +1,5 @@
 import { put, list } from "@vercel/blob";
-import { GroceryItem, RegularItem, SyncMetadata, PriceData, ScrapeConfig } from "./types.js";
+import { GroceryItem, RegularItem, SyncMetadata, PriceData, ScrapeConfig, TelemetryEntry } from "./types.js";
 import fs from "fs";
 import path from "path";
 
@@ -8,6 +8,7 @@ const REGULAR_BLOB = "grocerylist/regular-items.json";
 const SYNC_META_BLOB = "grocerylist/sync-meta.json";
 const PRICES_BLOB = "grocerylist/prices.json";
 const SCRAPE_CONFIG_BLOB = "grocerylist/scrape-config.json";
+const TELEMETRY_BLOB = "grocerylist/telemetry.json";
 
 // We keep a local database file structure in case no BLOB_READ_WRITE_TOKEN is defined.
 const isServerless = !!(process.env.VERCEL || process.env.NODE_ENV === "production");
@@ -196,6 +197,26 @@ export async function blobUpdateSyncMeta(deviceName: string): Promise<SyncMetada
 
 export async function blobGetPrices(): Promise<PriceData> {
   return readBlob<PriceData>(PRICES_BLOB, {});
+}
+
+export async function blobSetPrices(prices: PriceData): Promise<void> {
+  await writeBlob(PRICES_BLOB, prices);
+}
+
+export async function blobGetTelemetry(): Promise<TelemetryEntry[]> {
+  return readBlob<TelemetryEntry[]>(TELEMETRY_BLOB, []);
+}
+
+export async function blobSetTelemetry(telemetry: TelemetryEntry[]): Promise<void> {
+  await writeBlob(TELEMETRY_BLOB, telemetry);
+}
+
+export async function blobAppendTelemetry(entry: TelemetryEntry): Promise<void> {
+  const telemetry = await blobGetTelemetry();
+  telemetry.push(entry);
+  // Keep the telemetry log size bounded to a maximum of 1000 items
+  const sliced = telemetry.slice(-1000);
+  await blobSetTelemetry(sliced);
 }
 
 export function migrateScrapeConfig(config: any): ScrapeConfig {

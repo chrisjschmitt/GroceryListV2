@@ -11,9 +11,13 @@ import {
   blobGetSyncMeta,
   blobUpdateSyncMeta,
   blobGetPrices,
+  blobSetPrices,
   blobGetScrapeConfig,
   blobSetScrapeConfig,
   getBlobDiagnostics,
+  blobGetTelemetry,
+  blobSetTelemetry,
+  blobAppendTelemetry,
 } from "./src/lib/blob-store";
 
 // Use standard memory storage for multer CSV upload
@@ -69,6 +73,74 @@ async function startServer() {
       res.json({ prices });
     } catch {
       res.status(500).json({ error: "Failed to fetch prices data" });
+    }
+  });
+
+  // 3.5. PUT /api/prices (Secure scraper update)
+  app.put("/api/prices", async (req, res) => {
+    try {
+      const prices = req.body;
+      if (!prices || typeof prices !== "object") {
+        res.status(400).json({ error: "Invalid prices payload structure" });
+        return;
+      }
+
+      // Simple Bearer authentication guard
+      const authHeader = req.headers.authorization;
+      const expectedApiKey = process.env.SCRAPER_API_KEY || "dev-secret-key";
+      if (process.env.SCRAPER_API_KEY && authHeader !== `Bearer ${expectedApiKey}`) {
+        res.status(401).json({ error: "Unauthorized" });
+        return;
+      }
+
+      const existingPrices = await blobGetPrices();
+      const updatedPrices = { ...existingPrices, ...prices };
+      await blobSetPrices(updatedPrices);
+      res.json({ success: true, count: Object.keys(prices).length });
+    } catch (error) {
+      console.error("PUT /api/prices error:", error);
+      res.status(500).json({ error: "Failed to update prices", details: String(error) });
+    }
+  });
+
+  // Telemetry GET /api/ScapeLogging
+  app.get(["/api/ScapeLogging", "/api/scrape-logging"], async (req, res) => {
+    try {
+      const logs = await blobGetTelemetry();
+      res.json(logs);
+    } catch (error) {
+      console.error("GET telemetry error:", error);
+      res.status(500).json({ error: "Failed to fetch telemetry logs" });
+    }
+  });
+
+  // Telemetry PUT /api/ScapeLogging (appends log entries)
+  app.put(["/api/ScapeLogging", "/api/scrape-logging"], async (req, res) => {
+    try {
+      const payload = req.body;
+      if (!payload || typeof payload !== "object") {
+        res.status(400).json({ error: "Invalid log payload structure" });
+        return;
+      }
+
+      const authHeader = req.headers.authorization;
+      const expectedApiKey = process.env.SCRAPER_API_KEY || "dev-secret-key";
+      if (process.env.SCRAPER_API_KEY && authHeader !== `Bearer ${expectedApiKey}`) {
+        res.status(401).json({ error: "Unauthorized" });
+        return;
+      }
+
+      if (Array.isArray(payload)) {
+        const telemetry = await blobGetTelemetry();
+        const combined = [...telemetry, ...payload].slice(-1000);
+        await blobSetTelemetry(combined);
+      } else {
+        await blobAppendTelemetry(payload);
+      }
+      res.json({ success: true });
+    } catch (error) {
+      console.error("PUT telemetry error:", error);
+      res.status(500).json({ error: "Failed to save telemetry logs" });
     }
   });
 
