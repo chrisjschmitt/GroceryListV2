@@ -63,6 +63,12 @@ export default function RegularItemsList({
   const [modalUrl, setModalUrl] = useState("");
   const [modalUpc, setModalUpc] = useState("");
   const [modalSuccessMsg, setModalSuccessMsg] = useState<string | null>(null);
+  const [generalToast, setGeneralToast] = useState<string | null>(null);
+
+  const showGeneralToast = (msg: string) => {
+    setGeneralToast(msg);
+    setTimeout(() => setGeneralToast(null), 4000);
+  };
 
   useEffect(() => {
     async function loadScrapeConfig() {
@@ -154,7 +160,9 @@ export default function RegularItemsList({
       return;
     }
 
-    let config = scrapeConfig ? { ...scrapeConfig } : { stores: {}, items: [] };
+    // Perform a full deep-clone of the configuration object to completely bypass
+    // React's shallow comparative reference checks (which caused state changes to be ignored).
+    let config = scrapeConfig ? JSON.parse(JSON.stringify(scrapeConfig)) : { stores: {}, items: [] };
     if (!config.items) config.items = [];
     if (!config.stores) config.stores = {};
 
@@ -176,7 +184,7 @@ export default function RegularItemsList({
 
     const storeKey = "foodbasics";
 
-    let existingItem = config.items.find(i => i.name.toLowerCase() === finalItemName.toLowerCase());
+    let existingItem = config.items.find((i: any) => i.name.toLowerCase() === finalItemName.toLowerCase());
     if (existingItem) {
       existingItem.stores[storeKey] = {
         url: trimmedUrl,
@@ -201,8 +209,14 @@ export default function RegularItemsList({
         body: JSON.stringify(config),
       });
       if (res.ok) {
+        // Update local React state with fully fresh object references
         setScrapeConfig(config);
-        showModalSuccessMessage("Saved scraper link successfully!");
+        setModalUrl("");
+        setModalUpc("");
+        // Automatically close the dialog window
+        setActivePriceCheckItem(null);
+        // Show high-impact page-level success notification
+        showGeneralToast(`Saved scraper link for "${finalItemName}"!`);
       } else {
         alert("Failed to save scraper config.");
       }
@@ -220,14 +234,15 @@ export default function RegularItemsList({
       return;
     }
 
-    const config = { ...scrapeConfig };
+    // Perform a full deep-clone of the configuration object
+    const config = JSON.parse(JSON.stringify(scrapeConfig));
     if (!config.items) config.items = [];
 
-    const itemConfig = config.items.find(i => i.name.toLowerCase() === finalItemName.toLowerCase());
+    const itemConfig = config.items.find((i: any) => i.name.toLowerCase() === finalItemName.toLowerCase());
     if (itemConfig) {
       delete itemConfig.stores.foodbasics;
       if (Object.keys(itemConfig.stores).length === 0) {
-        config.items = config.items.filter(i => i.name.toLowerCase() !== finalItemName.toLowerCase());
+        config.items = config.items.filter((i: any) => i.name.toLowerCase() !== finalItemName.toLowerCase());
       }
     }
 
@@ -239,9 +254,12 @@ export default function RegularItemsList({
       });
       if (res.ok) {
         setScrapeConfig(config);
-        showModalSuccessMessage("Price check link removed!");
         setModalUrl("");
         setModalUpc("");
+        // Automatically close the dialog window
+        setActivePriceCheckItem(null);
+        // Show high-impact page-level success notification
+        showGeneralToast(`Removed scraper link for "${finalItemName}"!`);
       } else {
         alert("Failed to remove link config on the server.");
       }
@@ -344,6 +362,12 @@ export default function RegularItemsList({
   if (items.length === 0) {
     return (
       <div className="space-y-4">
+        {generalToast && (
+          <div className="fixed top-4 left-1/2 -translate-x-1/2 z-[100] bg-emerald-600 text-white border-2 border-black px-4 py-2.5 text-xs font-black uppercase tracking-wider shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] flex items-center gap-2 rounded-none">
+            <Check className="w-4 h-4 text-white shrink-0" />
+            <span>{generalToast}</span>
+          </div>
+        )}
         <div
           onDragOver={(e) => {
             e.preventDefault();
@@ -399,6 +423,12 @@ export default function RegularItemsList({
 
   return (
     <div className="space-y-4">
+      {generalToast && (
+        <div className="fixed top-4 left-1/2 -translate-x-1/2 z-[100] bg-emerald-600 text-white border-2 border-black px-4 py-2.5 text-xs font-black uppercase tracking-wider shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] flex items-center gap-2 rounded-none">
+          <Check className="w-4 h-4 text-white shrink-0" />
+          <span>{generalToast}</span>
+        </div>
+      )}
       {contextMenu && (
         <div className="fixed inset-0 z-10" onClick={() => setContextMenu(null)} />
       )}
