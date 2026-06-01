@@ -195,14 +195,32 @@ async function scrapeFoodBasics(page, context, storeConfig, configItems) {
     let ok = false;
     let itemPayload = null;
 
+    // Introduce randomized human-like delay before navigating to each subsequent item
+    const itemIndex = configItems.indexOf(item);
+    if (itemIndex > 0) {
+      const organicDelay = Math.floor(Math.random() * 4000) + 4000; // 4 to 8 seconds delay
+      console.log(`  └ Human-emulation pacing: Cooling down for ${organicDelay}ms...`);
+      await new Promise(r => setTimeout(r, organicDelay));
+    }
+
     while (attempts < 3 && !ok) {
       attempts++;
       try {
         if (attempts > 1) {
-          const backoffDelay = Math.floor(Math.random() * 2000) + 1000; // randomized backoff 1-3 seconds
+          const backoffDelay = Math.floor(Math.random() * 3000) + 2000; // randomized backoff 2-5 seconds
           console.log(`  └ Retry ${attempts}/3 in ${backoffDelay}ms...`);
           await new Promise((r) => setTimeout(r, backoffDelay));
         }
+
+        // Close current page and open a fresh page inside the loop to clear navigation fingerprints,
+        // page-level variables, and reset state. Cookies are kept in the context.
+        try {
+          await page.close().catch(() => {});
+        } catch {}
+        page = await context.newPage();
+        await page.addInitScript(() => {
+          Object.defineProperty(navigator, "webdriver", { get: () => false });
+        });
 
         await page.goto(item.url, {
           waitUntil: "domcontentloaded",
@@ -211,9 +229,10 @@ async function scrapeFoodBasics(page, context, storeConfig, configItems) {
         await waitForChallenge(page);
         await page.waitForTimeout(2000);
 
-        // Locating interactive nodes
+        // Locating interactive nodes - state: "attached" is used so cookie banners/modal dialogs
+        // don't obstruct locator visibility or cause false timeout errors.
         await page.locator(".pi--prices, .pi--price, .pricing__amount, [data-main-price]").first().waitFor({
-          state: "visible",
+          state: "attached",
           timeout: SELECTOR_TIMEOUT,
         });
 
@@ -260,7 +279,6 @@ async function scrapeFoodBasics(page, context, storeConfig, configItems) {
         }
 
         // VARIABLE-WEIGHT MEATS / PACKAGE UNIT PRICE PRIORITIZATION
-        const itemTagText = ((await safeText(page, "h1, .pi--title, .product-details__title")) || "").toLowerCase();
         const secondaryPriceText = await safeText(page, ".pricing__secondary-price, .pricing__unit-price, .pi--unit-price, .pi--weight-avg-price");
         
         // If there's weight vs ea display, prioritize unit prices
