@@ -1,6 +1,6 @@
 import express from "express";
 import multer from "multer";
-import { parseCsv } from "../src/lib/csv-parser";
+import { parseCsv } from "../src/lib/csv-parser.js";
 import {
   blobGetGroceryItems,
   blobSetGroceryItems,
@@ -12,7 +12,7 @@ import {
   blobGetScrapeConfig,
   blobSetScrapeConfig,
   getBlobDiagnostics,
-} from "../src/lib/blob-store";
+} from "../src/lib/blob-store.js";
 
 const app = express();
 

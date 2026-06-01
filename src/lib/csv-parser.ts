@@ -1,4 +1,4 @@
-import { RegularItem } from "./types";
+import { RegularItem } from "./types.js";
 
 export interface CsvParseResult {
   items: RegularItem[];

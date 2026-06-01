@@ -1,5 +1,5 @@
 import { put, list } from "@vercel/blob";
-import { GroceryItem, RegularItem, SyncMetadata, PriceData, ScrapeConfig } from "./types";
+import { GroceryItem, RegularItem, SyncMetadata, PriceData, ScrapeConfig } from "./types.js";
 import fs from "fs";
 import path from "path";
 
