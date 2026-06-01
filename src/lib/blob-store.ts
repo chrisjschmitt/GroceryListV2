@@ -72,6 +72,7 @@ async function writeBlob<T>(pathname: string, data: T): Promise<void> {
         await put(pathname, JSON.stringify(data), {
           access: "public",
           addRandomSuffix: false,
+          allowOverwrite: true,
           contentType: "application/json",
         });
         return;
@@ -81,6 +82,7 @@ async function writeBlob<T>(pathname: string, data: T): Promise<void> {
           await put(pathname, JSON.stringify(data), {
             access: "private",
             addRandomSuffix: false,
+            allowOverwrite: true,
             contentType: "application/json",
           });
           return;
@@ -131,6 +133,7 @@ export async function getBlobDiagnostics(): Promise<Record<string, any>> {
         await put(testPathname, JSON.stringify({ testedAt: Date.now() }), {
           access: "public",
           addRandomSuffix: false,
+          allowOverwrite: true,
           contentType: "application/json",
         });
       } catch (err: any) {
@@ -139,6 +142,7 @@ export async function getBlobDiagnostics(): Promise<Record<string, any>> {
           await put(testPathname, JSON.stringify({ testedAt: Date.now() }), {
             access: "private",
             addRandomSuffix: false,
+            allowOverwrite: true,
             contentType: "application/json",
           });
         } else {
