@@ -1,6 +1,20 @@
-import React, { useRef, useState, useCallback } from "react";
+import React, { useRef, useState, useCallback, useEffect } from "react";
 import Link from "@/components/Link";
-import { RegularItem, PriceEntry } from "@/lib/types";
+import { RegularItem, PriceEntry, ScrapeConfig } from "@/lib/types";
+import { 
+  Search, 
+  X, 
+  ExternalLink, 
+  Save, 
+  Link as LinkIcon, 
+  DollarSign, 
+  Check, 
+  Globe, 
+  HelpCircle,
+  Plus,
+  Trash2,
+  Clipboard
+} from "lucide-react";
 
 interface RegularItemsListProps {
   items: RegularItem[];
@@ -42,6 +56,200 @@ export default function RegularItemsList({
   const longPressTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
+
+  // Price Checker & Lookup states
+  const [scrapeConfig, setScrapeConfig] = useState<ScrapeConfig | null>(null);
+  const [activePriceCheckItem, setActivePriceCheckItem] = useState<RegularItem | null>(null);
+  const [modalUrl, setModalUrl] = useState("");
+  const [modalUpc, setModalUpc] = useState("");
+  const [modalSuccessMsg, setModalSuccessMsg] = useState<string | null>(null);
+
+  useEffect(() => {
+    async function loadScrapeConfig() {
+      try {
+        const res = await fetch("/api/scrape-config");
+        if (res.ok) {
+          const data = await res.json();
+          setScrapeConfig(data);
+        }
+      } catch (err) {
+        console.warn("Failed to load scrape config in RegularItemsList", err);
+      }
+    }
+    loadScrapeConfig();
+  }, []);
+
+  const handleOpenPriceCheck = (item: RegularItem) => {
+    setActivePriceCheckItem(item);
+    setModalSuccessMsg(null);
+    if (scrapeConfig?.items) {
+      const match = scrapeConfig.items.find(
+        (sc: any) => sc.name.toLowerCase() === item.name.toLowerCase()
+      );
+      if (match?.stores?.foodbasics) {
+        setModalUrl(match.stores.foodbasics.url || "");
+        setModalUpc(match.stores.foodbasics.upc || "");
+        return;
+      }
+    }
+    setModalUrl("");
+    setModalUpc("");
+  };
+
+  const showModalSuccessMessage = (msg: string) => {
+    setModalSuccessMsg(msg);
+    setTimeout(() => setModalSuccessMsg(null), 3000);
+  };
+
+  const handleUrlChange = (val: string) => {
+    let cleanUrl = val.trim();
+    if (cleanUrl.includes("foodbasics.ca")) {
+      const questionIdx = cleanUrl.indexOf("?");
+      if (questionIdx !== -1) {
+        cleanUrl = cleanUrl.substring(0, questionIdx);
+      }
+    }
+    setModalUrl(cleanUrl);
+  };
+
+  const handlePasteFromClipboard = async () => {
+    try {
+      const text = await navigator.clipboard.readText();
+      if (text) {
+        let cleanUrl = text.trim();
+        if (cleanUrl.includes("foodbasics.ca")) {
+          const questionIdx = cleanUrl.indexOf("?");
+          if (questionIdx !== -1) {
+            cleanUrl = cleanUrl.substring(0, questionIdx);
+          }
+        }
+        setModalUrl(cleanUrl);
+        showModalSuccessMessage("Successfully pasted and cleaned URL!");
+      } else {
+        alert("Your clipboard appears to be empty.");
+      }
+    } catch (err) {
+      console.warn("Could not read from clipboard automatically", err);
+      alert("Direct clipboard reading is blocked/restricted by your browser. Please manual paste (Ctrl+V) directly into the field!");
+    }
+  };
+
+  const handleSearchAndCopyName = async () => {
+    if (!activePriceCheckItem) return;
+    try {
+      await navigator.clipboard.writeText(activePriceCheckItem.name);
+      showModalSuccessMessage(`"${activePriceCheckItem.name}" copied! Ready to paste into search.`);
+    } catch (err) {
+      console.warn("Could not write item name to clipboard", err);
+    }
+  };
+
+  const handleSavePriceCheckUrl = async (url: string, upcOverride: string) => {
+    if (!activePriceCheckItem) return;
+    const finalItemName = activePriceCheckItem.name;
+    const trimmedUrl = url.trim();
+
+    if (!trimmedUrl) {
+      alert("Please specify product page URL.");
+      return;
+    }
+
+    let config = scrapeConfig ? { ...scrapeConfig } : { stores: {}, items: [] };
+    if (!config.items) config.items = [];
+    if (!config.stores) config.stores = {};
+
+    if (!config.stores.foodbasics) {
+      config.stores.foodbasics = {
+        enabled: true,
+        store_name: "Food Basics",
+        base_url: "https://www.foodbasics.ca",
+        postal_code: "K7H3C6",
+        store_id: "7923194",
+      };
+    }
+
+    let upc = upcOverride.trim();
+    if (!upc) {
+      const match = trimmedUrl.match(/\/p\/(\d+)/);
+      upc = match ? match[1] : `manual-${Date.now()}`;
+    }
+
+    const storeKey = "foodbasics";
+
+    let existingItem = config.items.find(i => i.name.toLowerCase() === finalItemName.toLowerCase());
+    if (existingItem) {
+      existingItem.stores[storeKey] = {
+        url: trimmedUrl,
+        upc,
+      };
+    } else {
+      config.items.push({
+        name: finalItemName,
+        stores: {
+          [storeKey]: {
+            url: trimmedUrl,
+            upc,
+          }
+        }
+      });
+    }
+
+    try {
+      const res = await fetch("/api/scrape-config", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(config),
+      });
+      if (res.ok) {
+        setScrapeConfig(config);
+        showModalSuccessMessage("Saved scraper link successfully!");
+      } else {
+        alert("Failed to save scraper config.");
+      }
+    } catch (err) {
+      console.error("Failed to save scrape config", err);
+      alert("Failed to save scraper config.");
+    }
+  };
+
+  const handleDeletePriceCheckUrl = async () => {
+    if (!activePriceCheckItem || !scrapeConfig) return;
+    const finalItemName = activePriceCheckItem.name;
+
+    if (!confirm(`Are you sure you want to remove the price check link for "${finalItemName}"?`)) {
+      return;
+    }
+
+    const config = { ...scrapeConfig };
+    if (!config.items) config.items = [];
+
+    const itemConfig = config.items.find(i => i.name.toLowerCase() === finalItemName.toLowerCase());
+    if (itemConfig) {
+      delete itemConfig.stores.foodbasics;
+      if (Object.keys(itemConfig.stores).length === 0) {
+        config.items = config.items.filter(i => i.name.toLowerCase() !== finalItemName.toLowerCase());
+      }
+    }
+
+    try {
+      const res = await fetch("/api/scrape-config", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(config),
+      });
+      if (res.ok) {
+        setScrapeConfig(config);
+        showModalSuccessMessage("Price check link removed!");
+        setModalUrl("");
+        setModalUpc("");
+      } else {
+        alert("Failed to remove link config on the server.");
+      }
+    } catch (err) {
+      console.error("Failed to remove link config", err);
+      alert("Failed to remove link config.");
+    }
+  };
 
   const handleFile = async (file: File) => {
     if (!file.name.endsWith(".csv")) {
@@ -223,6 +431,9 @@ export default function RegularItemsList({
                 {categoryItems.map((item) => {
                   const inList = alreadyInList.has(item.name.toLowerCase());
                   const isEditing = editState?.type === "edit" && editState.itemId === item.id;
+                  const hasPriceLink = !!(scrapeConfig?.items?.some(
+                    (sc: any) => sc.name.toLowerCase() === item.name.toLowerCase() && sc.stores?.foodbasics?.url
+                  ));
 
                   if (isEditing) {
                     return (
@@ -241,7 +452,7 @@ export default function RegularItemsList({
                   }
 
                   return (
-                    <div key={item.id} className="relative">
+                    <div key={item.id} className="flex gap-1.5 items-stretch relative">
                       <button
                         onClick={() => handleTap(item)}
                         onMouseDown={allowCrud ? () => handleLongPressStart(item) : undefined}
@@ -253,7 +464,7 @@ export default function RegularItemsList({
                           e.preventDefault();
                           setContextMenu({ id: item.id, name: item.name });
                         } : undefined}
-                        className={`w-full flex items-center gap-2.5 px-3 py-2 border-2 border-black text-left text-sm transition-all ${
+                        className={`flex-1 flex items-center gap-2.5 px-3 py-2 border-2 border-black text-left text-sm transition-all ${
                           inList
                             ? "bg-emerald-50 text-emerald-800 shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] hover:bg-rose-50 hover:text-rose-600 hover:border-rose-600"
                             : "bg-white text-gray-800 shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] hover:shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] hover:-translate-x-[2px] hover:-translate-y-[2px]"
@@ -290,6 +501,21 @@ export default function RegularItemsList({
                         {inList && !priceLookup.get(item.name.toLowerCase()) && (
                           <span className="ml-auto text-[10px] font-black uppercase text-emerald-600">✔ in list</span>
                         )}
+                      </button>
+
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleOpenPriceCheck(item);
+                        }}
+                        className={`flex-shrink-0 w-10 border-2 border-black flex items-center justify-center transition-all ${
+                          hasPriceLink
+                            ? "bg-emerald-500 text-white hover:bg-emerald-600 shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] hover:shadow-none hover:translate-x-[1px] hover:translate-y-[1px]"
+                            : "bg-white text-gray-400 hover:text-black hover:bg-emerald-50 shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] hover:shadow-none hover:translate-x-[1px] hover:translate-y-[1px]"
+                        }`}
+                        title={hasPriceLink ? `Edit price check for "${item.name}" (active link)` : `Configure/lookup price check for "${item.name}"`}
+                      >
+                        <DollarSign className="w-4 h-4" />
                       </button>
 
                       {contextMenu?.id === item.id && (
@@ -330,6 +556,150 @@ export default function RegularItemsList({
             </div>
           ))}
       </div>
+
+      {/* Price Check Setup & Lookup Dialog Modal */}
+      {activePriceCheckItem && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-xs animate-fade-in">
+          <div 
+            className="bg-white border-4 border-black p-6 w-full max-w-lg shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] md:p-8 relative text-[#111827]"
+            role="dialog"
+            aria-modal="true"
+          >
+            {/* Modal Close Button */}
+            <button
+              onClick={() => setActivePriceCheckItem(null)}
+              className="absolute right-4 top-4 bg-white hover:bg-gray-100 border-2 border-black p-1 hover:translate-x-[1px] hover:translate-y-[1px] shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] hover:shadow-none transition-all"
+              aria-label="Close dialog"
+            >
+              <X className="w-4 h-4 text-black" />
+            </button>
+
+            {/* Modal Header */}
+            <div className="mb-6 flex items-start gap-3">
+              <div className="bg-emerald-100 border-2 border-black p-2 shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] flex-shrink-0">
+                <DollarSign className="w-5 h-5 text-emerald-800" />
+              </div>
+              <div>
+                <span className="text-[10px] font-black uppercase text-emerald-700 tracking-wider block mb-0.5">Price Checking Assistant</span>
+                <h3 className="text-2xl font-black uppercase tracking-tight leading-none text-black break-all">
+                  {activePriceCheckItem.name}
+                </h3>
+              </div>
+            </div>
+
+            {/* Modal Inner Alert Toast */}
+            {modalSuccessMsg && (
+              <div className="mb-4 bg-black text-emerald-400 border-2 border-emerald-400 p-2.5 shadow-[3px_3px_0px_0px_rgba(5,150,105,0.3)] flex items-center gap-2 text-xs font-extrabold animate-bounce">
+                <Check className="w-4 h-4 text-emerald-400 flex-shrink-0" />
+                <span>{modalSuccessMsg}</span>
+              </div>
+            )}
+
+            <div className="space-y-4">
+              {/* 1. Store Selector */}
+              <div>
+                <label className="text-xs font-black uppercase block mb-1 text-black">Target Grocery Store</label>
+                <select
+                  disabled
+                  className="w-full px-3 py-2 text-xs border-2 border-black bg-gray-100 font-bold text-gray-650 focus:outline-none cursor-not-allowed text-black"
+                  title="Currently, price check automation scripts are configured specifically for Food Basics."
+                >
+                  <option value="foodbasics">Food Basics (Active & Monitored)</option>
+                  <option value="metro">Metro (Coming soon...)</option>
+                  <option value="loblaws">Loblaws (Coming soon...)</option>
+                  <option value="nofrills">No Frills (Coming soon...)</option>
+                </select>
+                <span className="text-[9px] text-[#4b5563] font-bold block mt-1">
+                  ℹ Currently, price check scripts run specifically on Food Basics. Metro and Loblaws can be configured upon request.
+                </span>
+              </div>
+
+              {/* 2. Direct Lookup Search Helper */}
+              <div className="bg-emerald-50/50 border-2 border-black p-3 space-y-1.5 shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]">
+                <span className="text-[10px] uppercase font-black text-emerald-950 block flex items-center gap-1">
+                  <Search className="w-3 h-3" /> Live Price & URL Lookup Helper
+                </span>
+                <p className="text-[11px] text-emerald-950 leading-tight">
+                  Click below to find the product page on Food Basics. This will automatically copy the item name to your clipboard for search.
+                </p>
+                <a
+                  href={`https://www.foodbasics.ca/search?searchItem=${encodeURIComponent(activePriceCheckItem.name)}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  onClick={handleSearchAndCopyName}
+                  className="w-full inline-flex items-center justify-center gap-1.5 py-1.5 text-xs font-black uppercase bg-[#059669] hover:bg-emerald-700 text-white border-2 border-black shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] hover:shadow-none hover:translate-x-[1px] hover:translate-y-[1px] transition-colors font-bold"
+                >
+                  <ExternalLink className="w-3.5 h-3.5" /> Search Food Basics (Auto-Copies Name)
+                </a>
+              </div>
+
+              {/* 3. Paste Direct Product URL */}
+              <div>
+                <label className="text-xs font-black uppercase block mb-1 text-black">Direct Product URL (Required for automated script)</label>
+                <div className="flex gap-1.5">
+                  <input
+                    type="url"
+                    placeholder="Paste Food Basics product detail link..."
+                    value={modalUrl}
+                    onChange={(e) => handleUrlChange(e.target.value)}
+                    className="flex-1 px-3 py-2 text-xs border-2 border-black bg-white focus:outline-none font-bold text-black shadow-[1px_1px_0px_0px_rgba(0,0,0,1)]"
+                  />
+                  <button
+                    type="button"
+                    onClick={handlePasteFromClipboard}
+                    className="px-3 bg-gray-100 hover:bg-emerald-50 text-black hover:text-emerald-800 border-2 border-black font-black uppercase text-[10px] tracking-wider transition-all flex items-center gap-1 shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] hover:shadow-none hover:translate-x-[1px] hover:translate-y-[1px]"
+                    title="Click to automatically paste and cleanse URL from your clipboard"
+                  >
+                    <Clipboard className="w-3.5 h-3.5 text-emerald-700" /> Paste URL
+                  </button>
+                </div>
+                <span className="text-[9px] text-gray-500 block mt-1.5">
+                  💡 Tip: Any URL pasted or typed is auto-cleaned of tracking queries on the fly!
+                </span>
+              </div>
+
+              {/* 4. Optional UPC code override */}
+              <div>
+                <label className="text-xs font-bold uppercase block mb-1 text-gray-550">ID / UPC Override (Optional)</label>
+                <input
+                  type="text"
+                  placeholder="Will auto-parse from URL if left empty"
+                  value={modalUpc}
+                  onChange={(e) => setModalUpc(e.target.value)}
+                  className="w-full px-3 py-2 text-xs border-2 border-black bg-white focus:outline-none font-bold text-black"
+                />
+              </div>
+
+              {/* Controls Row */}
+              <div className="flex flex-col sm:flex-row gap-2 pt-3 border-t-2 border-black">
+                <button
+                  onClick={() => handleSavePriceCheckUrl(modalUrl, modalUpc)}
+                  disabled={!modalUrl.trim()}
+                  className="flex-1 py-1.5 text-xs bg-black text-white hover:bg-[#059669] border-2 border-black font-black uppercase tracking-wider disabled:opacity-40 disabled:cursor-not-allowed transition-colors text-center inline-flex items-center justify-center gap-1 shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] hover:shadow-none hover:translate-x-[1px] hover:translate-y-[1px]"
+                >
+                  <Save className="w-3.5 h-3.5" /> Save to Script
+                </button>
+
+                {scrapeConfig?.items?.some((sc: any) => sc.name.toLowerCase() === activePriceCheckItem.name.toLowerCase() && sc.stores?.foodbasics?.url) && (
+                  <button
+                    onClick={handleDeletePriceCheckUrl}
+                    className="py-1.5 px-3 text-xs bg-white text-red-655 hover:bg-red-50 border-2 border-black text-red-600 font-black uppercase tracking-wider transition-colors inline-flex items-center justify-center gap-1 shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] hover:shadow-none hover:translate-x-[1px] hover:translate-y-[1px]"
+                  >
+                    <Trash2 className="w-3.5 h-3.5 text-red-600" /> Delete URL
+                  </button>
+                )}
+
+                <button
+                  onClick={() => setActivePriceCheckItem(null)}
+                  className="py-1.5 px-4 text-xs bg-white text-black hover:bg-gray-100 border-2 border-black font-black uppercase tracking-wider transition-colors text-center shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] hover:shadow-none hover:translate-x-[1px] hover:translate-y-[1px]"
+                >
+                  Close
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
