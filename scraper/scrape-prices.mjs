@@ -21,9 +21,32 @@ const TELEMETRY_FILE = path.join(process.cwd(), "telemetry.json");
 const NAVIGATION_TIMEOUT = 35_000;
 const SELECTOR_TIMEOUT = 12_000;
 
-// APP_URL defaults to localhost:3000 to offer exceptional out-of-the-box local testing capabilities
-const APP_URL = process.env.APP_URL || "http://localhost:3000";
+// APP_URL defaults to 127.0.0.1:3000 to offer exceptional out-of-the-box local testing capabilities
+const APP_URL = process.env.APP_URL || "http://127.0.0.1:3000";
 const SCRAPER_API_KEY = process.env.SCRAPER_API_KEY || "dev-secret-key";
+
+// ── App Endpoint Request Wrapper ────────────────────────────────────
+
+async function fetchFromApp(apiPath, fetchOptions = {}) {
+  // Always try 127.0.0.1:3000 first inside the sandboxed builder environment, then fall back to APP_URL
+  const urlsToTry = ["http://127.0.0.1:3000", APP_URL];
+  const uniqueUrls = [...new Set(urlsToTry)].filter(Boolean);
+
+  let lastError = null;
+  for (const baseUrl of uniqueUrls) {
+    const fullUrl = `${baseUrl.replace(/\/$/, "")}${apiPath}`;
+    try {
+      const res = await fetch(fullUrl, fetchOptions);
+      if (res.ok) {
+        return res;
+      }
+      lastError = new Error(`HTTP ${res.status}: ${res.statusText}`);
+    } catch (err) {
+      lastError = err;
+    }
+  }
+  throw lastError || new Error(`Failed to fetch ${apiPath} from app`);
+}
 
 // ── Telemetry & Unified Logging Sink ────────────────────────────────
 
@@ -57,7 +80,7 @@ async function logTelemetry({ store_key, upc, item_config_name, error_phase, err
 
   // 2. Post metadata telemetry to `/api/ScapeLogging` endpoint
   try {
-    const res = await fetch(`${APP_URL}/api/ScapeLogging`, {
+    const res = await fetchFromApp("/api/ScapeLogging", {
       method: "PUT",
       headers: {
         "Content-Type": "application/json",
@@ -76,18 +99,16 @@ async function logTelemetry({ store_key, upc, item_config_name, error_phase, err
 // ── Configuration Loader ──────────────────────────────────────────
 
 async function loadConfig() {
-  // First attempt: Remote retrieval
+  // First attempt: Remote retrieval via loopback/API
   try {
-    const res = await fetch(`${APP_URL}/api/scrape-config`);
-    if (res.ok) {
-      const config = await res.json();
-      if (config && config.stores && Object.keys(config.stores).length > 0) {
-        console.log("▶ Config loaded successfully from App API.");
-        return config;
-      }
+    const res = await fetchFromApp("/api/scrape-config");
+    const config = await res.json();
+    if (config && config.stores && Object.keys(config.stores).length > 0) {
+      console.log("▶ Config loaded successfully from App API.");
+      return config;
     }
-  } catch {
-    console.log("▶ App endpoint unreachable, falling back to local configurations.");
+  } catch (err) {
+    console.log(`▶ App endpoint fetch bypass (Details: ${err.message}), falling back to local configurations.`);
   }
 
   // Second attempt: scrape-config.json
@@ -314,7 +335,7 @@ async function savePricesLocal(data) {
 
 async function uploadToApp(data) {
   try {
-    const res = await fetch(`${APP_URL}/api/prices`, {
+    const res = await fetchFromApp("/api/prices", {
       method: "PUT",
       headers: {
         "Content-Type": "application/json",
