@@ -35,7 +35,14 @@ async function readBlob<T>(pathname: string, fallback: T): Promise<T> {
       const blob = blobs.find((b) => normalize(b.pathname) === targetPath);
       if (!blob) return fallback;
 
-      const response = await fetch(blob.url);
+      let response = await fetch(blob.url);
+      if (!response.ok && process.env.BLOB_READ_WRITE_TOKEN) {
+        response = await fetch(blob.url, {
+          headers: {
+            Authorization: `Bearer ${process.env.BLOB_READ_WRITE_TOKEN}`,
+          },
+        });
+      }
       if (!response.ok) return fallback;
       const text = await response.text();
       return JSON.parse(text) as T;
@@ -61,12 +68,25 @@ async function readBlob<T>(pathname: string, fallback: T): Promise<T> {
 async function writeBlob<T>(pathname: string, data: T): Promise<void> {
   if (hasVercelBlob()) {
     try {
-      await put(pathname, JSON.stringify(data), {
-        access: "public",
-        addRandomSuffix: false,
-        contentType: "application/json",
-      });
-      return;
+      try {
+        await put(pathname, JSON.stringify(data), {
+          access: "public",
+          addRandomSuffix: false,
+          contentType: "application/json",
+        });
+        return;
+      } catch (err: any) {
+        const errMsg = String(err?.message || err || "").toLowerCase();
+        if (errMsg.includes("private store") || errMsg.includes("private access") || errMsg.includes("private")) {
+          await put(pathname, JSON.stringify(data), {
+            access: "private",
+            addRandomSuffix: false,
+            contentType: "application/json",
+          });
+          return;
+        }
+        throw err;
+      }
     } catch (err) {
       console.warn("Vercel Blob write error, writing locally instead. Details:", err);
     }
@@ -107,11 +127,24 @@ export async function getBlobDiagnostics(): Promise<Record<string, any>> {
 
     try {
       const testPathname = "grocerylist/diagnostics-test.json";
-      await put(testPathname, JSON.stringify({ testedAt: Date.now() }), {
-        access: "public",
-        addRandomSuffix: false,
-        contentType: "application/json",
-      });
+      try {
+        await put(testPathname, JSON.stringify({ testedAt: Date.now() }), {
+          access: "public",
+          addRandomSuffix: false,
+          contentType: "application/json",
+        });
+      } catch (err: any) {
+        const errMsg = String(err?.message || err || "").toLowerCase();
+        if (errMsg.includes("private store") || errMsg.includes("private access") || errMsg.includes("private")) {
+          await put(testPathname, JSON.stringify({ testedAt: Date.now() }), {
+            access: "private",
+            addRandomSuffix: false,
+            contentType: "application/json",
+          });
+        } else {
+          throw err;
+        }
+      }
       diagnostics.blobWriteSuccess = true;
     } catch (err: any) {
       diagnostics.blobWriteSuccess = false;
