@@ -130,9 +130,12 @@ async function loadConfig() {
 
 // ── Stealth Browser Bootstrap ──────────────────────────────────────
 
-async function createBrowser() {
+async function createPersistentContext() {
   const headlessMode = process.env.HEADLESS !== "false";
-  const browser = await chromium.launch({
+  const userDataDir = path.join(process.cwd(), "browser-profile");
+  console.log(`▶ Bootstrapping persistent browser context with data directory: "${userDataDir}"`);
+
+  const context = await chromium.launchPersistentContext(userDataDir, {
     headless: headlessMode,
     args: [
       "--disable-blink-features=AutomationControlled",
@@ -140,13 +143,18 @@ async function createBrowser() {
       "--disable-dev-shm-usage",
       "--disable-web-security"
     ],
+    userAgent:
+      "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36",
+    viewport: { width: 1366, height: 768 },
+    locale: "en-CA",
+    timezoneId: "America/Toronto",
   });
-  return browser;
+  return context;
 }
 
 // ── Food Basics Scraping Module ───────────────────────────────────
 
-async function scrapeFoodBasics(browser, storeConfig, configItems) {
+async function scrapeFoodBasics(context, storeConfig, configItems) {
   const { store_id, postal_code, store_name, base_url } = storeConfig;
   const results = {};
 
@@ -168,18 +176,10 @@ async function scrapeFoodBasics(browser, storeConfig, configItems) {
     while (attempts < 3 && !ok) {
       attempts++;
       
-      let context = null;
       let page = null;
       
       try {
-        console.log(`  └ Creating fresh insulated browser context (Attempt ${attempts}/3)...`);
-        context = await browser.newContext({
-          userAgent:
-            "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36",
-          viewport: { width: 1366, height: 768 },
-          locale: "en-CA",
-          timezoneId: "America/Toronto",
-        });
+        console.log(`  └ Opening new page on persistent browser context (Attempt ${attempts}/3)...`);
 
         // Set store cookies on the context level
         const domain = new URL(base_url).hostname;
@@ -193,11 +193,56 @@ async function scrapeFoodBasics(browser, storeConfig, configItems) {
         await context.addCookies([
           { name: "storeId", value: store_id, domain: cookieDomain, path: "/" },
           { name: "selectedStoreId", value: store_id, domain: cookieDomain, path: "/" },
+          { name: "OptanonConsent", value: "isIABGlobal=false&datashare=true&groups=C0001%3A1%2CC0002%3A1%2CC0003%3A1%2CC0004%3A1", domain: cookieDomain, path: "/" },
+          { name: "OptanonAlertBoxClosed", value: new Date().toISOString(), domain: cookieDomain, path: "/" },
         ]);
 
         page = await context.newPage();
         await page.addInitScript(() => {
           Object.defineProperty(navigator, "webdriver", { get: () => false });
+          
+          // Pre-inject cookie bypass properties check for OneTrust so JS-level queries block
+          window.OnetrustActiveGroups = ",C0001,C0002,C0003,C0004,";
+          
+          // Inject stylesheet immediately onto documentElement so it applies before DOMContentLoaded or scripts
+          const style = document.createElement('style');
+          style.innerHTML = `
+            #onetrust-consent-sdk,
+            #onetrust-banner-sdk,
+            .onetrust-pc-sdk,
+            #onetrust-pc-sdk,
+            .ot-sdk-container,
+            #onetrust-button-group-parent,
+            #onetrust-close-btn-container,
+            .remodal-overlay,
+            .remodal-wrapper,
+            .remodal,
+            #newsletter-popup-container,
+            .newsletter-box-wrapper,
+            .store-selector,
+            .login-side-panel,
+            .mini-cart-side-panel,
+            .st_panel,
+            .replaceMePlease,
+            .modal-add-to-cart-other-flavours,
+            #cartGeniusModal {
+              display: none !important;
+              visibility: hidden !important;
+              opacity: 0 !important;
+              pointer-events: none !important;
+              height: 0 !important;
+              max-height: 0 !important;
+              width: 0 !important;
+              max-width: 0 !important;
+              z-index: -9999 !important;
+              position: absolute !important;
+              top: -9999px !important;
+              left: -9999px !important;
+            }
+          `;
+          if (document.documentElement) {
+            document.documentElement.appendChild(style);
+          }
         });
 
         // 1. Initial warm-up routing to the home page to let cookies register
@@ -207,6 +252,7 @@ async function scrapeFoodBasics(browser, storeConfig, configItems) {
           timeout: NAVIGATION_TIMEOUT,
         });
         await waitForChallenge(page);
+        await acceptCookiesIfPresent(page);
         await page.waitForTimeout(1000);
 
         // 2. Direct navigation to the product detail URL
@@ -216,6 +262,7 @@ async function scrapeFoodBasics(browser, storeConfig, configItems) {
           timeout: NAVIGATION_TIMEOUT,
         });
         await waitForChallenge(page);
+        await acceptCookiesIfPresent(page);
         await page.waitForTimeout(3000); // 3 seconds stable paint transition
 
         // 3. Locate interactive nodes (Wait for VISIBLE state, not attached!)
@@ -297,6 +344,37 @@ async function scrapeFoodBasics(browser, storeConfig, configItems) {
         ok = true;
       } catch (err) {
         console.error(`  └ Attempt failed: ${err.message}`);
+        
+        // Take diagnostic measures - dump screenshot and HTML source to workspace
+        if (page) {
+          try {
+            const fs = await import("fs/promises");
+            await fs.mkdir("./debug-screenshots", { recursive: true }).catch(() => {});
+            
+            const sanitizedLabel = item.name.replace(/[^a-zA-Z0-9]/g, "_").toLowerCase();
+            const screenshotName = `failed_${sanitizedLabel}_item_attempt_${attempts}.png`;
+            const htmlName = `failed_${sanitizedLabel}_item_attempt_${attempts}.html`;
+            
+            const screenshotPath = path.join(process.cwd(), "debug-screenshots", screenshotName);
+            const htmlPath = path.join(process.cwd(), "debug-screenshots", htmlName);
+            
+            await page.screenshot({ path: screenshotPath, fullPage: true }).catch(() => {});
+            const rawHtml = await page.content().catch(() => "");
+            await fs.writeFile(htmlPath, rawHtml, "utf-8").catch(() => {});
+            
+            console.log(`  └ 📸 Diagnostic screenshot captured: ${screenshotPath}`);
+            console.log(`  └ 📄 Diagnostic page HTML source dump saved: ${htmlPath}`);
+
+            // Inspect page text for anti-bot indicators
+            const lowerHtml = rawHtml.toLowerCase();
+            if (lowerHtml.includes("cloudflare") || lowerHtml.includes("turnstile") || lowerHtml.includes("security check") || lowerHtml.includes("attention required") || lowerHtml.includes("checking if the site connection is secure")) {
+              console.warn(`  └ ⚠️ ALERT: Detected Bot Counter-measures on page! The request/IP was blocked or restricted by Cloudflare.`);
+            }
+          } catch (diagnosticErr) {
+            console.warn(`  └ Could not compile diagnostic screenshots: ${diagnosticErr.message}`);
+          }
+        }
+
         if (attempts >= 3) {
           await logTelemetry({
             store_key: "foodbasics",
@@ -308,8 +386,8 @@ async function scrapeFoodBasics(browser, storeConfig, configItems) {
           });
         }
       } finally {
-        if (context) {
-          await context.close().catch(() => {});
+        if (page) {
+          await page.close().catch(() => {});
         }
       }
     }
@@ -378,6 +456,76 @@ async function uploadToApp(data) {
 
 // ── Low Level Browser Guards ────────────────────────────────────────
 
+async function acceptCookiesIfPresent(page) {
+  try {
+    // Dynamically inject a CSS stylesheet to force hide the cookie consent overlay
+    await page.addStyleTag({
+      content: `
+        #onetrust-consent-sdk,
+        #onetrust-banner-sdk,
+        .onetrust-pc-sdk,
+        #onetrust-pc-sdk,
+        .ot-sdk-container,
+        #onetrust-button-group-parent,
+        #onetrust-close-btn-container,
+        .remodal-overlay,
+        .remodal-wrapper,
+        .remodal,
+        #newsletter-popup-container,
+        .newsletter-box-wrapper,
+        .store-selector,
+        .login-side-panel,
+        .mini-cart-side-panel,
+        .st_panel,
+        .replaceMePlease,
+        .modal-add-to-cart-other-flavours,
+        #cartGeniusModal {
+          display: none !important;
+          visibility: hidden !important;
+          opacity: 0 !important;
+          pointer-events: none !important;
+          height: 0 !important;
+          max-height: 0 !important;
+          width: 0 !important;
+          max-width: 0 !important;
+          z-index: -9999 !important;
+          position: absolute !important;
+          top: -9999px !important;
+          left: -9999px !important;
+        }
+      `
+    }).catch(() => {});
+
+    const selectors = [
+      "#onetrust-accept-btn-handler",
+      "#onetrust-reject-all-handler",
+      ".ot-pc-refuse-all-handler",
+      "#close-pc-btn-handler",
+      ".onetrust-close-btn-handler",
+      "#accept-recommended-btn-handler",
+    ];
+
+    for (let attempt = 0; attempt < 3; attempt++) {
+      let clicked = false;
+      for (const selector of selectors) {
+        const locator = page.locator(selector).first();
+        if ((await locator.count()) > 0 && (await locator.isVisible())) {
+          console.log(`  └ Detected visible cookie/OneTrust element: "${selector}". Performing force click...`);
+          await locator.click({ timeout: 2000, force: true }).catch(() => {});
+          await page.waitForTimeout(1000);
+          clicked = true;
+          break;
+        }
+      }
+      if (!clicked) {
+        break;
+      }
+    }
+  } catch (err) {
+    console.warn(`  └ Cookie consent handler warning: ${err.message}`);
+  }
+}
+
 async function waitForChallenge(page) {
   const maxLimit = 15_000;
   const start = Date.now();
@@ -426,13 +574,45 @@ function parsePrice(text) {
 // ── Orchestration Loop ─────────────────────────────────────────────
 
 async function main() {
+  const args = process.argv.slice(2);
+  const testUrlIndex = args.indexOf("--test-url");
+  const testUrl = testUrlIndex !== -1 ? args[testUrlIndex + 1] : null;
+  const limitIndex = args.indexOf("--limit");
+  const limit = limitIndex !== -1 ? parseInt(args[limitIndex + 1], 10) : null;
+
   let config;
-  try {
-    config = await loadConfig();
-  } catch (err) {
-    console.error(`✗ Config failure: ${err.message}`);
-    process.exitCode = 1;
-    return;
+  if (testUrl) {
+    console.log(`\n🧪 TESTMODE ACTIVE: Diagnostics requested for single product URL: ${testUrl}`);
+    config = {
+      stores: {
+        foodbasics: {
+          enabled: true,
+          store_name: "Food Basics Test Store",
+          base_url: "https://www.foodbasics.ca",
+          postal_code: "K7H3C6",
+          store_id: "7923194"
+        }
+      },
+      items: [
+        {
+          name: "Url Diagnostic Target",
+          stores: {
+            foodbasics: {
+              url: testUrl,
+              upc: `test_single_${Date.now()}`
+            }
+          }
+        }
+      ]
+    };
+  } else {
+    try {
+      config = await loadConfig();
+    } catch (err) {
+      console.error(`✗ Config failure: ${err.message}`);
+      process.exitCode = 1;
+      return;
+    }
   }
 
   const activeStores = Object.entries(config.stores || {}).filter(([, details]) => details.enabled);
@@ -443,9 +623,16 @@ async function main() {
 
   console.log("=================================================");
   console.log("◀ Starting Grocery Scraper Execution Pipeline ◀");
+  if (testUrl) {
+    console.log("◀ Mode: SINGLE PRODUCT TEST RUNNER               ◀");
+  } else if (limit) {
+    console.log(`◀ Mode: LIMIT WORKLOAD TO FIRST ${limit} ITEMS       ◀`);
+  } else {
+    console.log("◀ Mode: GENERAL FULL HARVEST SYNC                ◀");
+  }
   console.log("=================================================");
 
-  const browser = await createBrowser();
+  const context = await createPersistentContext();
   let accumulatedPrices = await loadExistingPrices();
 
   try {
@@ -482,9 +669,15 @@ async function main() {
         continue;
       }
 
+      let finalStoreItems = mappedStoreItems;
+      if (limit && limit > 0) {
+        finalStoreItems = mappedStoreItems.slice(0, limit);
+        console.log(`💡 Sliced harvest queue: Limited to first ${limit} elements via --limit option.`);
+      }
+
       let runResultData = {};
       if (storeKey === "foodbasics") {
-        runResultData = await scrapeFoodBasics(browser, storeDetails, mappedStoreItems);
+        runResultData = await scrapeFoodBasics(context, storeDetails, finalStoreItems);
       } else {
         console.log(` Handling for Store: "${storeKey}" not currently implemented. Skipping.`);
         continue;
@@ -509,7 +702,7 @@ async function main() {
     });
     process.exitCode = 1;
   } finally {
-    await browser.close();
+    await context.close().catch(() => {});
   }
 }
 

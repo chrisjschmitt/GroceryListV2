@@ -306,7 +306,51 @@ export function migrateScrapeConfig(config: any): ScrapeConfig {
 }
 
 export async function blobGetScrapeConfig(): Promise<ScrapeConfig> {
-  const config = await readBlob<any>(SCRAPE_CONFIG_BLOB, { stores: {} });
+  let config = await readBlob<any>(SCRAPE_CONFIG_BLOB, null);
+  if (!config || !config.items || config.items.length === 0) {
+    // Attempt to seed from local cached prices to prevent empty config states on restart
+    console.log("Empty scrape configuration detected. Attempting to seed from grocerylist-prices.json...");
+    try {
+      const prices = await readBlob<Record<string, any>>(PRICES_BLOB, {});
+      const itemsList: any[] = [];
+      for (const [upc, p] of Object.entries(prices)) {
+        if (p && typeof p === "object" && (p as any).lookup_url && (p as any).config_name) {
+          itemsList.push({
+            name: (p as any).config_name,
+            stores: {
+              foodbasics: {
+                url: (p as any).lookup_url,
+                upc: upc
+              }
+            }
+          });
+        }
+      }
+      if (itemsList.length > 0) {
+        config = {
+          stores: {
+            foodbasics: {
+              enabled: true,
+              store_name: "Food Basics",
+              base_url: "https://www.foodbasics.ca",
+              postal_code: "K7H3C6",
+              store_id: "7923194",
+            }
+          },
+          items: itemsList
+        };
+        // Save back so it persists on subsequent re-runs and API gets
+        await writeBlob(SCRAPE_CONFIG_BLOB, config);
+        console.log(`Seeded ${itemsList.length} items to scrape-config from history cache!`);
+      }
+    } catch (err) {
+      console.error("Failed to seed scrape config from prices cache:", err);
+    }
+  }
+  
+  if (!config) {
+    config = { stores: {} };
+  }
   return migrateScrapeConfig(config);
 }
 
