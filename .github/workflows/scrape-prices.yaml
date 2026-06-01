@@ -1,0 +1,51 @@
+name: Scheduled Grocery Price Scraper
+
+on:
+  schedule:
+    # Run once a day at 6:00 AM UTC (2:00 AM EST)
+    - cron: '0 6 * * *'
+  workflow_dispatch: # Allows manual pipeline run from GitHub UI
+
+jobs:
+  scrape:
+    name: Crawl Grocery Prices
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci || npm install
+
+      - name: Install Playwright browsers and OS system dependencies
+        run: npx playwright install --with-deps chromium
+
+      - name: Run Scraper Engine
+        env:
+          APP_URL: ${{ secrets.APP_URL }}
+          SCRAPER_API_KEY: ${{ secrets.SCRAPER_API_KEY }}
+          HEADLESS: "true"
+        run: npm run scrape
+
+      - name: Check and push local pricing & telemetry overrides
+        run: |
+          git config --global user.name "github-actions[bot]"
+          git config --global user.email "github-actions[bot]@users.noreply.github.com"
+          
+          # Add output caches if they were modified locally
+          git add prices.json grocery_prices.json telemetry.json || true
+          
+          # If changes exist, commit and push them securely
+          if ! git diff --cached --exit-code; then
+            git commit -m "chore: auto-update local price & telemetry log caches [skip ci]"
+            git push
+          else
+            echo "No state cache changes detected."
+          fi
