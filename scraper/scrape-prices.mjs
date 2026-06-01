@@ -141,51 +141,13 @@ async function createBrowser() {
       "--disable-web-security"
     ],
   });
-
-  const context = await browser.newContext({
-    userAgent:
-      "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36",
-    viewport: { width: 1366, height: 768 },
-    locale: "en-CA",
-    timezoneId: "America/Toronto",
-  });
-
-  const page = await context.newPage();
-  await page.addInitScript(() => {
-    Object.defineProperty(navigator, "webdriver", { get: () => false });
-  });
-
-  return { browser, context, page };
+  return browser;
 }
 
 // ── Food Basics Scraping Module ───────────────────────────────────
 
-async function scrapeFoodBasics(page, context, storeConfig, configItems) {
+async function scrapeFoodBasics(browser, storeConfig, configItems) {
   const { store_id, postal_code, store_name, base_url } = storeConfig;
-
-  // Localization Phase
-  try {
-    const domain = new URL(base_url).hostname;
-    await context.addCookies([
-      { name: "storeId", value: store_id, domain: `.${domain}`, path: "/" },
-      { name: "selectedStoreId", value: store_id, domain: `.${domain}`, path: "/" },
-    ]);
-    console.log(`▶ localization: Anchored session to store ${store_id} (${postal_code})`);
-
-    await page.goto(base_url, {
-      waitUntil: "domcontentloaded",
-      timeout: NAVIGATION_TIMEOUT,
-    });
-    await waitForChallenge(page);
-  } catch (error) {
-    await logTelemetry({
-      store_key: "foodbasics",
-      error_phase: "localization",
-      error_message: error.stack || error.message,
-      message: `Failed during localization setup for store: ${store_name}. Trying to proceed anyway.`
-    });
-  }
-
   const results = {};
 
   for (const item of configItems) {
@@ -198,38 +160,56 @@ async function scrapeFoodBasics(page, context, storeConfig, configItems) {
     // Introduce randomized human-like delay before navigating to each subsequent item
     const itemIndex = configItems.indexOf(item);
     if (itemIndex > 0) {
-      const organicDelay = Math.floor(Math.random() * 4000) + 4000; // 4 to 8 seconds delay
+      const organicDelay = Math.floor(Math.random() * 3000) + 3000; // 3 to 6 seconds delay
       console.log(`  └ Human-emulation pacing: Cooling down for ${organicDelay}ms...`);
       await new Promise(r => setTimeout(r, organicDelay));
     }
 
     while (attempts < 3 && !ok) {
       attempts++;
+      
+      let context = null;
+      let page = null;
+      
       try {
-        if (attempts > 1) {
-          const backoffDelay = Math.floor(Math.random() * 4000) + 3000; // randomized backoff 3-7 seconds
-          console.log(`  └ Retry ${attempts}/3: Cooling down for ${backoffDelay}ms before recreation...`);
-          await new Promise((r) => setTimeout(r, backoffDelay));
+        console.log(`  └ Creating fresh insulated browser context (Attempt ${attempts}/3)...`);
+        context = await browser.newContext({
+          userAgent:
+            "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36",
+          viewport: { width: 1366, height: 768 },
+          locale: "en-CA",
+          timezoneId: "America/Toronto",
+        });
 
-          // Close original failed page, and initialize a completely fresh, fully warm localized page
-          try {
-            await page.close().catch(() => {});
-          } catch {}
-          
-          console.log("  └ Opening a new sterile browser tab...");
-          page = await context.newPage();
-          await page.addInitScript(() => {
-            Object.defineProperty(navigator, "webdriver", { get: () => false });
-          });
-
-          console.log("  └ Warm-routing/re-localizing on new page...");
-          await page.goto(base_url, {
-            waitUntil: "domcontentloaded",
-            timeout: NAVIGATION_TIMEOUT,
-          });
-          await waitForChallenge(page);
+        // Set store cookies on the context level
+        const domain = new URL(base_url).hostname;
+        let cookieDomain = domain;
+        if (domain.startsWith("www.")) {
+          cookieDomain = domain.substring(3); // e.g. .foodbasics.ca
+        } else if (!domain.startsWith(".")) {
+          cookieDomain = "." + domain;
         }
 
+        await context.addCookies([
+          { name: "storeId", value: store_id, domain: cookieDomain, path: "/" },
+          { name: "selectedStoreId", value: store_id, domain: cookieDomain, path: "/" },
+        ]);
+
+        page = await context.newPage();
+        await page.addInitScript(() => {
+          Object.defineProperty(navigator, "webdriver", { get: () => false });
+        });
+
+        // 1. Initial warm-up routing to the home page to let cookies register
+        console.log("  └ Warm-routing/localizing browser context...");
+        await page.goto(base_url, {
+          waitUntil: "domcontentloaded",
+          timeout: NAVIGATION_TIMEOUT,
+        });
+        await waitForChallenge(page);
+        await page.waitForTimeout(1000);
+
+        // 2. Direct navigation to the product detail URL
         console.log(`  └ Navigating directly to: ${item.url}`);
         await page.goto(item.url, {
           waitUntil: "domcontentloaded",
@@ -238,9 +218,9 @@ async function scrapeFoodBasics(page, context, storeConfig, configItems) {
         await waitForChallenge(page);
         await page.waitForTimeout(3000); // 3 seconds stable paint transition
 
-        // Locating interactive nodes: added standard itemprop price formats and typical retail CSS elements
+        // 3. Locate interactive nodes (Wait for VISIBLE state, not attached!)
         await page.locator(".pi--prices, .pi--price, .pricing__amount, [data-main-price], [itemprop='price'], .pricing__price, .price-update").first().waitFor({
-          state: "attached",
+          state: "visible",
           timeout: SELECTOR_TIMEOUT,
         });
 
@@ -279,7 +259,6 @@ async function scrapeFoodBasics(page, context, storeConfig, configItems) {
 
         // FALSE SALE GUARD check
         if (isOnSale) {
-          // If prices match exactly, it's a promotional banner but not discounted
           if (regularPrice === salePrice || !salePrice) {
             isOnSale = false;
             salePrice = null;
@@ -289,7 +268,6 @@ async function scrapeFoodBasics(page, context, storeConfig, configItems) {
         // VARIABLE-WEIGHT MEATS / PACKAGE UNIT PRICE PRIORITIZATION
         const secondaryPriceText = await safeText(page, ".pricing__secondary-price, .pricing__unit-price, .pi--unit-price, .pi--weight-avg-price");
         
-        // If there's weight vs ea display, prioritize unit prices
         if (secondaryPriceText && (secondaryPriceText.includes("avg") || secondaryPriceText.includes("ea") || secondaryPriceText.includes("/pkg") || secondaryPriceText.includes("piece"))) {
           const pkgPrice = parsePrice(secondaryPriceText);
           if (pkgPrice && pkgPrice > 0) {
@@ -318,6 +296,7 @@ async function scrapeFoodBasics(page, context, storeConfig, configItems) {
         console.log(`  └ Scraped: $${regularPrice?.toFixed(2) ?? "?"} reg → $${activeDisplay?.toFixed(2) ?? "?"} active${isOnSale ? " (SALE)" : ""}`);
         ok = true;
       } catch (err) {
+        console.error(`  └ Attempt failed: ${err.message}`);
         if (attempts >= 3) {
           await logTelemetry({
             store_key: "foodbasics",
@@ -327,6 +306,10 @@ async function scrapeFoodBasics(page, context, storeConfig, configItems) {
             error_message: err.stack || err.message,
             message: `Parsing failure for "${item.name}" (UPC: ${item.upc}): ${err.message}`
           });
+        }
+      } finally {
+        if (context) {
+          await context.close().catch(() => {});
         }
       }
     }
@@ -396,24 +379,29 @@ async function uploadToApp(data) {
 // ── Low Level Browser Guards ────────────────────────────────────────
 
 async function waitForChallenge(page) {
-  const maxLimit = 35_000;
+  const maxLimit = 15_000;
   const start = Date.now();
   
   while (Date.now() - start < maxLimit) {
-    const mainBody = await page.locator("body").textContent().catch(() => "");
-    const holdsChallenge =
-      mainBody?.includes("security verification") ||
-      mainBody?.includes("Performing security") ||
-      mainBody?.includes("Checking if the site connection is secure") ||
-      mainBody?.includes("Enable JavaScript and cookies to continue") ||
-      mainBody?.includes("cf-chl-widget");
+    try {
+      const mainHtml = await page.content().catch(() => "");
+      const holdsChallenge =
+        mainHtml?.includes("security verification") ||
+        mainHtml?.includes("Performing security") ||
+        mainHtml?.includes("Checking if the site connection is secure") ||
+        mainHtml?.includes("Enable JavaScript and cookies to continue") ||
+        mainHtml?.includes("cf-chl-widget") ||
+        mainHtml?.includes("Turnstile");
 
-    const holdsActualContent =
-      !holdsChallenge &&
-      mainBody &&
-      (mainBody.includes("Food Basics") || mainBody.includes("METRO") || mainBody.includes("Add to cart") || mainBody.includes("Search results") || mainBody.includes("Sign in"));
-
-    if (holdsActualContent) return;
+      if (!holdsChallenge) {
+        const mainBody = await page.locator("body").textContent().catch(() => "");
+        if (mainBody && mainBody.trim().length > 150) {
+          return;
+        }
+      }
+    } catch (err) {
+      // Ignore transient content reading errors during loading
+    }
     await page.waitForTimeout(1000);
   }
 }
@@ -457,7 +445,7 @@ async function main() {
   console.log("◀ Starting Grocery Scraper Execution Pipeline ◀");
   console.log("=================================================");
 
-  const { browser, context, page } = await createBrowser();
+  const browser = await createBrowser();
   let accumulatedPrices = await loadExistingPrices();
 
   try {
@@ -496,7 +484,7 @@ async function main() {
 
       let runResultData = {};
       if (storeKey === "foodbasics") {
-        runResultData = await scrapeFoodBasics(page, context, storeDetails, mappedStoreItems);
+        runResultData = await scrapeFoodBasics(browser, storeDetails, mappedStoreItems);
       } else {
         console.log(` Handling for Store: "${storeKey}" not currently implemented. Skipping.`);
         continue;
