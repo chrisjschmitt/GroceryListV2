@@ -139,40 +139,12 @@ export default function GroceryList() {
 
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
           {/* Grocery Items checklist */}
-          <section className="lg:col-span-7 bg-white border-2 border-black p-6 shadow-[6px_6px_0px_0px_rgba(0,0,0,1)]">
+          <section className="lg:col-span-7 order-2 lg:order-1 bg-white border-2 border-black p-6 shadow-[6px_6px_0px_0px_rgba(0,0,0,1)]">
             <div className="flex flex-wrap items-center justify-between gap-3 mb-6 pb-3 border-b-2 border-black">
               <h2 className="text-xl font-black uppercase tracking-tight flex items-center gap-2 text-black">
                 <span>📋</span>
                 <span>Item Catalog</span>
               </h2>
-              {shoppingListNames.size > 0 && (
-                <>
-                  {confirmUncheckAll ? (
-                    <div className="flex items-center gap-2 bg-red-50 border-2 border-[#991b1b] p-2 text-black">
-                      <span className="text-[10px] font-black text-[#991b1b] uppercase tracking-wide">Confirm clear?</span>
-                      <button
-                        onClick={handleUncheckAll}
-                        className="text-[9px] px-2 py-0.5 bg-red-600 text-white font-black uppercase border border-black hover:bg-rose-700 transition-colors"
-                      >
-                        Yes
-                      </button>
-                      <button
-                        onClick={() => setConfirmUncheckAll(false)}
-                        className="text-[9px] px-2 py-0.5 bg-white text-black font-black uppercase border border-black hover:bg-gray-100 transition-colors"
-                      >
-                        No
-                      </button>
-                    </div>
-                  ) : (
-                    <button
-                      onClick={handleUncheckAll}
-                      className="text-xs font-black uppercase tracking-wide bg-white hover:bg-rose-50 text-red-600 px-3 py-1.5 border-2 border-black shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] hover:shadow-none hover:translate-x-[2px] hover:translate-y-[2px] transition-all"
-                    >
-                      Clear Catalog
-                    </button>
-                  )}
-                </>
-              )}
             </div>
             <RegularItemsList
               items={store.regularItems}
@@ -187,22 +159,39 @@ export default function GroceryList() {
               allowCrud={false}
               prices={store.prices}
               onPricesUpdated={store.refreshFromServer}
+              hasPendingChanges={store.hasPendingChanges}
+              onSaveChanges={store.saveChanges}
             />
           </section>
 
           {/* Shopping List — sticky with bordered frame */}
-          <section className="lg:col-span-5 lg:sticky lg:top-4 bg-white border-2 border-black p-6 shadow-[6px_6px_0px_0px_rgba(0,0,0,1)]">
-            <div className="flex flex-col">
-              <div className="flex items-center justify-between mb-4 pb-3 border-b-2 border-black">
+          <section className="lg:col-span-5 lg:sticky lg:top-4 order-1 lg:order-2 bg-white border-2 border-black p-6 shadow-[6px_6px_0px_0px_rgba(0,0,0,1)] md:min-h-[calc(100vh-220px)] flex flex-col">
+            <div className="flex flex-col flex-1">
+              <div className="flex flex-wrap items-center justify-between gap-3 mb-4 pb-3 border-b-2 border-black">
                 <h2 className="text-xl font-black uppercase tracking-tight flex items-center gap-2 text-black">
                   <span>🛒</span>
                   <span>Shopping List</span>
                 </h2>
-                {store.groceryItems.length > 0 && (
-                  <span className="bg-black text-white text-xs font-black uppercase tracking-wider px-2 py-1">
-                    {uncheckedItems.length} Remaining
-                  </span>
-                )}
+                <div className="flex items-center gap-2">
+                  {store.hasPendingChanges ? (
+                    <button
+                      onClick={store.saveChanges}
+                      className="animate-pulse bg-amber-400 hover:bg-amber-500 text-black text-[10px] font-black uppercase px-2 py-1 border-2 border-black shadow-[1.5px_1.5px_0px_0px_rgba(0,0,0,1)]"
+                      title="Save pending local changes to the server"
+                    >
+                      💾 Save changes
+                    </button>
+                  ) : (
+                    <span className="text-[10px] font-bold uppercase bg-emerald-100 text-emerald-850 border border-emerald-300 px-1.5 py-0.5">
+                      Saved ✔
+                    </span>
+                  )}
+                  {store.groceryItems.length > 0 && (
+                    <span className="bg-black text-white text-xs font-black uppercase tracking-wider px-2 py-1">
+                      {uncheckedItems.length} Remaining
+                    </span>
+                  )}
+                </div>
               </div>
 
               <div className="mb-4">
@@ -234,7 +223,7 @@ export default function GroceryList() {
               )}
 
               {store.groceryItems.length > 0 ? (
-                <div className="max-h-[450px] overflow-y-auto border-2 border-black bg-white p-3 shadow-inner space-y-4">
+                <div className="flex-1 min-h-[300px] max-h-[500px] overflow-y-auto border-2 border-black bg-white p-3 shadow-inner space-y-4">
                   {uncheckedByCategory.map(([category, categoryItems]) => (
                     <div key={category} className="mb-2 last:mb-0">
                       <h4 className="text-[10px] font-black text-gray-400 uppercase tracking-widest pb-1 border-b border-gray-200">
@@ -275,7 +264,7 @@ export default function GroceryList() {
                   )}
                 </div>
               ) : (
-                <div className="border-2 border-dashed border-black bg-[#f9fafb] flex items-center justify-center py-12 px-4 text-center mt-3">
+                <div className="border-2 border-dashed border-black bg-[#f9fafb] flex flex-col items-center justify-center py-12 px-4 text-center mt-3 flex-1 min-h-[300px]">
                   <div>
                     <div className="text-4xl mb-3">🛍</div>
                     <h3 className="text-base font-black uppercase tracking-tight text-black mb-1">Shopping list is empty</h3>

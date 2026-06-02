@@ -32,6 +32,8 @@ interface RegularItemsListProps {
   allowCrud?: boolean;
   prices?: PriceData;
   onPricesUpdated?: () => Promise<void>;
+  onSaveChanges?: () => Promise<void>;
+  hasPendingChanges?: boolean;
 }
 
 interface EditState {
@@ -54,6 +56,8 @@ export default function RegularItemsList({
   allowCrud = false,
   prices,
   onPricesUpdated,
+  onSaveChanges,
+  hasPendingChanges = false,
 }: RegularItemsListProps) {
   const [uploading, setUploading] = useState(false);
   const [uploadMsg, setUploadMsg] = useState<string | null>(null);
@@ -681,15 +685,30 @@ export default function RegularItemsList({
             <div key={category} className="bg-[#f9fafb] border-2 border-black p-4 shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]">
               <div className="flex items-center justify-between mb-3 pb-1 border-b-2 border-dashed border-gray-200">
                 <h4 className="text-xs font-black uppercase tracking-wider text-black">{category}</h4>
-                {allowCrud && (
-                  <button
-                    onClick={() => handleStartAdd(category)}
-                    className="text-[10px] font-black uppercase tracking-wider bg-white border border-black px-2 py-0.5 hover:bg-emerald-50 transition-colors shadow-[1px_1px_0px_0px_rgba(0,0,0,1)]"
-                    title={`Add item to ${category}`}
-                  >
-                    + Add
-                  </button>
-                )}
+                <div className="flex items-center gap-1.5">
+                  {hasPendingChanges && onSaveChanges ? (
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        onSaveChanges();
+                      }}
+                      className="animate-pulse text-[9px] font-black uppercase tracking-wider bg-amber-400 hover:bg-amber-500 border border-black px-1.5 py-0.5 shadow-[1px_1px_0px_0px_rgba(0,0,0,1)] text-black"
+                      title="Save all changes to the server"
+                    >
+                      💾 Save changes
+                    </button>
+                  ) : null}
+
+                  {allowCrud && (
+                    <button
+                      onClick={() => handleStartAdd(category)}
+                      className="text-[10px] font-black uppercase tracking-wider bg-white border border-black px-2 py-0.5 hover:bg-emerald-50 transition-colors shadow-[1px_1px_0px_0px_rgba(0,0,0,1)] text-black"
+                      title={`Add item to ${category}`}
+                    >
+                      + Add
+                    </button>
+                  )}
+                </div>
               </div>
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
@@ -786,7 +805,7 @@ export default function RegularItemsList({
                             <div className="w-1.5 h-1.5 bg-white rotate-45"></div>
                           )}
                         </span>
-                        <span className="truncate font-bold">{item.name}</span>
+                        <span className="font-bold flex-1 overflow-hidden break-words text-xs sm:text-sm leading-tight pr-1.5">{item.name}</span>
                         {(() => {
                           const price = priceLookup.get(item.name.toLowerCase());
                           if (!price) return null;
