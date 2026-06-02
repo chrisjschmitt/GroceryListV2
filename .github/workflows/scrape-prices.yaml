@@ -3,7 +3,7 @@ name: Scheduled Grocery Price Scraper
 on:
   schedule:
     # Run once a day at 6:00 AM UTC (2:00 AM EST)
-    #  - cron: '0 6 * * *'
+    - cron: '0 6 * * *'
   workflow_dispatch: # Allows manual pipeline run from GitHub UI
 
 jobs:

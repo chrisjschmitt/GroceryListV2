@@ -357,3 +357,102 @@ export async function blobGetScrapeConfig(): Promise<ScrapeConfig> {
 export async function blobSetScrapeConfig(config: ScrapeConfig): Promise<void> {
   await writeBlob(SCRAPE_CONFIG_BLOB, config);
 }
+
+export async function checkForLocalPricesJsonAndImport(): Promise<void> {
+  const rootPricesPath = path.join(process.cwd(), "prices.json");
+  const rootGroceryPricesPath = path.join(process.cwd(), "grocery_prices.json");
+
+  let parsedData: any = null;
+  let sourceFile = "";
+
+  // 1. Check prices.json first
+  if (fs.existsSync(rootPricesPath)) {
+    try {
+      const content = fs.readFileSync(rootPricesPath, "utf8").trim();
+      if (content && content !== "{}" && content !== "[]") {
+        parsedData = JSON.parse(content);
+        sourceFile = "prices.json";
+      }
+    } catch (err) {
+      console.error("Failed to read/parse root prices.json:", err);
+    }
+  }
+
+  // 2. Check grocery_prices.json if prices.json is empty/missing
+  if (!parsedData && fs.existsSync(rootGroceryPricesPath)) {
+    try {
+      const content = fs.readFileSync(rootGroceryPricesPath, "utf8").trim();
+      if (content && content !== "{}" && content !== "[]") {
+        parsedData = JSON.parse(content);
+        sourceFile = "grocery_prices.json";
+      }
+    } catch (err) {
+      console.error("Failed to read/parse root grocery_prices.json:", err);
+    }
+  }
+
+  if (parsedData && typeof parsedData === "object") {
+    console.log(`▶ Detected non-empty root ${sourceFile}! Preloading/merging pricing registry into live database...`);
+    try {
+      const existingPrices = await blobGetPrices();
+      let count = 0;
+      const standardized: Record<string, any> = {};
+
+      if (Array.isArray(parsedData)) {
+        parsedData.forEach((item: any) => {
+          const upc = item.upc || item.sku || item.id || `manual-${Date.now()}-${count}`;
+          standardized[upc] = {
+            item_name: item.item_name || item.name || "",
+            config_name: item.config_name || item.name || "",
+            store_name: item.store_name || "Food Basics",
+            postal_code: item.postal_code || "K7H3C6",
+            store_id: item.store_id || "7923194",
+            regular_price: typeof item.regular_price === "number" ? item.regular_price : parseFloat(item.regular_price || item.regularPrice || "0") || null,
+            sale_price: typeof item.sale_price === "number" ? item.sale_price : parseFloat(item.sale_price || item.salePrice) || null,
+            is_on_sale: item.is_on_sale !== undefined ? (item.is_on_sale ? 1 : 0) : (item.sale_price ? 1 : 0),
+            last_updated: item.last_updated || new Date().toISOString(),
+            lookup_url: item.lookup_url || item.url || "",
+          };
+          count++;
+        });
+      } else {
+        for (const [key, item] of Object.entries(parsedData)) {
+          if (item && typeof item === "object") {
+            const rawItem = item as any;
+            standardized[key] = {
+              item_name: rawItem.item_name || rawItem.name || "",
+              config_name: rawItem.config_name || rawItem.name || "",
+              store_name: rawItem.store_name || "Food Basics",
+              postal_code: rawItem.postal_code || "K7H3C6",
+              store_id: rawItem.store_id || "7923194",
+              regular_price: typeof rawItem.regular_price === "number" ? rawItem.regular_price : parseFloat(rawItem.regular_price || rawItem.regularPrice || "0") || null,
+              sale_price: typeof rawItem.sale_price === "number" ? rawItem.sale_price : parseFloat(rawItem.sale_price || rawItem.salePrice) || null,
+              is_on_sale: rawItem.is_on_sale !== undefined ? (rawItem.is_on_sale ? 1 : 0) : (rawItem.sale_price ? 1 : 0),
+              last_updated: rawItem.last_updated || new Date().toISOString(),
+              lookup_url: rawItem.lookup_url || rawItem.url || "",
+            };
+            count++;
+          }
+        }
+      }
+
+      if (count > 0) {
+        const merged = { ...existingPrices, ...standardized };
+        await blobSetPrices(merged);
+        console.log(`▶ Merged successfully ${count} entries from ${sourceFile} into the active storage.`);
+
+        // Empty file content on disk so startup import does not continuously re-evaluate unchanged state
+        try {
+          fs.writeFileSync(rootPricesPath, "{}", "utf8");
+          fs.writeFileSync(rootGroceryPricesPath, "{}", "utf8");
+          console.log(`▶ Cleaned root ${sourceFile} and grocery_prices.json to '{}' successfully.`);
+        } catch (fErr) {
+          console.warn("Failed to reset root prices file cleanups:", fErr);
+        }
+      }
+    } catch (err) {
+      console.error("Failed to load and merge static prices data:", err);
+    }
+  }
+}
+

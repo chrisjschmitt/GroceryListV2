@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import Link from "@/components/Link";
 import { RegularItem, ScrapeConfig, ScrapeItemConfig, ScrapeStoreConfig } from "@/lib/types";
 import CsvUpload from "@/components/CsvUpload";
+import JsonPricesUpload from "@/components/JsonPricesUpload";
 import { getAutoSaveEnabled, setAutoSaveEnabled } from "@/lib/client/settings";
 import { 
   Edit2, 
@@ -871,6 +872,7 @@ export default function AdminPage() {
                       src={`/api/scraper/screenshot/${activeScreenshot}`}
                       title="HTML Diagnostics frame source code"
                       className="w-full h-[500px] border-none bg-white font-mono"
+                      sandbox=""
                     />
                   )}
                 </div>
@@ -1609,15 +1611,29 @@ export default function AdminPage() {
             )}
           </div>
 
-          {/* Catalog File Import CSV Block */}
-          <div className="bg-white border-2 border-black p-6 shadow-[6px_6px_0px_0px_rgba(0,0,0,1)]">
-            <h2 className="text-base font-black uppercase tracking-tight mb-4 pb-1.5 border-b-2 border-black">
-              CSV Catalog Uploader
-            </h2>
-            <CsvUpload onUploadComplete={fetchItems} />
-            <p className="mt-3 text-xs text-gray-500 font-medium leading-relaxed">
-              Accepts simple CSV files containing categories in column A and product names in column B. Great for bulk loading entire shopping menus in one click.
-            </p>
+          {/* Catalog & Pricing Importers Grid */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 w-full">
+            {/* Catalog File Import CSV Block */}
+            <div className="bg-white border-2 border-black p-6 shadow-[6px_6px_0px_0px_rgba(0,0,0,1)]">
+              <h2 className="text-base font-black uppercase tracking-tight mb-4 pb-1.5 border-b-2 border-black">
+                CSV Catalog Uploader
+              </h2>
+              <CsvUpload onUploadComplete={fetchItems} />
+              <p className="mt-3 text-xs text-gray-500 font-medium leading-relaxed">
+                Accepts simple CSV files containing categories in column A and product names in column B. Great for bulk loading entire shopping menus in one click.
+              </p>
+            </div>
+
+            {/* Direct JSON Prices Uploader Block */}
+            <div className="bg-white border-2 border-black p-6 shadow-[6px_6px_0px_0px_rgba(0,0,0,1)]">
+              <h2 className="text-base font-black uppercase tracking-tight mb-4 pb-1.5 border-b-2 border-black">
+                Direct JSON Prices Importer
+              </h2>
+              <JsonPricesUpload onUploadComplete={fetchItems} />
+              <p className="mt-3 text-xs text-gray-500 font-medium leading-relaxed">
+                Manually upload or drag-and-drop a custom <code>prices.json</code> file. This will update or merge store pricing values instantly.
+              </p>
+            </div>
           </div>
 
         </section>

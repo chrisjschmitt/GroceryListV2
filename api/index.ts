@@ -19,9 +19,26 @@ import {
   blobGetTelemetry,
   blobSetTelemetry,
   blobAppendTelemetry,
+  checkForLocalPricesJsonAndImport,
 } from "../src/lib/blob-store.js";
 
 const app = express();
+
+// Track container-level initialization
+let serverlessInitialized = false;
+async function initializeServerless() {
+  if (serverlessInitialized) return;
+  serverlessInitialized = true;
+  await checkForLocalPricesJsonAndImport().catch((err) => {
+    console.error("Error running auto-import for local prices on serverless container initialization:", err);
+  });
+}
+
+// Ensure local file detection is triggered on requests
+app.use(async (req, res, next) => {
+  await initializeServerless();
+  next();
+});
 
 // Global Live Scraper Subprocess Orchestration State
 let activeScraperProcess: any = null;
@@ -182,6 +199,78 @@ app.post("/api/regular-items", upload.single("file"), async (req, res) => {
   } catch (error) {
     console.error("POST /api/regular-items error:", error);
     res.status(500).json({ error: "Failed to upload and parse CSV", details: String(error) });
+  }
+});
+
+// 5.5. POST /api/prices/import-json (JSON prices upload)
+app.post("/api/prices/import-json", upload.single("file"), async (req, res) => {
+  try {
+    let parsedData: any = null;
+
+    if (req.file) {
+      const jsonContent = req.file.buffer.toString("utf-8");
+      parsedData = JSON.parse(jsonContent);
+    } else if (req.body && typeof req.body === "object") {
+      parsedData = req.body;
+    }
+
+    if (!parsedData || typeof parsedData !== "object") {
+      res.status(400).json({ error: "No valid JSON file or object provided" });
+      return;
+    }
+
+    const existingPrices = await blobGetPrices();
+    let count = 0;
+    const standardized: Record<string, any> = {};
+
+    if (Array.isArray(parsedData)) {
+      parsedData.forEach((item: any) => {
+        const upc = item.upc || item.sku || item.id || `manual-${Date.now()}-${count}`;
+        standardized[upc] = {
+          item_name: item.item_name || item.name || "",
+          config_name: item.config_name || item.name || "",
+          store_name: item.store_name || "Food Basics",
+          postal_code: item.postal_code || "K7H3C6",
+          store_id: item.store_id || "7923194",
+          regular_price: typeof item.regular_price === "number" ? item.regular_price : parseFloat(item.regular_price || item.regularPrice || "0") || null,
+          sale_price: typeof item.sale_price === "number" ? item.sale_price : parseFloat(item.sale_price || item.salePrice) || null,
+          is_on_sale: item.is_on_sale !== undefined ? (item.is_on_sale ? 1 : 0) : (item.sale_price ? 1 : 0),
+          last_updated: item.last_updated || new Date().toISOString(),
+          lookup_url: item.lookup_url || item.url || "",
+        };
+        count++;
+      });
+    } else {
+      for (const [key, item] of Object.entries(parsedData)) {
+        if (item && typeof item === "object") {
+          const rawItem = item as any;
+          standardized[key] = {
+            item_name: rawItem.item_name || rawItem.name || "",
+            config_name: rawItem.config_name || rawItem.name || "",
+            store_name: rawItem.store_name || "Food Basics",
+            postal_code: rawItem.postal_code || "K7H3C6",
+            store_id: rawItem.store_id || "7923194",
+            regular_price: typeof rawItem.regular_price === "number" ? rawItem.regular_price : parseFloat(rawItem.regular_price || rawItem.regularPrice || "0") || null,
+            sale_price: typeof rawItem.sale_price === "number" ? rawItem.sale_price : parseFloat(rawItem.sale_price || rawItem.salePrice) || null,
+            is_on_sale: rawItem.is_on_sale !== undefined ? (rawItem.is_on_sale ? 1 : 0) : (rawItem.sale_price ? 1 : 0),
+            last_updated: rawItem.last_updated || new Date().toISOString(),
+            lookup_url: rawItem.lookup_url || rawItem.url || "",
+          };
+          count++;
+        }
+      }
+    }
+
+    if (count > 0) {
+      const merged = { ...existingPrices, ...standardized };
+      await blobSetPrices(merged);
+      res.json({ success: true, count });
+    } else {
+      res.status(400).json({ error: "No valid price records found to import" });
+    }
+  } catch (error: any) {
+    console.error("POST /api/prices/import-json error:", error);
+    res.status(500).json({ error: "Failed to parse and import JSON prices", details: error?.message || String(error) });
   }
 });
 

@@ -130,26 +130,19 @@ async function loadConfig() {
 
 // ── Stealth Browser Bootstrap ──────────────────────────────────────
 
-async function createPersistentContext() {
+async function createBrowser() {
   const headlessMode = process.env.HEADLESS !== "false";
-  const userDataDir = path.join(process.cwd(), "browser-profile");
-  console.log(`▶ Bootstrapping persistent browser context with data directory: "${userDataDir}"`);
+  console.log(`▶ Bootstrapping browser launch with headlessness: ${headlessMode}`);
 
-  const context = await chromium.launchPersistentContext(userDataDir, {
+  const browser = await chromium.launch({
     headless: headlessMode,
     args: [
-      "--disable-blink-features=AutomationControlled",
-      "--no-sandbox",
-      "--disable-dev-shm-usage",
-      "--disable-web-security"
-    ],
-    userAgent:
-      "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36",
-    viewport: { width: 1366, height: 768 },
-    locale: "en-CA",
-    timezoneId: "America/Toronto",
+      '--disable-blink-features=AutomationControlled',
+      '--no-sandbox',
+      '--disable-infobars'
+    ]
   });
-  return context;
+  return browser;
 }
 
 // ── Food Basics Scraping Module ───────────────────────────────────
@@ -179,7 +172,7 @@ async function scrapeFoodBasics(context, storeConfig, configItems) {
       let page = null;
       
       try {
-        console.log(`  └ Opening new page on persistent browser context (Attempt ${attempts}/3)...`);
+        console.log(`  └ Opening new page on browser context (Attempt ${attempts}/3)...`);
 
         // Set store cookies on the context level
         const domain = new URL(base_url).hostname;
@@ -190,80 +183,139 @@ async function scrapeFoodBasics(context, storeConfig, configItems) {
           cookieDomain = "." + domain;
         }
 
-        await context.addCookies([
-          { name: "storeId", value: store_id, domain: cookieDomain, path: "/" },
-          { name: "selectedStoreId", value: store_id, domain: cookieDomain, path: "/" },
-          { name: "OptanonConsent", value: "isIABGlobal=false&datashare=true&groups=C0001%3A1%2CC0002%3A1%2CC0003%3A1%2CC0004%3A1", domain: cookieDomain, path: "/" },
-          { name: "OptanonAlertBoxClosed", value: new Date().toISOString(), domain: cookieDomain, path: "/" },
-        ]);
+        // Set cookies on multiple domains (.foodbasics.ca and www.foodbasics.ca) to ensure proper coverage
+        const domainsToSet = [cookieDomain, domain];
+        const cookies = [];
+        for (const dom of domainsToSet) {
+          cookies.push(
+            { name: "storeId", value: store_id, domain: dom, path: "/" },
+            { name: "selectedStoreId", value: store_id, domain: dom, path: "/" },
+            { name: "OptanonConsent", value: "isIABGlobal=false&datashare=true&groups=C0001%3A1%2CC0002%3A1%2CC0003%3A1%2CC0004%3A1", domain: dom, path: "/" },
+            { name: "OptanonAlertBoxClosed", value: new Date().toISOString(), domain: dom, path: "/" }
+          );
+        }
+        await context.addCookies(cookies);
 
         page = await context.newPage();
-        await page.addInitScript(() => {
-          Object.defineProperty(navigator, "webdriver", { get: () => false });
-          
-          // Pre-inject cookie bypass properties check for OneTrust so JS-level queries block
-          window.OnetrustActiveGroups = ",C0001,C0002,C0003,C0004,";
-          
-          // Inject stylesheet immediately onto documentElement so it applies before DOMContentLoaded or scripts
-          const style = document.createElement('style');
-          style.innerHTML = `
-            #onetrust-consent-sdk,
-            #onetrust-banner-sdk,
-            .onetrust-pc-sdk,
-            #onetrust-pc-sdk,
-            .ot-sdk-container,
-            #onetrust-button-group-parent,
-            #onetrust-close-btn-container,
-            .remodal-overlay,
-            .remodal-wrapper,
-            .remodal,
-            #newsletter-popup-container,
-            .newsletter-box-wrapper,
-            .store-selector,
-            .login-side-panel,
-            .mini-cart-side-panel,
-            .st_panel,
-            .replaceMePlease,
-            .modal-add-to-cart-other-flavours,
-            #cartGeniusModal {
-              display: none !important;
-              visibility: hidden !important;
-              opacity: 0 !important;
-              pointer-events: none !important;
-              height: 0 !important;
-              max-height: 0 !important;
-              width: 0 !important;
-              max-width: 0 !important;
-              z-index: -9999 !important;
-              position: absolute !important;
-              top: -9999px !important;
-              left: -9999px !important;
-            }
-          `;
-          if (document.documentElement) {
-            document.documentElement.appendChild(style);
+
+        let isBlocked = false;
+        let blockReason = "";
+
+        // Wrap page navigation in a try/catch block to detect Cloudflare block/stuck
+        try {
+          // 1. Initial warm-up routing to the home page to let cookies register
+          console.log("  └ Warm-routing/localizing browser context...");
+          const warmRes = await page.goto(base_url, {
+            waitUntil: "domcontentloaded",
+            timeout: NAVIGATION_TIMEOUT,
+          });
+
+          if (warmRes && warmRes.status() === 403) {
+            isBlocked = true;
+            blockReason = "Cloudflare returned HTTP 403 Forbidden on warm-up route.";
           }
-        });
 
-        // 1. Initial warm-up routing to the home page to let cookies register
-        console.log("  └ Warm-routing/localizing browser context...");
-        await page.goto(base_url, {
-          waitUntil: "domcontentloaded",
-          timeout: NAVIGATION_TIMEOUT,
-        });
-        await waitForChallenge(page);
-        await acceptCookiesIfPresent(page);
-        await page.waitForTimeout(1000);
+          if (!isBlocked) {
+            await waitForChallenge(page);
+            await acceptCookiesIfPresent(page);
+            await page.waitForTimeout(1000);
 
-        // 2. Direct navigation to the product detail URL
-        console.log(`  └ Navigating directly to: ${item.url}`);
-        await page.goto(item.url, {
-          waitUntil: "domcontentloaded",
-          timeout: NAVIGATION_TIMEOUT,
-        });
-        await waitForChallenge(page);
-        await acceptCookiesIfPresent(page);
-        await page.waitForTimeout(3000); // 3 seconds stable paint transition
+            // 2. Direct navigation to the product detail URL
+            console.log(`  └ Navigating directly to: ${item.url}`);
+            const mainRes = await page.goto(item.url, {
+              waitUntil: "domcontentloaded",
+              timeout: NAVIGATION_TIMEOUT,
+            });
+
+            if (mainRes && mainRes.status() === 403) {
+              isBlocked = true;
+              blockReason = "Cloudflare returned HTTP 403 Forbidden on product URL route.";
+            }
+          }
+
+          if (!isBlocked) {
+            await waitForChallenge(page);
+            await acceptCookiesIfPresent(page);
+            await page.waitForTimeout(3000); // 3 seconds stable paint transition
+            
+            // Double check if we got stuck on Cloudflare
+            const mainHtml = await page.content().catch(() => "");
+            const holdsChallenge =
+              mainHtml?.includes("security verification") ||
+              mainHtml?.includes("Performing security") ||
+              mainHtml?.includes("Checking if the site connection is secure") ||
+              mainHtml?.includes("Enable JavaScript and cookies to continue") ||
+              mainHtml?.includes("cf-chl-widget") ||
+              mainHtml?.includes("Turnstile");
+
+            if (holdsChallenge) {
+              isBlocked = true;
+              blockReason = "Browser gets stuck on Cloudflare security challenge.";
+            }
+          }
+        } catch (navErr) {
+          isBlocked = true;
+          blockReason = `Navigation failed or got stuck: ${navErr.message}`;
+        }
+
+        // If Cloudflare returns a 403 or gets stuck: capture context-level failure diagnostic measures
+        if (isBlocked) {
+          console.error(`  └ 🚨 Cloudflare Detection Trap: ${blockReason}`);
+          
+          // Capture a visual screenshot
+          try {
+            const fs = await import("fs/promises");
+            const publicApiDir = path.join(process.cwd(), "public", "api");
+            await fs.mkdir(publicApiDir, { recursive: true }).catch(() => {});
+            
+            const screenshotPath = path.join(process.cwd(), "public", "api", "cloudflare-trap.png");
+            await page.screenshot({ path: screenshotPath, fullPage: true });
+            console.log(`  └ 📸 Cloudflare trap screenshot captured at: ${screenshotPath}`);
+          } catch (scrErr) {
+            console.warn(`  └ Failed to write screenshot to ./public/api/cloudflare-trap.png: ${scrErr.message}`);
+          }
+
+          // Append a structured log entry detailing the failure to our /api/ScapeLogging file/endpoint
+          const logPayload = {
+            timestamp: new Date().toISOString(),
+            store_key: "foodbasics",
+            upc: item.upc,
+            item_config_name: item.name,
+            error_phase: "cloudflare_trap",
+            error_message: blockReason,
+            severity: "error",
+            message: `Cloudflare Trap triggered on "${item.name}" (UPC: ${item.upc}): ${blockReason}. Screenshot captured at ./public/api/cloudflare-trap.png`
+          };
+
+          // Local telemetry.json write
+          try {
+            let logs = [];
+            if (existsSync(TELEMETRY_FILE)) {
+              try {
+                logs = JSON.parse(await readFile(TELEMETRY_FILE, "utf-8"));
+              } catch {}
+            }
+            logs.push(logPayload);
+            await writeFile(TELEMETRY_FILE, JSON.stringify(logs.slice(-500), null, 2), "utf-8");
+          } catch {}
+
+          // Host PUT `/api/ScapeLogging` endpoint sync
+          try {
+            await fetchFromApp("/api/ScapeLogging", {
+              method: "PUT",
+              headers: {
+                "Content-Type": "application/json",
+                "Authorization": `Bearer ${SCRAPER_API_KEY}`
+              },
+              body: JSON.stringify(logPayload)
+            });
+            console.log("  └ 📄 Telemetry Appended to /api/ScapeLogging endpoint safely.");
+          } catch (telErr) {
+            console.warn(`  └ Local server logging error: ${telErr.message}`);
+          }
+
+          throw new Error(blockReason);
+        }
 
         // 3. Locate interactive nodes (Wait for VISIBLE state, not attached!)
         await page.locator(".pi--prices, .pi--price, .pricing__amount, [data-main-price], [itemprop='price'], .pricing__price, .price-update").first().waitFor({
@@ -527,11 +579,17 @@ async function acceptCookiesIfPresent(page) {
 }
 
 async function waitForChallenge(page) {
-  const maxLimit = 15_000;
+  const maxLimit = 45_000;
   const start = Date.now();
+  console.log("  └ [Security Guard] Monitoring for Cloudflare verification...");
   
   while (Date.now() - start < maxLimit) {
     try {
+      // Gentle cursor jitter to emulate user attention / mouse activity
+      const x = Math.floor(Math.random() * 500) + 100;
+      const y = Math.floor(Math.random() * 500) + 100;
+      await page.mouse.move(x, y).catch(() => {});
+
       const mainHtml = await page.content().catch(() => "");
       const holdsChallenge =
         mainHtml?.includes("security verification") ||
@@ -544,14 +602,19 @@ async function waitForChallenge(page) {
       if (!holdsChallenge) {
         const mainBody = await page.locator("body").textContent().catch(() => "");
         if (mainBody && mainBody.trim().length > 150) {
+          console.log(`  └ [Security Guard] Bypassed challenge page successfully in ${Math.round((Date.now() - start) / 1000)}s.`);
           return;
         }
+      } else {
+        // Log status to assist diagnosis on execution streams
+        console.log(`  └ [Security Guard] Cloudflare active (Elapsed: ${Math.round((Date.now() - start) / 1000)}s / Max: 45s)...`);
       }
     } catch (err) {
-      // Ignore transient content reading errors during loading
+      // Ignore transient errors
     }
-    await page.waitForTimeout(1000);
+    await page.waitForTimeout(1500);
   }
+  console.warn("  └ [Security Guard] Warning: Security challenge monitor timed out.");
 }
 
 async function safeText(page, selector) {
@@ -632,10 +695,89 @@ async function main() {
   }
   console.log("=================================================");
 
-  const context = await createPersistentContext();
-  let accumulatedPrices = await loadExistingPrices();
+  let browser = null;
+  let context = null;
 
   try {
+    browser = await createBrowser();
+    context = await browser.newContext({
+      userAgent: 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36',
+      locale: 'en-CA',
+      timezoneId: 'America/Toronto',
+      viewport: { width: 1366, height: 768 }
+    });
+
+    // Mask browser automation footprint at context level
+    await context.addInitScript(() => {
+      // Completely delete the webdriver property (get: () => undefined)
+      Object.defineProperty(navigator, 'webdriver', {
+        get: () => undefined,
+      });
+
+      // Override navigator.platform to match Intel Mac User-Agent
+      Object.defineProperty(navigator, 'platform', {
+        get: () => 'MacIntel',
+      });
+
+      // Spoof window.chrome
+      window.chrome = {
+        runtime: {},
+        loadTimes: function() {},
+        csi: function() {},
+        app: {}
+      };
+
+      // Spoof plugins
+      Object.defineProperty(navigator, 'plugins', {
+        get: () => [1, 2, 3, 4, 5],
+      });
+
+      // Pre-inject cookie bypass properties check for OneTrust so JS-level queries block
+      window.OnetrustActiveGroups = ",C0001,C0002,C0003,C0004,";
+
+      // Inject stylesheet immediately onto documentElement so it applies before DOMContentLoaded or scripts
+      const style = document.createElement('style');
+      style.innerHTML = `
+        #onetrust-consent-sdk,
+        #onetrust-banner-sdk,
+        .onetrust-pc-sdk,
+        #onetrust-pc-sdk,
+        .ot-sdk-container,
+        #onetrust-button-group-parent,
+        #onetrust-close-btn-container,
+        .remodal-overlay,
+        .remodal-wrapper,
+        .remodal,
+        #newsletter-popup-container,
+        .newsletter-box-wrapper,
+        .store-selector,
+        .login-side-panel,
+        .mini-cart-side-panel,
+        .st_panel,
+        .replaceMePlease,
+        .modal-add-to-cart-other-flavours,
+        #cartGeniusModal {
+          display: none !important;
+          visibility: hidden !important;
+          opacity: 0 !important;
+          pointer-events: none !important;
+          height: 0 !important;
+          max-height: 0 !important;
+          width: 0 !important;
+          max-width: 0 !important;
+          z-index: -9999 !important;
+          position: absolute !important;
+          top: -9999px !important;
+          left: -9999px !important;
+        }
+      `;
+      if (document.documentElement) {
+        document.documentElement.appendChild(style);
+      }
+    });
+
+    let accumulatedPrices = await loadExistingPrices();
+
     for (const [storeKey, storeDetails] of activeStores) {
       console.log(`\n▶ [Store: ${storeDetails.store_name}]`);
 
@@ -702,7 +844,8 @@ async function main() {
     });
     process.exitCode = 1;
   } finally {
-    await context.close().catch(() => {});
+    if (context) await context.close().catch(() => {});
+    if (browser) await browser.close().catch(() => {});
   }
 }
 
