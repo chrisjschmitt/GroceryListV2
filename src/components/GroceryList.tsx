@@ -180,6 +180,8 @@ export default function GroceryList() {
               onDeleteItem={store.deleteRegularItem}
               priceLookup={priceLookup}
               allowCrud={false}
+              prices={store.prices}
+              onPricesUpdated={store.refreshFromServer}
             />
           </section>
 

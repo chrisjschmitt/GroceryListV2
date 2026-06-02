@@ -1,6 +1,6 @@
 import React, { useRef, useState, useCallback, useEffect } from "react";
 import Link from "@/components/Link";
-import { RegularItem, PriceEntry, ScrapeConfig } from "@/lib/types";
+import { RegularItem, PriceEntry, ScrapeConfig, PriceData } from "@/lib/types";
 import { 
   Search, 
   X, 
@@ -13,7 +13,10 @@ import {
   HelpCircle,
   Plus,
   Trash2,
-  Clipboard
+  Clipboard,
+  Wrench,
+  ChevronDown,
+  ChevronUp
 } from "lucide-react";
 
 interface RegularItemsListProps {
@@ -27,6 +30,8 @@ interface RegularItemsListProps {
   onDeleteItem?: (id: string) => Promise<void>;
   priceLookup: Map<string, PriceEntry>;
   allowCrud?: boolean;
+  prices?: PriceData;
+  onPricesUpdated?: () => Promise<void>;
 }
 
 interface EditState {
@@ -47,6 +52,8 @@ export default function RegularItemsList({
   onDeleteItem,
   priceLookup,
   allowCrud = false,
+  prices,
+  onPricesUpdated,
 }: RegularItemsListProps) {
   const [uploading, setUploading] = useState(false);
   const [uploadMsg, setUploadMsg] = useState<string | null>(null);
@@ -64,6 +71,13 @@ export default function RegularItemsList({
   const [modalUpc, setModalUpc] = useState("");
   const [modalSuccessMsg, setModalSuccessMsg] = useState<string | null>(null);
   const [generalToast, setGeneralToast] = useState<string | null>(null);
+
+  // Manual Price Repair States
+  const [isRepairExpanded, setIsRepairExpanded] = useState(false);
+  const [repairRegularPrice, setRepairRegularPrice] = useState("");
+  const [repairSalePrice, setRepairSalePrice] = useState("");
+  const [repairIsOnSale, setRepairIsOnSale] = useState(false);
+  const [repairUpc, setRepairUpc] = useState("");
 
   const showGeneralToast = (msg: string) => {
     setGeneralToast(msg);
@@ -88,23 +102,183 @@ export default function RegularItemsList({
   const handleOpenPriceCheck = (item: RegularItem) => {
     setActivePriceCheckItem(item);
     setModalSuccessMsg(null);
+
+    // Default initial UPC and URL
+    let initialUpc = "";
+    let initialUrl = "";
     if (scrapeConfig?.items) {
       const match = scrapeConfig.items.find(
         (sc: any) => sc.name.toLowerCase() === item.name.toLowerCase()
       );
       if (match?.stores?.foodbasics) {
-        setModalUrl(match.stores.foodbasics.url || "");
-        setModalUpc(match.stores.foodbasics.upc || "");
-        return;
+        initialUrl = match.stores.foodbasics.url || "";
+        initialUpc = match.stores.foodbasics.upc || "";
       }
     }
-    setModalUrl("");
-    setModalUpc("");
+
+    // Check if the price entry is corrupted or exists
+    const priceEntry = priceLookup.get(item.name.toLowerCase());
+    
+    // Check if the entry is corrupted (null/negative regular price, or missing/invalid sale price when is_on_sale is 1)
+    let isCorrupted = false;
+    if (priceEntry) {
+      const rp = priceEntry.regular_price;
+      const isRegInvalid = rp === null || rp === undefined || typeof rp !== "number" || isNaN(rp) || rp <= 0;
+      const ios = priceEntry.is_on_sale === 1;
+      const sp = priceEntry.sale_price;
+      const isSaleInvalid = ios && (sp === null || sp === undefined || typeof sp !== "number" || isNaN(sp) || sp < 0);
+      isCorrupted = isRegInvalid || isSaleInvalid;
+    }
+
+    // Auto-expand the repair panel if it represents corrupted data
+    setIsRepairExpanded(isCorrupted);
+
+    // Autofill repair fields
+    if (priceEntry) {
+      setRepairRegularPrice(priceEntry.regular_price !== null && priceEntry.regular_price !== undefined ? String(priceEntry.regular_price) : "");
+      setRepairSalePrice(priceEntry.sale_price !== null && priceEntry.sale_price !== undefined ? String(priceEntry.sale_price) : "");
+      setRepairIsOnSale(priceEntry.is_on_sale === 1);
+      
+      // If we don't have UPC from scrapeConfig, let's try finding it from the prices state
+      if (!initialUpc && prices) {
+        const found = Object.entries(prices).find(([_, value]) => 
+          value.item_name.toLowerCase() === item.name.toLowerCase() || 
+          value.config_name.toLowerCase() === item.name.toLowerCase()
+        );
+        if (found) {
+          initialUpc = found[0];
+        }
+      }
+    } else {
+      setRepairRegularPrice("");
+      setRepairSalePrice("");
+      setRepairIsOnSale(false);
+    }
+
+    // Fallback UPC if none exists yet
+    if (!initialUpc) {
+      initialUpc = `manual-${Date.now()}`;
+    }
+
+    setModalUrl(initialUrl);
+    setModalUpc(initialUpc);
+    setRepairUpc(initialUpc);
   };
 
   const showModalSuccessMessage = (msg: string) => {
     setModalSuccessMsg(msg);
     setTimeout(() => setModalSuccessMsg(null), 3000);
+  };
+
+  const getItemPriceStatus = (item: RegularItem | null) => {
+    if (!item) {
+      return {
+        statusLabel: "Unknown",
+        statusDesc: "",
+        statusBoxClass: "bg-gray-50 border-gray-400 text-[#111827]",
+        statusDotClass: "bg-gray-400",
+        detailsBlock: null
+      };
+    }
+
+    const itemPriceLink = scrapeConfig?.items?.find(
+      (sc: any) => sc.name.toLowerCase() === item.name.toLowerCase() && sc.stores?.foodbasics?.url
+    );
+    const hasPriceLink = !!itemPriceLink;
+    const priceEntry = priceLookup.get(item.name.toLowerCase());
+    const hasPriceEntry = !!priceEntry;
+
+    const isPriceCorrupted = (price: any): boolean => {
+      if (!price) return false;
+      const regPrice = price.regular_price;
+      const isRegInvalid = regPrice === null || regPrice === undefined || typeof regPrice !== "number" || isNaN(regPrice) || regPrice <= 0;
+      const isOnSale = price.is_on_sale === 1;
+      const salePrice = price.sale_price;
+      const isSaleInvalid = isOnSale && (salePrice === null || salePrice === undefined || typeof salePrice !== "number" || isNaN(salePrice) || salePrice < 0);
+      return isRegInvalid || isSaleInvalid;
+    };
+
+    const corrupted = isPriceCorrupted(priceEntry);
+
+    // Determine status attributes
+    let statusLabel = "Unconfigured / No Link";
+    let statusDesc = "No active scraper details or Food Basics product URLs are registered in scrape_config.json for this item yet. Prices are not actively tracked.";
+    let statusBoxClass = "bg-gray-100 border-gray-400 text-[#111827] shadow-[2px_2px_0px_0px_rgba(156,163,175,1)]";
+    let statusDotClass = "bg-gray-400";
+    let detailsBlock = null;
+
+    if (hasPriceLink) {
+      if (hasPriceEntry) {
+        if (corrupted) {
+          statusLabel = "Corrupted Pricing Data";
+          statusDesc = "This item's pricing record in prices.json contains empty, null, or invalid price values.";
+          statusBoxClass = "bg-rose-50 border-rose-500 text-rose-900 shadow-[2px_2px_0px_0px_rgba(239,68,68,1)]";
+          statusDotClass = "bg-rose-500 animate-pulse";
+        } else {
+          statusLabel = "Active & Verified Price";
+          statusDesc = "Successfully linked in scrape_config.json and verified pricing is loaded from prices.json.";
+          statusBoxClass = "bg-emerald-50 border-emerald-500 text-emerald-950 shadow-[2px_2px_0px_0px_rgba(16,185,129,1)]";
+          statusDotClass = "bg-emerald-500";
+        }
+      } else {
+        statusLabel = "Configured (No Pricing Loaded Yet)";
+        statusDesc = "Item is registered in scrape_config.json, but has not completed scanning or matching prices.json records.";
+        statusBoxClass = "bg-amber-50 border-amber-500 text-amber-900 shadow-[2px_2px_0px_0px_rgba(245,158,11,1)]";
+        statusDotClass = "bg-amber-400 animate-pulse";
+      }
+    } else {
+      if (hasPriceEntry) {
+        if (corrupted) {
+          statusLabel = "Unlinked with Corrupted Data";
+          statusDesc = "Pricing records are loaded from prices.json but are corrupt, and no configuration URL exists.";
+          statusBoxClass = "bg-rose-50 border-rose-500 text-rose-900 shadow-[2px_2px_0px_0px_rgba(239,68,68,1)]";
+          statusDotClass = "bg-rose-500 animate-pulse";
+        } else {
+          statusLabel = "Manual Prices Loaded (Unlinked)";
+          statusDesc = "Verified pricing is loaded in prices.json, but no active automated link exists in scrape_config.json.";
+          statusBoxClass = "bg-emerald-50 border-emerald-500 text-emerald-955 shadow-[2px_2px_0px_0px_rgba(16,185,129,1)]";
+          statusDotClass = "bg-emerald-600";
+        }
+      }
+    }
+
+    if (hasPriceEntry && priceEntry) {
+      const rp = priceEntry.regular_price;
+      const sp = priceEntry.sale_price;
+      const ios = priceEntry.is_on_sale === 1;
+      const hasRp = rp !== null && typeof rp === "number" && !isNaN(rp);
+      const hasSp = sp !== null && typeof sp === "number" && !isNaN(sp);
+
+      detailsBlock = (
+        <div className="mt-2.5 pt-2 border-t border-dashed border-current grid grid-cols-2 gap-3 text-xs font-bold uppercase font-mono">
+          <div>
+            <span className="text-[10px] opacity-75 block text-left">Regular Price:</span>
+            <span className={hasRp ? "text-sm font-black block text-left" : "text-rose-600 underline font-black block text-left"}>
+              {hasRp ? `$${rp.toFixed(2)}` : "MISSING/NULL"}
+            </span>
+          </div>
+          <div>
+            <span className="text-[10px] opacity-75 block text-left">Active Sale Price:</span>
+            <span className={ios ? (hasSp ? "text-sm font-black text-red-650 block text-left" : "text-rose-600 underline font-black block text-left") : "text-gray-400 font-bold block text-left"}>
+              {ios ? (hasSp ? `$${sp.toFixed(2)}` : "MISSING/NULL") : "No Sale"}
+            </span>
+          </div>
+          {priceEntry.last_updated && (
+            <div className="col-span-2 text-[9px] font-mono opacity-80 normal-case text-left">
+              Last Scanned: {new Date(priceEntry.last_updated).toLocaleString()}
+            </div>
+          )}
+        </div>
+      );
+    }
+
+    return {
+      statusLabel,
+      statusDesc,
+      statusBoxClass,
+      statusDotClass,
+      detailsBlock
+    };
   };
 
   const handleUrlChange = (val: string) => {
@@ -266,6 +440,67 @@ export default function RegularItemsList({
     } catch (err) {
       console.error("Failed to remove link config", err);
       alert("Failed to remove link config.");
+    }
+  };
+
+  const handleSaveManualPriceRepair = async () => {
+    if (!activePriceCheckItem) return;
+    const finalItemName = activePriceCheckItem.name;
+    const cleanUpc = repairUpc.trim();
+
+    if (!cleanUpc) {
+      alert("UPC code is required to repair pricing.");
+      return;
+    }
+
+    const parsedRegular = parseFloat(repairRegularPrice);
+    if (isNaN(parsedRegular) || parsedRegular < 0) {
+      alert("Please enter a valid regular price.");
+      return;
+    }
+
+    let parsedSale = parseFloat(repairSalePrice);
+    if (repairIsOnSale && (isNaN(parsedSale) || parsedSale < 0)) {
+      alert("Please enter a valid sale price when item is on sale.");
+      return;
+    }
+
+    const payload = {
+      upc: cleanUpc,
+      item: {
+        item_name: finalItemName,
+        config_name: finalItemName,
+        store_name: "Food Basics",
+        postal_code: "K7H3C6",
+        store_id: "7923194",
+        regular_price: parsedRegular,
+        sale_price: repairIsOnSale ? parsedSale : null,
+        is_on_sale: repairIsOnSale ? 1 : 0,
+        lookup_url: modalUrl.trim() || "",
+        last_updated: new Date().toISOString()
+      }
+    };
+
+    try {
+      const res = await fetch("/api/admin/prices", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload)
+      });
+      if (res.ok) {
+        showModalSuccessMessage("Pricing repaired and saved successfully!");
+        
+        // Refresh pricing on parent component if callback provided
+        if (onPricesUpdated) {
+          await onPricesUpdated();
+        }
+      } else {
+        const errorData = await res.json().catch(() => ({}));
+        alert(errorData.error || "Failed to update pricing on the server.");
+      }
+    } catch (err) {
+      console.error("Failed to repair price", err);
+      alert("Failed to repair price.");
     }
   };
 
@@ -465,6 +700,47 @@ export default function RegularItemsList({
                     (sc: any) => sc.name.toLowerCase() === item.name.toLowerCase() && sc.stores?.foodbasics?.url
                   ));
 
+                  const priceEntry = priceLookup.get(item.name.toLowerCase());
+                  const hasPriceEntry = !!priceEntry;
+
+                  const isPriceCorrupted = (price: PriceEntry | undefined): boolean => {
+                    if (!price) return false;
+                    const regPrice = price.regular_price;
+                    const isRegInvalid = regPrice === null || regPrice === undefined || typeof regPrice !== "number" || isNaN(regPrice) || regPrice <= 0;
+                    const isOnSale = price.is_on_sale === 1;
+                    const salePrice = price.sale_price;
+                    const isSaleInvalid = isOnSale && (salePrice === null || salePrice === undefined || typeof salePrice !== "number" || isNaN(salePrice) || salePrice < 0);
+                    return isRegInvalid || isSaleInvalid;
+                  };
+
+                  let indicatorColorClass = "bg-white text-gray-400 hover:text-black hover:bg-emerald-50 shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] hover:shadow-none hover:translate-x-[1px] hover:translate-y-[1px]";
+                  let tooltipText = `Configure/lookup price check for "${item.name}"`;
+
+                  if (hasPriceLink) {
+                    if (hasPriceEntry) {
+                      if (isPriceCorrupted(priceEntry)) {
+                        indicatorColorClass = "bg-rose-500 text-white hover:bg-rose-600 shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] hover:shadow-none hover:translate-x-[1px] hover:translate-y-[1px]";
+                        tooltipText = `Pricing is CORRUPTED in prices.json for "${item.name}" (active link)`;
+                      } else {
+                        indicatorColorClass = "bg-emerald-500 text-white hover:bg-emerald-600 shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] hover:shadow-none hover:translate-x-[1px] hover:translate-y-[1px]";
+                        tooltipText = `Edit price check for "${item.name}" (active link with prices)`;
+                      }
+                    } else {
+                      indicatorColorClass = "bg-amber-400 text-black hover:bg-amber-500 shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] hover:shadow-none hover:translate-x-[1px] hover:translate-y-[1px]";
+                      tooltipText = `Item registered for scraping, but NO prices loaded in prices.json for "${item.name}"`;
+                    }
+                  } else {
+                    if (hasPriceEntry) {
+                      if (isPriceCorrupted(priceEntry)) {
+                        indicatorColorClass = "bg-rose-500 text-white hover:bg-rose-600 shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] hover:shadow-none hover:translate-x-[1px] hover:translate-y-[1px]";
+                        tooltipText = `Pricing is CORRUPTED in prices.json (unlinked to scrape_config)`;
+                      } else {
+                        indicatorColorClass = "bg-emerald-500 text-white hover:bg-emerald-600 shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] hover:shadow-none hover:translate-x-[1px] hover:translate-y-[1px]";
+                        tooltipText = `Prices loaded in prices.json for "${item.name}" (unlinked to scrape_config)`;
+                      }
+                    }
+                  }
+
                   if (isEditing) {
                     return (
                       <div key={item.id} className="flex items-center gap-1.5 px-3 py-1.5 border-2 border-black bg-white shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]">
@@ -538,12 +814,8 @@ export default function RegularItemsList({
                           e.stopPropagation();
                           handleOpenPriceCheck(item);
                         }}
-                        className={`flex-shrink-0 w-10 border-2 border-black flex items-center justify-center transition-all ${
-                          hasPriceLink
-                            ? "bg-emerald-500 text-white hover:bg-emerald-600 shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] hover:shadow-none hover:translate-x-[1px] hover:translate-y-[1px]"
-                            : "bg-white text-gray-400 hover:text-black hover:bg-emerald-50 shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] hover:shadow-none hover:translate-x-[1px] hover:translate-y-[1px]"
-                        }`}
-                        title={hasPriceLink ? `Edit price check for "${item.name}" (active link)` : `Configure/lookup price check for "${item.name}"`}
+                        className={`flex-shrink-0 w-10 border-2 border-black flex items-center justify-center transition-all ${indicatorColorClass}`}
+                        title={tooltipText}
                       >
                         <DollarSign className="w-4 h-4" />
                       </button>
@@ -588,44 +860,58 @@ export default function RegularItemsList({
       </div>
 
       {/* Price Check Setup & Lookup Dialog Modal */}
-      {activePriceCheckItem && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-xs animate-fade-in">
-          <div 
-            className="bg-white border-4 border-black p-6 w-full max-w-lg shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] md:p-8 relative text-[#111827]"
-            role="dialog"
-            aria-modal="true"
-          >
-            {/* Modal Close Button */}
-            <button
-              onClick={() => setActivePriceCheckItem(null)}
-              className="absolute right-4 top-4 bg-white hover:bg-gray-100 border-2 border-black p-1 hover:translate-x-[1px] hover:translate-y-[1px] shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] hover:shadow-none transition-all"
-              aria-label="Close dialog"
+      {activePriceCheckItem && (() => {
+        const { statusLabel, statusDesc, statusBoxClass, statusDotClass, detailsBlock } = getItemPriceStatus(activePriceCheckItem);
+        return (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-xs animate-fade-in">
+            <div 
+              className="bg-white border-4 border-black p-6 w-full max-w-lg shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] md:p-8 relative text-[#111827]"
+              role="dialog"
+              aria-modal="true"
             >
-              <X className="w-4 h-4 text-black" />
-            </button>
+              {/* Modal Close Button */}
+              <button
+                onClick={() => setActivePriceCheckItem(null)}
+                className="absolute right-4 top-4 bg-white hover:bg-gray-100 border-2 border-black p-1 hover:translate-x-[1px] hover:translate-y-[1px] shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] hover:shadow-none transition-all"
+                aria-label="Close dialog"
+              >
+                <X className="w-4 h-4 text-black" />
+              </button>
 
-            {/* Modal Header */}
-            <div className="mb-6 flex items-start gap-3">
-              <div className="bg-emerald-100 border-2 border-black p-2 shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] flex-shrink-0">
-                <DollarSign className="w-5 h-5 text-emerald-800" />
+              {/* Modal Header */}
+              <div className="mb-4 flex items-start gap-3">
+                <div className="bg-emerald-100 border-2 border-black p-2 shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] flex-shrink-0">
+                  <DollarSign className="w-5 h-5 text-emerald-800" />
+                </div>
+                <div className="text-left">
+                  <span className="text-[10px] font-black uppercase text-emerald-700 tracking-wider block mb-0.5">Price Checking Assistant</span>
+                  <h3 className="text-2xl font-black uppercase tracking-tight leading-none text-black break-all">
+                    {activePriceCheckItem.name}
+                  </h3>
+                </div>
               </div>
-              <div>
-                <span className="text-[10px] font-black uppercase text-emerald-700 tracking-wider block mb-0.5">Price Checking Assistant</span>
-                <h3 className="text-2xl font-black uppercase tracking-tight leading-none text-black break-all">
-                  {activePriceCheckItem.name}
-                </h3>
-              </div>
-            </div>
 
-            {/* Modal Inner Alert Toast */}
-            {modalSuccessMsg && (
-              <div className="mb-4 bg-black text-emerald-400 border-2 border-emerald-400 p-2.5 shadow-[3px_3px_0px_0px_rgba(5,150,105,0.3)] flex items-center gap-2 text-xs font-extrabold animate-bounce">
-                <Check className="w-4 h-4 text-emerald-400 flex-shrink-0" />
-                <span>{modalSuccessMsg}</span>
+              {/* Live Status indicator Card block */}
+              <div className={`mb-4 border-2 border-black p-3 text-left ${statusBoxClass}`}>
+                <div className="flex items-center gap-1.5 mb-1 bg-white/20 px-1.5 py-0.5 rounded w-fit">
+                  <span className={`w-2 h-2 rounded-full ${statusDotClass}`} />
+                  <span className="text-[10px] font-black uppercase tracking-wider">{statusLabel}</span>
+                </div>
+                <p className="text-[11px] leading-snug font-bold">
+                  {statusDesc}
+                </p>
+                {detailsBlock}
               </div>
-            )}
 
-            <div className="space-y-4">
+              {/* Modal Inner Alert Toast */}
+              {modalSuccessMsg && (
+                <div className="mb-4 bg-black text-emerald-400 border-2 border-emerald-400 p-2.5 shadow-[3px_3px_0px_0px_rgba(5,150,105,0.3)] flex items-center gap-2 text-xs font-extrabold animate-bounce">
+                  <Check className="w-4 h-4 text-emerald-400 flex-shrink-0" />
+                  <span>{modalSuccessMsg}</span>
+                </div>
+              )}
+
+              <div className="space-y-4">
               {/* 1. Store Selector */}
               <div>
                 <label className="text-xs font-black uppercase block mb-1 text-black">Target Grocery Store</label>
@@ -689,15 +975,104 @@ export default function RegularItemsList({
               </div>
 
               {/* 4. Optional UPC code override */}
-              <div>
+              <div className="mb-1">
                 <label className="text-xs font-bold uppercase block mb-1 text-gray-550">ID / UPC Override (Optional)</label>
                 <input
                   type="text"
                   placeholder="Will auto-parse from URL if left empty"
                   value={modalUpc}
-                  onChange={(e) => setModalUpc(e.target.value)}
+                  onChange={(e) => {
+                    setModalUpc(e.target.value);
+                    setRepairUpc(e.target.value); // Keep them synchronized for seamless UX
+                  }}
                   className="w-full px-3 py-2 text-xs border-2 border-black bg-white focus:outline-none font-bold text-black"
                 />
+              </div>
+
+              {/* 5. Manual Price Repair Accordion Section */}
+              <div className="border-2 border-black bg-white shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] overflow-hidden">
+                <button
+                  type="button"
+                  onClick={() => setIsRepairExpanded(!isRepairExpanded)}
+                  className="w-full px-3 py-2 bg-yellow-50 hover:bg-yellow-100 flex items-center justify-between font-black uppercase text-xs text-black border-b-2 border-black transition-colors"
+                >
+                  <span className="flex items-center gap-1.5 text-amber-800">
+                    <Wrench className="w-4 h-4 text-amber-600" />
+                    🛠️ Manual Price Edit / Repair
+                  </span>
+                  {isRepairExpanded ? <ChevronUp className="w-4 h-4 text-black" /> : <ChevronDown className="w-4 h-4 text-black" />}
+                </button>
+
+                {isRepairExpanded && (
+                  <div className="p-3 bg-white space-y-3 text-left animate-fade-in text-black">
+                    <p className="text-[10px] font-bold text-[#4b5563] leading-snug uppercase tracking-wider">
+                      Overridden prices are written directly to prices.json for this UPC. Fixed corrupted entries instantly.
+                    </p>
+
+                    <div className="grid grid-cols-2 gap-2">
+                      <div>
+                        <label className="text-[10px] font-black uppercase block mb-1 text-black">Regular Price ($) *</label>
+                        <input
+                          type="number"
+                          step="0.01"
+                          min="0.01"
+                          placeholder="e.g. 3.49"
+                          value={repairRegularPrice}
+                          onChange={(e) => setRepairRegularPrice(e.target.value)}
+                          className="w-full px-2.5 py-1.5 text-xs border-2 border-black bg-white focus:outline-none font-bold text-black"
+                        />
+                      </div>
+
+                      <div>
+                        <div className="flex items-center justify-between mb-1">
+                          <label className="text-[10px] font-black uppercase text-black">Sale Price ($)</label>
+                          <label className="inline-flex items-center gap-1 cursor-pointer">
+                            <input
+                              type="checkbox"
+                              checked={repairIsOnSale}
+                              onChange={(e) => setRepairIsOnSale(e.target.checked)}
+                              className="accent-black w-3.5 h-3.5 border-2 border-black cursor-pointer"
+                            />
+                            <span className="text-[9px] font-black uppercase text-red-650">On Sale</span>
+                          </label>
+                        </div>
+                        <input
+                          type="number"
+                          step="0.01"
+                          min="0.00"
+                          placeholder={repairIsOnSale ? "e.g. 2.49" : "N/A - Check 'On Sale'"}
+                          disabled={!repairIsOnSale}
+                          value={repairSalePrice}
+                          onChange={(e) => setRepairSalePrice(e.target.value)}
+                          className={`w-full px-2.5 py-1.5 text-xs border-2 border-black focus:outline-none font-bold text-black ${
+                            !repairIsOnSale ? "bg-gray-100 text-gray-400 cursor-not-allowed border-gray-300" : "bg-white"
+                          }`}
+                        />
+                      </div>
+                    </div>
+
+                    <div className="grid grid-cols-1 gap-2">
+                      <div>
+                        <label className="text-[10px] font-black uppercase block mb-1 text-black">Associated UPC Code (Required)</label>
+                        <input
+                          type="text"
+                          placeholder="Will auto-fill or use custom UPC"
+                          value={repairUpc}
+                          onChange={(e) => setRepairUpc(e.target.value)}
+                          className="w-full px-2.5 py-1.5 text-xs border-2 border-black bg-white focus:outline-none font-bold text-mono text-black"
+                        />
+                      </div>
+                    </div>
+
+                    <button
+                      type="button"
+                      onClick={handleSaveManualPriceRepair}
+                      className="w-full py-1.5 bg-yellow-400 hover:bg-yellow-500 text-black border-2 border-black font-black uppercase tracking-wider text-xs shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] hover:shadow-none hover:translate-x-[1px] hover:translate-y-[1px] transition-all inline-flex items-center justify-center gap-1"
+                    >
+                      <Save className="w-3.5 h-3.5" /> Save Manual Price Override
+                    </button>
+                  </div>
+                )}
               </div>
 
               {/* Controls Row */}
@@ -729,7 +1104,8 @@ export default function RegularItemsList({
             </div>
           </div>
         </div>
-      )}
+      );
+      })()}
     </div>
   );
 }

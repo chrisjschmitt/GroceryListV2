@@ -44,6 +44,7 @@ export interface PriceEntry {
   sale_price: number | null;
   is_on_sale: number;
   last_updated: string;
+  lookup_url?: string;
 }
 
 export type PriceData = Record<string, PriceEntry>;

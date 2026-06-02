@@ -261,6 +261,68 @@ async function startServer() {
     }
   });
 
+  // POST /api/admin/prices (Create/Update single price record)
+  app.post("/api/admin/prices", async (req, res) => {
+    try {
+      const { upc, item } = req.body;
+      if (!upc || !item || typeof item !== "object") {
+        res.status(400).json({ error: "Invalid payload: 'upc' and 'item' object required" });
+        return;
+      }
+      const existingPrices = await blobGetPrices();
+      existingPrices[upc] = {
+        item_name: item.item_name || "",
+        config_name: item.config_name || "",
+        store_name: item.store_name || "Food Basics",
+        postal_code: item.postal_code || "K7H3C6",
+        store_id: item.store_id || "7923194",
+        regular_price: typeof item.regular_price === "number" ? item.regular_price : parseFloat(item.regular_price) || null,
+        sale_price: typeof item.sale_price === "number" ? item.sale_price : (item.sale_price ? parseFloat(item.sale_price) : null),
+        is_on_sale: item.is_on_sale !== undefined ? (item.is_on_sale ? 1 : 0) : (item.sale_price !== null && item.sale_price !== undefined && item.sale_price !== "" ? 1 : 0),
+        last_updated: item.last_updated || new Date().toISOString(),
+        lookup_url: item.lookup_url || "",
+      };
+      await blobSetPrices(existingPrices);
+      res.json({ success: true, prices: existingPrices });
+    } catch (error: any) {
+      console.error("POST /api/admin/prices error:", error);
+      res.status(500).json({ error: "Failed to update price", details: String(error) });
+    }
+  });
+
+  // DELETE /api/admin/prices/:upc (Delete single price record by UPC)
+  app.delete("/api/admin/prices/:upc", async (req, res) => {
+    try {
+      const { upc } = req.params;
+      if (!upc) {
+        res.status(400).json({ error: "UPC param required" });
+        return;
+      }
+      const existingPrices = await blobGetPrices();
+      if (existingPrices[upc]) {
+        delete existingPrices[upc];
+        await blobSetPrices(existingPrices);
+        res.json({ success: true, prices: existingPrices });
+      } else {
+        res.status(404).json({ error: "Price entry not found" });
+      }
+    } catch (error: any) {
+      console.error("DELETE /api/admin/prices/:upc error:", error);
+      res.status(500).json({ error: "Failed to delete price record", details: String(error) });
+    }
+  });
+
+  // DELETE /api/admin/prices (Clear all prices)
+  app.delete("/api/admin/prices", async (req, res) => {
+    try {
+      await blobSetPrices({});
+      res.json({ success: true });
+    } catch (error: any) {
+      console.error("DELETE /api/admin/prices error:", error);
+      res.status(500).json({ error: "Failed to reset prices", details: String(error) });
+    }
+  });
+
   // 6. DELETE /api/regular-items
   app.delete("/api/regular-items", async (req, res) => {
     try {

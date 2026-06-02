@@ -71,6 +71,25 @@ export default function AdminPage() {
   const [scrapeMsg, setScrapeMsg] = useState<string | null>(null);
   const [catalogSearch, setCatalogSearch] = useState("");
 
+  // Prices list state and form states
+  const [prices, setPrices] = useState<Record<string, any>>({});
+  const [pricesLoading, setPricesLoading] = useState(true);
+  const [pricesSearch, setPricesSearch] = useState("");
+  const [editingPriceUpc, setEditingPriceUpc] = useState<string | null>(null);
+  const [addingPrice, setAddingPrice] = useState(false);
+  const [priceForm, setPriceForm] = useState({
+    upc: "",
+    item_name: "",
+    config_name: "",
+    store_name: "Food Basics",
+    postal_code: "K7H3C6",
+    store_id: "7923194",
+    regular_price: "",
+    sale_price: "",
+    is_on_sale: false,
+    lookup_url: ""
+  });
+
   // Scraper console states
   const [scraperStatus, setScraperStatus] = useState<{
     isRunning: boolean;
@@ -178,19 +197,40 @@ export default function AdminPage() {
     }
   };
 
+  const fetchPrices = async () => {
+    try {
+      const res = await fetch("/api/prices");
+      if (res.ok) {
+        const data = await res.json();
+        setPrices(data.prices || {});
+      }
+    } catch (err) {
+      console.error("Failed to fetch prices:", err);
+    } finally {
+      setPricesLoading(false);
+    }
+  };
+
+  const handlePricesUploaded = async () => {
+    await Promise.all([fetchItems(), fetchPrices()]);
+  };
+
   useEffect(() => {
     let cancelled = false;
     async function load() {
       try {
-        const [itemsRes, configRes] = await Promise.all([
+        const [itemsRes, configRes, pricesRes] = await Promise.all([
           fetch("/api/regular-items"),
           fetch("/api/scrape-config"),
+          fetch("/api/prices"),
         ]);
         const itemsData = await itemsRes.json();
         const configData = await configRes.json();
+        const pricesData = await pricesRes.json();
         if (!cancelled) {
           setItems(itemsData.items || []);
           if (configData.stores) setScrapeConfig(configData);
+          setPrices(pricesData.prices || {});
         }
       } catch {
         // silently fail
@@ -198,6 +238,7 @@ export default function AdminPage() {
         if (!cancelled) {
           setLoading(false);
           setScrapeLoading(false);
+          setPricesLoading(false);
         }
       }
     }
@@ -321,6 +362,125 @@ export default function AdminPage() {
       setNewGlobalCategory("");
       setNewGlobalCustomCat("");
       setGlobalCatIsCustom(false);
+    }
+  };
+
+  const handleOpenAddPrice = () => {
+    setPriceForm({
+      upc: "",
+      item_name: "",
+      config_name: "",
+      store_name: "Food Basics",
+      postal_code: "K7H3C6",
+      store_id: "7923194",
+      regular_price: "",
+      sale_price: "",
+      is_on_sale: false,
+      lookup_url: ""
+    });
+    setEditingPriceUpc(null);
+    setAddingPrice(true);
+  };
+
+  const handleOpenEditPrice = (upc: string, entry: any) => {
+    setPriceForm({
+      upc: upc,
+      item_name: entry.item_name || "",
+      config_name: entry.config_name || "",
+      store_name: entry.store_name || "Food Basics",
+      postal_code: entry.postal_code || "K7H3C6",
+      store_id: entry.store_id || "7923194",
+      regular_price: entry.regular_price !== null && entry.regular_price !== undefined ? String(entry.regular_price) : "",
+      sale_price: entry.sale_price !== null && entry.sale_price !== undefined ? String(entry.sale_price) : "",
+      is_on_sale: entry.is_on_sale === 1,
+      lookup_url: entry.lookup_url || ""
+    });
+    setEditingPriceUpc(upc);
+    setAddingPrice(true);
+  };
+
+  const handleDeletePrice = async (upc: string) => {
+    if (confirm(`Are you sure you want to delete the price entry for UPC "${upc}"?`)) {
+      try {
+        const res = await fetch(`/api/admin/prices/${encodeURIComponent(upc)}`, {
+          method: "DELETE"
+        });
+        if (res.ok) {
+          const data = await res.json();
+          setPrices(data.prices || {});
+        } else {
+          alert("Failed to delete price entry.");
+        }
+      } catch (err) {
+        console.error(err);
+        alert("Failed to delete price entry.");
+      }
+    }
+  };
+
+  const handleClearAllPrices = async () => {
+    if (confirm("WARNING: Are you sure you want to completely clear ALL prices from the config database? This cannot be undone.")) {
+      try {
+        const res = await fetch("/api/admin/prices", {
+          method: "DELETE"
+        });
+        if (res.ok) {
+          setPrices({});
+          alert("All prices cleared successfully.");
+        } else {
+          alert("Failed to clear prices.");
+        }
+      } catch (err) {
+        console.error(err);
+        alert("Failed to clear prices.");
+      }
+    }
+  };
+
+  const handleSavePriceFormSubmit = async (e: any) => {
+    e.preventDefault();
+    const upcToUse = priceForm.upc.trim();
+    if (!upcToUse) {
+      alert("UPC is required.");
+      return;
+    }
+    const regPriceParsed = parseFloat(priceForm.regular_price);
+    const salePriceParsed = parseFloat(priceForm.sale_price);
+
+    const payload = {
+      upc: upcToUse,
+      item: {
+        item_name: priceForm.item_name.trim(),
+        config_name: priceForm.config_name.trim() || priceForm.item_name.trim(),
+        store_name: priceForm.store_name,
+        postal_code: priceForm.postal_code,
+        store_id: priceForm.store_id,
+        regular_price: isNaN(regPriceParsed) ? null : regPriceParsed,
+        sale_price: isNaN(salePriceParsed) ? null : salePriceParsed,
+        is_on_sale: priceForm.is_on_sale ? 1 : 0,
+        lookup_url: priceForm.lookup_url.trim(),
+        last_updated: new Date().toISOString()
+      }
+    };
+
+    try {
+      const res = await fetch("/api/admin/prices", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload)
+      });
+      if (res.ok) {
+        const data = await res.json();
+        setPrices(data.prices || {});
+        setAddingPrice(false);
+        setEditingPriceUpc(null);
+      } else {
+        const err = await res.json();
+        alert(err.error || "Failed to save price entry.");
+      }
+    } catch (err) {
+      console.error(err);
+      alert("Failed to save price entry.");
     }
   };
 
@@ -1611,6 +1771,355 @@ export default function AdminPage() {
             )}
           </div>
 
+          {/* Active Prices Registry Manager Section */}
+          <div className="bg-white border-2 border-black p-6 shadow-[6px_6px_0px_0px_rgba(0,0,0,1)]">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-4 pb-1.5 border-b-2 border-black">
+              <h2 className="text-base font-black uppercase tracking-tight flex items-center gap-2">
+                <Tag className="w-5 h-5 text-amber-500" /> Scraped Prices Registry CRUD
+              </h2>
+              <div className="flex flex-wrap items-center gap-2">
+                <button
+                  type="button"
+                  onClick={handleOpenAddPrice}
+                  className="text-xs font-black uppercase tracking-wider text-black hover:bg-emerald-50 border-2 border-black px-3 py-1 shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] hover:shadow-none hover:translate-x-[1px] hover:translate-y-[1px] transition-all bg-emerald-400"
+                >
+                  + Add Custom Price
+                </button>
+                {Object.keys(prices).length > 0 && (
+                  <button
+                    type="button"
+                    onClick={handleClearAllPrices}
+                    className="text-xs font-black uppercase tracking-wider text-red-600 hover:bg-red-50 border-2 border-black px-3 py-1 shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] hover:shadow-none hover:translate-x-[1px] hover:translate-y-[1px] transition-all bg-white"
+                  >
+                    Delete all loaded prices
+                  </button>
+                )}
+              </div>
+            </div>
+
+            <p className="text-xs text-gray-500 mb-6 font-medium leading-relaxed">
+              Verify, edit, create, or delete items inside the raw prices registry. Active, verified prices are automatically matched to products in the Item Catalog that share the corresponding display or scraper search match identifier.
+            </p>
+
+            {/* Price Form Neo-Brutalist Drawer / Card */}
+            {addingPrice && (
+              <form onSubmit={handleSavePriceFormSubmit} className="bg-amber-50 border-2 border-black p-5 mb-6 shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] animate-fade-in text-black">
+                <div className="flex items-center justify-between pb-2 mb-4 border-b border-black">
+                  <h3 className="text-xs font-black uppercase tracking-widest text-[#92400e]">
+                    {editingPriceUpc ? `✏ Edit Price Entry (UPC: ${editingPriceUpc})` : "⚡ Add New Price Entry"}
+                  </h3>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setAddingPrice(false);
+                      setEditingPriceUpc(null);
+                    }}
+                    className="p-1 hover:bg-amber-100 border border-transparent hover:border-black rounded text-black"
+                  >
+                    <X className="w-4 h-4 stroke-[2.5]" />
+                  </button>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                  {/* UPC input */}
+                  <div>
+                    <label className="text-[10px] uppercase font-black tracking-wider text-gray-500 block mb-0.5">UPC / SKU identifier</label>
+                    <div className="flex gap-2">
+                      <input
+                        type="text"
+                        placeholder="e.g. 058779183492"
+                        value={priceForm.upc}
+                        onChange={(e) => setPriceForm({ ...priceForm, upc: e.target.value })}
+                        disabled={!!editingPriceUpc}
+                        className="flex-1 px-2.5 py-1.5 text-xs border-2 border-black bg-white focus:outline-none font-bold text-black disabled:bg-gray-100 disabled:text-gray-500"
+                        required
+                      />
+                      {!editingPriceUpc && (
+                        <button
+                          type="button"
+                          onClick={() => setPriceForm({ ...priceForm, upc: `manual-${Date.now()}` })}
+                          className="px-2.5 py-1 text-[10px] uppercase font-black bg-gray-200 border border-black hover:bg-gray-300"
+                        >
+                          Gen ID
+                        </button>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* Item Display Name */}
+                  <div>
+                    <label className="text-[10px] uppercase font-black tracking-wider text-gray-500 block mb-0.5">Display Product Name</label>
+                    <input
+                      type="text"
+                      placeholder="e.g. Fresh Red Strawberries"
+                      value={priceForm.item_name}
+                      onChange={(e) => setPriceForm({ ...priceForm, item_name: e.target.value })}
+                      className="w-full px-2.5 py-1.5 text-xs border-2 border-black bg-white focus:outline-none font-bold text-black"
+                      required
+                    />
+                  </div>
+
+                  {/* Scraper Config Name */}
+                  <div>
+                    <label className="text-[10px] uppercase font-black tracking-wider text-gray-500 block mb-0.5">Scraper Match ID (leave blank to match Product Name)</label>
+                    <input
+                      type="text"
+                      placeholder="e.g. strawberries"
+                      value={priceForm.config_name}
+                      onChange={(e) => setPriceForm({ ...priceForm, config_name: e.target.value })}
+                      className="w-full px-2.5 py-1.5 text-xs border-2 border-black bg-white focus:outline-none font-bold text-black"
+                    />
+                  </div>
+
+                  {/* Regular retail price */}
+                  <div>
+                    <label className="text-[10px] uppercase font-black tracking-wider text-gray-500 block mb-0.5">Regular retail price ($)</label>
+                    <input
+                      type="text"
+                      placeholder="e.g. 4.99 (numbers or null)"
+                      value={priceForm.regular_price}
+                      onChange={(e) => setPriceForm({ ...priceForm, regular_price: e.target.value })}
+                      className="w-full px-2.5 py-1.5 text-xs border-2 border-black bg-white focus:outline-none font-bold text-black"
+                    />
+                  </div>
+
+                  {/* Sale Price */}
+                  <div>
+                    <label className="text-[10px] uppercase font-black tracking-wider text-gray-500 block mb-0.5">Active sale price ($)</label>
+                    <input
+                      type="text"
+                      placeholder="e.g. 2.99"
+                      value={priceForm.sale_price}
+                      onChange={(e) => setPriceForm({ ...priceForm, sale_price: e.target.value })}
+                      className="w-full px-2.5 py-1.5 text-xs border-2 border-black bg-white focus:outline-none font-bold text-black"
+                    />
+                  </div>
+
+                  {/* Sale Flag checkbox */}
+                  <div className="flex items-center gap-2 mt-4 md:mt-6">
+                    <input
+                      type="checkbox"
+                      id="isOnSaleCheckbox"
+                      checked={priceForm.is_on_sale}
+                      onChange={(e) => setPriceForm({ ...priceForm, is_on_sale: e.target.checked })}
+                      className="accent-black w-4 h-4 cursor-pointer"
+                    />
+                    <label htmlFor="isOnSaleCheckbox" className="text-xs font-black cursor-pointer uppercase select-none text-black">
+                      Mark as currently "On Sale"
+                    </label>
+                  </div>
+
+                  {/* Store lookup url */}
+                  <div className="md:col-span-2">
+                    <label className="text-[10px] uppercase font-black tracking-wider text-gray-500 block mb-0.5">Product Link / Source URL</label>
+                    <input
+                      type="url"
+                      placeholder="https://www.foodbasics.ca/p/..."
+                      value={priceForm.lookup_url}
+                      onChange={(e) => setPriceForm({ ...priceForm, lookup_url: e.target.value })}
+                      className="w-full px-2.5 py-1.5 text-xs border-2 border-black bg-white focus:outline-none font-bold text-black"
+                    />
+                  </div>
+                </div>
+
+                <div className="flex items-center justify-end gap-2.5 pt-2 border-t border-dashed border-gray-300">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setAddingPrice(false);
+                      setEditingPriceUpc(null);
+                    }}
+                    className="px-4 py-1.5 text-xs font-black uppercase text-black hover:bg-gray-100 border border-black"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="submit"
+                    className="px-5 py-1.5 text-xs font-black uppercase text-white bg-black hover:bg-emerald-600 border border-black"
+                  >
+                    Save Price Record
+                  </button>
+                </div>
+              </form>
+            )}
+
+            {/* Prices Filtering layout */}
+            <div className="relative mb-5">
+              <Search className="w-4 h-4 absolute left-3 top-3 text-gray-400" />
+              <input
+                type="text"
+                placeholder="Filter catalog prices (UPC, display name, config name)..."
+                value={pricesSearch}
+                onChange={(e) => setPricesSearch(e.target.value)}
+                className="w-full pl-9 pr-4 py-2 text-sm border-2 border-black bg-white focus:outline-none font-bold placeholder-gray-400 text-black"
+              />
+              {pricesSearch && (
+                <button
+                  type="button"
+                  onClick={() => setPricesSearch("")}
+                  className="absolute right-3 top-2.5 text-xs font-bold text-gray-400 hover:text-black uppercase"
+                >
+                  Clear
+                </button>
+              )}
+            </div>
+
+            {pricesLoading ? (
+              <div className="flex items-center justify-center py-8">
+                <span className="animate-spin rounded-full h-6 w-6 border-2 border-black border-t-transparent" />
+              </div>
+            ) : Object.keys(prices).length > 0 ? (
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 max-h-[500px] overflow-y-auto pr-1">
+                {Object.entries(prices)
+                  .filter(([upc, entry]: [string, any]) => {
+                    if (!pricesSearch.trim()) return true;
+                    const term = pricesSearch.toLowerCase();
+                    return (
+                      upc.toLowerCase().includes(term) ||
+                      (entry.item_name || "").toLowerCase().includes(term) ||
+                      (entry.config_name || "").toLowerCase().includes(term) ||
+                      (entry.store_name || "").toLowerCase().includes(term)
+                    );
+                  })
+                  .map(([upc, entry]: [string, any]) => {
+                    const isPriceCorrupted = (price: any): boolean => {
+                      if (!price) return true;
+                      const regPrice = price.regular_price;
+                      const isRegInvalid = regPrice === null || regPrice === undefined || typeof regPrice !== "number" || isNaN(regPrice) || regPrice <= 0;
+                      const isOnSale = price.is_on_sale === 1;
+                      const salePrice = price.sale_price;
+                      const isSaleInvalid = isOnSale && (salePrice === null || salePrice === undefined || typeof salePrice !== "number" || isNaN(salePrice) || salePrice < 0);
+                      return isRegInvalid || isSaleInvalid;
+                    };
+
+                    const corrupted = isPriceCorrupted(entry);
+
+                    return (
+                      <div
+                        key={upc}
+                        className={`border-2 border-black p-4 shadow-[3px_3px_0px_0px_rgba(0,0,0,1)] hover:-translate-x-[1px] hover:-translate-y-[1px] transition-all flex flex-col justify-between ${
+                          corrupted ? "bg-rose-50" : "bg-white"
+                        }`}
+                      >
+                        <div>
+                          {/* Title & Status indicator */}
+                          <div className="flex items-start justify-between gap-1 mb-1.5">
+                            <h4 className="font-bold text-sm text-black truncate pr-1 text-left w-2/3" title={entry.item_name}>
+                              {entry.item_name || entry.config_name || "Untitled Item"}
+                            </h4>
+                            <div>
+                              {corrupted ? (
+                                <span className="inline-flex items-center gap-0.5 text-[9px] font-black uppercase tracking-wider text-rose-700 bg-rose-100 px-1.5 py-0.5 border border-rose-600 rounded">
+                                  ⚠ CORRUPT
+                                </span>
+                              ) : (
+                                <span className="inline-flex items-center gap-0.5 text-[9px] font-black uppercase tracking-wider text-emerald-800 bg-emerald-100 px-1.5 py-0.5 border border-emerald-500 rounded">
+                                  ACTIVE
+                                </span>
+                              )}
+                            </div>
+                          </div>
+
+                          {/* Metadata labels */}
+                          <div className="space-y-1 text-[10px] text-gray-500 font-extrabold font-mono uppercase tracking-tight text-left">
+                            <p>
+                              <span className="text-gray-400">UPC:</span> {upc}
+                            </p>
+                            {(entry.config_name && entry.config_name !== entry.item_name) && (
+                              <p>
+                                <span className="text-gray-400 font-mono">MATCH KEY:</span> {entry.config_name}
+                              </p>
+                            )}
+                            <p>
+                              <span className="text-gray-400">LAST SCANNED/UPDATED:</span>{" "}
+                              {entry.last_updated ? new Date(entry.last_updated).toLocaleString() : "Never"}
+                            </p>
+                          </div>
+
+                          {/* Regular & sale values */}
+                          <div className="flex items-center gap-3.5 mt-3 pt-2.5 border-t border-dashed border-gray-200">
+                            <div className="text-left">
+                              <span className="text-[10px] text-gray-400 uppercase font-black block">Regular Price</span>
+                              <span className="text-sm font-black text-black">
+                                {entry.regular_price !== null && typeof entry.regular_price === "number" && !isNaN(entry.regular_price)
+                                  ? `$${entry.regular_price.toFixed(2)}`
+                                  : <span className="text-rose-600">null / missing</span>}
+                              </span>
+                            </div>
+
+                            {entry.is_on_sale === 1 ? (
+                              <div className="text-left">
+                                <span className="text-[10px] text-red-600 uppercase font-black block flex items-center gap-0.5">Sale price 🔥</span>
+                                <span className="text-sm font-black text-red-600">
+                                  {entry.sale_price !== null && typeof entry.sale_price === "number" && !isNaN(entry.sale_price)
+                                    ? `$${entry.sale_price.toFixed(2)}`
+                                    : <span className="text-rose-600">null / missing</span>}
+                                </span>
+                              </div>
+                            ) : (
+                              <div className="text-left">
+                                <span className="text-[10px] text-gray-400 uppercase font-black block">Sale price</span>
+                                <span className="text-xs font-bold text-gray-400">No sale active</span>
+                              </div>
+                            )}
+                          </div>
+                        </div>
+
+                        {/* Action Triggers */}
+                        <div className="flex items-center justify-between gap-2 mt-4 pt-2.5 border-t border-gray-100 flex-shrink-0">
+                          <div>
+                            {entry.lookup_url && (
+                              <a
+                                href={entry.lookup_url}
+                                target="_blank"
+                                rel="noreferrer"
+                                className="inline-flex items-center gap-1 text-[10px] font-black uppercase text-emerald-600 hover:text-emerald-700 hover:underline"
+                              >
+                                <span>Inspect Store Link</span>
+                                <ExternalLink className="w-3 h-3" />
+                              </a>
+                            )}
+                          </div>
+
+                          <div className="flex items-center gap-1.5 text-black">
+                            <button
+                              type="button"
+                              onClick={() => handleOpenEditPrice(upc, entry)}
+                              className="p-1 px-1.5 text-[10px] font-black uppercase flex items-center gap-0.5 border border-black bg-white hover:bg-gray-100 transition-colors shadow-[1px_1px_0px_0px_rgba(0,0,0,1)]"
+                              title="Edit Price fields"
+                            >
+                              <Edit2 className="w-3 h-3 text-black" />
+                              <span>Edit</span>
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => handleDeletePrice(upc)}
+                              className="p-1 px-1.5 text-[10px] font-black uppercase flex items-center gap-0.5 border border-black bg-white text-red-600 hover:bg-red-50 transition-colors shadow-[1px_1px_0px_0px_rgba(0,0,0,1)]"
+                              title="Purge Price"
+                            >
+                              <Trash2 className="w-3 h-3 text-red-600" />
+                              <span>Delete</span>
+                            </button>
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  })}
+              </div>
+            ) : (
+              <div className="text-center py-10 border-2 border-dashed border-gray-300 bg-gray-50">
+                <p className="text-sm font-bold text-gray-500">No prices match your search filter or registry is empty.</p>
+                <button
+                  type="button"
+                  onClick={handleOpenAddPrice}
+                  className="mt-3 text-xs font-black uppercase tracking-wider bg-black hover:bg-emerald-600 text-white px-3 py-1.5 border border-black"
+                >
+                  Create manual price record
+                </button>
+              </div>
+            )}
+          </div>
+
           {/* Catalog & Pricing Importers Grid */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6 w-full">
             {/* Catalog File Import CSV Block */}
@@ -1629,7 +2138,7 @@ export default function AdminPage() {
               <h2 className="text-base font-black uppercase tracking-tight mb-4 pb-1.5 border-b-2 border-black">
                 Direct JSON Prices Importer
               </h2>
-              <JsonPricesUpload onUploadComplete={fetchItems} />
+              <JsonPricesUpload onUploadComplete={handlePricesUploaded} />
               <p className="mt-3 text-xs text-gray-500 font-medium leading-relaxed">
                 Manually upload or drag-and-drop a custom <code>prices.json</code> file. This will update or merge store pricing values instantly.
               </p>
