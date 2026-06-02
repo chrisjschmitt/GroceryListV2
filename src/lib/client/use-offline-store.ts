@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, useRef } from "react";
+import { useState, useEffect, useCallback, useRef, useMemo } from "react";
 import { GroceryItem, RegularItem, PriceData, PriceEntry } from "../types";
 import {
   localGetGroceryItems,
@@ -54,55 +54,95 @@ export function useOfflineStore(): OfflineStore {
   const [isOnline, setIsOnline] = useState(true);
   const [lastSynced, setLastSynced] = useState<Date | null>(null);
   const [lastSavedBy, setLastSavedBy] = useState<string | null>(null);
-  const [hasPendingChanges, setHasPendingChanges] = useState(false);
   const [prices, setPrices] = useState<PriceData>({});
+
+  const [serverGroceryItems, setServerGroceryItems] = useState<GroceryItem[]>([]);
+  const [serverRegularItems, setServerRegularItems] = useState<RegularItem[]>([]);
+
+  const isGroceryItemsDifferent = useMemo(() => {
+    if (groceryItems.length !== serverGroceryItems.length) return true;
+    for (const item of groceryItems) {
+      const sItem = serverGroceryItems.find((s) => s.id === item.id);
+      if (!sItem) return true;
+      if (
+        item.name !== sItem.name ||
+        item.category !== sItem.category ||
+        item.quantity !== sItem.quantity ||
+        item.unit !== sItem.unit ||
+        item.checked !== sItem.checked
+      ) {
+        return true;
+      }
+    }
+    return false;
+  }, [groceryItems, serverGroceryItems]);
+
+  const isRegularItemsDifferent = useMemo(() => {
+    if (regularItems.length !== serverRegularItems.length) return true;
+    for (const item of regularItems) {
+      const sItem = serverRegularItems.find((s) => s.id === item.id);
+      if (!sItem) return true;
+      if (
+        item.name !== sItem.name ||
+        item.category !== sItem.category ||
+        item.selected !== sItem.selected
+      ) {
+        return true;
+      }
+    }
+    return false;
+  }, [regularItems, serverRegularItems]);
+
+  const hasPendingChanges = isGroceryItemsDifferent || isRegularItemsDifferent;
 
   const dirtyRef = useRef<Set<DirtyFlag>>(new Set());
 
   const markSynced = useCallback((savedBy?: string) => {
     setSyncStatus("synced");
     setLastSynced(new Date());
-    setHasPendingChanges(false);
     if (savedBy) setLastSavedBy(savedBy);
   }, []);
 
   const markDirty = useCallback((flag: DirtyFlag) => {
     dirtyRef.current.add(flag);
-    setHasPendingChanges(true);
   }, []);
 
   const saveChanges = useCallback(async () => {
-    if (dirtyRef.current.size === 0) return;
+    const toFlush = new Set<DirtyFlag>();
+    if (isGroceryItemsDifferent) toFlush.add("grocery");
+    if (isRegularItemsDifferent) toFlush.add("regular");
+    if (toFlush.size === 0) return;
+
     if (!navigator.onLine) {
       setSyncStatus("offline");
       return;
     }
 
-    const toFlush = new Set<DirtyFlag>(dirtyRef.current);
-    dirtyRef.current.clear();
-
     setSyncStatus("syncing");
     const result = await pushDirtyToServer(toFlush);
 
     if (result.success) {
+      setServerGroceryItems(JSON.parse(JSON.stringify(groceryItems)));
+      setServerRegularItems(JSON.parse(JSON.stringify(regularItems)));
+      dirtyRef.current.clear();
       markSynced(getDeviceName());
     } else {
-      toFlush.forEach((f) => dirtyRef.current.add(f));
-      setHasPendingChanges(true);
       setSyncStatus("offline");
     }
-  }, [markSynced]);
+  }, [isGroceryItemsDifferent, isRegularItemsDifferent, groceryItems, regularItems, markSynced]);
 
   const pullAndUpdate = useCallback(async () => {
-    if (!navigator.onLine || dirtyRef.current.size > 0) return;
+    if (!navigator.onLine || hasPendingChanges) return;
     const serverData = await pullFromServer();
     if (serverData) {
       setGroceryItems(serverData.groceryItems);
       setRegularItems(serverData.regularItems);
       setPrices(serverData.prices);
+      setServerGroceryItems(JSON.parse(JSON.stringify(serverData.groceryItems)));
+      setServerRegularItems(JSON.parse(JSON.stringify(serverData.regularItems)));
       markSynced(serverData.syncMeta?.lastSavedBy || undefined);
     }
-  }, [markSynced]);
+  }, [markSynced, hasPendingChanges]);
 
   // Load from IndexedDB on mount, then do initial server reconciliation
   useEffect(() => {
@@ -114,6 +154,8 @@ export function useOfflineStore(): OfflineStore {
 
       setGroceryItems(localGrocery);
       setRegularItems(localRegular);
+      setServerGroceryItems(JSON.parse(JSON.stringify(localGrocery)));
+      setServerRegularItems(JSON.parse(JSON.stringify(localRegular)));
 
       if (!navigator.onLine) {
         setSyncStatus("offline");
@@ -128,10 +170,14 @@ export function useOfflineStore(): OfflineStore {
         setGroceryItems(serverData.groceryItems);
         setRegularItems(serverData.regularItems);
         setPrices(serverData.prices);
+        setServerGroceryItems(JSON.parse(JSON.stringify(serverData.groceryItems)));
+        setServerRegularItems(JSON.parse(JSON.stringify(serverData.regularItems)));
         markSynced(serverData.syncMeta?.lastSavedBy || undefined);
       } else if (localGrocery.length > 0 || localRegular.length > 0) {
         const result = await syncAllToServer();
         if (result.success) {
+          setServerGroceryItems(JSON.parse(JSON.stringify(localGrocery)));
+          setServerRegularItems(JSON.parse(JSON.stringify(localRegular)));
           markSynced(getDeviceName());
         } else {
           setSyncStatus("offline");
@@ -155,11 +201,11 @@ export function useOfflineStore(): OfflineStore {
   useEffect(() => {
     const handleVisibility = () => {
       if (document.visibilityState === "hidden") {
-        if (getAutoSaveEnabled() && dirtyRef.current.size > 0 && navigator.onLine) {
+        if (getAutoSaveEnabled() && hasPendingChanges && navigator.onLine) {
           saveChanges();
         }
       } else if (document.visibilityState === "visible" && navigator.onLine) {
-        if (dirtyRef.current.size === 0) {
+        if (!hasPendingChanges) {
           pullAndUpdate();
         }
       }
@@ -167,7 +213,7 @@ export function useOfflineStore(): OfflineStore {
 
     document.addEventListener("visibilitychange", handleVisibility);
     return () => document.removeEventListener("visibilitychange", handleVisibility);
-  }, [pullAndUpdate, saveChanges]);
+  }, [pullAndUpdate, saveChanges, hasPendingChanges]);
 
   // Online/offline listeners
   useEffect(() => {

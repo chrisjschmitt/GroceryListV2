@@ -229,7 +229,7 @@ export default function GroceryList() {
                       <h4 className="text-[10px] font-black text-gray-400 uppercase tracking-widest pb-1 border-b border-gray-200">
                         {category}
                       </h4>
-                      <div className="divide-y divide-gray-100">
+                      <div className="flex flex-col">
                         {categoryItems.map((item) => (
                           <GroceryItemRow
                             key={item.id}
@@ -249,7 +249,7 @@ export default function GroceryList() {
                       <h4 className="text-[10px] font-black text-[#059669] uppercase tracking-widest mb-2">
                         COMPLETED ✔
                       </h4>
-                      <div className="divide-y divide-gray-150">
+                      <div className="flex flex-col">
                         {checkedItems.map((item) => (
                           <GroceryItemRow
                             key={item.id}

@@ -1,4 +1,5 @@
 import { GroceryItem, PriceEntry } from "@/lib/types";
+import { ExternalLink } from "lucide-react";
 
 interface GroceryItemRowProps {
   key?: string | number;
@@ -11,7 +12,7 @@ interface GroceryItemRowProps {
 
 export default function GroceryItemRow({ item, onToggle, onRemove, onUpdateQuantity, priceInfo }: GroceryItemRowProps) {
   return (
-    <div className="group flex items-center gap-3 py-2.5 border-b border-gray-100 last:border-0 text-black">
+    <div className="group flex items-center gap-3 py-1 text-black">
       <button
         onClick={() => onToggle(item.id)}
         className={`w-6 h-6 border-2 border-black flex-shrink-0 flex items-center justify-center transition-all ${
@@ -32,7 +33,14 @@ export default function GroceryItemRow({ item, onToggle, onRemove, onUpdateQuant
         <div className="flex items-center border-2 border-black h-7 bg-white shrink-0 overflow-hidden shadow-[1.5px_1.5px_0px_0px_rgba(0,0,0,1)]">
           <button
             type="button"
-            onClick={() => onUpdateQuantity(item.id, Math.max(1, item.quantity - 1))}
+            onClick={() => {
+              const nextVal = item.quantity - 1;
+              if (nextVal <= 0) {
+                onRemove(item.id);
+              } else {
+                onUpdateQuantity(item.id, nextVal);
+              }
+            }}
             className="px-2 h-full hover:bg-gray-100 border-r-2 border-black font-black text-xs text-black transition-colors"
             title="Decrease Quantity"
           >
@@ -40,12 +48,16 @@ export default function GroceryItemRow({ item, onToggle, onRemove, onUpdateQuant
           </button>
           <input
             type="number"
-            min="1"
+            min="0"
             value={item.quantity}
             onChange={(e) => {
               const val = parseInt(e.target.value, 10);
-              if (!isNaN(val) && val >= 1) {
-                onUpdateQuantity(item.id, val);
+              if (!isNaN(val)) {
+                if (val <= 0) {
+                  onRemove(item.id);
+                } else {
+                  onUpdateQuantity(item.id, val);
+                }
               }
             }}
             className="w-8 text-center text-xs font-black bg-white focus:outline-none focus:bg-amber-50 h-full text-black [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
@@ -67,14 +79,34 @@ export default function GroceryItemRow({ item, onToggle, onRemove, onUpdateQuant
       )}
 
       <div className="flex-1 min-w-0 flex flex-wrap items-baseline gap-x-2 gap-y-0.5">
-        <span className={`text-sm font-bold ${item.checked ? "line-through text-gray-400 font-normal" : "text-gray-900"}`}>
-          {item.name}
-          {!item.checked && item.unit !== "unit" && (
-            <span className="ml-1.5 text-[10px] text-gray-500 font-bold uppercase tracking-wider">
-              ({item.unit})
-            </span>
-          )}
-        </span>
+        {priceInfo?.lookup_url ? (
+          <a
+            href={priceInfo.lookup_url}
+            target="_blank"
+            rel="noopener noreferrer"
+            className={`text-sm font-bold inline-flex items-center gap-1 hover:underline group/link cursor-pointer ${
+              item.checked ? "line-through text-gray-400 font-normal" : "text-gray-900 hover:text-emerald-700"
+            }`}
+            title="Open on grocery store website"
+          >
+            <span>{item.name}</span>
+            <ExternalLink className="w-3 h-3 text-gray-400 group-hover/link:text-emerald-600 transition-colors" />
+            {!item.checked && item.unit !== "unit" && (
+              <span className="text-[10px] text-gray-400 font-bold uppercase tracking-wider">
+                ({item.unit})
+              </span>
+            )}
+          </a>
+        ) : (
+          <span className={`text-sm font-bold ${item.checked ? "line-through text-gray-400 font-normal" : "text-gray-900"}`}>
+            {item.name}
+            {!item.checked && item.unit !== "unit" && (
+              <span className="ml-1.5 text-[10px] text-gray-500 font-bold uppercase tracking-wider">
+                ({item.unit})
+              </span>
+            )}
+          </span>
+        )}
 
         {priceInfo && !item.checked && (
           <span className={`text-xs font-black uppercase ${priceInfo.is_on_sale ? "text-red-600" : "text-gray-600"}`}>
