@@ -25,11 +25,22 @@ import {
   Terminal,
   Image,
   Eye,
-  RefreshCw
+  RefreshCw,
+  Store
 } from "lucide-react";
 
-const getSearchUrlForStore = (storeKey: string, itemName: string) => {
+const getSearchUrlForStore = (storeKey: string, itemName: string, scrapeConfig?: any) => {
   const enc = encodeURIComponent(itemName);
+  const store = scrapeConfig?.stores?.[storeKey];
+  if (store) {
+    if (store.base_url) {
+      if (storeKey === "foodbasics") return `https://www.foodbasics.ca/search?searchItem=${enc}`;
+      if (storeKey === "metro") return `https://www.metro.ca/en/search?filter=${enc}`;
+      if (storeKey === "loblaws") return `https://www.loblaws.ca/search?search-bar=${enc}`;
+      if (storeKey === "nofrills") return `https://www.nofrills.ca/search?search-bar=${enc}`;
+      return `${store.base_url}/search?q=${enc}`;
+    }
+  }
   switch (storeKey) {
     case "foodbasics": return `https://www.foodbasics.ca/search?searchItem=${enc}`;
     case "metro": return `https://www.metro.ca/en/search?filter=${enc}`;
@@ -37,6 +48,18 @@ const getSearchUrlForStore = (storeKey: string, itemName: string) => {
     case "nofrills": return `https://www.nofrills.ca/search?search-bar=${enc}`;
     default: return `https://www.google.com/search?q=${encodeURIComponent(itemName + ' ' + storeKey)}`;
   }
+};
+
+const getStoreDisplayNameDef = (scrapeConfig: any, storeKey: string) => {
+  const store = scrapeConfig?.stores?.[storeKey];
+  if (store?.store_name) return store.store_name;
+  const names: Record<string, string> = {
+    foodbasics: "Food Basics",
+    metro: "Metro",
+    loblaws: "Loblaws",
+    nofrills: "No Frills"
+  };
+  return names[storeKey] || storeKey;
 };
 
 const getStoreDisplayName = (storeKey: string) => {
@@ -47,6 +70,13 @@ const getStoreDisplayName = (storeKey: string) => {
     nofrills: "No Frills"
   };
   return names[storeKey] || storeKey;
+};
+
+const getNormalizedStoreKey = (storeId: string) => {
+  if (!storeId) return "foodbasics";
+  const s = storeId.toLowerCase();
+  if (s === "7923194" || s === "foodbasics") return "foodbasics";
+  return s;
 };
 
 export default function AdminPage() {
@@ -69,6 +99,18 @@ export default function AdminPage() {
   const [customCategory, setCustomCategory] = useState("");
   const [isCreatingCustomCategory, setIsCreatingCustomCategory] = useState(false);
   const [newScrapeStoreKey, setNewScrapeStoreKey] = useState<string>("foodbasics");
+
+  // Store setup CRUD states
+  const [addingStore, setAddingStore] = useState(false);
+  const [editingStoreKey, setEditingStoreKey] = useState<string | null>(null);
+  const [storeForm, setStoreForm] = useState({
+    key: "",
+    store_name: "",
+    base_url: "",
+    postal_code: "K7H3C6",
+    store_id: "",
+    enabled: true
+  });
 
   // Editing Scrape Item states
   const [editingScrapeUpc, setEditingScrapeUpc] = useState<string | null>(null);
@@ -99,6 +141,7 @@ export default function AdminPage() {
   const [pricesSearch, setPricesSearch] = useState("");
   const [editingPriceUpc, setEditingPriceUpc] = useState<string | null>(null);
   const [addingPrice, setAddingPrice] = useState(false);
+  const [originalStoreId, setOriginalStoreId] = useState<string>("");
   const [priceForm, setPriceForm] = useState({
     upc: "",
     item_name: "",
@@ -251,7 +294,8 @@ export default function AdminPage() {
         const pricesData = await pricesRes.json();
         if (!cancelled) {
           setItems(itemsData.items || []);
-          if (configData.stores) setScrapeConfig(configData);
+          const normalizedConfig = ensureDefaultStores(configData);
+          setScrapeConfig(normalizedConfig);
           setPrices(pricesData.prices || {});
         }
       } catch {
@@ -300,10 +344,13 @@ export default function AdminPage() {
     }
   };
 
-  // Ensure foodbasics store exists in config
-  const ensureFoodBasicsStore = (config: ScrapeConfig): ScrapeConfig => {
-    if (!config.stores.foodbasics) {
-      config.stores.foodbasics = {
+  // Ensure default stores exist in scrape config
+  const ensureDefaultStores = (config: ScrapeConfig): ScrapeConfig => {
+    const updated = { ...config };
+    if (!updated.stores) updated.stores = {};
+    
+    if (!updated.stores.foodbasics) {
+      updated.stores.foodbasics = {
         enabled: true,
         store_name: "Food Basics",
         base_url: "https://www.foodbasics.ca",
@@ -311,7 +358,34 @@ export default function AdminPage() {
         store_id: "7923194",
       };
     }
-    return config;
+    if (!updated.stores.metro) {
+      updated.stores.metro = {
+        enabled: true,
+        store_name: "Metro",
+        base_url: "https://www.metro.ca",
+        postal_code: "K7H3C6",
+        store_id: "metro",
+      };
+    }
+    if (!updated.stores.loblaws) {
+      updated.stores.loblaws = {
+        enabled: true,
+        store_name: "Loblaws",
+        base_url: "https://www.loblaws.ca",
+        postal_code: "K7H3C6",
+        store_id: "loblaws",
+      };
+    }
+    if (!updated.stores.nofrills) {
+      updated.stores.nofrills = {
+        enabled: true,
+        store_name: "No Frills",
+        base_url: "https://www.nofrills.ca",
+        postal_code: "K7H3C6",
+        store_id: "nofrills",
+      };
+    }
+    return updated;
   };
 
   const saveScrapeConfig = async (config: ScrapeConfig) => {
@@ -325,6 +399,164 @@ export default function AdminPage() {
     } catch {
       showVisualMessage("Failed to save scraper config");
     }
+  };
+
+  // --- Store setup CRUD handlers ---
+  const handleOpenAddStore = () => {
+    setEditingStoreKey(null);
+    setStoreForm({
+      key: "",
+      store_name: "",
+      base_url: "",
+      postal_code: "K7H3C6",
+      store_id: "",
+      enabled: true
+    });
+    setAddingStore(true);
+  };
+
+  const handleOpenEditStore = (key: string, store: any) => {
+    setEditingStoreKey(key);
+    setStoreForm({
+      key: key,
+      store_name: store.store_name || "",
+      base_url: store.base_url || "",
+      postal_code: store.postal_code || "K7H3C6",
+      store_id: store.store_id || "",
+      enabled: store.enabled !== false
+    });
+    setAddingStore(true);
+  };
+
+  const handleSaveStoreSubmit = async (e: any) => {
+    e.preventDefault();
+    const rawKey = storeForm.key.trim().toLowerCase().replace(/[^a-z0-9]/g, "");
+    if (!rawKey) {
+      alert("Store Key (internal code) is required.");
+      return;
+    }
+    if (!storeForm.store_name.trim()) {
+      alert("Store Name is required.");
+      return;
+    }
+    if (!storeForm.base_url.trim()) {
+      alert("Base Website URL is required.");
+      return;
+    }
+
+    const config = { ...scrapeConfig };
+    if (!config.stores) config.stores = {};
+
+    config.stores[rawKey] = {
+      enabled: storeForm.enabled,
+      store_name: storeForm.store_name.trim(),
+      base_url: storeForm.base_url.trim(),
+      postal_code: storeForm.postal_code.trim(),
+      store_id: storeForm.store_id.trim() || rawKey,
+    };
+
+    setScrapeConfig(config);
+    await saveScrapeConfig(config);
+    setAddingStore(false);
+    setEditingStoreKey(null);
+    showVisualMessage(`Store "${storeForm.store_name}" saved successfully!`);
+  };
+
+  const handleRemoveStore = async (key: string) => {
+    if (key === "foodbasics") {
+      alert("Food Basics is the primary core store and cannot be completely deleted.");
+      return;
+    }
+    if (confirm(`Are you sure you want to remove the store configuration for "${key}"? This will not delete scraping links associated with it, but we won't show dynamic lookup tools until the store is configured again.`)) {
+      const config = { ...scrapeConfig };
+      if (config.stores) {
+        delete config.stores[key];
+      }
+      setScrapeConfig(config);
+      await saveScrapeConfig(config);
+      showVisualMessage(`Store "${key}" removed.`);
+    }
+  };
+
+  // --- Mismatch Link creation in scrape_config.json ---
+  const handleCreateNewScrapeLinkFromMismatch = async (currentStoreKey: string) => {
+    const finalItemName = priceForm.item_name.trim();
+    if (!finalItemName) {
+      alert("Item name is required.");
+      return;
+    }
+
+    const config = { ...scrapeConfig };
+    if (!config.items) config.items = [];
+
+    // 1. Ensure the store is defined in scrapeConfig.stores
+    if (!config.stores) config.stores = {};
+    if (!config.stores[currentStoreKey]) {
+      const storeNames: Record<string, string> = {
+        foodbasics: "Food Basics",
+        metro: "Metro",
+        loblaws: "Loblaws",
+        nofrills: "No Frills"
+      };
+      const baseUrls: Record<string, string> = {
+        foodbasics: "https://www.foodbasics.ca",
+        metro: "https://www.metro.ca",
+        loblaws: "https://www.loblaws.ca",
+        nofrills: "https://www.nofrills.ca"
+      };
+      config.stores[currentStoreKey] = {
+        enabled: true,
+        store_name: storeNames[currentStoreKey] || currentStoreKey.charAt(0).toUpperCase() + currentStoreKey.slice(1),
+        base_url: baseUrls[currentStoreKey] || `https://www.${currentStoreKey}.com`,
+        postal_code: "K7H3C6",
+        store_id: currentStoreKey,
+      };
+    }
+
+    // 2. Build search URL
+    const searchUrl = getSearchUrlForStore(currentStoreKey, finalItemName, config);
+
+    // 3. Update or insert item in scrapeConfig.items
+    let existingItem = config.items.find(i => i.name.toLowerCase() === finalItemName.toLowerCase());
+    const initialUpc = `manual-${Date.now()}`;
+
+    if (existingItem) {
+      if (!existingItem.stores) existingItem.stores = {};
+      existingItem.stores[currentStoreKey] = {
+        url: searchUrl,
+        upc: initialUpc
+      };
+    } else {
+      config.items.push({
+        name: finalItemName,
+        stores: {
+          [currentStoreKey]: {
+            url: searchUrl,
+            upc: initialUpc
+          }
+        }
+      });
+    }
+
+    setScrapeConfig(config);
+    await saveScrapeConfig(config);
+
+    // Close price editor form (preserving original record in database completely)
+    setEditingPriceUpc(null);
+    setAddingPrice(false);
+
+    // Automatically trigger edit state in scraper links card below
+    setEditingScrapeUpc(finalItemName);
+    setEditingScrapeStoreKey(currentStoreKey);
+    setEditScrapeForm({
+      name: finalItemName,
+      url: searchUrl,
+      upc: initialUpc
+    });
+    setEditScrapeItemMode("link");
+    setEditSelectedCatalogName(finalItemName);
+
+    showVisualMessage(`Created new configuration link for "${finalItemName}" under ${getStoreDisplayNameDef(config, currentStoreKey)}! Complete search configuration below.`);
   };
 
   const showVisualMessage = (msg: string) => {
@@ -388,6 +620,7 @@ export default function AdminPage() {
   };
 
   const handleOpenAddPrice = () => {
+    setOriginalStoreId("");
     setPriceForm({
       upc: "",
       item_name: "",
@@ -405,13 +638,15 @@ export default function AdminPage() {
   };
 
   const handleOpenEditPrice = (upc: string, entry: any) => {
+    const sId = entry.store_id || "7923194";
+    setOriginalStoreId(sId);
     setPriceForm({
       upc: upc,
       item_name: entry.item_name || "",
       config_name: entry.config_name || "",
       store_name: entry.store_name || "Food Basics",
       postal_code: entry.postal_code || "K7H3C6",
-      store_id: entry.store_id || "7923194",
+      store_id: sId,
       regular_price: entry.regular_price !== null && entry.regular_price !== undefined ? String(entry.regular_price) : "",
       sale_price: entry.sale_price !== null && entry.sale_price !== undefined ? String(entry.sale_price) : "",
       is_on_sale: entry.is_on_sale === 1,
@@ -466,6 +701,15 @@ export default function AdminPage() {
       alert("UPC is required.");
       return;
     }
+
+    const normalizedCurrentStoreKey = getNormalizedStoreKey(priceForm.store_id);
+    const normalizedOriginalStoreKey = originalStoreId ? getNormalizedStoreKey(originalStoreId) : "";
+    const isStoreChanged = normalizedOriginalStoreKey && normalizedCurrentStoreKey !== normalizedOriginalStoreKey;
+    if (isStoreChanged) {
+      alert("Store has been changed. To maintain price records integrity, standard updates are disabled. Please use the 'Create Scraper Config & Link' button in the warning box above to safe-create a new scraper configuration link instead.");
+      return;
+    }
+
     const regPriceParsed = parseFloat(priceForm.regular_price);
     const salePriceParsed = parseFloat(priceForm.sale_price);
 
@@ -1087,6 +1331,227 @@ export default function AdminPage() {
             </div>
           )}
 
+          {/* Grocery Stores Setup & Registry Section */}
+          <div className="bg-white border-2 border-black p-6 shadow-[6px_6px_0px_0px_rgba(0,0,0,1)]">
+            <div className="flex items-center justify-between mb-4 pb-1.5 border-b-2 border-black">
+              <h2 className="text-base font-black uppercase tracking-tight flex items-center gap-2">
+                <Store className="w-5 h-5 text-emerald-600" /> Manage Grocery Stores
+              </h2>
+              <button
+                type="button"
+                onClick={handleOpenAddStore}
+                className="text-xs font-black uppercase tracking-wider bg-white border-2 border-black px-4 py-2 hover:bg-emerald-50 shadow-[3px_3px_0px_0px_rgba(0,0,0,1)] hover:shadow-none hover:translate-x-[2px] hover:translate-y-[2px] transition-all inline-flex items-center gap-1"
+              >
+                <Plus className="w-4 h-4 text-emerald-600" /> Add Custom Store
+              </button>
+            </div>
+
+            <p className="text-xs text-gray-500 mb-6 font-medium leading-relaxed">
+              Configure and manage grocery store details. Defining the base search URLs and store IDs enables live verification search flow lookups and proper item configuration indexing.
+            </p>
+
+            {/* Store Form Drawer / Row */}
+            {addingStore && (
+              <form onSubmit={handleSaveStoreSubmit} className="bg-[#f0f9ff]/40 border-2 border-black p-5 mb-6 shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] animate-fade-in text-black">
+                <div className="flex items-center justify-between pb-2 mb-4 border-b border-black">
+                  <h3 className="text-xs font-black uppercase tracking-widest text-[#1e3a8a]">
+                    {editingStoreKey ? `✏ Edit Store: ${editingStoreKey}` : "🆕 Configure New Grocery Store"}
+                  </h3>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setAddingStore(false);
+                      setEditingStoreKey(null);
+                    }}
+                    className="p-1 hover:bg-sky-100 border border-transparent hover:border-black rounded text-black"
+                  >
+                    <X className="w-4 h-4 stroke-[2.5]" />
+                  </button>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mb-4">
+                  {/* Store Key / Internal ID */}
+                  <div>
+                    <label className="text-[10px] uppercase font-black tracking-wider text-gray-500 block mb-0.5">
+                      Store Key (Lowercase, alphanumeric ID)
+                    </label>
+                    <input
+                      type="text"
+                      placeholder="e.g. sobeys"
+                      value={storeForm.key}
+                      onChange={(e) => setStoreForm({ ...storeForm, key: e.target.value })}
+                      disabled={!!editingStoreKey}
+                      className="w-full px-2.5 py-1.5 text-xs border-2 border-black bg-white focus:outline-none font-bold text-black disabled:bg-gray-100"
+                      required
+                    />
+                  </div>
+
+                  {/* Store Name / Display Name */}
+                  <div>
+                    <label className="text-[10px] uppercase font-black tracking-wider text-gray-500 block mb-0.5">
+                      Store Name
+                    </label>
+                    <input
+                      type="text"
+                      placeholder="e.g. Sobeys"
+                      value={storeForm.store_name}
+                      onChange={(e) => setStoreForm({ ...storeForm, store_name: e.target.value })}
+                      className="w-full px-2.5 py-1.5 text-xs border-2 border-black bg-white focus:outline-none font-bold text-black"
+                      required
+                    />
+                  </div>
+
+                  {/* Primary Website / Base Search URL */}
+                  <div>
+                    <label className="text-[10px] uppercase font-black tracking-wider text-gray-500 block mb-0.5">
+                      Website URL / Base Website Search
+                    </label>
+                    <input
+                      type="url"
+                      placeholder="e.g. https://www.sobeys.com"
+                      value={storeForm.base_url}
+                      onChange={(e) => setStoreForm({ ...storeForm, base_url: e.target.value })}
+                      className="w-full px-2.5 py-1.5 text-xs border-2 border-black bg-white focus:outline-none font-bold text-black"
+                      required
+                    />
+                  </div>
+
+                  {/* Internal ID Code */}
+                  <div>
+                    <label className="text-[10px] uppercase font-black tracking-wider text-gray-500 block mb-0.5">
+                      Internal Store ID Code (Optional)
+                    </label>
+                    <input
+                      type="text"
+                      placeholder="e.g. sobeys"
+                      value={storeForm.store_id}
+                      onChange={(e) => setStoreForm({ ...storeForm, store_id: e.target.value })}
+                      className="w-full px-2.5 py-1.5 text-xs border-2 border-black bg-white focus:outline-none font-bold text-black"
+                    />
+                  </div>
+
+                  {/* Postal code */}
+                  <div>
+                    <label className="text-[10px] uppercase font-black tracking-wider text-gray-500 block mb-0.5">
+                      Default Store Postal Code
+                    </label>
+                    <input
+                      type="text"
+                      placeholder="e.g. K7H3C6"
+                      value={storeForm.postal_code}
+                      onChange={(e) => setStoreForm({ ...storeForm, postal_code: e.target.value })}
+                      className="w-full px-2.5 py-1.5 text-xs border-2 border-black bg-white focus:outline-none font-bold text-black"
+                    />
+                  </div>
+
+                  {/* Enabled checkpoint */}
+                  <div className="flex items-center gap-2 mt-4">
+                    <input
+                      type="checkbox"
+                      id="storeEnabled"
+                      checked={storeForm.enabled}
+                      onChange={(e) => setStoreForm({ ...storeForm, enabled: e.target.checked })}
+                      className="accent-black w-4 h-4 cursor-pointer"
+                    />
+                    <label htmlFor="storeEnabled" className="text-xs font-black cursor-pointer uppercase select-none text-black">
+                      Active / Enabled for search
+                    </label>
+                  </div>
+                </div>
+
+                <div className="flex items-center justify-end gap-2.5 pt-2 border-t border-dashed border-gray-300">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setAddingStore(false);
+                      setEditingStoreKey(null);
+                    }}
+                    className="px-4 py-1.5 text-xs font-black uppercase text-black hover:bg-gray-100 border border-black"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="submit"
+                    className="px-5 py-1.5 text-xs font-black uppercase text-white bg-black hover:bg-sky-600 border border-black"
+                  >
+                    Save Store Parameters
+                  </button>
+                </div>
+              </form>
+            )}
+
+            {/* List of configured stores */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {Object.entries(scrapeConfig.stores || {}).map(([key, store]: [string, any]) => {
+                return (
+                  <div
+                    key={key}
+                    className="border-2 border-black p-4 bg-[#f9fafb] shadow-[3px_3px_0px_0px_rgba(0,0,0,1)] hover:translate-y-[-1px] hover:translate-x-[-1px] hover:shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] transition-all flex flex-col justify-between"
+                  >
+                    <div>
+                      <div className="flex items-center justify-between border-b border-black/10 pb-2 mb-2">
+                        <span className="font-extrabold text-sm text-black uppercase flex items-center gap-1.5">
+                          🏪 {store.store_name}
+                        </span>
+                        <div className="flex items-center gap-1.5">
+                          <span className={`text-[9px] font-black uppercase px-2 py-0.5 rounded ${
+                            store.enabled !== false ? "bg-emerald-100 text-emerald-800 border border-emerald-400" : "bg-gray-100 text-gray-500 border border-gray-300"
+                          }`}>
+                            {store.enabled !== false ? "Active" : "Disabled"}
+                          </span>
+                          <span className="text-[9px] font-mono bg-gray-200 text-gray-700 px-1.5 rounded uppercase font-bold">
+                            KEY: {key}
+                          </span>
+                        </div>
+                      </div>
+
+                      <div className="space-y-1.5 text-xs text-gray-600 mb-4 text-left font-semibold">
+                        <div className="flex justify-between">
+                          <span className="text-gray-400 text-[10px] uppercase">Base website:</span>
+                          <a
+                            href={store.base_url}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="text-emerald-700 hover:underline overflow-hidden text-ellipsis max-w-[170px]"
+                          >
+                            {store.base_url}
+                          </a>
+                        </div>
+                        <div className="flex justify-between">
+                          <span className="text-gray-400 text-[10px] uppercase">Internal ID Code:</span>
+                          <span className="text-black font-extrabold">{store.store_id || key}</span>
+                        </div>
+                        <div className="flex justify-between">
+                          <span className="text-gray-400 text-[10px] uppercase">Default Postal Code:</span>
+                          <span className="text-black font-extrabold">{store.postal_code || "N/A"}</span>
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="flex items-center justify-end gap-2 border-t border-black/10 pt-2">
+                      <button
+                        type="button"
+                        onClick={() => handleOpenEditStore(key, store)}
+                        className="px-2 py-1 text-[10px] font-black uppercase text-black bg-white hover:bg-gray-100 border border-black shadow-[1px_1px_0px_0px_rgba(0,0,0,1)] hover:shadow-none hover:translate-x-[1px] hover:translate-y-[1px] transition-all"
+                      >
+                        Edit
+                      </button>
+                      {key !== "foodbasics" && (
+                        <button
+                          type="button"
+                          onClick={() => handleRemoveStore(key)}
+                          className="px-2 py-1 text-[10px] font-black uppercase text-white bg-red-600 hover:bg-red-700 border border-black shadow-[1px_1px_0px_0px_rgba(0,0,0,1)] hover:shadow-none hover:translate-x-[1px] hover:translate-y-[1px] transition-all"
+                        >
+                          Delete
+                        </button>
+                      )}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+
           {/* Price Check Scraper CRUD Configuration Section */}
           <div className="bg-white border-2 border-black p-6 shadow-[6px_6px_0px_0px_rgba(0,0,0,1)]">
             <div className="flex items-center justify-between mb-4 pb-1.5 border-b-2 border-black">
@@ -1377,10 +1842,11 @@ export default function AdminPage() {
                         onChange={(e) => setNewScrapeStoreKey(e.target.value)}
                         className="w-full px-3 py-2 text-sm border-2 border-black bg-white font-bold text-black focus:outline-none cursor-pointer"
                       >
-                        <option value="foodbasics">Food Basics (Active & Monitored)</option>
-                        <option value="metro">Metro (Active & Monitored)</option>
-                        <option value="loblaws">Loblaws (Active & Monitored)</option>
-                        <option value="nofrills">No Frills (Active & Monitored)</option>
+                        {Object.entries(scrapeConfig.stores || {}).map(([key, store]: [string, any]) => (
+                          <option key={key} value={key}>
+                            {store.store_name} ({store.enabled ? "Active" : "Disabled"})
+                          </option>
+                        ))}
                       </select>
                       <p className="text-[10px] text-gray-400 mt-1 font-medium">
                         ℹ Store price verification scripts support multi-store setup. Select this store to configure item search lookups.
@@ -1435,12 +1901,12 @@ export default function AdminPage() {
                             <span className="text-xs font-bold text-emerald-900 block mb-1">🔍 Need to find the listing URL for {selectedCatalogName}?</span>
                             <div className="flex flex-wrap gap-2">
                               <a
-                                href={getSearchUrlForStore(newScrapeStoreKey, selectedCatalogName)}
+                                href={getSearchUrlForStore(newScrapeStoreKey, selectedCatalogName, scrapeConfig)}
                                 target="_blank"
                                 rel="noopener noreferrer"
                                 className="inline-flex items-center gap-1.5 text-xs font-black uppercase bg-[#059669] hover:bg-emerald-700 text-white border-2 border-black px-3 py-1.5 shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] hover:shadow-none hover:translate-x-[1px] hover:translate-y-[1px] transition-all"
                               >
-                                <Search className="w-4 h-4" /> Open {getStoreDisplayName(newScrapeStoreKey)} Search
+                                <Search className="w-4 h-4" /> Open {getStoreDisplayNameDef(scrapeConfig, newScrapeStoreKey)} Search
                               </a>
                             </div>
                             <p className="text-[10px] text-emerald-700 mt-1.5 font-medium leading-normal">
@@ -1468,16 +1934,16 @@ export default function AdminPage() {
                               <span className="text-xs font-bold text-emerald-900 block mb-1">🔍 Search for {newScrapeItem.name.trim()}?</span>
                               <div className="flex flex-wrap gap-2">
                                 <a
-                                  href={getSearchUrlForStore(newScrapeStoreKey, newScrapeItem.name.trim())}
+                                  href={getSearchUrlForStore(newScrapeStoreKey, newScrapeItem.name.trim(), scrapeConfig)}
                                   target="_blank"
                                   rel="noopener noreferrer"
                                   className="inline-flex items-center gap-1.5 text-xs font-black uppercase bg-[#059669] hover:bg-emerald-700 text-white border-2 border-black px-3 py-1.5 shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] hover:shadow-none hover:translate-x-[1px] hover:translate-y-[1px] transition-all"
                                 >
-                                  <Search className="w-4 h-4" /> Open {getStoreDisplayName(newScrapeStoreKey)} Search
+                                  <Search className="w-4 h-4" /> Open {getStoreDisplayNameDef(scrapeConfig, newScrapeStoreKey)} Search
                                 </a>
                               </div>
                               <p className="text-[10px] text-emerald-700 mt-1.5 font-medium leading-normal">
-                                Click to open a direct browser session searching {getStoreDisplayName(newScrapeStoreKey)}, find the target item, and copy-paste its product URL.
+                                Click to open a direct browser session searching {getStoreDisplayNameDef(scrapeConfig, newScrapeStoreKey)}, find the target item, and copy-paste its product URL.
                               </p>
                             </div>
                           )}
@@ -1907,6 +2373,119 @@ export default function AdminPage() {
                     />
                   </div>
 
+                  {/* Target Store Select */}
+                  <div>
+                    <label className="text-[10px] uppercase font-black tracking-wider text-gray-500 block mb-0.5">Target Grocery Store</label>
+                    <select
+                      value={getNormalizedStoreKey(priceForm.store_id)}
+                      onChange={(e) => {
+                        const storeKey = e.target.value;
+                        const storeObj = scrapeConfig.stores?.[storeKey] || { store_name: storeKey, store_id: storeKey };
+                        setPriceForm({
+                          ...priceForm,
+                          store_id: storeObj.store_id || storeKey,
+                          store_name: storeObj.store_name
+                        });
+                      }}
+                      className="w-full px-2.5 py-1.5 text-xs border-2 border-black bg-white focus:outline-none font-bold text-black"
+                    >
+                      {Object.entries(scrapeConfig.stores || {}).map(([key, store]: [string, any]) => (
+                        <option key={key} value={key}>
+                          {store.store_name}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+
+                  {(() => {
+                    const normalizedCurrentStoreKey = getNormalizedStoreKey(priceForm.store_id);
+                    const normalizedOriginalStoreKey = originalStoreId ? getNormalizedStoreKey(originalStoreId) : "";
+                    const isStoreChanged = normalizedOriginalStoreKey && normalizedCurrentStoreKey !== normalizedOriginalStoreKey;
+
+                    if (!isStoreChanged) return null;
+
+                    const matchingConfigItem = scrapeConfig?.items?.find(
+                      (sc: any) => sc.name.toLowerCase() === priceForm.item_name.toLowerCase()
+                    );
+                    const hasStoreConfig = matchingConfigItem?.stores?.[normalizedCurrentStoreKey];
+
+                    const handleClearFields = () => {
+                      setPriceForm(prev => ({
+                        ...prev,
+                        regular_price: "",
+                        sale_price: "",
+                        is_on_sale: false,
+                        lookup_url: ""
+                      }));
+                    };
+
+                    const handleAutofillLink = () => {
+                      if (hasStoreConfig) {
+                        setPriceForm(prev => ({
+                          ...prev,
+                          lookup_url: hasStoreConfig.url || "",
+                          upc: hasStoreConfig.upc || prev.upc
+                        }));
+                      }
+                    };
+
+                    const handleSearchCopy = () => {
+                      if (priceForm.item_name) {
+                        navigator.clipboard.writeText(priceForm.item_name);
+                      }
+                    };
+
+                    return (
+                      <div className="md:col-span-2 bg-rose-50 border-2 border-red-500 p-4 shadow-[2px_2px_0px_0px_rgba(239,68,68,1)] text-red-950 space-y-2.5 text-left my-2 animate-fade-in">
+                        <div className="flex flex-wrap items-center gap-2 font-black text-xs uppercase tracking-wider text-red-800">
+                          <span className="bg-red-600 text-white rounded px-1.5 py-0.5 text-[9px] font-black">STORE MISMATCH</span>
+                          Changing Target Store from {getStoreDisplayNameDef(scrapeConfig, normalizedOriginalStoreKey)} to {getStoreDisplayNameDef(scrapeConfig, normalizedCurrentStoreKey)}
+                        </div>
+                        <p className="text-xs font-bold leading-relaxed text-red-900">
+                          The current price, sale information, and product detail URL in the form fields belong to <span className="underline">{getStoreDisplayNameDef(scrapeConfig, normalizedOriginalStoreKey)}</span>. Saving this directly under <span className="underline">{getStoreDisplayNameDef(scrapeConfig, normalizedCurrentStoreKey)}</span> would result in incorrect data.
+                        </p>
+
+                        <div className="flex flex-wrap gap-2 pt-1 border-t border-dashed border-red-400">
+                          <button
+                            type="button"
+                            onClick={() => handleCreateNewScrapeLinkFromMismatch(normalizedCurrentStoreKey)}
+                            className="px-2.5 py-1 text-[10px] font-extrabold uppercase text-white bg-blue-600 hover:bg-blue-700 border border-black shadow-[1px_1px_0px_0px_rgba(0,0,0,1)] hover:shadow-none hover:translate-x-[1px] hover:translate-y-[1px] transition-all flex items-center gap-1"
+                          >
+                            🆕 Create Scraper Config & Link (Safe)
+                          </button>
+
+                          <button
+                            type="button"
+                            onClick={handleClearFields}
+                            className="px-2.5 py-1 text-[10px] font-extrabold uppercase text-white bg-red-600 hover:bg-red-700 border border-black shadow-[1px_1px_0px_0px_rgba(0,0,0,1)] hover:shadow-none hover:translate-x-[1px] hover:translate-y-[1px] transition-all flex items-center gap-1"
+                          >
+                            🧹 Clear Previous Pricing (Safe)
+                          </button>
+
+                          {hasStoreConfig && (
+                            <button
+                              type="button"
+                              onClick={handleAutofillLink}
+                              className="px-2.5 py-1 text-[10px] font-extrabold uppercase text-emerald-950 bg-emerald-400 hover:bg-emerald-500 border border-black shadow-[1px_1px_0px_0px_rgba(0,0,0,1)] hover:shadow-none hover:translate-x-[1px] hover:translate-y-[1px] transition-all flex items-center gap-1"
+                            >
+                              ⚡ Autofill URL & SKU from Config
+                            </button>
+                          )}
+
+                          <a
+                            href={getSearchUrlForStore(normalizedCurrentStoreKey, priceForm.item_name, scrapeConfig)}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            onClick={handleSearchCopy}
+                            className="px-2.5 py-1 text-[10px] font-extrabold uppercase text-black bg-amber-400 hover:bg-amber-500 border border-black shadow-[1px_1px_0px_0px_rgba(0,0,0,1)] hover:shadow-none hover:translate-x-[1px] hover:translate-y-[1px] transition-all inline-flex items-center gap-1"
+                          >
+                            🔍 Search {getStoreDisplayNameDef(scrapeConfig, normalizedCurrentStoreKey)} (Copies Name)
+                          </a>
+                        </div>
+                      </div>
+                    );
+                  })()}
+
                   {/* Regular retail price */}
                   <div>
                     <label className="text-[10px] uppercase font-black tracking-wider text-gray-500 block mb-0.5">Regular retail price ($)</label>
@@ -2060,6 +2639,9 @@ export default function AdminPage() {
                           <div className="space-y-1 text-[10px] text-gray-500 font-extrabold font-mono uppercase tracking-tight text-left">
                             <p>
                               <span className="text-gray-400">UPC:</span> {upc}
+                            </p>
+                            <p>
+                              <span className="text-gray-400">STORE:</span> {entry.store_name || "Food Basics"}
                             </p>
                             {(entry.config_name && entry.config_name !== entry.item_name) && (
                               <p>
