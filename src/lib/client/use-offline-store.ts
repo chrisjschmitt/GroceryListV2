@@ -32,6 +32,7 @@ export interface OfflineStore {
   saveChanges: () => Promise<void>;
   addGroceryItem: (name: string, quantity: number, unit: string, category?: string) => Promise<void>;
   toggleGroceryItem: (id: string) => Promise<void>;
+  updateGroceryItemQuantity: (id: string, quantity: number) => Promise<void>;
   removeGroceryItem: (id: string) => Promise<void>;
   removeGroceryItemByName: (name: string) => Promise<void>;
   clearCheckedGroceryItems: () => Promise<void>;
@@ -236,6 +237,20 @@ export function useOfflineStore(): OfflineStore {
     markDirty("grocery");
   }, [markDirty]);
 
+  const updateGroceryItemQuantity = useCallback(async (id: string, quantity: number) => {
+    setGroceryItems((prev) =>
+      prev.map((i) => (i.id === id ? { ...i, quantity: Math.max(1, quantity) } : i))
+    );
+
+    const items = await localGetGroceryItems();
+    const item = items.find((i) => i.id === id);
+    if (item) {
+      await localUpdateGroceryItem({ ...item, quantity: Math.max(1, quantity) });
+    }
+
+    markDirty("grocery");
+  }, [markDirty]);
+
   const removeGroceryItem = useCallback(async (id: string) => {
     setGroceryItems((prev) => prev.filter((i) => i.id !== id));
     await localRemoveGroceryItem(id);
@@ -358,6 +373,7 @@ export function useOfflineStore(): OfflineStore {
     saveChanges,
     addGroceryItem,
     toggleGroceryItem,
+    updateGroceryItemQuantity,
     removeGroceryItem,
     removeGroceryItemByName,
     clearCheckedGroceryItems,

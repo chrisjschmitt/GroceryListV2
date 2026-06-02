@@ -60,14 +60,19 @@ export default function GroceryList() {
     ? Math.round((checkedItems.length / store.groceryItems.length) * 100)
     : 0;
 
-  const budgetEstimate = useMemo(() => {
+  const savingsEstimate = useMemo(() => {
     let sum = 0;
     for (const item of store.groceryItems) {
       const price = priceLookup.get(item.name.toLowerCase());
       if (price) {
-        const activePrice = price.is_on_sale && price.sale_price !== null ? price.sale_price : price.regular_price;
-        if (activePrice) {
-          sum += activePrice * (item.quantity || 1);
+        const regular = price.regular_price;
+        const sale = price.sale_price;
+        const isOnSale = price.is_on_sale === 1 || !!price.is_on_sale;
+        if (isOnSale && regular !== null && sale !== null && typeof regular === "number" && typeof sale === "number") {
+          const itemSavings = regular - sale;
+          if (itemSavings > 0) {
+            sum += itemSavings * (item.quantity || 1);
+          }
         }
       }
     }
@@ -101,14 +106,14 @@ export default function GroceryList() {
             </p>
           </div>
 
-          {/* Budget / Estimates Box */}
-          <div className="col-span-1 md:col-span-4 bg-[#fee2e2] border-2 border-black p-5 shadow-[6px_6px_0px_0px_rgba(0,0,0,1)] flex flex-col justify-between min-h-[140px]">
+          {/* Savings Estimate Box */}
+          <div className="col-span-1 md:col-span-4 bg-[#f0fdf4] border-2 border-black p-5 shadow-[6px_6px_0px_0px_rgba(0,0,0,1)] flex flex-col justify-between min-h-[140px]">
             <div>
-              <h2 className="text-xs font-black uppercase text-[#991b1b] tracking-wider mb-1">Budget Estimate</h2>
-              <span className="text-4xl font-black text-[#991b1b]">${budgetEstimate.toFixed(2)}</span>
-              <div className="mt-3 h-1 bg-[#991b1b] w-full opacity-20"></div>
+              <h2 className="text-xs font-black uppercase text-[#166534] tracking-wider mb-1">Savings Estimate</h2>
+              <span className="text-4xl font-black text-[#15803d]">${savingsEstimate.toFixed(2)}</span>
+              <div className="mt-3 h-1 bg-[#166534] w-full opacity-25"></div>
             </div>
-            <p className="text-[10px] font-black uppercase text-[#991b1b]">From list prices</p>
+            <p className="text-[10px] font-black uppercase text-[#166534]">Favorable sale discounts</p>
           </div>
 
           {/* Sync status & online Box */}
@@ -191,7 +196,7 @@ export default function GroceryList() {
               <div className="flex items-center justify-between mb-4 pb-3 border-b-2 border-black">
                 <h2 className="text-xl font-black uppercase tracking-tight flex items-center gap-2 text-black">
                   <span>🛒</span>
-                  <span>Active List</span>
+                  <span>Shopping List</span>
                 </h2>
                 {store.groceryItems.length > 0 && (
                   <span className="bg-black text-white text-xs font-black uppercase tracking-wider px-2 py-1">
@@ -242,6 +247,7 @@ export default function GroceryList() {
                             item={item}
                             onToggle={store.toggleGroceryItem}
                             onRemove={store.removeGroceryItem}
+                            onUpdateQuantity={store.updateGroceryItemQuantity}
                             priceInfo={priceLookup.get(item.name.toLowerCase())}
                           />
                         ))}
@@ -261,6 +267,7 @@ export default function GroceryList() {
                             item={item}
                             onToggle={store.toggleGroceryItem}
                             onRemove={store.removeGroceryItem}
+                            onUpdateQuantity={store.updateGroceryItemQuantity}
                           />
                         ))}
                       </div>
@@ -271,7 +278,7 @@ export default function GroceryList() {
                 <div className="border-2 border-dashed border-black bg-[#f9fafb] flex items-center justify-center py-12 px-4 text-center mt-3">
                   <div>
                     <div className="text-4xl mb-3">🛍</div>
-                    <h3 className="text-base font-black uppercase tracking-tight text-black mb-1">Active list is empty</h3>
+                    <h3 className="text-base font-black uppercase tracking-tight text-black mb-1">Shopping list is empty</h3>
                     <p className="text-xs text-gray-500 max-w-xs mx-auto">
                       Add items manually above or tap items from your grocery list on the left to add them here.
                     </p>
