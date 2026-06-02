@@ -9,6 +9,7 @@ export interface StorePrice {
   storeName: string;
   price: number;
   onSale: boolean;
+  lookup_url?: string;
 }
 
 export interface GroceryItem {
@@ -34,6 +35,16 @@ export interface RegularItem {
   selected: boolean;
 }
 
+export interface StoreInfo {
+  store_name: string;
+  postal_code: string;
+  store_id: string;
+  regular_price: number | null;
+  sale_price: number | null;
+  is_on_sale: number;
+  lookup_url?: string;
+}
+
 export interface PriceEntry {
   item_name: string;
   config_name: string;
@@ -45,6 +56,7 @@ export interface PriceEntry {
   is_on_sale: number;
   last_updated: string;
   lookup_url?: string;
+  stores?: Record<string, StoreInfo>;
 }
 
 export type PriceData = Record<string, PriceEntry>;

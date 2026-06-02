@@ -43,6 +43,57 @@ interface EditState {
   value: string;
 }
 
+function abbreviateStoreName(name: string): string {
+  if (!name) return "";
+  const normalized = name.toLowerCase().trim();
+  if (normalized.includes("food basics") || normalized === "fb" || normalized === "foodbasics") return "FB";
+  if (normalized.includes("metro") || normalized === "mt") return "MT";
+  if (normalized.includes("freshmart") || normalized === "fresh mart") return "FM";
+  if (normalized.includes("budget") || normalized === "budgetgrocer") return "BG";
+  if (normalized.includes("organic") || normalized === "organicplace") return "OP";
+  if (normalized.includes("mega") || normalized === "megasave") return "MS";
+  const words = name.split(/\s+/);
+  if (words.length > 1) {
+    return words.map(w => w[0]).join("").toUpperCase().substring(0, 3);
+  }
+  return name.substring(0, 2).toUpperCase();
+}
+
+function checkIfLowestPriceForEntry(price: any, storeId: string): boolean {
+  if (!price.stores || typeof price.stores !== "object") return true;
+  const storeKeys = Object.keys(price.stores);
+  if (storeKeys.length <= 1) return true;
+
+  let lowestPrice = Infinity;
+  for (const key of storeKeys) {
+    const s = price.stores[key];
+    const p = (s.is_on_sale && s.sale_price !== null && s.sale_price !== undefined) ? s.sale_price : (s.regular_price || 0);
+    if (p < lowestPrice) {
+      lowestPrice = p;
+    }
+  }
+
+  const currentStore = price.stores[storeId];
+  const currentPrice = currentStore ? ((currentStore.is_on_sale && currentStore.sale_price !== null && currentStore.sale_price !== undefined) ? currentStore.sale_price : (currentStore.regular_price || 0)) : Infinity;
+  return currentPrice <= lowestPrice;
+}
+
+function getSearchUrlForStore(storeKey: string, itemName: string): string {
+  const encodedName = encodeURIComponent(itemName);
+  switch (storeKey) {
+    case "foodbasics":
+      return `https://www.foodbasics.ca/search?searchItem=${encodedName}`;
+    case "metro":
+      return `https://www.metro.ca/en/search?filter=${encodedName}`;
+    case "loblaws":
+      return `https://www.loblaws.ca/search?search-bar=${encodedName}`;
+    case "nofrills":
+      return `https://www.nofrills.ca/search?search-bar=${encodedName}`;
+    default:
+      return `https://www.google.com/search?q=${encodeURIComponent(itemName + " " + storeKey)}`;
+  }
+}
+
 export default function RegularItemsList({
   items,
   onAddToGroceryList,
@@ -71,6 +122,7 @@ export default function RegularItemsList({
   // Price Checker & Lookup states
   const [scrapeConfig, setScrapeConfig] = useState<ScrapeConfig | null>(null);
   const [activePriceCheckItem, setActivePriceCheckItem] = useState<RegularItem | null>(null);
+  const [modalStoreKey, setModalStoreKey] = useState("foodbasics");
   const [modalUrl, setModalUrl] = useState("");
   const [modalUpc, setModalUpc] = useState("");
   const [modalSuccessMsg, setModalSuccessMsg] = useState<string | null>(null);
@@ -103,63 +155,64 @@ export default function RegularItemsList({
     loadScrapeConfig();
   }, []);
 
-  const handleOpenPriceCheck = (item: RegularItem) => {
-    setActivePriceCheckItem(item);
-    setModalSuccessMsg(null);
-
-    // Default initial UPC and URL
-    let initialUpc = "";
+  const handleLoadStoreContextForModal = (item: RegularItem, storeKey: string) => {
     let initialUrl = "";
+    let initialUpc = "";
     if (scrapeConfig?.items) {
       const match = scrapeConfig.items.find(
         (sc: any) => sc.name.toLowerCase() === item.name.toLowerCase()
       );
-      if (match?.stores?.foodbasics) {
-        initialUrl = match.stores.foodbasics.url || "";
-        initialUpc = match.stores.foodbasics.upc || "";
+      if (match?.stores && match.stores[storeKey]) {
+        initialUrl = match.stores[storeKey].url || "";
+        initialUpc = match.stores[storeKey].upc || "";
       }
     }
 
-    // Check if the price entry is corrupted or exists
     const priceEntry = priceLookup.get(item.name.toLowerCase());
-    
-    // Check if the entry is corrupted (null/negative regular price, or missing/invalid sale price when is_on_sale is 1)
     let isCorrupted = false;
-    if (priceEntry) {
-      const rp = priceEntry.regular_price;
-      const isRegInvalid = rp === null || rp === undefined || typeof rp !== "number" || isNaN(rp) || rp <= 0;
-      const ios = priceEntry.is_on_sale === 1;
-      const sp = priceEntry.sale_price;
-      const isSaleInvalid = ios && (sp === null || sp === undefined || typeof sp !== "number" || isNaN(sp) || sp < 0);
-      isCorrupted = isRegInvalid || isSaleInvalid;
-    }
+    let regP = "";
+    let saleP = "";
+    let ios = false;
 
-    // Auto-expand the repair panel if it represents corrupted data
-    setIsRepairExpanded(isCorrupted);
-
-    // Autofill repair fields
     if (priceEntry) {
-      setRepairRegularPrice(priceEntry.regular_price !== null && priceEntry.regular_price !== undefined ? String(priceEntry.regular_price) : "");
-      setRepairSalePrice(priceEntry.sale_price !== null && priceEntry.sale_price !== undefined ? String(priceEntry.sale_price) : "");
-      setRepairIsOnSale(priceEntry.is_on_sale === 1);
-      
-      // If we don't have UPC from scrapeConfig, let's try finding it from the prices state
-      if (!initialUpc && prices) {
-        const found = Object.entries(prices).find(([_, value]) => 
-          value.item_name.toLowerCase() === item.name.toLowerCase() || 
-          value.config_name.toLowerCase() === item.name.toLowerCase()
-        );
-        if (found) {
-          initialUpc = found[0];
-        }
+      let storeInfo = null;
+      if (priceEntry.stores && typeof priceEntry.stores === "object") {
+        storeInfo = priceEntry.stores[storeKey];
+      } else if (storeKey === "foodbasics") {
+        storeInfo = priceEntry;
       }
-    } else {
-      setRepairRegularPrice("");
-      setRepairSalePrice("");
-      setRepairIsOnSale(false);
+
+      if (storeInfo) {
+        regP = storeInfo.regular_price !== null && storeInfo.regular_price !== undefined ? String(storeInfo.regular_price) : "";
+        saleP = storeInfo.sale_price !== null && storeInfo.sale_price !== undefined ? String(storeInfo.sale_price) : "";
+        ios = storeInfo.is_on_sale === 1 || !!storeInfo.is_on_sale;
+        
+        const rp = storeInfo.regular_price;
+        const isRegInvalid = rp === null || rp === undefined || typeof rp !== "number" || isNaN(rp) || rp <= 0;
+        const isSaleInvalid = ios && (storeInfo.sale_price === null || storeInfo.sale_price === undefined || typeof storeInfo.sale_price !== "number" || isNaN(storeInfo.sale_price) || storeInfo.sale_price < 0);
+        isCorrupted = isRegInvalid || isSaleInvalid;
+      }
     }
 
-    // Fallback UPC if none exists yet
+    setIsRepairExpanded(isCorrupted);
+    setRepairRegularPrice(regP);
+    setRepairSalePrice(saleP);
+    setRepairIsOnSale(ios);
+
+    if (!initialUpc && prices) {
+      const found = Object.entries(prices).find(([_, value]) => 
+        value && (
+          (value.item_name && value.item_name.toLowerCase() === item.name.toLowerCase()) || 
+          (value.config_name && value.config_name.toLowerCase() === item.name.toLowerCase())
+        ) && (
+          value.store_id === storeKey || (value.stores && value.stores[storeKey])
+        )
+      );
+      if (found) {
+        initialUpc = found[0];
+      }
+    }
+
     if (!initialUpc) {
       initialUpc = `manual-${Date.now()}`;
     }
@@ -167,6 +220,20 @@ export default function RegularItemsList({
     setModalUrl(initialUrl);
     setModalUpc(initialUpc);
     setRepairUpc(initialUpc);
+  };
+
+  const handleOpenPriceCheck = (item: RegularItem) => {
+    setActivePriceCheckItem(item);
+    setModalSuccessMsg(null);
+    setModalStoreKey("foodbasics");
+    handleLoadStoreContextForModal(item, "foodbasics");
+  };
+
+  const handleStoreKeyChange = (newStoreKey: string) => {
+    setModalStoreKey(newStoreKey);
+    if (activePriceCheckItem) {
+      handleLoadStoreContextForModal(activePriceCheckItem, newStoreKey);
+    }
   };
 
   const showModalSuccessMessage = (msg: string) => {
@@ -186,11 +253,20 @@ export default function RegularItemsList({
     }
 
     const itemPriceLink = scrapeConfig?.items?.find(
-      (sc: any) => sc.name.toLowerCase() === item.name.toLowerCase() && sc.stores?.foodbasics?.url
+      (sc: any) => sc.name.toLowerCase() === item.name.toLowerCase() && sc.stores?.[modalStoreKey]?.url
     );
     const hasPriceLink = !!itemPriceLink;
     const priceEntry = priceLookup.get(item.name.toLowerCase());
-    const hasPriceEntry = !!priceEntry;
+    
+    let activePriceEntry: any = priceEntry;
+    if (priceEntry) {
+      if (priceEntry.stores && typeof priceEntry.stores === "object" && priceEntry.stores[modalStoreKey]) {
+        activePriceEntry = priceEntry.stores[modalStoreKey];
+      } else if (modalStoreKey !== "foodbasics") {
+        activePriceEntry = null; // No custom pricing loaded for other stores unless they match explicitly
+      }
+    }
+    const hasPriceEntry = !!activePriceEntry;
 
     const isPriceCorrupted = (price: any): boolean => {
       if (!price) return false;
@@ -202,11 +278,19 @@ export default function RegularItemsList({
       return isRegInvalid || isSaleInvalid;
     };
 
-    const corrupted = isPriceCorrupted(priceEntry);
+    const corrupted = isPriceCorrupted(activePriceEntry);
+
+    const storeNames: Record<string, string> = {
+      foodbasics: "Food Basics",
+      metro: "Metro",
+      loblaws: "Loblaws",
+      nofrills: "No Frills"
+    };
+    const storeLabelName = storeNames[modalStoreKey] || modalStoreKey;
 
     // Determine status attributes
     let statusLabel = "Unconfigured / No Link";
-    let statusDesc = "No active scraper details or Food Basics product URLs are registered in scrape_config.json for this item yet. Prices are not actively tracked.";
+    let statusDesc = `No active scraper details or ${storeLabelName} product URLs are registered in scrape_config.json for this item yet. Prices are not actively tracked.`;
     let statusBoxClass = "bg-gray-100 border-gray-400 text-[#111827] shadow-[2px_2px_0px_0px_rgba(156,163,175,1)]";
     let statusDotClass = "bg-gray-400";
     let detailsBlock = null;
@@ -215,18 +299,18 @@ export default function RegularItemsList({
       if (hasPriceEntry) {
         if (corrupted) {
           statusLabel = "Corrupted Pricing Data";
-          statusDesc = "This item's pricing record in prices.json contains empty, null, or invalid price values.";
+          statusDesc = `This item's pricing record in prices.json for ${storeLabelName} contains empty, null, or invalid price values.`;
           statusBoxClass = "bg-rose-50 border-rose-500 text-rose-900 shadow-[2px_2px_0px_0px_rgba(239,68,68,1)]";
           statusDotClass = "bg-rose-500 animate-pulse";
         } else {
           statusLabel = "Active & Verified Price";
-          statusDesc = "Successfully linked in scrape_config.json and verified pricing is loaded from prices.json.";
+          statusDesc = `Successfully linked in scrape_config.json and verified pricing for ${storeLabelName} is loaded from prices.json.`;
           statusBoxClass = "bg-emerald-50 border-emerald-500 text-emerald-950 shadow-[2px_2px_0px_0px_rgba(16,185,129,1)]";
           statusDotClass = "bg-emerald-500";
         }
       } else {
         statusLabel = "Configured (No Pricing Loaded Yet)";
-        statusDesc = "Item is registered in scrape_config.json, but has not completed scanning or matching prices.json records.";
+        statusDesc = `Item is registered in scrape_config.json for ${storeLabelName}, but has not completed scanning or matching prices.json records.`;
         statusBoxClass = "bg-amber-50 border-amber-500 text-amber-900 shadow-[2px_2px_0px_0px_rgba(245,158,11,1)]";
         statusDotClass = "bg-amber-400 animate-pulse";
       }
@@ -234,22 +318,22 @@ export default function RegularItemsList({
       if (hasPriceEntry) {
         if (corrupted) {
           statusLabel = "Unlinked with Corrupted Data";
-          statusDesc = "Pricing records are loaded from prices.json but are corrupt, and no configuration URL exists.";
+          statusDesc = `Pricing records are loaded from prices.json for ${storeLabelName} but are corrupt, and no configuration URL exists.`;
           statusBoxClass = "bg-rose-50 border-rose-500 text-rose-900 shadow-[2px_2px_0px_0px_rgba(239,68,68,1)]";
           statusDotClass = "bg-rose-500 animate-pulse";
         } else {
           statusLabel = "Manual Prices Loaded (Unlinked)";
-          statusDesc = "Verified pricing is loaded in prices.json, but no active automated link exists in scrape_config.json.";
+          statusDesc = `Verified pricing for ${storeLabelName} is loaded in prices.json, but no active automated link exists in scrape_config.json.`;
           statusBoxClass = "bg-emerald-50 border-emerald-500 text-emerald-955 shadow-[2px_2px_0px_0px_rgba(16,185,129,1)]";
           statusDotClass = "bg-emerald-600";
         }
       }
     }
 
-    if (hasPriceEntry && priceEntry) {
-      const rp = priceEntry.regular_price;
-      const sp = priceEntry.sale_price;
-      const ios = priceEntry.is_on_sale === 1;
+    if (hasPriceEntry && activePriceEntry) {
+      const rp = activePriceEntry.regular_price;
+      const sp = activePriceEntry.sale_price;
+      const ios = activePriceEntry.is_on_sale === 1 || !!activePriceEntry.is_on_sale;
       const hasRp = rp !== null && typeof rp === "number" && !isNaN(rp);
       const hasSp = sp !== null && typeof sp === "number" && !isNaN(sp);
 
@@ -263,13 +347,13 @@ export default function RegularItemsList({
           </div>
           <div>
             <span className="text-[10px] opacity-75 block text-left">Active Sale Price:</span>
-            <span className={ios ? (hasSp ? "text-sm font-black text-red-650 block text-left" : "text-rose-600 underline font-black block text-left") : "text-gray-400 font-bold block text-left"}>
+            <span className={ios ? (hasSp ? "text-sm font-black text-red-655 block text-left" : "text-rose-600 underline font-black block text-left") : "text-gray-400 font-bold block text-left"}>
               {ios ? (hasSp ? `$${sp.toFixed(2)}` : "MISSING/NULL") : "No Sale"}
             </span>
           </div>
-          {priceEntry.last_updated && (
+          {activePriceEntry.last_updated && (
             <div className="col-span-2 text-[9px] font-mono opacity-80 normal-case text-left">
-              Last Scanned: {new Date(priceEntry.last_updated).toLocaleString()}
+              Last Scanned: {new Date(activePriceEntry.last_updated).toLocaleString()}
             </div>
           )}
         </div>
@@ -344,13 +428,27 @@ export default function RegularItemsList({
     if (!config.items) config.items = [];
     if (!config.stores) config.stores = {};
 
-    if (!config.stores.foodbasics) {
-      config.stores.foodbasics = {
+    const storeKey = modalStoreKey;
+
+    if (!config.stores[storeKey]) {
+      const storeNames: Record<string, string> = {
+        foodbasics: "Food Basics",
+        metro: "Metro",
+        loblaws: "Loblaws",
+        nofrills: "No Frills"
+      };
+      const baseUrls: Record<string, string> = {
+        foodbasics: "https://www.foodbasics.ca",
+        metro: "https://www.metro.ca",
+        loblaws: "https://www.loblaws.ca",
+        nofrills: "https://www.nofrills.ca"
+      };
+      config.stores[storeKey] = {
         enabled: true,
-        store_name: "Food Basics",
-        base_url: "https://www.foodbasics.ca",
+        store_name: storeNames[storeKey] || storeKey,
+        base_url: baseUrls[storeKey] || "",
         postal_code: "K7H3C6",
-        store_id: "7923194",
+        store_id: storeKey,
       };
     }
 
@@ -360,10 +458,9 @@ export default function RegularItemsList({
       upc = match ? match[1] : `manual-${Date.now()}`;
     }
 
-    const storeKey = "foodbasics";
-
     let existingItem = config.items.find((i: any) => i.name.toLowerCase() === finalItemName.toLowerCase());
     if (existingItem) {
+      if (!existingItem.stores) existingItem.stores = {};
       existingItem.stores[storeKey] = {
         url: trimmedUrl,
         upc,
@@ -417,8 +514,8 @@ export default function RegularItemsList({
     if (!config.items) config.items = [];
 
     const itemConfig = config.items.find((i: any) => i.name.toLowerCase() === finalItemName.toLowerCase());
-    if (itemConfig) {
-      delete itemConfig.stores.foodbasics;
+    if (itemConfig && itemConfig.stores) {
+      delete itemConfig.stores[modalStoreKey];
       if (Object.keys(itemConfig.stores).length === 0) {
         config.items = config.items.filter((i: any) => i.name.toLowerCase() !== finalItemName.toLowerCase());
       }
@@ -469,14 +566,30 @@ export default function RegularItemsList({
       return;
     }
 
+    const storeNames: Record<string, string> = {
+      foodbasics: "Food Basics",
+      metro: "Metro",
+      loblaws: "Loblaws",
+      nofrills: "No Frills"
+    };
+    const storeIdMap: Record<string, string> = {
+      foodbasics: "7923194",
+      metro: "metro",
+      loblaws: "loblaws",
+      nofrills: "nofrills"
+    };
+
+    const finalStoreName = storeNames[modalStoreKey] || modalStoreKey;
+    const finalStoreId = storeIdMap[modalStoreKey] || modalStoreKey;
+
     const payload = {
       upc: cleanUpc,
       item: {
         item_name: finalItemName,
         config_name: finalItemName,
-        store_name: "Food Basics",
+        store_name: finalStoreName,
         postal_code: "K7H3C6",
-        store_id: "7923194",
+        store_id: finalStoreId,
         regular_price: parsedRegular,
         sale_price: repairIsOnSale ? parsedSale : null,
         is_on_sale: repairIsOnSale ? 1 : 0,
@@ -809,16 +922,52 @@ export default function RegularItemsList({
                         {(() => {
                           const price = priceLookup.get(item.name.toLowerCase());
                           if (!price) return null;
+
+                          if (price.stores && typeof price.stores === "object") {
+                            const storeEntries = Object.entries(price.stores);
+                            if (storeEntries.length > 0) {
+                              return (
+                                <span className="ml-auto inline-flex flex-wrap gap-1 items-center">
+                                  {storeEntries.map(([storeId, storeInfo]: [string, any]) => {
+                                    const activeP = (storeInfo.is_on_sale && storeInfo.sale_price !== null && storeInfo.sale_price !== undefined) 
+                                      ? storeInfo.sale_price 
+                                      : (storeInfo.regular_price || 0);
+                                    const isLowest = checkIfLowestPriceForEntry(price, storeId);
+                                    return (
+                                      <span
+                                        key={storeId}
+                                        className={`text-[9px] font-black uppercase border border-black px-1.5 py-0.2 shrink-0 inline-flex items-center gap-0.5 rounded-none ${
+                                          isLowest
+                                            ? storeInfo.is_on_sale ? "bg-red-100 text-red-700 font-extrabold" : "bg-emerald-100 text-emerald-800"
+                                            : "bg-gray-100 text-gray-500 font-normal"
+                                        }`}
+                                        title={`${storeInfo.store_name || storeId}: $${activeP.toFixed(2)}`}
+                                      >
+                                        <span>{abbreviateStoreName(storeInfo.store_name || storeId)}:</span>
+                                        <span>${activeP.toFixed(2)}</span>
+                                        {storeInfo.is_on_sale && (
+                                          <span className="text-[7px] text-red-650 font-black">%</span>
+                                        )}
+                                      </span>
+                                    );
+                                  })}
+                                </span>
+                              );
+                            }
+                          }
+
+                          // Single Store Fallback
                           const activePrice = price.is_on_sale && price.sale_price !== null ? price.sale_price : price.regular_price;
                           return (
                             <span
-                              className={`ml-auto flex-shrink-0 text-[11px] font-black uppercase ${
-                                price.is_on_sale ? "text-red-600 bg-red-100 border border-black px-1" : "text-gray-500"
+                              className={`ml-auto flex-shrink-0 text-[10px] font-black uppercase border border-black px-1.5 py-0.2 shrink-0 inline-flex items-center gap-0.5 ${
+                                price.is_on_sale ? "text-red-700 bg-red-100" : "text-gray-500 bg-gray-50"
                               }`}
                             >
-                              ${activePrice?.toFixed(2)}
+                              <span>{abbreviateStoreName(price.store_name || "Food Basics")}:</span>
+                              <span>${activePrice?.toFixed(2)}</span>
                               {price.is_on_sale === 1 && (
-                                <span className="ml-0.5 text-[8px] font-bold">sale</span>
+                                <span className="ml-0.5 text-[7px] font-bold">sale</span>
                               )}
                             </span>
                           );
@@ -935,36 +1084,36 @@ export default function RegularItemsList({
               <div>
                 <label className="text-xs font-black uppercase block mb-1 text-black">Target Grocery Store</label>
                 <select
-                  disabled
-                  className="w-full px-3 py-2 text-xs border-2 border-black bg-gray-100 font-bold text-gray-650 focus:outline-none cursor-not-allowed text-black"
-                  title="Currently, price check automation scripts are configured specifically for Food Basics."
+                  value={modalStoreKey}
+                  onChange={(e) => handleStoreKeyChange(e.target.value)}
+                  className="w-full px-3 py-2 text-xs border-2 border-black bg-white font-bold focus:outline-none text-black cursor-pointer shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]"
                 >
                   <option value="foodbasics">Food Basics (Active & Monitored)</option>
-                  <option value="metro">Metro (Coming soon...)</option>
-                  <option value="loblaws">Loblaws (Coming soon...)</option>
-                  <option value="nofrills">No Frills (Coming soon...)</option>
+                  <option value="metro">Metro (Active & Monitored)</option>
+                  <option value="loblaws">Loblaws (Active & Monitored)</option>
+                  <option value="nofrills">No Frills (Active & Monitored)</option>
                 </select>
-                <span className="text-[9px] text-[#4b5563] font-bold block mt-1">
-                  ℹ Currently, price check scripts run specifically on Food Basics. Metro and Loblaws can be configured upon request.
+                <span className="text-[9px] text-[#4b5563] font-bold block mt-1.5">
+                  ℹ Choose which store dashboard to view, configure, or repair pricing.
                 </span>
               </div>
 
               {/* 2. Direct Lookup Search Helper */}
-              <div className="bg-emerald-50/50 border-2 border-black p-3 space-y-1.5 shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]">
+              <div className="bg-emerald-50/50 border-2 border-black p-3 space-y-1.5 shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] text-left">
                 <span className="text-[10px] uppercase font-black text-emerald-950 block flex items-center gap-1">
                   <Search className="w-3 h-3" /> Live Price & URL Lookup Helper
                 </span>
                 <p className="text-[11px] text-emerald-950 leading-tight">
-                  Click below to find the product page on Food Basics. This will automatically copy the item name to your clipboard for search.
+                  Click below to find the product page on {modalStoreKey === "foodbasics" ? "Food Basics" : modalStoreKey === "metro" ? "Metro" : modalStoreKey === "loblaws" ? "Loblaws" : "No Frills"}. This will automatically copy the item name to your clipboard for search.
                 </p>
                 <a
-                  href={`https://www.foodbasics.ca/search?searchItem=${encodeURIComponent(activePriceCheckItem.name)}`}
+                  href={getSearchUrlForStore(modalStoreKey, activePriceCheckItem.name)}
                   target="_blank"
                   rel="noopener noreferrer"
                   onClick={handleSearchAndCopyName}
-                  className="w-full inline-flex items-center justify-center gap-1.5 py-1.5 text-xs font-black uppercase bg-[#059669] hover:bg-emerald-700 text-white border-2 border-black shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] hover:shadow-none hover:translate-x-[1px] hover:translate-y-[1px] transition-colors font-bold"
+                  className="w-full inline-flex items-center justify-center gap-1.5 py-1.5 text-xs font-black uppercase bg-[#059669] hover:bg-emerald-700 text-white border-2 border-black shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] hover:shadow-none hover:translate-x-[1px] hover:translate-y-[1px] transition-colors font-bold text-center"
                 >
-                  <ExternalLink className="w-3.5 h-3.5" /> Search Food Basics (Auto-Copies Name)
+                  <ExternalLink className="w-3.5 h-3.5" /> Search {modalStoreKey === "foodbasics" ? "Food Basics" : modalStoreKey === "metro" ? "Metro" : modalStoreKey === "loblaws" ? "Loblaws" : "No Frills"} (Auto-Copies Name)
                 </a>
               </div>
 
@@ -974,7 +1123,7 @@ export default function RegularItemsList({
                 <div className="flex gap-1.5">
                   <input
                     type="url"
-                    placeholder="Paste Food Basics product detail link..."
+                    placeholder={`Paste ${modalStoreKey === "foodbasics" ? "Food Basics" : modalStoreKey === "metro" ? "Metro" : modalStoreKey === "loblaws" ? "Loblaws" : "No Frills"} product detail link...`}
                     value={modalUrl}
                     onChange={(e) => handleUrlChange(e.target.value)}
                     className="flex-1 px-3 py-2 text-xs border-2 border-black bg-white focus:outline-none font-bold text-black shadow-[1px_1px_0px_0px_rgba(0,0,0,1)]"
@@ -988,7 +1137,7 @@ export default function RegularItemsList({
                     <Clipboard className="w-3.5 h-3.5 text-emerald-700" /> Paste URL
                   </button>
                 </div>
-                <span className="text-[9px] text-gray-500 block mt-1.5">
+                <span className="text-[9px] text-gray-500 block mt-1.5 mr-auto text-left w-full">
                   💡 Tip: Any URL pasted or typed is auto-cleaned of tracking queries on the fly!
                 </span>
               </div>
@@ -1104,7 +1253,7 @@ export default function RegularItemsList({
                   <Save className="w-3.5 h-3.5" /> Save to Script
                 </button>
 
-                {scrapeConfig?.items?.some((sc: any) => sc.name.toLowerCase() === activePriceCheckItem.name.toLowerCase() && sc.stores?.foodbasics?.url) && (
+                {scrapeConfig?.items?.some((sc: any) => sc.name.toLowerCase() === activePriceCheckItem.name.toLowerCase() && sc.stores?.[modalStoreKey]?.url) && (
                   <button
                     onClick={handleDeletePriceCheckUrl}
                     className="py-1.5 px-3 text-xs bg-white text-red-655 hover:bg-red-50 border-2 border-black text-red-600 font-black uppercase tracking-wider transition-colors inline-flex items-center justify-center gap-1 shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] hover:shadow-none hover:translate-x-[1px] hover:translate-y-[1px]"

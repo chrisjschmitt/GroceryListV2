@@ -213,17 +213,51 @@ async function startServer() {
       if (Array.isArray(parsedData)) {
         parsedData.forEach((item: any) => {
           const upc = item.upc || item.sku || item.id || `manual-${Date.now()}-${count}`;
+          const stores = item.stores || null;
+          let finalStoreName = item.store_name || "Food Basics";
+          let finalPostalCode = item.postal_code || "K7H3C6";
+          let finalStoreId = item.store_id || "7923194";
+          let finalRegular = item.regular_price;
+          let finalSale = item.sale_price;
+          let finalIsOnSale = item.is_on_sale;
+          let finalLookupUrl = item.lookup_url || item.url || "";
+
+          if (stores && typeof stores === "object") {
+            const storeKeys = Object.keys(stores);
+            if (storeKeys.length > 0) {
+              let lowestStoreKey = storeKeys[0];
+              let lowestPrice = Infinity;
+              for (const key of storeKeys) {
+                const s = stores[key];
+                const p = (s.is_on_sale && s.sale_price !== null && s.sale_price !== undefined) ? s.sale_price : (s.regular_price || 0);
+                if (p < lowestPrice) {
+                  lowestPrice = p;
+                  lowestStoreKey = key;
+                }
+              }
+              const firstStore = stores[lowestStoreKey];
+              finalStoreName = firstStore.store_name || lowestStoreKey;
+              finalPostalCode = firstStore.postal_code || "";
+              finalStoreId = firstStore.store_id || "";
+              finalRegular = typeof firstStore.regular_price === "number" ? firstStore.regular_price : parseFloat(firstStore.regular_price) || null;
+              finalSale = typeof firstStore.sale_price === "number" ? firstStore.sale_price : parseFloat(firstStore.sale_price) || null;
+              finalIsOnSale = firstStore.is_on_sale !== undefined ? (firstStore.is_on_sale ? 1 : 0) : (firstStore.sale_price ? 1 : 0);
+              finalLookupUrl = firstStore.lookup_url || firstStore.url || "";
+            }
+          }
+
           standardized[upc] = {
             item_name: item.item_name || item.name || "",
             config_name: item.config_name || item.name || "",
-            store_name: item.store_name || "Food Basics",
-            postal_code: item.postal_code || "K7H3C6",
-            store_id: item.store_id || "7923194",
-            regular_price: typeof item.regular_price === "number" ? item.regular_price : parseFloat(item.regular_price || item.regularPrice || "0") || null,
-            sale_price: typeof item.sale_price === "number" ? item.sale_price : parseFloat(item.sale_price || item.salePrice) || null,
-            is_on_sale: item.is_on_sale !== undefined ? (item.is_on_sale ? 1 : 0) : (item.sale_price ? 1 : 0),
+            store_name: finalStoreName,
+            postal_code: finalPostalCode,
+            store_id: finalStoreId,
+            regular_price: typeof finalRegular === "number" ? finalRegular : parseFloat(finalRegular || "0") || null,
+            sale_price: typeof finalSale === "number" ? finalSale : parseFloat(finalSale || item.salePrice) || null,
+            is_on_sale: finalIsOnSale !== undefined ? (finalIsOnSale ? 1 : 0) : (finalSale ? 1 : 0),
             last_updated: item.last_updated || new Date().toISOString(),
-            lookup_url: item.lookup_url || item.url || "",
+            lookup_url: finalLookupUrl,
+            stores: stores
           };
           count++;
         });
@@ -231,17 +265,51 @@ async function startServer() {
         for (const [key, item] of Object.entries(parsedData)) {
           if (item && typeof item === "object") {
             const rawItem = item as any;
+            const stores = rawItem.stores || null;
+            let finalStoreName = rawItem.store_name || "Food Basics";
+            let finalPostalCode = rawItem.postal_code || "K7H3C6";
+            let finalStoreId = rawItem.store_id || "7923194";
+            let finalRegular = rawItem.regular_price;
+            let finalSale = rawItem.sale_price;
+            let finalIsOnSale = rawItem.is_on_sale;
+            let finalLookupUrl = rawItem.lookup_url || rawItem.url || "";
+
+            if (stores && typeof stores === "object") {
+              const storeKeys = Object.keys(stores);
+              if (storeKeys.length > 0) {
+                let lowestStoreKey = storeKeys[0];
+                let lowestPrice = Infinity;
+                for (const k of storeKeys) {
+                  const s = stores[k];
+                  const p = (s.is_on_sale && s.sale_price !== null && s.sale_price !== undefined) ? s.sale_price : (s.regular_price || 0);
+                  if (p < lowestPrice) {
+                    lowestPrice = p;
+                    lowestStoreKey = k;
+                  }
+                }
+                const firstStore = stores[lowestStoreKey];
+                finalStoreName = firstStore.store_name || lowestStoreKey;
+                finalPostalCode = firstStore.postal_code || "";
+                finalStoreId = firstStore.store_id || "";
+                finalRegular = typeof firstStore.regular_price === "number" ? firstStore.regular_price : parseFloat(firstStore.regular_price) || null;
+                finalSale = typeof firstStore.sale_price === "number" ? firstStore.sale_price : parseFloat(firstStore.sale_price) || null;
+                finalIsOnSale = firstStore.is_on_sale !== undefined ? (firstStore.is_on_sale ? 1 : 0) : (firstStore.sale_price ? 1 : 0);
+                finalLookupUrl = firstStore.lookup_url || firstStore.url || "";
+              }
+            }
+
             standardized[key] = {
               item_name: rawItem.item_name || rawItem.name || "",
               config_name: rawItem.config_name || rawItem.name || "",
-              store_name: rawItem.store_name || "Food Basics",
-              postal_code: rawItem.postal_code || "K7H3C6",
-              store_id: rawItem.store_id || "7923194",
-              regular_price: typeof rawItem.regular_price === "number" ? rawItem.regular_price : parseFloat(rawItem.regular_price || rawItem.regularPrice || "0") || null,
-              sale_price: typeof rawItem.sale_price === "number" ? rawItem.sale_price : parseFloat(rawItem.sale_price || rawItem.salePrice) || null,
-              is_on_sale: rawItem.is_on_sale !== undefined ? (rawItem.is_on_sale ? 1 : 0) : (rawItem.sale_price ? 1 : 0),
+              store_name: finalStoreName,
+              postal_code: finalPostalCode,
+              store_id: finalStoreId,
+              regular_price: typeof finalRegular === "number" ? finalRegular : parseFloat(finalRegular || "0") || null,
+              sale_price: typeof finalSale === "number" ? finalSale : parseFloat(finalSale || rawItem.salePrice) || null,
+              is_on_sale: finalIsOnSale !== undefined ? (finalIsOnSale ? 1 : 0) : (finalSale ? 1 : 0),
               last_updated: rawItem.last_updated || new Date().toISOString(),
-              lookup_url: rawItem.lookup_url || rawItem.url || "",
+              lookup_url: finalLookupUrl,
+              stores: stores
             };
             count++;
           }
@@ -270,17 +338,50 @@ async function startServer() {
         return;
       }
       const existingPrices = await blobGetPrices();
-      existingPrices[upc] = {
-        item_name: item.item_name || "",
-        config_name: item.config_name || "",
-        store_name: item.store_name || "Food Basics",
+      const currentEntry = (existingPrices[upc] || { stores: {} }) as any;
+      
+      const targetStoreId = item.store_id || "foodbasics";
+      const targetStoreName = item.store_name || "Food Basics";
+      
+      const updatedStores = { ...(currentEntry.stores || {}) };
+      updatedStores[targetStoreId] = {
+        store_name: targetStoreName,
         postal_code: item.postal_code || "K7H3C6",
-        store_id: item.store_id || "7923194",
+        store_id: targetStoreId,
         regular_price: typeof item.regular_price === "number" ? item.regular_price : parseFloat(item.regular_price) || null,
         sale_price: typeof item.sale_price === "number" ? item.sale_price : (item.sale_price ? parseFloat(item.sale_price) : null),
         is_on_sale: item.is_on_sale !== undefined ? (item.is_on_sale ? 1 : 0) : (item.sale_price !== null && item.sale_price !== undefined && item.sale_price !== "" ? 1 : 0),
-        last_updated: item.last_updated || new Date().toISOString(),
         lookup_url: item.lookup_url || "",
+        last_updated: item.last_updated || new Date().toISOString(),
+      };
+      
+      // Compute the lowest price store or default to the target store
+      const storeKeys = Object.keys(updatedStores);
+      let lowestStoreKey = targetStoreId;
+      let lowestPrice = Infinity;
+      for (const key of storeKeys) {
+        const s = updatedStores[key];
+        const p = (s.is_on_sale && s.sale_price !== null && s.sale_price !== undefined) ? s.sale_price : (s.regular_price || 0);
+        if (p < lowestPrice) {
+          lowestPrice = p;
+          lowestStoreKey = key;
+        }
+      }
+      
+      const bestStore = updatedStores[lowestStoreKey];
+      
+      existingPrices[upc] = {
+        item_name: item.item_name || currentEntry.item_name || "",
+        config_name: item.config_name || currentEntry.config_name || "",
+        store_name: bestStore.store_name,
+        postal_code: bestStore.postal_code,
+        store_id: bestStore.store_id,
+        regular_price: bestStore.regular_price,
+        sale_price: bestStore.sale_price,
+        is_on_sale: bestStore.is_on_sale,
+        last_updated: item.last_updated || new Date().toISOString(),
+        lookup_url: bestStore.lookup_url,
+        stores: updatedStores
       };
       await blobSetPrices(existingPrices);
       res.json({ success: true, prices: existingPrices });

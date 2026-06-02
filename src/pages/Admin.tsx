@@ -28,6 +28,27 @@ import {
   RefreshCw
 } from "lucide-react";
 
+const getSearchUrlForStore = (storeKey: string, itemName: string) => {
+  const enc = encodeURIComponent(itemName);
+  switch (storeKey) {
+    case "foodbasics": return `https://www.foodbasics.ca/search?searchItem=${enc}`;
+    case "metro": return `https://www.metro.ca/en/search?filter=${enc}`;
+    case "loblaws": return `https://www.loblaws.ca/search?search-bar=${enc}`;
+    case "nofrills": return `https://www.nofrills.ca/search?search-bar=${enc}`;
+    default: return `https://www.google.com/search?q=${encodeURIComponent(itemName + ' ' + storeKey)}`;
+  }
+};
+
+const getStoreDisplayName = (storeKey: string) => {
+  const names: Record<string, string> = {
+    foodbasics: "Food Basics",
+    metro: "Metro",
+    loblaws: "Loblaws",
+    nofrills: "No Frills"
+  };
+  return names[storeKey] || storeKey;
+};
+
 export default function AdminPage() {
   const [items, setItems] = useState<RegularItem[]>([]);
   const [loading, setLoading] = useState(true);
@@ -47,6 +68,7 @@ export default function AdminPage() {
   const [newCatalogCategory, setNewCatalogCategory] = useState("");
   const [customCategory, setCustomCategory] = useState("");
   const [isCreatingCustomCategory, setIsCreatingCustomCategory] = useState(false);
+  const [newScrapeStoreKey, setNewScrapeStoreKey] = useState<string>("foodbasics");
 
   // Editing Scrape Item states
   const [editingScrapeUpc, setEditingScrapeUpc] = useState<string | null>(null);
@@ -570,13 +592,28 @@ export default function AdminPage() {
 
     // Ensure store meta setup is present
     if (!config.stores) config.stores = {};
-    if (!config.stores.foodbasics) {
-      config.stores.foodbasics = {
+    const storeKey = newScrapeStoreKey;
+
+    const storeNames: Record<string, string> = {
+      foodbasics: "Food Basics",
+      metro: "Metro",
+      loblaws: "Loblaws",
+      nofrills: "No Frills"
+    };
+    const baseUrls: Record<string, string> = {
+      foodbasics: "https://www.foodbasics.ca",
+      metro: "https://www.metro.ca",
+      loblaws: "https://www.loblaws.ca",
+      nofrills: "https://www.nofrills.ca"
+    };
+
+    if (!config.stores[storeKey]) {
+      config.stores[storeKey] = {
         enabled: true,
-        store_name: "Food Basics",
-        base_url: "https://www.foodbasics.ca",
+        store_name: storeNames[storeKey] || storeKey,
+        base_url: baseUrls[storeKey] || "",
         postal_code: "K7H3C6",
-        store_id: "7923194",
+        store_id: storeKey,
       };
     }
 
@@ -587,11 +624,10 @@ export default function AdminPage() {
       upc = match ? match[1] : `manual-${Date.now()}`;
     }
 
-    const storeKey = "foodbasics";
-
     // Update or insert item in unified scraper config
     let existingItem = config.items.find(i => i.name.toLowerCase() === finalItemName.toLowerCase());
     if (existingItem) {
+      if (!existingItem.stores) existingItem.stores = {};
       existingItem.stores[storeKey] = {
         url: newScrapeItem.url.trim(),
         upc,
@@ -1337,17 +1373,17 @@ export default function AdminPage() {
                     <div>
                       <label className="text-xs font-bold uppercase text-gray-500 block mb-1">Target Grocery Chain</label>
                       <select
-                        disabled
-                        className="w-full px-3 py-2 text-sm border-2 border-black bg-gray-100 font-bold text-gray-600 focus:outline-none cursor-not-allowed"
-                        title="Currently, price check automation scripts are configured specifically for Food Basics. Multi-chain scripts can be enabled later."
+                        value={newScrapeStoreKey}
+                        onChange={(e) => setNewScrapeStoreKey(e.target.value)}
+                        className="w-full px-3 py-2 text-sm border-2 border-black bg-white font-bold text-black focus:outline-none cursor-pointer"
                       >
                         <option value="foodbasics">Food Basics (Active & Monitored)</option>
-                        <option value="metro">Metro (Coming soon...)</option>
-                        <option value="loblaws">Loblaws (Coming soon...)</option>
-                        <option value="nofrills">No Frills (Coming soon...)</option>
+                        <option value="metro">Metro (Active & Monitored)</option>
+                        <option value="loblaws">Loblaws (Active & Monitored)</option>
+                        <option value="nofrills">No Frills (Active & Monitored)</option>
                       </select>
                       <p className="text-[10px] text-gray-400 mt-1 font-medium">
-                        ℹ Store price verification scripts currently support Food Basics. Select this store to configure item search lookups.
+                        ℹ Store price verification scripts support multi-store setup. Select this store to configure item search lookups.
                       </p>
                     </div>
                     
@@ -1399,12 +1435,12 @@ export default function AdminPage() {
                             <span className="text-xs font-bold text-emerald-900 block mb-1">🔍 Need to find the listing URL for {selectedCatalogName}?</span>
                             <div className="flex flex-wrap gap-2">
                               <a
-                                href={`https://www.foodbasics.ca/search?searchItem=${encodeURIComponent(selectedCatalogName)}`}
+                                href={getSearchUrlForStore(newScrapeStoreKey, selectedCatalogName)}
                                 target="_blank"
                                 rel="noopener noreferrer"
                                 className="inline-flex items-center gap-1.5 text-xs font-black uppercase bg-[#059669] hover:bg-emerald-700 text-white border-2 border-black px-3 py-1.5 shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] hover:shadow-none hover:translate-x-[1px] hover:translate-y-[1px] transition-all"
                               >
-                                <Search className="w-4 h-4" /> Open Food Basics Search
+                                <Search className="w-4 h-4" /> Open {getStoreDisplayName(newScrapeStoreKey)} Search
                               </a>
                             </div>
                             <p className="text-[10px] text-emerald-700 mt-1.5 font-medium leading-normal">
@@ -1432,16 +1468,16 @@ export default function AdminPage() {
                               <span className="text-xs font-bold text-emerald-900 block mb-1">🔍 Search for {newScrapeItem.name.trim()}?</span>
                               <div className="flex flex-wrap gap-2">
                                 <a
-                                  href={`https://www.foodbasics.ca/search?searchItem=${encodeURIComponent(newScrapeItem.name.trim())}`}
+                                  href={getSearchUrlForStore(newScrapeStoreKey, newScrapeItem.name.trim())}
                                   target="_blank"
                                   rel="noopener noreferrer"
                                   className="inline-flex items-center gap-1.5 text-xs font-black uppercase bg-[#059669] hover:bg-emerald-700 text-white border-2 border-black px-3 py-1.5 shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] hover:shadow-none hover:translate-x-[1px] hover:translate-y-[1px] transition-all"
                                 >
-                                  <Search className="w-4 h-4" /> Open Food Basics Search
+                                  <Search className="w-4 h-4" /> Open {getStoreDisplayName(newScrapeStoreKey)} Search
                                 </a>
                               </div>
                               <p className="text-[10px] text-emerald-700 mt-1.5 font-medium leading-normal">
-                                Click to open a direct browser session searching Food Basics, find the target item, and copy-paste its product URL.
+                                Click to open a direct browser session searching {getStoreDisplayName(newScrapeStoreKey)}, find the target item, and copy-paste its product URL.
                               </p>
                             </div>
                           )}
@@ -1490,12 +1526,12 @@ export default function AdminPage() {
                       </div>
                     )}
 
-                    {/* Food Basics URL */}
+                    {/* Dynamic Store URL */}
                     <div>
-                      <label className="text-xs font-bold uppercase text-black block mb-0.5">Direct Product Listing Page URL (Required)</label>
+                      <label className="text-xs font-bold uppercase text-black block mb-0.5">Direct Product Listing Page URL for {getStoreDisplayName(newScrapeStoreKey)} (Required)</label>
                       <input
                         type="text"
-                        placeholder="Paste the Food Basics page URL (e.g. https://www.foodbasics.ca/p/...)"
+                        placeholder={`Paste the ${getStoreDisplayName(newScrapeStoreKey)} page URL...`}
                         value={newScrapeItem.url}
                         onChange={(e) => setNewScrapeItem({ ...newScrapeItem, url: e.target.value })}
                         className="w-full px-3 py-2 text-sm border-2 border-black bg-white focus:outline-none focus:ring-1 focus:ring-emerald-500 font-bold text-black"

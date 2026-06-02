@@ -2,7 +2,7 @@ import { useMemo, useState } from "react";
 import { useOfflineStore } from "@/lib/client/use-offline-store";
 import { GroceryItem, PriceEntry } from "@/lib/types";
 import AddItemForm from "./AddItemForm";
-import GroceryItemRow from "./GroceryItemRow";
+import GroceryItemRow, { abbreviateStoreName } from "./GroceryItemRow";
 import RegularItemsList from "./RegularItemsList";
 import SyncIndicator from "./SyncIndicator";
 import PullToRefresh from "./PullToRefresh";
@@ -32,11 +32,32 @@ export default function GroceryList() {
   const priceLookup = useMemo(() => {
     const map = new Map<string, PriceEntry>();
     for (const entry of Object.values(store.prices)) {
-      if (entry.config_name) map.set(entry.config_name.toLowerCase(), entry);
-      map.set(entry.item_name.toLowerCase(), entry);
+      if (entry) {
+        if (entry.config_name) map.set(entry.config_name.toLowerCase(), entry);
+        if (entry.item_name) map.set(entry.item_name.toLowerCase(), entry);
+      }
     }
     return map;
   }, [store.prices]);
+
+  const savingsEstimate = useMemo(() => {
+    let sum = 0;
+    for (const item of store.groceryItems) {
+      const price = priceLookup.get(item.name.toLowerCase());
+      if (price) {
+        const regular = price.regular_price;
+        const sale = price.sale_price;
+        const isOnSale = price.is_on_sale === 1 || !!price.is_on_sale;
+        if (isOnSale && regular !== null && sale !== null && typeof regular === "number" && typeof sale === "number") {
+          const itemSavings = regular - sale;
+          if (itemSavings > 0) {
+            sum += itemSavings * (item.quantity || 1);
+          }
+        }
+      }
+    }
+    return sum;
+  }, [store.groceryItems, priceLookup]);
 
   const handleAdd = async (name: string, quantity: number, unit: string) => {
     if (shoppingListNames.has(name.toLowerCase())) return;
@@ -60,54 +81,202 @@ export default function GroceryList() {
     ? Math.round((checkedItems.length / store.groceryItems.length) * 100)
     : 0;
 
-  const savingsEstimate = useMemo(() => {
-    let sum = 0;
-    for (const item of store.groceryItems) {
-      const price = priceLookup.get(item.name.toLowerCase());
-      if (price) {
-        const regular = price.regular_price;
-        const sale = price.sale_price;
-        const isOnSale = price.is_on_sale === 1 || !!price.is_on_sale;
-        if (isOnSale && regular !== null && sale !== null && typeof regular === "number" && typeof sale === "number") {
-          const itemSavings = regular - sale;
-          if (itemSavings > 0) {
-            sum += itemSavings * (item.quantity || 1);
+  const storeMetrics = useMemo(() => {
+    const storeMap = new Map<string, { storeName: string; totalCost: number; itemsAvailableCount: number; lowestPriceCount: number; saleSavings: number; totalCheckedCount: number }>();
+    
+    // Seed standard store entries
+    storeMap.set("foodbasics", { storeName: "Food Basics", totalCost: 0, itemsAvailableCount: 0, lowestPriceCount: 0, saleSavings: 0, totalCheckedCount: 0 });
+    storeMap.set("metro", { storeName: "Metro", totalCost: 0, itemsAvailableCount: 0, lowestPriceCount: 0, saleSavings: 0, totalCheckedCount: 0 });
+
+    // Populate stores from the global store.prices map
+    for (const entry of Object.values(store.prices) as PriceEntry[]) {
+      if (entry.stores && typeof entry.stores === "object") {
+        for (const [storeId, storeInfo] of Object.entries(entry.stores)) {
+          if (!storeMap.has(storeId)) {
+            storeMap.set(storeId, {
+              storeName: storeInfo.store_name || storeId,
+              totalCost: 0,
+              itemsAvailableCount: 0,
+              lowestPriceCount: 0,
+              saleSavings: 0,
+              totalCheckedCount: 0
+            });
           }
         }
       }
     }
-    return sum;
-  }, [store.groceryItems, priceLookup]);
+
+    const itemsInBasket = store.groceryItems;
+    for (const item of itemsInBasket) {
+      const matchingEntry = Object.values(store.prices).find((p: any) => 
+        p && (
+          (p.item_name && p.item_name.toLowerCase() === item.name.toLowerCase()) || 
+          (p.config_name && p.config_name.toLowerCase() === item.name.toLowerCase())
+        )
+      ) as any;
+
+      if (matchingEntry) {
+        const pricesByStore: Record<string, { price: number; onSale: boolean; regular: number }> = {};
+        
+        if (matchingEntry.stores && typeof matchingEntry.stores === "object") {
+          for (const [storeId, storeInfo] of Object.entries(matchingEntry.stores) as [string, any]) {
+            const regular = typeof storeInfo.regular_price === "number" ? storeInfo.regular_price : parseFloat(storeInfo.regular_price) || 0;
+            const priceVal = (storeInfo.is_on_sale && storeInfo.sale_price !== null && storeInfo.sale_price !== undefined) 
+              ? storeInfo.sale_price 
+              : regular;
+            pricesByStore[storeId] = {
+              price: priceVal,
+              onSale: storeInfo.is_on_sale === 1 || !!storeInfo.is_on_sale,
+              regular: regular,
+            };
+          }
+        } else {
+          const regular = typeof matchingEntry.regular_price === "number" ? matchingEntry.regular_price : parseFloat(matchingEntry.regular_price) || 0;
+          const priceVal = (matchingEntry.is_on_sale && matchingEntry.sale_price !== null && matchingEntry.sale_price !== undefined)
+            ? matchingEntry.sale_price
+            : regular;
+          pricesByStore[matchingEntry.store_id || "foodbasics"] = {
+            price: priceVal,
+            onSale: matchingEntry.is_on_sale === 1 || !!matchingEntry.is_on_sale,
+            regular: regular,
+          };
+        }
+
+        for (const [storeId, info] of Object.entries(pricesByStore)) {
+          let metric = storeMap.get(storeId);
+          if (!metric) {
+            metric = {
+              storeName: storeId === "foodbasics" ? "Food Basics" : storeId === "metro" ? "Metro" : storeId,
+              totalCost: 0,
+              itemsAvailableCount: 0,
+              lowestPriceCount: 0,
+              saleSavings: 0,
+              totalCheckedCount: 0
+            };
+            storeMap.set(storeId, metric);
+          }
+          metric.itemsAvailableCount += 1;
+          metric.totalCost += info.price * item.quantity;
+          if (info.onSale && info.regular > info.price) {
+            metric.saleSavings += (info.regular - info.price) * item.quantity;
+          }
+          if (item.checked) {
+            metric.totalCheckedCount += 1;
+          }
+        }
+
+        const storeKeys = Object.keys(pricesByStore);
+        if (storeKeys.length > 0) {
+          let minP = Infinity;
+          for (const key of storeKeys) {
+            if (pricesByStore[key].price < minP) {
+              minP = pricesByStore[key].price;
+            }
+          }
+          for (const key of storeKeys) {
+            if (pricesByStore[key].price === minP) {
+              const m = storeMap.get(key);
+              if (m) m.lowestPriceCount += 1;
+            }
+          }
+        }
+      }
+    }
+
+    return Array.from(storeMap.entries()).map(([storeId, m]) => ({
+      storeId,
+      ...m
+    })).filter(m => m.itemsAvailableCount > 0 || m.storeId === "foodbasics" || m.storeId === "metro");
+  }, [store.groceryItems, store.prices]);
 
   return (
     <PullToRefresh onRefresh={store.refreshFromServer} enabled={!store.hasPendingChanges && store.isOnline}>
       <div className="space-y-8 animate-fade-in">
         
-        {/* Bento Grid Stats Row */}
+        {/* Bento Grid Stats Row with Smart Basket Dashboard */}
         <div className="grid grid-cols-1 md:grid-cols-12 gap-5">
-          {/* Progress Box */}
-          <div className="col-span-1 md:col-span-5 bg-[#059669] text-white border-2 border-black p-5 shadow-[6px_6px_0px_0px_rgba(0,0,0,1)] flex flex-col justify-between min-h-[140px]">
+          {/* Smart Basket Dashboard Panel */}
+          <div className="col-span-1 md:col-span-6 bg-white border-2 border-black p-5 shadow-[6px_6px_0px_0px_rgba(0,0,0,1)] flex flex-col justify-between">
             <div>
-              <h2 className="text-2xl font-black leading-none uppercase tracking-tight">
-                Shopping<br />Progress
-              </h2>
-              <div className="w-full bg-[#064e3b] h-8 border-2 border-black relative overflow-hidden mt-3">
-                <div
-                  className="h-full bg-white transition-all duration-300"
-                  style={{ width: `${progressPercent}%` }}
-                ></div>
-                <div className="absolute inset-0 flex items-center justify-center font-black text-[10px] mix-blend-difference text-white uppercase tracking-wider">
-                  {progressPercent}% COMPLETED
-                </div>
+              <div className="flex items-center justify-between border-b-2 border-black pb-2 mb-3">
+                <h2 className="text-sm font-black uppercase tracking-wider text-black flex items-center gap-1.5">
+                  <span>📊</span>
+                  <span>Smart Basket Indices</span>
+                </h2>
+                <span className="text-[10px] font-black uppercase bg-black text-white px-2 py-0.5">
+                  Basket Match
+                </span>
               </div>
+
+              {store.groceryItems.length === 0 ? (
+                <div className="text-center py-6 text-gray-400 text-xs font-bold uppercase tracking-wider">
+                  Add items to your list to view the grocery chain price comparison
+                </div>
+              ) : (
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  {storeMetrics.map((storeMetric) => {
+                    const isBestStore = storeMetrics.length > 1 && 
+                      storeMetric.itemsAvailableCount > 0 &&
+                      storeMetric.lowestPriceCount === Math.max(...storeMetrics.map(m => m.lowestPriceCount)) &&
+                      storeMetric.totalCost === Math.min(...storeMetrics.map(m => m.totalCost > 0 ? m.totalCost : Infinity));
+
+                    return (
+                      <div 
+                        key={storeMetric.storeId} 
+                        className={`border-2 border-black p-3.5 flex flex-col justify-between relative transition-all ${
+                          isBestStore 
+                            ? "bg-emerald-50/70 border-emerald-600 shadow-[3px_3px_0px_0px_rgba(5,150,105,1)]" 
+                            : "bg-gray-50/40 border-black shadow-[3px_3px_0px_0px_rgba(0,0,0,1)]"
+                        }`}
+                      >
+                        {isBestStore && (
+                          <span className="absolute -top-2.5 right-3 bg-emerald-600 text-white text-[8px] font-black uppercase tracking-widest px-2 py-0.5 border border-black shadow-[1px_1px_0px_0px_rgba(0,0,0,1)] z-10">
+                            ★ SMART CHOICE
+                          </span>
+                        )}
+
+                        <div>
+                          <div className="flex items-baseline justify-between mb-1.5">
+                            <h3 className="text-sm font-black uppercase tracking-tight text-black">
+                              {storeMetric.storeName} 
+                              <span className="text-gray-450 font-bold ml-1.5 text-xs">({abbreviateStoreName(storeMetric.storeName)})</span>
+                            </h3>
+                            <span className="text-lg font-black text-black">
+                              {storeMetric.totalCost > 0 ? `$${storeMetric.totalCost.toFixed(2)}` : "—"}
+                            </span>
+                          </div>
+
+                          <div className="grid grid-cols-2 gap-2 text-[11px] font-bold uppercase text-gray-650 mt-2 border-t border-dashed border-gray-200 pt-2">
+                            <div>
+                              <span className="text-[9px] text-gray-400 block leading-none mb-0.5">Sale Savings</span>
+                              <span className="text-xs font-black text-red-650">+${storeMetric.saleSavings.toFixed(2)}</span>
+                            </div>
+                            <div className="text-right">
+                              <span className="text-[9px] text-gray-400 block leading-none mb-0.5">Availability</span>
+                              <span className="text-xs font-black text-black">
+                                {storeMetric.itemsAvailableCount} / {store.groceryItems.length} items
+                              </span>
+                            </div>
+                          </div>
+
+                          <div className="mt-2 text-[10px] text-gray-500 font-bold uppercase flex items-center justify-between bg-white border border-gray-150 px-2 py-0.5">
+                            <span>Lowest Price Matches:</span>
+                            <span className="font-black text-emerald-700">{storeMetric.lowestPriceCount} items</span>
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
             </div>
-            <p className="text-xs font-bold opacity-90 uppercase tracking-wider">
-              {checkedItems.length} of {store.groceryItems.length} items checked off
+            <p className="text-[9px] font-semibold text-gray-400 uppercase tracking-wider mt-3 leading-tight">
+              * Savings indicate store discounts (regular vs active sale price). Purchases at the store with highest matches and lowest cost optimize savings. No pricing assumptions are made.
             </p>
           </div>
 
           {/* Savings Estimate Box */}
-          <div className="col-span-1 md:col-span-4 bg-[#f0fdf4] border-2 border-black p-5 shadow-[6px_6px_0px_0px_rgba(0,0,0,1)] flex flex-col justify-between min-h-[140px]">
+          <div className="col-span-1 md:col-span-3 bg-[#f0fdf4] border-2 border-black p-5 shadow-[6px_6px_0px_0px_rgba(0,0,0,1)] flex flex-col justify-between min-h-[145px]">
             <div>
               <h2 className="text-xs font-black uppercase text-[#166534] tracking-wider mb-1">Savings Estimate</h2>
               <span className="text-4xl font-black text-[#15803d]">${savingsEstimate.toFixed(2)}</span>
@@ -117,7 +286,7 @@ export default function GroceryList() {
           </div>
 
           {/* Sync status & online Box */}
-          <div className="col-span-1 md:col-span-3 bg-white border-2 border-black p-5 shadow-[6px_6px_0px_0px_rgba(0,0,0,1)] flex flex-col justify-between min-h-[140px]">
+          <div className="col-span-1 md:col-span-3 bg-white border-2 border-black p-5 shadow-[6px_6px_0px_0px_rgba(0,0,0,1)] flex flex-col justify-between min-h-[145px]">
             <div>
               <span className="text-xs font-extrabold uppercase tracking-widest text-[#6b7280] mb-2 block">System Sync</span>
               <div className="pt-0.5">

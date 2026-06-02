@@ -1,6 +1,22 @@
 import { GroceryItem, PriceEntry } from "@/lib/types";
 import { ExternalLink } from "lucide-react";
 
+export function abbreviateStoreName(name: string): string {
+  if (!name) return "";
+  const normalized = name.toLowerCase().trim();
+  if (normalized.includes("food basics") || normalized === "fb" || normalized === "foodbasics") return "FB";
+  if (normalized.includes("metro") || normalized === "mt") return "MT";
+  if (normalized.includes("freshmart") || normalized === "fresh mart") return "FM";
+  if (normalized.includes("budget") || normalized === "budgetgrocer") return "BG";
+  if (normalized.includes("organic") || normalized === "organicplace") return "OP";
+  if (normalized.includes("mega") || normalized === "megasave") return "MS";
+  const words = name.split(/\s+/);
+  if (words.length > 1) {
+    return words.map(w => w[0]).join("").toUpperCase().substring(0, 3);
+  }
+  return name.substring(0, 2).toUpperCase();
+}
+
 interface GroceryItemRowProps {
   key?: string | number;
   item: GroceryItem;
@@ -11,6 +27,20 @@ interface GroceryItemRowProps {
 }
 
 export default function GroceryItemRow({ item, onToggle, onRemove, onUpdateQuantity, priceInfo }: GroceryItemRowProps) {
+  const finalPrice = item.bestPrice || (priceInfo ? {
+    storeId: priceInfo.store_id,
+    storeName: priceInfo.store_name,
+    price: (priceInfo.is_on_sale && priceInfo.sale_price !== null) ? priceInfo.sale_price : (priceInfo.regular_price || 0),
+    onSale: priceInfo.is_on_sale === 1,
+    lookup_url: priceInfo.lookup_url
+  } : undefined);
+
+  const otherPrices = item.prices && item.prices.length > 1
+    ? item.prices.filter(p => p.storeId !== finalPrice?.storeId)
+    : [];
+
+  const linkUrl = finalPrice?.lookup_url || priceInfo?.lookup_url;
+
   return (
     <div className="group flex items-center gap-3 py-1 text-black">
       <button
@@ -78,10 +108,10 @@ export default function GroceryItemRow({ item, onToggle, onRemove, onUpdateQuant
         </span>
       )}
 
-      <div className="flex-1 min-w-0 flex flex-wrap items-baseline gap-x-2 gap-y-0.5">
-        {priceInfo?.lookup_url ? (
+      <div className="flex-1 min-w-0 flex flex-wrap items-baseline gap-x-2 gap-y-0.5 animate-fade-in">
+        {linkUrl ? (
           <a
-            href={priceInfo.lookup_url}
+            href={linkUrl}
             target="_blank"
             rel="noopener noreferrer"
             className={`text-sm font-bold inline-flex items-center gap-1 hover:underline group/link cursor-pointer ${
@@ -108,20 +138,34 @@ export default function GroceryItemRow({ item, onToggle, onRemove, onUpdateQuant
           </span>
         )}
 
-        {priceInfo && !item.checked && (
-          <span className={`text-xs font-black uppercase ${priceInfo.is_on_sale ? "text-red-600" : "text-gray-600"}`}>
-            ${((priceInfo.is_on_sale && priceInfo.sale_price !== null) ? priceInfo.sale_price : priceInfo.regular_price)?.toFixed(2)}
+        {finalPrice && !item.checked && (
+          <span className="text-xs font-black uppercase text-gray-600 inline-flex flex-wrap items-center gap-1">
+            <span className={finalPrice.onSale ? "text-red-650" : "text-black"}>
+              ${finalPrice.price.toFixed(2)}
+              <span className="text-gray-400 font-medium ml-1 lowercase text-[10px]">
+                ({abbreviateStoreName(finalPrice.storeName || "")})
+              </span>
+            </span>
             {item.quantity > 1 && (
-              <span className="text-gray-400 font-bold ml-1 normal-case text-[10px]">
+              <span className="text-gray-400 font-bold normal-case text-[10px]">
                 x {item.quantity} = ${(
-                  ((priceInfo.is_on_sale && priceInfo.sale_price !== null) ? priceInfo.sale_price : (priceInfo.regular_price || 0)) * item.quantity
+                  finalPrice.price * item.quantity
                 ).toFixed(2)}
               </span>
             )}
-            {priceInfo.is_on_sale === 1 && (
+            {finalPrice.onSale && (
               <span className="ml-1 text-[9px] bg-red-100 text-[#991b1b] border border-black px-1 py-0.2 font-black">SALE</span>
             )}
-            <span className="text-gray-400 font-medium ml-1 lowercase text-[10px]">({priceInfo.store_name})</span>
+            {otherPrices.length > 0 && (
+              <span className="text-[10px] text-gray-400 font-bold border-l border-gray-300 pl-1.5 inline-flex flex-wrap items-center gap-1 normal-case">
+                <span>vs</span>
+                {otherPrices.map((op) => (
+                  <span key={op.storeId} className="text-[9px] bg-gray-50 border border-gray-200 px-1 py-0.2 font-semibold text-gray-650" title={op.storeName}>
+                    {abbreviateStoreName(op.storeName)}: ${op.price.toFixed(2)}
+                  </span>
+                ))}
+              </span>
+            )}
           </span>
         )}
       </div>
