@@ -79,6 +79,20 @@ const getNormalizedStoreKey = (storeId: string) => {
   return s;
 };
 
+const isSaleExpiredAdmin = (validUntil?: string | null): boolean => {
+  if (!validUntil) return false;
+  const expiryDate = new Date(validUntil);
+  if (isNaN(expiryDate.getTime())) return false;
+  
+  const now = new Date();
+  if (/^\d{4}-\d{2}-\d{2}$/.test(validUntil.trim())) {
+    const [y, m, d] = validUntil.trim().split("-").map(Number);
+    const targetDate = new Date(y, m - 1, d, 23, 59, 59, 999);
+    return now > targetDate;
+  }
+  return now > expiryDate;
+};
+
 export default function AdminPage() {
   const [items, setItems] = useState<RegularItem[]>([]);
   const [loading, setLoading] = useState(true);
@@ -152,7 +166,8 @@ export default function AdminPage() {
     regular_price: "",
     sale_price: "",
     is_on_sale: false,
-    lookup_url: ""
+    lookup_url: "",
+    valid_until: ""
   });
 
   // Scraper console states
@@ -631,7 +646,8 @@ export default function AdminPage() {
       regular_price: "",
       sale_price: "",
       is_on_sale: false,
-      lookup_url: ""
+      lookup_url: "",
+      valid_until: ""
     });
     setEditingPriceUpc(null);
     setAddingPrice(true);
@@ -650,7 +666,8 @@ export default function AdminPage() {
       regular_price: entry.regular_price !== null && entry.regular_price !== undefined ? String(entry.regular_price) : "",
       sale_price: entry.sale_price !== null && entry.sale_price !== undefined ? String(entry.sale_price) : "",
       is_on_sale: entry.is_on_sale === 1,
-      lookup_url: entry.lookup_url || ""
+      lookup_url: entry.lookup_url || "",
+      valid_until: entry.valid_until || ""
     });
     setEditingPriceUpc(upc);
     setAddingPrice(true);
@@ -725,6 +742,7 @@ export default function AdminPage() {
         sale_price: isNaN(salePriceParsed) ? null : salePriceParsed,
         is_on_sale: priceForm.is_on_sale ? 1 : 0,
         lookup_url: priceForm.lookup_url.trim(),
+        valid_until: priceForm.valid_until.trim(),
         last_updated: new Date().toISOString()
       }
     };
@@ -2510,6 +2528,18 @@ export default function AdminPage() {
                     />
                   </div>
 
+                  {/* Sale Valid Until Date */}
+                  <div>
+                    <label className="text-[10px] uppercase font-black tracking-wider text-gray-500 block mb-0.5">Sale Valid Until (YYYY-MM-DD)</label>
+                    <input
+                      type="text"
+                      placeholder="e.g. 2026-06-10"
+                      value={priceForm.valid_until}
+                      onChange={(e) => setPriceForm({ ...priceForm, valid_until: e.target.value })}
+                      className="w-full px-2.5 py-1.5 text-xs border-2 border-black bg-white focus:outline-none font-bold text-black"
+                    />
+                  </div>
+
                   {/* Sale Flag checkbox */}
                   <div className="flex items-center gap-2 mt-4 md:mt-6">
                     <input
@@ -2643,6 +2673,17 @@ export default function AdminPage() {
                             <p>
                               <span className="text-gray-400">STORE:</span> {entry.store_name || "Food Basics"}
                             </p>
+                            {entry.valid_until && (
+                              <p>
+                                <span className="text-gray-400">VALID UNTIL:</span>{" "}
+                                <span className={isSaleExpiredAdmin(entry.valid_until) ? "text-amber-500 font-black" : "text-[#111827] font-black"}>
+                                  {entry.valid_until}
+                                  {isSaleExpiredAdmin(entry.valid_until) && (
+                                    <span className="ml-1 text-[8px] bg-amber-100 text-amber-800 border border-yellow-500 px-1 py-0.2 font-black inline-block uppercase">EXPIRED</span>
+                                  )}
+                                </span>
+                              </p>
+                            )}
                             {(entry.config_name && entry.config_name !== entry.item_name) && (
                               <p>
                                 <span className="text-gray-400 font-mono">MATCH KEY:</span> {entry.config_name}
@@ -2652,6 +2693,31 @@ export default function AdminPage() {
                               <span className="text-gray-400">LAST SCANNED/UPDATED:</span>{" "}
                               {entry.last_updated ? new Date(entry.last_updated).toLocaleString() : "Never"}
                             </p>
+                            
+                            {/* Multistore listing */}
+                            {entry.stores && typeof entry.stores === "object" && Object.keys(entry.stores).length > 0 && (
+                              <div className="mt-2 pt-1.5 border-t border-dashed border-gray-100 flex flex-wrap gap-1">
+                                {Object.entries(entry.stores).map(([sKey, sInfo]: [string, any]) => {
+                                  const label = getStoreDisplayNameDef(scrapeConfig, sKey);
+                                  const expiredVal = sInfo.is_on_sale && sInfo.valid_until && isSaleExpiredAdmin(sInfo.valid_until);
+                                  const priceVal = (sInfo.is_on_sale && sInfo.sale_price !== null && sInfo.sale_price !== undefined) ? sInfo.sale_price : sInfo.regular_price;
+                                  return (
+                                    <span key={sKey} className="text-[8px] sm:text-[9px] bg-gray-50 border border-gray-200 px-1.5 py-0.5 font-bold text-gray-700 inline-flex flex-wrap items-center gap-0.5 rounded" title={`${label}${sInfo.valid_until ? ` (valid until ${sInfo.valid_until})` : ""}`}>
+                                      <span className="text-gray-400">{label}:</span>
+                                      <span className="text-black">${priceVal !== null && priceVal !== undefined && typeof priceVal === 'number' ? priceVal.toFixed(2) : "N/A"}</span>
+                                      {sInfo.is_on_sale === 1 && (
+                                        <span className={expiredVal ? "text-amber-600 font-extrabold ml-0.5 text-[8.5px]" : "text-red-655 font-extrabold ml-0.5 text-[8.5px]"} title={expiredVal ? "Expired Sale" : "On Sale"}>%</span>
+                                      )}
+                                      {sInfo.valid_until && (
+                                        <span className={expiredVal ? "text-amber-700 font-black ml-0.5 font-mono" : "text-gray-450 font-medium ml-0.5 font-mono"}>
+                                          ({sInfo.valid_until})
+                                        </span>
+                                      )}
+                                    </span>
+                                  );
+                                })}
+                              </div>
+                            )}
                           </div>
 
                           {/* Regular & sale values */}

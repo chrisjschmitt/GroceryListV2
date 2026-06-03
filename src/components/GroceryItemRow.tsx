@@ -26,6 +26,20 @@ interface GroceryItemRowProps {
   priceInfo?: PriceEntry;
 }
 
+export function isSaleExpired(validUntil?: string | null): boolean {
+  if (!validUntil) return false;
+  const expiryDate = new Date(validUntil);
+  if (isNaN(expiryDate.getTime())) return false;
+  
+  const now = new Date();
+  if (/^\d{4}-\d{2}-\d{2}$/.test(validUntil.trim())) {
+    const [y, m, d] = validUntil.trim().split("-").map(Number);
+    const targetDate = new Date(y, m - 1, d, 23, 59, 59, 999);
+    return now > targetDate;
+  }
+  return now > expiryDate;
+}
+
 export default function GroceryItemRow({ item, onToggle, onRemove, onUpdateQuantity, priceInfo }: GroceryItemRowProps) {
   let finalPrice = undefined;
   let otherPrices: any[] = [];
@@ -37,7 +51,8 @@ export default function GroceryItemRow({ item, onToggle, onRemove, onUpdateQuant
       storeName: priceInfo.store_name || "Food Basics",
       price: rawPrice,
       onSale: priceInfo.is_on_sale === 1 || !!priceInfo.is_on_sale,
-      lookup_url: priceInfo.lookup_url
+      lookup_url: priceInfo.lookup_url,
+      valid_until: priceInfo.valid_until
     };
 
     if (priceInfo.stores && typeof priceInfo.stores === "object") {
@@ -54,6 +69,7 @@ export default function GroceryItemRow({ item, onToggle, onRemove, onUpdateQuant
             price: pVal,
             onSale: storeInfo.is_on_sale === 1 || !!storeInfo.is_on_sale,
             lookup_url: storeInfo.lookup_url || "",
+            valid_until: storeInfo.valid_until,
           };
         });
     }
@@ -163,36 +179,64 @@ export default function GroceryItemRow({ item, onToggle, onRemove, onUpdateQuant
           </span>
         )}
 
-        {finalPrice && !item.checked && (
-          <span className="text-xs font-black uppercase text-gray-600 inline-flex flex-wrap items-center gap-1">
-            <span className={finalPrice.onSale ? "text-red-650" : "text-black"}>
-              ${finalPrice.price.toFixed(2)}
-              <span className="text-gray-400 font-medium ml-1 lowercase text-[10px]">
-                ({abbreviateStoreName(finalPrice.storeName || "")})
+        {finalPrice && !item.checked && (() => {
+          const isExpired = finalPrice.onSale && finalPrice.valid_until && isSaleExpired(finalPrice.valid_until);
+          return (
+            <span className="text-xs font-black uppercase text-gray-600 inline-flex flex-wrap items-center gap-1">
+              <span className={isExpired ? "text-amber-500 font-extrabold" : finalPrice.onSale ? "text-red-650" : "text-black"}>
+                <span className={isExpired ? "text-amber-500 font-black" : ""}>$</span>
+                {finalPrice.price.toFixed(2)}
+                <span className="text-gray-400 font-medium ml-1 lowercase text-[10px]">
+                  ({abbreviateStoreName(finalPrice.storeName || "")})
+                </span>
               </span>
+              {item.quantity > 1 && (
+                <span className="text-gray-400 font-bold normal-case text-[10px]">
+                  x {item.quantity} = ${(
+                    finalPrice.price * item.quantity
+                  ).toFixed(2)}
+                </span>
+              )}
+              {finalPrice.onSale && (
+                isExpired ? (
+                  <span className="ml-1 text-[9px] bg-amber-100 text-amber-800 border border-amber-500 px-1 py-0.2 font-black">EXPIRED SALE</span>
+                ) : (
+                  <span className="ml-1 text-[9px] bg-red-100 text-[#991b1b] border border-black px-1 py-0.2 font-black">SALE</span>
+                )
+              )}
+              {finalPrice.onSale && finalPrice.valid_until && (
+                <span className="text-[9px] text-gray-400 font-bold lowercase normal-case ml-1" title={`Valid until ${finalPrice.valid_until}`}>
+                  (until {finalPrice.valid_until})
+                </span>
+              )}
+              {otherPrices.length > 0 && (
+                <span className="text-[10px] text-gray-400 font-bold border-l border-gray-300 pl-1.5 inline-flex flex-wrap items-center gap-1 normal-case">
+                  <span>vs</span>
+                  {otherPrices.map((op) => {
+                    const opExpired = op.onSale && op.valid_until && isSaleExpired(op.valid_until);
+                    return (
+                      <span key={op.storeId} className="text-[9px] bg-gray-50 border border-gray-200 px-1 py-0.2 font-semibold text-gray-650 inline-flex items-center gap-0.5" title={`${op.storeName}${op.valid_until ? ` (valid until ${op.valid_until})` : ""}`}>
+                        <span>{abbreviateStoreName(op.storeName)}:</span>
+                        <span className={opExpired ? "text-amber-500 font-black" : ""}>$</span>
+                        <span>{op.price.toFixed(2)}</span>
+                        {op.onSale && (
+                          <span className={opExpired ? "text-amber-600 font-black ml-0.5 text-[7px]" : "text-red-650 font-black ml-0.5 text-[7px]"} title={opExpired ? "Expired Sale" : "Active Sale"}>
+                            %
+                          </span>
+                        )}
+                        {op.onSale && op.valid_until && (
+                          <span className="text-[8px] text-gray-400 font-medium normal-case ml-0.5">
+                            ({op.valid_until})
+                          </span>
+                        )}
+                      </span>
+                    );
+                  })}
+                </span>
+              )}
             </span>
-            {item.quantity > 1 && (
-              <span className="text-gray-400 font-bold normal-case text-[10px]">
-                x {item.quantity} = ${(
-                  finalPrice.price * item.quantity
-                ).toFixed(2)}
-              </span>
-            )}
-            {finalPrice.onSale && (
-              <span className="ml-1 text-[9px] bg-red-100 text-[#991b1b] border border-black px-1 py-0.2 font-black">SALE</span>
-            )}
-            {otherPrices.length > 0 && (
-              <span className="text-[10px] text-gray-400 font-bold border-l border-gray-300 pl-1.5 inline-flex flex-wrap items-center gap-1 normal-case">
-                <span>vs</span>
-                {otherPrices.map((op) => (
-                  <span key={op.storeId} className="text-[9px] bg-gray-50 border border-gray-200 px-1 py-0.2 font-semibold text-gray-650" title={op.storeName}>
-                    {abbreviateStoreName(op.storeName)}: ${op.price.toFixed(2)}
-                  </span>
-                ))}
-              </span>
-            )}
-          </span>
-        )}
+          );
+        })()}
       </div>
 
       <button

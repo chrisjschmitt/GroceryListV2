@@ -276,6 +276,7 @@ export function useOfflineStore(): OfflineStore {
                 price: priceVal,
                 onSale: storeInfo.is_on_sale === 1 || !!storeInfo.is_on_sale,
                 lookup_url: storeInfo.lookup_url || "",
+                valid_until: storeInfo.valid_until || p.valid_until || "",
               });
             }
           }
@@ -292,6 +293,7 @@ export function useOfflineStore(): OfflineStore {
               price: priceVal,
               onSale: p.is_on_sale === 1 || !!p.is_on_sale,
               lookup_url: p.lookup_url || "",
+              valid_until: p.valid_until || "",
             });
           }
         }

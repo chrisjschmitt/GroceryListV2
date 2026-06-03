@@ -10,6 +10,7 @@ export interface StorePrice {
   price: number;
   onSale: boolean;
   lookup_url?: string;
+  valid_until?: string;
 }
 
 export interface GroceryItem {
@@ -43,6 +44,7 @@ export interface StoreInfo {
   sale_price: number | null;
   is_on_sale: number;
   lookup_url?: string;
+  valid_until?: string;
 }
 
 export interface PriceEntry {
@@ -56,6 +58,7 @@ export interface PriceEntry {
   is_on_sale: number;
   last_updated: string;
   lookup_url?: string;
+  valid_until?: string;
   stores?: Record<string, StoreInfo>;
 }
 

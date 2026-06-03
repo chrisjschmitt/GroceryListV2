@@ -19,6 +19,20 @@ import {
   ChevronUp
 } from "lucide-react";
 
+function isSaleExpiredLocal(validUntil?: string | null): boolean {
+  if (!validUntil) return false;
+  const expiryDate = new Date(validUntil);
+  if (isNaN(expiryDate.getTime())) return false;
+  
+  const now = new Date();
+  if (/^\d{4}-\d{2}-\d{2}$/.test(validUntil.trim())) {
+    const [y, m, d] = validUntil.trim().split("-").map(Number);
+    const targetDate = new Date(y, m - 1, d, 23, 59, 59, 999);
+    return now > targetDate;
+  }
+  return now > expiryDate;
+}
+
 interface RegularItemsListProps {
   items: RegularItem[];
   onAddToGroceryList: (items: RegularItem[]) => Promise<void>;
@@ -282,6 +296,7 @@ export default function RegularItemsList({
     };
 
     const corrupted = isPriceCorrupted(activePriceEntry);
+    const saleExpired = isSaleExpiredLocal(activePriceEntry?.valid_until);
 
     const storeNames: Record<string, string> = {
       foodbasics: "Food Basics",
@@ -305,10 +320,15 @@ export default function RegularItemsList({
           statusDesc = `This item's pricing record in prices.json for ${storeLabelName} contains empty, null, or invalid price values.`;
           statusBoxClass = "bg-rose-50 border-rose-500 text-rose-900 shadow-[2px_2px_0px_0px_rgba(239,68,68,1)]";
           statusDotClass = "bg-rose-500 animate-pulse";
+        } else if (saleExpired) {
+          statusLabel = "Invalid / Expired Sale Price";
+          statusDesc = `The sale price for ${storeLabelName} is INVALID: the 'valid_until' date of ${activePriceEntry.valid_until} has passed.`;
+          statusBoxClass = "bg-amber-50 border border-yellow-500 text-amber-950 shadow-[2px_2px_0px_0px_rgba(234,179,8,1)]";
+          statusDotClass = "bg-amber-500 animate-pulse";
         } else {
           statusLabel = "Active & Verified Price";
           statusDesc = `Successfully linked in scrape_config.json and verified pricing for ${storeLabelName} is loaded from prices.json.`;
-          statusBoxClass = "bg-emerald-50 border-emerald-500 text-emerald-950 shadow-[2px_2px_0px_0px_rgba(16,185,129,1)]";
+          statusBoxClass = "bg-emerald-50 border-emerald-500 text-emerald-955 shadow-[2px_2px_0px_0px_rgba(16,185,129,1)]";
           statusDotClass = "bg-emerald-500";
         }
       } else {
@@ -324,6 +344,11 @@ export default function RegularItemsList({
           statusDesc = `Pricing records are loaded from prices.json for ${storeLabelName} but are corrupt, and no configuration URL exists.`;
           statusBoxClass = "bg-rose-50 border-rose-500 text-rose-900 shadow-[2px_2px_0px_0px_rgba(239,68,68,1)]";
           statusDotClass = "bg-rose-500 animate-pulse";
+        } else if (saleExpired) {
+          statusLabel = "Expired Manual Sale Price";
+          statusDesc = `Warning: This item's manual sale price for ${storeLabelName} has expired and is no longer valid (expired on ${activePriceEntry.valid_until}).`;
+          statusBoxClass = "bg-amber-50 border border-yellow-500 text-amber-950 shadow-[2px_2px_0px_0px_rgba(234,179,8,1)]";
+          statusDotClass = "bg-amber-500 animate-pulse";
         } else {
           statusLabel = "Manual Prices Loaded (Unlinked)";
           statusDesc = `Verified pricing for ${storeLabelName} is loaded in prices.json, but no active automated link exists in scrape_config.json.`;
@@ -350,10 +375,25 @@ export default function RegularItemsList({
           </div>
           <div>
             <span className="text-[10px] opacity-75 block text-left">Active Sale Price:</span>
-            <span className={ios ? (hasSp ? "text-sm font-black text-red-655 block text-left" : "text-rose-600 underline font-black block text-left") : "text-gray-400 font-bold block text-left"}>
-              {ios ? (hasSp ? `$${sp.toFixed(2)}` : "MISSING/NULL") : "No Sale"}
+            <span className={saleExpired ? "text-sm font-black text-amber-500 block text-left animate-pulse" : ios ? (hasSp ? "text-sm font-black text-red-655 block text-left" : "text-rose-600 underline font-black block text-left") : "text-gray-400 font-bold block text-left"}>
+              {ios ? (hasSp ? (
+                <span>
+                  <span className={saleExpired ? "text-amber-500 font-black" : ""}>$</span>
+                  {sp.toFixed(2)}
+                </span>
+              ) : "MISSING/NULL") : "No Sale"}
             </span>
           </div>
+          {activePriceEntry.valid_until && (
+            <div className="col-span-2 text-[9.5px] font-mono text-gray-500 normal-case text-left flex items-center gap-1">
+              <span>Valid until: {activePriceEntry.valid_until}</span>
+              {saleExpired && (
+                <span className="bg-amber-100 text-amber-800 border border-yellow-500 px-1 text-[8px] uppercase font-black tracking-wider animate-pulse ml-1.5">
+                  INVALID/EXPIRED
+                </span>
+              )}
+            </div>
+          )}
           {activePriceEntry.last_updated && (
             <div className="col-span-2 text-[9px] font-mono opacity-80 normal-case text-left">
               Last Scanned: {new Date(activePriceEntry.last_updated).toLocaleString()}
@@ -983,20 +1023,29 @@ export default function RegularItemsList({
                                       ? storeInfo.sale_price 
                                       : (storeInfo.regular_price || 0);
                                     const isLowest = checkIfLowestPriceForEntry(price, storeId);
+                                    const storeExpired = storeInfo.is_on_sale && storeInfo.valid_until && isSaleExpiredLocal(storeInfo.valid_until);
                                     return (
                                       <span
                                         key={storeId}
                                         className={`text-[9px] font-black uppercase border border-black px-1.5 py-0.2 shrink-0 inline-flex items-center gap-0.5 rounded-none ${
                                           isLowest
-                                            ? storeInfo.is_on_sale ? "bg-red-100 text-red-700 font-extrabold" : "bg-emerald-100 text-emerald-800"
+                                            ? storeInfo.is_on_sale 
+                                              ? storeExpired
+                                                ? "bg-amber-100 text-amber-800 border-yellow-500 animate-pulse"
+                                                : "bg-red-100 text-red-700 font-extrabold"
+                                              : "bg-emerald-100 text-emerald-800"
                                             : "bg-gray-100 text-gray-500 font-normal"
                                         }`}
-                                        title={`${storeInfo.store_name || storeId}: $${activeP.toFixed(2)}`}
+                                        title={`${storeInfo.store_name || storeId}: $${activeP.toFixed(2)}${storeInfo.valid_until ? ` (valid until ${storeInfo.valid_until})` : ""}`}
                                       >
                                         <span>{abbreviateStoreName(storeInfo.store_name || storeId)}:</span>
-                                        <span>${activeP.toFixed(2)}</span>
+                                        <span className={storeExpired ? "text-amber-500 font-black animate-pulse" : ""}>$</span>
+                                        <span>{activeP.toFixed(2)}</span>
                                         {storeInfo.is_on_sale && (
-                                          <span className="text-[7px] text-red-650 font-black">%</span>
+                                          <span className={storeExpired ? "text-amber-600 font-black text-[7px]" : "text-red-655 font-black text-[7px]"}>%</span>
+                                        )}
+                                        {storeInfo.is_on_sale && storeInfo.valid_until && (
+                                          <span className="text-[7.5px] text-gray-400 font-medium normal-case ml-0.5 font-mono">({storeInfo.valid_until})</span>
                                         )}
                                       </span>
                                     );
@@ -1008,16 +1057,28 @@ export default function RegularItemsList({
 
                           // Single Store Fallback
                           const activePrice = price.is_on_sale && price.sale_price !== null ? price.sale_price : price.regular_price;
+                          const fallbackExpired = price.is_on_sale && price.valid_until && isSaleExpiredLocal(price.valid_until);
                           return (
                             <span
                               className={`ml-auto flex-shrink-0 text-[10px] font-black uppercase border border-black px-1.5 py-0.2 shrink-0 inline-flex items-center gap-0.5 ${
-                                price.is_on_sale ? "text-red-700 bg-red-100" : "text-gray-500 bg-gray-50"
+                                price.is_on_sale 
+                                  ? fallbackExpired
+                                    ? "text-amber-700 bg-amber-50 border-yellow-500 animate-pulse"
+                                    : "text-red-700 bg-red-100" 
+                                  : "text-gray-500 bg-gray-50"
                               }`}
+                              title={price.valid_until ? `Valid until ${price.valid_until}` : undefined}
                             >
                               <span>{abbreviateStoreName(price.store_name || "Food Basics")}:</span>
-                              <span>${activePrice?.toFixed(2)}</span>
+                              <span className={fallbackExpired ? "text-amber-500 font-black animate-pulse" : ""}>$</span>
+                              <span>{activePrice?.toFixed(2)}</span>
                               {price.is_on_sale === 1 && (
-                                <span className="ml-0.5 text-[7px] font-bold">sale</span>
+                                <span className={fallbackExpired ? "ml-0.5 text-[7px] text-amber-600 font-bold" : "ml-0.5 text-[7px] font-bold"}>
+                                  {fallbackExpired ? "expired" : "sale"}
+                                </span>
+                              )}
+                              {price.is_on_sale && price.valid_until && (
+                                <span className="text-[8px] text-gray-400 font-medium ml-0.5 normal-case font-mono">({price.valid_until})</span>
                               )}
                             </span>
                           );

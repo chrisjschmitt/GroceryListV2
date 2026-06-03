@@ -294,6 +294,7 @@ app.post("/api/admin/prices", async (req, res) => {
       is_on_sale: item.is_on_sale !== undefined ? (item.is_on_sale ? 1 : 0) : (item.sale_price !== null && item.sale_price !== undefined && item.sale_price !== "" ? 1 : 0),
       last_updated: item.last_updated || new Date().toISOString(),
       lookup_url: item.lookup_url || "",
+      valid_until: item.valid_until || "",
     };
     await blobSetPrices(existingPrices);
     res.json({ success: true, prices: existingPrices });

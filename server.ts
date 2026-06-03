@@ -352,6 +352,7 @@ async function startServer() {
         sale_price: typeof item.sale_price === "number" ? item.sale_price : (item.sale_price ? parseFloat(item.sale_price) : null),
         is_on_sale: item.is_on_sale !== undefined ? (item.is_on_sale ? 1 : 0) : (item.sale_price !== null && item.sale_price !== undefined && item.sale_price !== "" ? 1 : 0),
         lookup_url: item.lookup_url || "",
+        valid_until: item.valid_until || "",
         last_updated: item.last_updated || new Date().toISOString(),
       };
       
@@ -381,6 +382,7 @@ async function startServer() {
         is_on_sale: bestStore.is_on_sale,
         last_updated: item.last_updated || new Date().toISOString(),
         lookup_url: bestStore.lookup_url,
+        valid_until: bestStore.valid_until || "",
         stores: updatedStores
       };
       await blobSetPrices(existingPrices);

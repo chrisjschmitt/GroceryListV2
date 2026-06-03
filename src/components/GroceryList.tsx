@@ -57,6 +57,7 @@ export default function GroceryList() {
               sale_price: existing.sale_price,
               is_on_sale: existing.is_on_sale,
               lookup_url: existing.lookup_url,
+              valid_until: existing.valid_until,
             };
           }
 
@@ -90,6 +91,7 @@ export default function GroceryList() {
                 sale_price: entry.sale_price,
                 is_on_sale: entry.is_on_sale,
                 lookup_url: entry.lookup_url,
+                valid_until: entry.valid_until,
               };
             }
           }
@@ -116,6 +118,7 @@ export default function GroceryList() {
             sale_price: bestStoreInfo.sale_price,
             is_on_sale: bestStoreInfo.is_on_sale,
             lookup_url: bestStoreInfo.lookup_url,
+            valid_until: bestStoreInfo.valid_until,
             stores: mergedStores,
           });
         } else {
@@ -135,6 +138,7 @@ export default function GroceryList() {
               sale_price: entry.sale_price,
               is_on_sale: entry.is_on_sale,
               lookup_url: entry.lookup_url,
+              valid_until: entry.valid_until,
             };
           }
           map.set(nameKey, {
