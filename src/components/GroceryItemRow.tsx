@@ -27,17 +27,42 @@ interface GroceryItemRowProps {
 }
 
 export default function GroceryItemRow({ item, onToggle, onRemove, onUpdateQuantity, priceInfo }: GroceryItemRowProps) {
-  const finalPrice = item.bestPrice || (priceInfo ? {
-    storeId: priceInfo.store_id,
-    storeName: priceInfo.store_name,
-    price: (priceInfo.is_on_sale && priceInfo.sale_price !== null) ? priceInfo.sale_price : (priceInfo.regular_price || 0),
-    onSale: priceInfo.is_on_sale === 1,
-    lookup_url: priceInfo.lookup_url
-  } : undefined);
+  let finalPrice = undefined;
+  let otherPrices: any[] = [];
 
-  const otherPrices = item.prices && item.prices.length > 1
-    ? item.prices.filter(p => p.storeId !== finalPrice?.storeId)
-    : [];
+  if (priceInfo) {
+    const rawPrice = (priceInfo.is_on_sale && priceInfo.sale_price !== null) ? priceInfo.sale_price : (priceInfo.regular_price || 0);
+    finalPrice = {
+      storeId: priceInfo.store_id || "foodbasics",
+      storeName: priceInfo.store_name || "Food Basics",
+      price: rawPrice,
+      onSale: priceInfo.is_on_sale === 1 || !!priceInfo.is_on_sale,
+      lookup_url: priceInfo.lookup_url
+    };
+
+    if (priceInfo.stores && typeof priceInfo.stores === "object") {
+      otherPrices = Object.entries(priceInfo.stores)
+        .filter(([storeId]) => storeId !== finalPrice?.storeId)
+        .map(([storeId, storeInfo]: [string, any]) => {
+          const regular = typeof storeInfo.regular_price === "number" ? storeInfo.regular_price : parseFloat(storeInfo.regular_price) || 0;
+          const pVal = (storeInfo.is_on_sale && storeInfo.sale_price !== null && storeInfo.sale_price !== undefined) 
+            ? storeInfo.sale_price 
+            : regular;
+          return {
+            storeId: storeId,
+            storeName: storeInfo.store_name || storeId,
+            price: pVal,
+            onSale: storeInfo.is_on_sale === 1 || !!storeInfo.is_on_sale,
+            lookup_url: storeInfo.lookup_url || "",
+          };
+        });
+    }
+  } else {
+    finalPrice = item.bestPrice;
+    otherPrices = item.prices && item.prices.length > 1
+      ? item.prices.filter(p => p.storeId !== finalPrice?.storeId)
+      : [];
+  }
 
   const linkUrl = finalPrice?.lookup_url || priceInfo?.lookup_url;
 

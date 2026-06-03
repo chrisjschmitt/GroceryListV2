@@ -254,36 +254,49 @@ export function useOfflineStore(): OfflineStore {
     // Attempt to enrich item with existing prices client-side if available
     const normalizedName = name.toLowerCase().trim();
     const matchingPrices = (Object.values(prices) as PriceEntry[]).filter((p) => 
-      p.item_name.toLowerCase() === normalizedName || (p.config_name && p.config_name.toLowerCase() === normalizedName)
+      p && (
+        (p.item_name && p.item_name.toLowerCase() === normalizedName) ||
+        (p.config_name && p.config_name.toLowerCase() === normalizedName)
+      )
     );
     if (matchingPrices.length > 0) {
-      const p = matchingPrices[0];
-      const storePrices: any[] = [];
-      if (p.stores && typeof p.stores === "object") {
-        for (const [storeId, storeInfo] of Object.entries(p.stores)) {
-          const priceVal = (storeInfo.is_on_sale && storeInfo.sale_price !== null && storeInfo.sale_price !== undefined) 
-            ? storeInfo.sale_price 
-            : (storeInfo.regular_price || 0);
-          storePrices.push({
-            storeId: storeId,
-            storeName: storeInfo.store_name || storeId,
-            price: priceVal,
-            onSale: storeInfo.is_on_sale === 1 || !!storeInfo.is_on_sale,
-            lookup_url: storeInfo.lookup_url || "",
-          });
+      const mergedStorePricesMap = new Map<string, any>();
+      for (const p of matchingPrices) {
+        if (p.stores && typeof p.stores === "object") {
+          for (const [storeId, storeInfo] of Object.entries(p.stores)) {
+            const priceVal = (storeInfo.is_on_sale && storeInfo.sale_price !== null && storeInfo.sale_price !== undefined) 
+              ? storeInfo.sale_price 
+              : (storeInfo.regular_price || 0);
+            
+            const existing = mergedStorePricesMap.get(storeId);
+            if (!existing || priceVal < existing.price) {
+              mergedStorePricesMap.set(storeId, {
+                storeId: storeId,
+                storeName: storeInfo.store_name || storeId,
+                price: priceVal,
+                onSale: storeInfo.is_on_sale === 1 || !!storeInfo.is_on_sale,
+                lookup_url: storeInfo.lookup_url || "",
+              });
+            }
+          }
+        } else {
+          const priceVal = (p.is_on_sale && p.sale_price !== null && p.sale_price !== undefined) 
+            ? p.sale_price 
+            : (p.regular_price || 0);
+          const storeId = p.store_id || "foodbasics";
+          const existing = mergedStorePricesMap.get(storeId);
+          if (!existing || priceVal < existing.price) {
+            mergedStorePricesMap.set(storeId, {
+              storeId: storeId,
+              storeName: p.store_name || "Food Basics",
+              price: priceVal,
+              onSale: p.is_on_sale === 1 || !!p.is_on_sale,
+              lookup_url: p.lookup_url || "",
+            });
+          }
         }
-      } else {
-        const priceVal = (p.is_on_sale && p.sale_price !== null && p.sale_price !== undefined) 
-          ? p.sale_price 
-          : (p.regular_price || 0);
-        storePrices.push({
-          storeId: p.store_id || "foodbasics",
-          storeName: p.store_name || "Food Basics",
-          price: priceVal,
-          onSale: p.is_on_sale === 1 || !!p.is_on_sale,
-          lookup_url: p.lookup_url || "",
-        });
       }
+      const storePrices = Array.from(mergedStorePricesMap.values());
       newItem.prices = storePrices;
       newItem.bestPrice = storePrices.length > 0 
         ? storePrices.reduce((best, curr) => curr.price < best.price ? curr : best, storePrices[0])

@@ -29,12 +29,119 @@ export default function GroceryList() {
   );
 
   // Build name ➔ price lookup from scraped data (match on config_name and item_name)
+  // If there are multiple entries matching the same name (e.g. from different stores/UPCs),
+  // we merge their store prices into a single synthesized PriceEntry to let the UI compare them properly!
   const priceLookup = useMemo(() => {
     const map = new Map<string, PriceEntry>();
     for (const entry of Object.values(store.prices)) {
-      if (entry) {
-        if (entry.config_name) map.set(entry.config_name.toLowerCase(), entry);
-        if (entry.item_name) map.set(entry.item_name.toLowerCase(), entry);
+      if (!entry) continue;
+
+      const keysToRegister = [];
+      if (entry.config_name) keysToRegister.push(entry.config_name.toLowerCase());
+      if (entry.item_name) keysToRegister.push(entry.item_name.toLowerCase());
+
+      for (const nameKey of keysToRegister) {
+        const existing = map.get(nameKey);
+        if (existing) {
+          // Merge stores
+          const mergedStores = { ...(existing.stores || {}) };
+          
+          // Seed the existing entry's flat price as its own store if not already inside nested stores
+          const existingStoreId = existing.store_id || "foodbasics";
+          if (!mergedStores[existingStoreId]) {
+            mergedStores[existingStoreId] = {
+              store_name: existing.store_name || "Food Basics",
+              postal_code: existing.postal_code || "",
+              store_id: existingStoreId,
+              regular_price: existing.regular_price,
+              sale_price: existing.sale_price,
+              is_on_sale: existing.is_on_sale,
+              lookup_url: existing.lookup_url,
+            };
+          }
+
+          // Seed the new entry's stores or its flat representation
+          if (entry.stores && typeof entry.stores === "object") {
+            for (const [sId, sInfo] of Object.entries(entry.stores)) {
+              const currentStorePrice = (sInfo.is_on_sale && sInfo.sale_price !== null) ? sInfo.sale_price : (sInfo.regular_price || 0);
+              const existingStorePriceInfo = mergedStores[sId];
+              const existingStorePrice = existingStorePriceInfo
+                ? ((existingStorePriceInfo.is_on_sale && existingStorePriceInfo.sale_price !== null) ? existingStorePriceInfo.sale_price : (existingStorePriceInfo.regular_price || 0))
+                : Infinity;
+
+              if (!existingStorePriceInfo || currentStorePrice < existingStorePrice) {
+                mergedStores[sId] = sInfo;
+              }
+            }
+          } else {
+            const entryStoreId = entry.store_id || "foodbasics";
+            const currentStorePrice = (entry.is_on_sale && entry.sale_price !== null) ? entry.sale_price : (entry.regular_price || 0);
+            const existingStorePriceInfo = mergedStores[entryStoreId];
+            const existingStorePrice = existingStorePriceInfo
+              ? ((existingStorePriceInfo.is_on_sale && existingStorePriceInfo.sale_price !== null) ? existingStorePriceInfo.sale_price : (existingStorePriceInfo.regular_price || 0))
+              : Infinity;
+
+            if (!existingStorePriceInfo || currentStorePrice < existingStorePrice) {
+              mergedStores[entryStoreId] = {
+                store_name: entry.store_name || "Food Basics",
+                postal_code: entry.postal_code || "",
+                store_id: entryStoreId,
+                regular_price: entry.regular_price,
+                sale_price: entry.sale_price,
+                is_on_sale: entry.is_on_sale,
+                lookup_url: entry.lookup_url,
+              };
+            }
+          }
+
+          // Determine the best overall store from updated mergedStores
+          let bestStoreId = existingStoreId;
+          let bestPriceVal = Infinity;
+          for (const [sId, sInfo] of Object.entries(mergedStores) as [string, any]) {
+            const pVal = (sInfo.is_on_sale && sInfo.sale_price !== null) ? sInfo.sale_price : (sInfo.regular_price || 0);
+            if (pVal < bestPriceVal) {
+              bestPriceVal = pVal;
+              bestStoreId = sId;
+            }
+          }
+
+          const bestStoreInfo = mergedStores[bestStoreId];
+
+          map.set(nameKey, {
+            ...existing,
+            store_name: bestStoreInfo.store_name,
+            postal_code: bestStoreInfo.postal_code,
+            store_id: bestStoreInfo.store_id,
+            regular_price: bestStoreInfo.regular_price,
+            sale_price: bestStoreInfo.sale_price,
+            is_on_sale: bestStoreInfo.is_on_sale,
+            lookup_url: bestStoreInfo.lookup_url,
+            stores: mergedStores,
+          });
+        } else {
+          // Create baseline representation
+          const baseStores: Record<string, any> = {};
+          if (entry.stores && typeof entry.stores === "object") {
+            for (const [sId, sInfo] of Object.entries(entry.stores)) {
+              baseStores[sId] = sInfo;
+            }
+          } else {
+            const sId = entry.store_id || "foodbasics";
+            baseStores[sId] = {
+              store_name: entry.store_name || "Food Basics",
+              postal_code: entry.postal_code || "",
+              store_id: sId,
+              regular_price: entry.regular_price,
+              sale_price: entry.sale_price,
+              is_on_sale: entry.is_on_sale,
+              lookup_url: entry.lookup_url,
+            };
+          }
+          map.set(nameKey, {
+            ...entry,
+            stores: baseStores,
+          });
+        }
       }
     }
     return map;
@@ -108,12 +215,7 @@ export default function GroceryList() {
 
     const itemsInBasket = store.groceryItems;
     for (const item of itemsInBasket) {
-      const matchingEntry = Object.values(store.prices).find((p: any) => 
-        p && (
-          (p.item_name && p.item_name.toLowerCase() === item.name.toLowerCase()) || 
-          (p.config_name && p.config_name.toLowerCase() === item.name.toLowerCase())
-        )
-      ) as any;
+      const matchingEntry = priceLookup.get(item.name.toLowerCase());
 
       if (matchingEntry) {
         const pricesByStore: Record<string, { price: number; onSale: boolean; regular: number }> = {};
