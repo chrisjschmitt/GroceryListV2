@@ -134,6 +134,9 @@ export default function RegularItemsList({
   const [repairSalePrice, setRepairSalePrice] = useState("");
   const [repairIsOnSale, setRepairIsOnSale] = useState(false);
   const [repairUpc, setRepairUpc] = useState("");
+  
+  // Search query state for general catalog filtering
+  const [searchQuery, setSearchQuery] = useState("");
 
   const showGeneralToast = (msg: string) => {
     setGeneralToast(msg);
@@ -704,7 +707,16 @@ export default function RegularItemsList({
     if (e.key === "Escape") setEditState(null);
   };
 
-  const categories = items.reduce<Record<string, RegularItem[]>>((acc, item) => {
+  const filteredItems = items.filter((item) => {
+    if (!searchQuery) return true;
+    const query = searchQuery.toLowerCase().trim();
+    return (
+      item.name.toLowerCase().includes(query) ||
+      (item.category && item.category.toLowerCase().includes(query))
+    );
+  });
+
+  const categories = filteredItems.reduce<Record<string, RegularItem[]>>((acc, item) => {
     if (!acc[item.category]) acc[item.category] = [];
     acc[item.category].push(item);
     acc[item.category].sort((a, b) => a.name.localeCompare(b.name));
@@ -791,10 +803,48 @@ export default function RegularItemsList({
         <p className="text-sm font-medium text-gray-500">Tap items to add or remove them from your active shopping list below.</p>
       )}
 
-      <div className="space-y-5">
-        {Object.entries(categories)
-          .sort(([a], [b]) => a.localeCompare(b))
-          .map(([category, categoryItems]) => (
+      {/* Modern High-Contrast Neo-Brutalist Search Input */}
+      <div className="relative flex items-center bg-white border-2 border-black shadow-[3px_3px_0px_0px_rgba(0,0,0,1)] text-[#111827] focus-within:shadow-[1px_1px_0px_0px_rgba(0,0,0,1)] focus-within:translate-x-[2px] focus-within:translate-y-[2px] transition-all my-2">
+        <div className="pl-3.5 text-black shrink-0 select-none">
+          <Search className="w-4 h-4 font-black" />
+        </div>
+        <input
+          type="text"
+          value={searchQuery}
+          onChange={(e) => setSearchQuery(e.target.value)}
+          placeholder="Search catalog by item name or category..."
+          className="w-full bg-transparent px-3 py-3 text-xs font-black uppercase tracking-wider placeholder:text-gray-400 focus:outline-none placeholder:normal-case font-mono"
+        />
+        {searchQuery && (
+          <button
+            onClick={() => setSearchQuery("")}
+            className="pr-3.5 text-black hover:text-red-650 transition-colors font-bold"
+            title="Clear search query"
+          >
+            <X className="w-4 h-4 shrink-0" />
+          </button>
+        )}
+      </div>
+
+      {filteredItems.length === 0 ? (
+        <div className="text-center py-12 bg-white border-2 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] p-6 my-4">
+          <div className="text-4xl mb-3">🔍</div>
+          <h4 className="text-xs font-black uppercase tracking-wider text-black">No matching items found</h4>
+          <p className="text-xs text-gray-500 mt-2 max-w-sm mx-auto font-medium">
+            We couldn't find items in the catalog that match "{searchQuery}". Try searching for another item or clear your query.
+          </p>
+          <button
+            onClick={() => setSearchQuery("")}
+            className="mt-5 text-[10px] font-black uppercase tracking-wider bg-white border-2 border-black px-4 py-2 hover:bg-gray-50 shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] hover:shadow-none hover:translate-x-[2px] hover:translate-y-[2px] transition-all text-black"
+          >
+            Clear Search Filter
+          </button>
+        </div>
+      ) : (
+        <div className="space-y-5">
+          {Object.entries(categories)
+            .sort(([a], [b]) => a.localeCompare(b))
+            .map(([category, categoryItems]) => (
             <div key={category} className="bg-[#f9fafb] border-2 border-black p-4 shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]">
               <div className="flex items-center justify-between mb-3 pb-1 border-b-2 border-dashed border-gray-200">
                 <h4 className="text-xs font-black uppercase tracking-wider text-black">{category}</h4>
@@ -1025,7 +1075,8 @@ export default function RegularItemsList({
               </div>
             </div>
           ))}
-      </div>
+        </div>
+      )}
 
       {/* Price Check Setup & Lookup Dialog Modal */}
       {activePriceCheckItem && (() => {
