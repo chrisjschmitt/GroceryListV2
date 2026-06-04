@@ -429,117 +429,96 @@ export async function checkForLocalPricesJsonAndImport(): Promise<void> {
     try {
       const existingPrices = await blobGetPrices();
       let count = 0;
-      const standardized: Record<string, any> = {};
+      const mergedPrices = { ...existingPrices };
+
+      const getMatchKey = (item: any) => {
+        return (item.config_name || item.item_name || item.name || "").trim().toLowerCase();
+      };
+      const getStoreId = (item: any) => {
+        return (item.store_id || "").trim().toString().toLowerCase();
+      };
+
+      const processItem = (item: any, fallbackKey: string) => {
+        const matchKey = getMatchKey(item);
+        if (!matchKey) return;
+
+        const stores = item.stores || null;
+        let finalStoreName = item.store_name || "Food Basics";
+        let finalPostalCode = item.postal_code || "K7H3C6";
+        let finalStoreId = item.store_id || "7923194";
+        let finalRegular = item.regular_price;
+        let finalSale = item.sale_price;
+        let finalIsOnSale = item.is_on_sale;
+        let finalLookupUrl = item.lookup_url || item.url || "";
+
+        if (stores && typeof stores === "object") {
+          const storeKeys = Object.keys(stores);
+          if (storeKeys.length > 0) {
+            let lowestStoreKey = storeKeys[0];
+            let lowestPrice = Infinity;
+            for (const key of storeKeys) {
+              const s = stores[key];
+              const p = (s.is_on_sale && s.sale_price !== null && s.sale_price !== undefined) ? s.sale_price : (s.regular_price || 0);
+              if (p < lowestPrice) {
+                lowestPrice = p;
+                lowestStoreKey = key;
+              }
+            }
+            const firstStore = stores[lowestStoreKey];
+            finalStoreName = firstStore.store_name || lowestStoreKey;
+            finalPostalCode = firstStore.postal_code || "";
+            finalStoreId = firstStore.store_id || "";
+            finalRegular = typeof firstStore.regular_price === "number" ? firstStore.regular_price : parseFloat(firstStore.regular_price) || null;
+            finalSale = typeof firstStore.sale_price === "number" ? firstStore.sale_price : parseFloat(firstStore.sale_price) || null;
+            finalIsOnSale = firstStore.is_on_sale !== undefined ? (firstStore.is_on_sale ? 1 : 0) : (firstStore.sale_price ? 1 : 0);
+            finalLookupUrl = firstStore.lookup_url || firstStore.url || "";
+          }
+        }
+
+        const storeId = finalStoreId ? finalStoreId.trim().toLowerCase() : "7923194";
+
+        // Keep it unique: find an active key in mergedPrices with same Match Key & Store
+        let targetKey = item.upc || item.sku || item.id || fallbackKey;
+        const matchingKey = Object.keys(mergedPrices).find(k => {
+          const p = mergedPrices[k];
+          return p && getMatchKey(p) === matchKey && getStoreId(p) === storeId;
+        });
+
+        if (matchingKey) {
+          targetKey = matchingKey;
+        }
+
+        mergedPrices[targetKey] = {
+          item_name: item.item_name || item.name || (matchingKey ? mergedPrices[matchingKey].item_name : ""),
+          config_name: item.config_name || item.name || (matchingKey ? mergedPrices[matchingKey].config_name : ""),
+          store_name: finalStoreName,
+          postal_code: finalPostalCode,
+          store_id: finalStoreId,
+          regular_price: typeof finalRegular === "number" ? finalRegular : parseFloat(finalRegular || "0") || null,
+          sale_price: typeof finalSale === "number" ? finalSale : parseFloat(finalSale) || null,
+          is_on_sale: finalIsOnSale !== undefined ? (finalIsOnSale ? 1 : 0) : (finalSale ? 1 : 0),
+          last_updated: item.last_updated || new Date().toISOString(),
+          lookup_url: finalLookupUrl,
+          stores: stores
+        };
+        count++;
+      };
 
       if (Array.isArray(parsedData)) {
-        parsedData.forEach((item: any) => {
-          const upc = item.upc || item.sku || item.id || `manual-${Date.now()}-${count}`;
-          const stores = item.stores || null;
-          let finalStoreName = item.store_name || "Food Basics";
-          let finalPostalCode = item.postal_code || "K7H3C6";
-          let finalStoreId = item.store_id || "7923194";
-          let finalRegular = item.regular_price;
-          let finalSale = item.sale_price;
-          let finalIsOnSale = item.is_on_sale;
-          let finalLookupUrl = item.lookup_url || item.url || "";
-
-          if (stores && typeof stores === "object") {
-            const storeKeys = Object.keys(stores);
-            if (storeKeys.length > 0) {
-              let lowestStoreKey = storeKeys[0];
-              let lowestPrice = Infinity;
-              for (const key of storeKeys) {
-                const s = stores[key];
-                const p = (s.is_on_sale && s.sale_price !== null && s.sale_price !== undefined) ? s.sale_price : (s.regular_price || 0);
-                if (p < lowestPrice) {
-                  lowestPrice = p;
-                  lowestStoreKey = key;
-                }
-              }
-              const firstStore = stores[lowestStoreKey];
-              finalStoreName = firstStore.store_name || lowestStoreKey;
-              finalPostalCode = firstStore.postal_code || "";
-              finalStoreId = firstStore.store_id || "";
-              finalRegular = typeof firstStore.regular_price === "number" ? firstStore.regular_price : parseFloat(firstStore.regular_price) || null;
-              finalSale = typeof firstStore.sale_price === "number" ? firstStore.sale_price : parseFloat(firstStore.sale_price) || null;
-              finalIsOnSale = firstStore.is_on_sale !== undefined ? (firstStore.is_on_sale ? 1 : 0) : (firstStore.sale_price ? 1 : 0);
-              finalLookupUrl = firstStore.lookup_url || firstStore.url || "";
-            }
-          }
-
-          standardized[upc] = {
-            item_name: item.item_name || item.name || "",
-            config_name: item.config_name || item.name || "",
-            store_name: finalStoreName,
-            postal_code: finalPostalCode,
-            store_id: finalStoreId,
-            regular_price: typeof finalRegular === "number" ? finalRegular : parseFloat(finalRegular || "0") || null,
-            sale_price: typeof finalSale === "number" ? finalSale : parseFloat(finalSale) || null,
-            is_on_sale: finalIsOnSale !== undefined ? (finalIsOnSale ? 1 : 0) : (finalSale ? 1 : 0),
-            last_updated: item.last_updated || new Date().toISOString(),
-            lookup_url: finalLookupUrl,
-            stores: stores
-          };
-          count++;
+        parsedData.forEach((item: any, idx: number) => {
+          const generatedKey = `manual-${Date.now()}-${idx}`;
+          processItem(item, generatedKey);
         });
       } else {
         for (const [key, item] of Object.entries(parsedData)) {
           if (item && typeof item === "object") {
-            const rawItem = item as any;
-            const stores = rawItem.stores || null;
-            let finalStoreName = rawItem.store_name || "Food Basics";
-            let finalPostalCode = rawItem.postal_code || "K7H3C6";
-            let finalStoreId = rawItem.store_id || "7923194";
-            let finalRegular = rawItem.regular_price;
-            let finalSale = rawItem.sale_price;
-            let finalIsOnSale = rawItem.is_on_sale;
-            let finalLookupUrl = rawItem.lookup_url || rawItem.url || "";
-
-            if (stores && typeof stores === "object") {
-              const storeKeys = Object.keys(stores);
-              if (storeKeys.length > 0) {
-                let lowestStoreKey = storeKeys[0];
-                let lowestPrice = Infinity;
-                for (const k of storeKeys) {
-                  const s = stores[k];
-                  const p = (s.is_on_sale && s.sale_price !== null && s.sale_price !== undefined) ? s.sale_price : (s.regular_price || 0);
-                  if (p < lowestPrice) {
-                    lowestPrice = p;
-                    lowestStoreKey = k;
-                  }
-                }
-                const firstStore = stores[lowestStoreKey];
-                finalStoreName = firstStore.store_name || lowestStoreKey;
-                finalPostalCode = firstStore.postal_code || "";
-                finalStoreId = firstStore.store_id || "";
-                finalRegular = typeof firstStore.regular_price === "number" ? firstStore.regular_price : parseFloat(firstStore.regular_price) || null;
-                finalSale = typeof firstStore.sale_price === "number" ? firstStore.sale_price : parseFloat(firstStore.sale_price) || null;
-                finalIsOnSale = firstStore.is_on_sale !== undefined ? (firstStore.is_on_sale ? 1 : 0) : (firstStore.sale_price ? 1 : 0);
-                finalLookupUrl = firstStore.lookup_url || firstStore.url || "";
-              }
-            }
-
-            standardized[key] = {
-              item_name: rawItem.item_name || rawItem.name || "",
-              config_name: rawItem.config_name || rawItem.name || "",
-              store_name: finalStoreName,
-              postal_code: finalPostalCode,
-              store_id: finalStoreId,
-              regular_price: typeof finalRegular === "number" ? finalRegular : parseFloat(finalRegular || "0") || null,
-              sale_price: typeof finalSale === "number" ? finalSale : parseFloat(finalSale) || null,
-              is_on_sale: finalIsOnSale !== undefined ? (finalIsOnSale ? 1 : 0) : (finalSale ? 1 : 0),
-              last_updated: rawItem.last_updated || new Date().toISOString(),
-              lookup_url: finalLookupUrl,
-              stores: stores
-            };
-            count++;
+            processItem(item, key);
           }
         }
       }
 
       if (count > 0) {
-        const merged = { ...existingPrices, ...standardized };
-        await blobSetPrices(merged);
+        await blobSetPrices(mergedPrices);
         console.log(`▶ Merged successfully ${count} entries from ${sourceFile} into the active storage.`);
 
         // Empty file content on disk so startup import does not continuously re-evaluate unchanged state

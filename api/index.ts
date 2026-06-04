@@ -202,7 +202,7 @@ app.post("/api/regular-items", upload.single("file"), async (req, res) => {
   }
 });
 
-// 5.5. POST /api/prices/import-json (JSON prices upload)
+// 5.5. POST /api/prices/import-json (JSON prices upload and deduplication)
 app.post("/api/prices/import-json", upload.single("file"), async (req, res) => {
   try {
     let parsedData: any = null;
@@ -221,49 +221,65 @@ app.post("/api/prices/import-json", upload.single("file"), async (req, res) => {
 
     const existingPrices = await blobGetPrices();
     let count = 0;
-    const standardized: Record<string, any> = {};
+    const mergedPrices = { ...existingPrices };
+
+    // Unique match helper (Match Key + Store)
+    const getMatchKey = (item: any) => {
+      return (item.config_name || item.item_name || item.name || "").trim().toLowerCase();
+    };
+    const getStoreId = (item: any) => {
+      return (item.store_id || "").trim().toString().toLowerCase();
+    };
+
+    const processItem = (item: any, fallbackKey: string) => {
+      const matchKey = getMatchKey(item);
+      if (!matchKey) return; // Skip invalid records without a match identity
+
+      const storeId = getStoreId(item) || "7923194"; // Default to Food Basics if missing
+
+      // Search all keys to see if one has the identical Match Key and Store ID combination
+      let targetKey = item.upc || item.sku || item.id || fallbackKey;
+      const matchingKey = Object.keys(mergedPrices).find(k => {
+        const p = mergedPrices[k];
+        return p && getMatchKey(p) === matchKey && getStoreId(p) === storeId;
+      });
+
+      if (matchingKey) {
+        // Overwrite the existing unique record at its current slot key to prevent record duplication
+        targetKey = matchingKey;
+      }
+
+      mergedPrices[targetKey] = {
+        item_name: item.item_name || item.name || (matchingKey ? mergedPrices[matchingKey].item_name : ""),
+        config_name: item.config_name || item.name || (matchingKey ? mergedPrices[matchingKey].config_name : ""),
+        store_name: item.store_name || (matchingKey ? mergedPrices[matchingKey].store_name : "Food Basics"),
+        postal_code: item.postal_code || (matchingKey ? mergedPrices[matchingKey].postal_code : "K7H3C6"),
+        store_id: item.store_id || (matchingKey ? mergedPrices[matchingKey].store_id : "7923194"),
+        regular_price: typeof item.regular_price === "number" ? item.regular_price : parseFloat(item.regular_price || item.regularPrice || "0") || null,
+        sale_price: typeof item.sale_price === "number" ? item.sale_price : parseFloat(item.sale_price || item.salePrice) || null,
+        is_on_sale: item.is_on_sale !== undefined ? (item.is_on_sale ? 1 : 0) : (item.sale_price ? 1 : 0),
+        last_updated: item.last_updated || new Date().toISOString(),
+        lookup_url: item.lookup_url || item.url || (matchingKey ? mergedPrices[matchingKey].lookup_url : ""),
+        valid_until: item.valid_until || (matchingKey ? mergedPrices[matchingKey].valid_until : ""),
+      };
+      count++;
+    };
 
     if (Array.isArray(parsedData)) {
-      parsedData.forEach((item: any) => {
-        const upc = item.upc || item.sku || item.id || `manual-${Date.now()}-${count}`;
-        standardized[upc] = {
-          item_name: item.item_name || item.name || "",
-          config_name: item.config_name || item.name || "",
-          store_name: item.store_name || "Food Basics",
-          postal_code: item.postal_code || "K7H3C6",
-          store_id: item.store_id || "7923194",
-          regular_price: typeof item.regular_price === "number" ? item.regular_price : parseFloat(item.regular_price || item.regularPrice || "0") || null,
-          sale_price: typeof item.sale_price === "number" ? item.sale_price : parseFloat(item.sale_price || item.salePrice) || null,
-          is_on_sale: item.is_on_sale !== undefined ? (item.is_on_sale ? 1 : 0) : (item.sale_price ? 1 : 0),
-          last_updated: item.last_updated || new Date().toISOString(),
-          lookup_url: item.lookup_url || item.url || "",
-        };
-        count++;
+      parsedData.forEach((item: any, index: number) => {
+        const generatedKey = `manual-${Date.now()}-${index}`;
+        processItem(item, generatedKey);
       });
     } else {
       for (const [key, item] of Object.entries(parsedData)) {
         if (item && typeof item === "object") {
-          const rawItem = item as any;
-          standardized[key] = {
-            item_name: rawItem.item_name || rawItem.name || "",
-            config_name: rawItem.config_name || rawItem.name || "",
-            store_name: rawItem.store_name || "Food Basics",
-            postal_code: rawItem.postal_code || "K7H3C6",
-            store_id: rawItem.store_id || "7923194",
-            regular_price: typeof rawItem.regular_price === "number" ? rawItem.regular_price : parseFloat(rawItem.regular_price || rawItem.regularPrice || "0") || null,
-            sale_price: typeof rawItem.sale_price === "number" ? rawItem.sale_price : parseFloat(rawItem.sale_price || rawItem.salePrice) || null,
-            is_on_sale: rawItem.is_on_sale !== undefined ? (rawItem.is_on_sale ? 1 : 0) : (rawItem.sale_price ? 1 : 0),
-            last_updated: rawItem.last_updated || new Date().toISOString(),
-            lookup_url: rawItem.lookup_url || rawItem.url || "",
-          };
-          count++;
+          processItem(item, key);
         }
       }
     }
 
     if (count > 0) {
-      const merged = { ...existingPrices, ...standardized };
-      await blobSetPrices(merged);
+      await blobSetPrices(mergedPrices);
       res.json({ success: true, count });
     } else {
       res.status(400).json({ error: "No valid price records found to import" });
@@ -274,7 +290,7 @@ app.post("/api/prices/import-json", upload.single("file"), async (req, res) => {
   }
 });
 
-// POST /api/admin/prices (Create/Update single price record)
+// POST /api/admin/prices (Create/Update single price record with match safety)
 app.post("/api/admin/prices", async (req, res) => {
   try {
     const { upc, item } = req.body;
@@ -283,6 +299,25 @@ app.post("/api/admin/prices", async (req, res) => {
       return;
     }
     const existingPrices = await blobGetPrices();
+
+    // Check if another entry already has the same Match Key and Store combination.
+    const matchKey = (item.config_name || item.item_name || "").trim().toLowerCase();
+    const storeId = (item.store_id || "").trim().toLowerCase();
+
+    // Find if a duplicate exists on another key
+    const duplicateKey = Object.keys(existingPrices).find(k => {
+      if (k === upc) return false;
+      const p = existingPrices[k];
+      const pMatchKey = (p.config_name || p.item_name || "").trim().toLowerCase();
+      const pStoreId = (p.store_id || "").trim().toLowerCase();
+      return pMatchKey === matchKey && pStoreId === storeId;
+    });
+
+    if (duplicateKey) {
+      // Remove the old separate entry to prevent duplicates
+      delete existingPrices[duplicateKey];
+    }
+
     existingPrices[upc] = {
       item_name: item.item_name || "",
       config_name: item.config_name || "",

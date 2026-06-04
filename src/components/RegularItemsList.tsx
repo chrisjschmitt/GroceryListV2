@@ -157,6 +157,40 @@ export default function RegularItemsList({
     setTimeout(() => setGeneralToast(null), 4000);
   };
 
+  const getDynamicStoreNames = (): Record<string, string> => {
+    const defaultStores: Record<string, string> = {
+      foodbasics: "Food Basics",
+      metro: "Metro",
+      loblaws: "Loblaws",
+      nofrills: "No Frills"
+    };
+    if (scrapeConfig?.stores) {
+      Object.entries(scrapeConfig.stores).forEach(([key, store]: [string, any]) => {
+        if (store?.store_name) {
+          defaultStores[key] = store.store_name;
+        }
+      });
+    }
+    return defaultStores;
+  };
+
+  const getDynamicStoreIdMap = (): Record<string, string> => {
+    const defaultIds: Record<string, string> = {
+      foodbasics: "7923194",
+      metro: "metro",
+      loblaws: "loblaws",
+      nofrills: "nofrills"
+    };
+    if (scrapeConfig?.stores) {
+      Object.entries(scrapeConfig.stores).forEach(([key, store]: [string, any]) => {
+        if (store?.store_id) {
+          defaultIds[key] = store.store_id;
+        }
+      });
+    }
+    return defaultIds;
+  };
+
   useEffect(() => {
     async function loadScrapeConfig() {
       try {
@@ -242,8 +276,17 @@ export default function RegularItemsList({
   const handleOpenPriceCheck = (item: RegularItem) => {
     setActivePriceCheckItem(item);
     setModalSuccessMsg(null);
-    setModalStoreKey("foodbasics");
-    handleLoadStoreContextForModal(item, "foodbasics");
+    let defaultStore = "foodbasics";
+    const dynamicNames = getDynamicStoreNames();
+    if (dynamicNames && Object.keys(dynamicNames).length > 0) {
+      const keys = Object.keys(dynamicNames);
+      if (!keys.includes("foodbasics") || !scrapeConfig?.stores?.["foodbasics"]?.enabled) {
+        const firstEnabled = keys.find(k => scrapeConfig?.stores?.[k]?.enabled);
+        defaultStore = firstEnabled || keys[0];
+      }
+    }
+    setModalStoreKey(defaultStore);
+    handleLoadStoreContextForModal(item, defaultStore);
   };
 
   const handleStoreKeyChange = (newStoreKey: string) => {
@@ -298,12 +341,7 @@ export default function RegularItemsList({
     const corrupted = isPriceCorrupted(activePriceEntry);
     const saleExpired = isSaleExpiredLocal(activePriceEntry?.valid_until);
 
-    const storeNames: Record<string, string> = {
-      foodbasics: "Food Basics",
-      metro: "Metro",
-      loblaws: "Loblaws",
-      nofrills: "No Frills"
-    };
+    const storeNames = getDynamicStoreNames();
     const storeLabelName = storeNames[modalStoreKey] || modalStoreKey;
 
     // Determine status attributes
@@ -474,12 +512,7 @@ export default function RegularItemsList({
     const storeKey = modalStoreKey;
 
     if (!config.stores[storeKey]) {
-      const storeNames: Record<string, string> = {
-        foodbasics: "Food Basics",
-        metro: "Metro",
-        loblaws: "Loblaws",
-        nofrills: "No Frills"
-      };
+      const storeNames = getDynamicStoreNames();
       const baseUrls: Record<string, string> = {
         foodbasics: "https://www.foodbasics.ca",
         metro: "https://www.metro.ca",
@@ -489,7 +522,7 @@ export default function RegularItemsList({
       config.stores[storeKey] = {
         enabled: true,
         store_name: storeNames[storeKey] || storeKey,
-        base_url: baseUrls[storeKey] || "",
+        base_url: baseUrls[storeKey] || `https://www.${storeKey}.com`,
         postal_code: "K7H3C6",
         store_id: storeKey,
       };
@@ -609,18 +642,8 @@ export default function RegularItemsList({
       return;
     }
 
-    const storeNames: Record<string, string> = {
-      foodbasics: "Food Basics",
-      metro: "Metro",
-      loblaws: "Loblaws",
-      nofrills: "No Frills"
-    };
-    const storeIdMap: Record<string, string> = {
-      foodbasics: "7923194",
-      metro: "metro",
-      loblaws: "loblaws",
-      nofrills: "nofrills"
-    };
+    const storeNames = getDynamicStoreNames();
+    const storeIdMap = getDynamicStoreIdMap();
 
     const finalStoreName = storeNames[modalStoreKey] || modalStoreKey;
     const finalStoreId = storeIdMap[modalStoreKey] || modalStoreKey;
@@ -1200,10 +1223,15 @@ export default function RegularItemsList({
                   onChange={(e) => handleStoreKeyChange(e.target.value)}
                   className="w-full px-3 py-2 text-xs border-2 border-black bg-white font-bold focus:outline-none text-black cursor-pointer shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]"
                 >
-                  <option value="foodbasics">Food Basics (Active & Monitored)</option>
-                  <option value="metro">Metro (Active & Monitored)</option>
-                  <option value="loblaws">Loblaws (Active & Monitored)</option>
-                  <option value="nofrills">No Frills (Active & Monitored)</option>
+                  {Object.entries(getDynamicStoreNames()).map(([key, name]) => {
+                    const isConfiguredStore = scrapeConfig?.stores?.[key];
+                    const isEnabled = isConfiguredStore ? isConfiguredStore.enabled !== false : true;
+                    return (
+                      <option key={key} value={key}>
+                        {name} {isConfiguredStore ? (isEnabled ? "(Active & Monitored)" : "(Disabled)") : "(Active & Monitored)"}
+                      </option>
+                    );
+                  })}
                 </select>
                 <span className="text-[9px] text-[#4b5563] font-bold block mt-1.5">
                   ℹ Choose which store dashboard to view, configure, or repair pricing.
@@ -1216,7 +1244,7 @@ export default function RegularItemsList({
                   <Search className="w-3 h-3" /> Live Price & URL Lookup Helper
                 </span>
                 <p className="text-[11px] text-emerald-950 leading-tight">
-                  Click below to find the product page on {modalStoreKey === "foodbasics" ? "Food Basics" : modalStoreKey === "metro" ? "Metro" : modalStoreKey === "loblaws" ? "Loblaws" : "No Frills"}. This will automatically copy the item name to your clipboard for search.
+                  Click below to find the product page on {getDynamicStoreNames()[modalStoreKey] || modalStoreKey}. This will automatically copy the item name to your clipboard for search.
                 </p>
                 <a
                   href={getSearchUrlForStore(modalStoreKey, activePriceCheckItem.name)}
@@ -1225,7 +1253,7 @@ export default function RegularItemsList({
                   onClick={handleSearchAndCopyName}
                   className="w-full inline-flex items-center justify-center gap-1.5 py-1.5 text-xs font-black uppercase bg-[#059669] hover:bg-emerald-700 text-white border-2 border-black shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] hover:shadow-none hover:translate-x-[1px] hover:translate-y-[1px] transition-colors font-bold text-center"
                 >
-                  <ExternalLink className="w-3.5 h-3.5" /> Search {modalStoreKey === "foodbasics" ? "Food Basics" : modalStoreKey === "metro" ? "Metro" : modalStoreKey === "loblaws" ? "Loblaws" : "No Frills"} (Auto-Copies Name)
+                  <ExternalLink className="w-3.5 h-3.5" /> Search {getDynamicStoreNames()[modalStoreKey] || modalStoreKey} (Auto-Copies Name)
                 </a>
               </div>
 
@@ -1235,7 +1263,7 @@ export default function RegularItemsList({
                 <div className="flex gap-1.5">
                   <input
                     type="url"
-                    placeholder={`Paste ${modalStoreKey === "foodbasics" ? "Food Basics" : modalStoreKey === "metro" ? "Metro" : modalStoreKey === "loblaws" ? "Loblaws" : "No Frills"} product detail link...`}
+                    placeholder={`Paste ${getDynamicStoreNames()[modalStoreKey] || modalStoreKey} product detail link...`}
                     value={modalUrl}
                     onChange={(e) => handleUrlChange(e.target.value)}
                     className="flex-1 px-3 py-2 text-xs border-2 border-black bg-white focus:outline-none font-bold text-black shadow-[1px_1px_0px_0px_rgba(0,0,0,1)]"

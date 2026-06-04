@@ -21,6 +21,24 @@ interface VersionEntry {
 
 const VERSIONS: VersionEntry[] = [
   {
+    version: "1.2.0",
+    date: "June 2026",
+    type: "minor",
+    title: "The Price Integrity & Routing Update",
+    changes: [
+      {
+        icon: <Calendar className="w-4 h-4 text-emerald-600" />,
+        category: "Sale Expiration Support",
+        description: "Implemented full 'valid_until' validation and visual state tracking across all item catalogs, list views, and the Scrape Prices Registry detail pages to flag expired pricing automatically.",
+      },
+      {
+        icon: <Layout className="w-4 h-4 text-emerald-600" />,
+        category: "SPA History Rewrites",
+        description: "Updated vercel.json configurations to support seamless client-side SPA history routing, preventing 404 navigation errors when users reload deep pages.",
+      },
+    ],
+  },
+  {
     version: "1.1.0",
     date: "June 2026",
     type: "minor",
