@@ -38,7 +38,9 @@ async function connectToDatabase() {
 export async function POST(request) {
   // 1. Security Protocol: Validate 'X-GroceryScout-Token' validation header
   const token = request.headers.get('X-GroceryScout-Token');
-  const secretToken = process.env.GROCERY_SECRET_TOKEN;
+  const secretToken = process.env.GROCERY_SECRET_TOKEN || 
+                      process.env.Grocery_SECRET_TOKEN || 
+                      process.env.grocery_secret_token;
 
   if (!secretToken || token !== secretToken) {
     return NextResponse.json(

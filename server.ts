@@ -3,6 +3,7 @@ import path from "path";
 import multer from "multer";
 import { spawn } from "child_process";
 import fs from "fs";
+import { MongoClient } from "mongodb";
 import { createServer as createViteServer } from "vite";
 import { parseCsv } from "./src/lib/csv-parser";
 import {
@@ -45,6 +46,92 @@ async function startServer() {
   app.use(express.json({ limit: "15mb" }));
 
   // --- API Endpoints ---
+
+  // Connection pooling state variables for MongoDB Atlas
+  let cachedMongoClient: MongoClient | null = null;
+  let cachedMongoDb: any = null;
+
+  async function getMongoDatabase() {
+    const uri = process.env.MONGODB_URI;
+    if (!uri) {
+      throw new Error("MONGODB_URI environment variable is missing or empty.");
+    }
+    if (cachedMongoClient && cachedMongoDb) {
+      return { client: cachedMongoClient, db: cachedMongoDb };
+    }
+    
+    const globalRef = global as any;
+    if (!globalRef._mongoClientPromise) {
+      const client = new MongoClient(uri);
+      globalRef._mongoClientPromise = client.connect();
+    }
+    const client = await globalRef._mongoClientPromise;
+    const db = client.db("groceryscout");
+    
+    cachedMongoClient = client;
+    cachedMongoDb = db;
+    return { client, db };
+  }
+
+  // 0. APPEND-GROCERY POST Endpoint (Tampermonkey client uploads)
+  app.post("/api/append-grocery", async (req, res) => {
+    // Security Protocol: Match 'X-GroceryScout-Token' header in case-insensitive environmental variable
+    const token = req.headers["x-groceryscout-token"];
+    
+    // Checking lowercase, uppercase and camelcase environmental variable names to avoid case mismatches
+    const secretToken = process.env.GROCERY_SECRET_TOKEN || 
+                        process.env.Grocery_SECRET_TOKEN || 
+                        process.env.grocery_secret_token;
+
+    if (!secretToken || token !== secretToken) {
+      res.status(401).json({
+        error: "Unauthorized: Missing or invalid secure authentication credentials"
+      });
+      return;
+    }
+
+    try {
+      const { key, data } = req.body;
+
+      if (!key || !data || typeof data !== "object") {
+        res.status(400).json({
+          error: 'Bad Request: "key" string and "data" object are required in post request payload.'
+        });
+        return;
+      }
+
+      const { db } = await getMongoDatabase();
+      const pricesCollection = db.collection("prices");
+
+      // Upsert the record targeting the incoming key as the _id identifier
+      const result = await pricesCollection.updateOne(
+        { _id: key },
+        {
+          $set: {
+            _id: key,
+            ...data,
+            synchronized_at: new Date()
+          }
+        },
+        { upsert: true }
+      );
+
+      res.json({
+        success: true,
+        message: `Successfully synchronized pricing record under target key: ${key}`,
+        matchedCount: result.matchedCount,
+        modifiedCount: result.modifiedCount,
+        upsertedCount: result.upsertedCount,
+        upsertedId: result.upsertedId ? (result.upsertedId._id || result.upsertedId) : key
+      });
+    } catch (error: any) {
+      console.error("Error in POST /api/append-grocery:", error);
+      res.status(500).json({
+        error: "Internal Server Error",
+        details: error?.message || String(error)
+      });
+    }
+  });
 
   // 1. GET /api/sync
   app.get("/api/sync", async (req, res) => {
