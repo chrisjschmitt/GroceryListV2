@@ -149,6 +149,87 @@ export default function AdminPage() {
   const [scrapeMsg, setScrapeMsg] = useState<string | null>(null);
   const [catalogSearch, setCatalogSearch] = useState("");
 
+  // Gemini AI Matching States
+  const [evaluatingMatch, setEvaluatingMatch] = useState(false);
+  const [geminiMatchResult, setGeminiMatchResult] = useState<any>(null);
+
+  // Match test runner states
+  const [testRunnerLoading, setTestRunnerLoading] = useState(false);
+  const [testRunnerResults, setTestRunnerResults] = useState<any>(null);
+
+  // Match playground interactive state
+  const [playgroundScrapedText, setPlaygroundScrapedText] = useState("");
+  const [playgroundResult, setPlaygroundResult] = useState<any>(null);
+  const [playgroundLoading, setPlaygroundLoading] = useState(false);
+
+  const runAllMatchTestsInUI = async () => {
+    setTestRunnerLoading(true);
+    try {
+      const response = await fetch("/api/match/run-tests", {
+        method: "POST"
+      });
+      if (response.ok) {
+        const data = await response.json();
+        setTestRunnerResults(data);
+        showVisualMessage(`Successfully executed all ${data.total} matching test cases!`);
+      } else {
+        alert("Failed to run matching test cases.");
+      }
+    } catch (err) {
+      console.error("Test runner failed:", err);
+      alert("Error calling match test runner endpoint.");
+    } finally {
+      setTestRunnerLoading(false);
+    }
+  };
+
+  const evaluatePlaygroundMatch = async (scrapedName: string) => {
+    if (!scrapedName.trim()) {
+      alert("Please enter a scraped product name to test.");
+      return;
+    }
+    setPlaygroundLoading(true);
+    setPlaygroundResult(null);
+    try {
+      const response = await fetch("/api/match/evaluate", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ scrapedName }),
+      });
+      if (response.ok) {
+        const data = await response.json();
+        setPlaygroundResult(data);
+      } else {
+        alert("Evaluation request failed.");
+      }
+    } catch (err) {
+      console.error("Playground evaluation error:", err);
+      alert("Error occurred while classifying playground match.");
+    } finally {
+      setPlaygroundLoading(false);
+    }
+  };
+
+  const triggerGeminiDiagnostic = async (scrapedName: string) => {
+    setEvaluatingMatch(true);
+    setGeminiMatchResult(null);
+    try {
+      const response = await fetch("/api/match/evaluate", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ scrapedName }),
+      });
+      if (response.ok) {
+        const data = await response.json();
+        setGeminiMatchResult(data);
+      }
+    } catch (err) {
+      console.error("Error during edit analysis:", err);
+    } finally {
+      setEvaluatingMatch(false);
+    }
+  };
+
   // Prices list state and form states
   const [prices, setPrices] = useState<Record<string, any>>({});
   const [pricesLoading, setPricesLoading] = useState(true);
@@ -940,6 +1021,7 @@ export default function AdminPage() {
     setEditNewCatalogCategory("");
     setEditCustomCategory("");
     setEditIsCreatingCustomCategory(false);
+    triggerGeminiDiagnostic(item.name);
   };
 
   const handleSaveScrapeItemEditSubmit = async () => {
@@ -1438,6 +1520,138 @@ export default function AdminPage() {
                                     Associate / Rename to New Item
                                   </button>
                                 </div>
+                              </div>
+
+                              {/* Gemini Smart Match Card */}
+                              <div className="bg-gradient-to-br from-emerald-50 to-teal-50/50 border-2 border-black p-3.5 space-y-2 text-black my-4">
+                                <div className="flex items-center gap-1.5 pb-1.5 border-b border-black/10">
+                                  <div className={`w-2 h-2 rounded-full animate-pulse ${geminiMatchResult?.isFallback ? 'bg-amber-500' : 'bg-emerald-500'}`} />
+                                  <span className="text-[11px] font-black uppercase tracking-wider text-black flex items-center justify-between w-full">
+                                    <span className="flex items-center gap-1">🤖 Gemini Smart Match Assistant</span>
+                                    {geminiMatchResult?.isFallback && (
+                                      <span className="bg-amber-100 text-amber-800 text-[9px] font-extrabold px-1.5 py-0.5 border border-amber-400 uppercase tracking-widest leading-none">
+                                        Offline Matcher Fallback
+                                      </span>
+                                    )}
+                                  </span>
+                                </div>
+                                
+                                {geminiMatchResult?.isFallback && (
+                                  <div className="bg-amber-50 border border-amber-300 text-amber-900 text-[10px] font-bold p-2.5 flex flex-col gap-1 rounded-sm leading-normal">
+                                    <div className="flex items-center gap-1 select-none text-amber-800">
+                                      <CircleAlert className="w-3.5 h-3.5 flex-shrink-0" />
+                                      <span className="uppercase tracking-wider font-extrabold">Local Matcher fallback Engaged</span>
+                                    </div>
+                                    <p className="font-semibold text-gray-700">
+                                      {geminiMatchResult.isApiError 
+                                        ? "The Gemini API credits/allowances are depleted or key is incorrect. Falling back to programmatic matching." 
+                                        : "Using client-configured heuristic matching rules."}
+                                    </p>
+                                    {geminiMatchResult.fallbackReason && (
+                                      <span className="text-[9px] font-mono text-amber-700 opacity-90 break-all font-semibold bg-amber-100/50 p-1 rounded-sm">
+                                        Details: {geminiMatchResult.fallbackReason}
+                                      </span>
+                                    )}
+                                  </div>
+                                )}
+                                
+                                {evaluatingMatch ? (
+                                  <div className="flex items-center gap-2 py-2 text-xs text-gray-500 font-bold">
+                                    <RefreshCw className="w-3.5 h-3.5 animate-spin text-emerald-600" />
+                                    <span>Analyzing product attributes, pack sizing, and brand alignments...</span>
+                                  </div>
+                                ) : geminiMatchResult ? (
+                                  <div className="space-y-2 text-left">
+                                    <div className="text-xs text-black">
+                                      {geminiMatchResult.matched_id ? (
+                                        <div>
+                                          <p className="font-bold text-black mb-1">
+                                            Match Recommendation:{" "}
+                                            <span className="text-emerald-700 bg-emerald-100 border border-emerald-500 px-1.5 py-0.5 font-extrabold uppercase text-[10px]">
+                                              {items.find(i => i.id === geminiMatchResult.matched_id)?.name || "Matched Item"} ({geminiMatchResult.confidence}% confidence)
+                                            </span>
+                                          </p>
+                                          <p className="text-[11px] text-gray-600 leading-relaxed font-semibold italic mb-2">
+                                            "{geminiMatchResult.reason}"
+                                          </p>
+                                          <div className="flex flex-wrap gap-1.5 mb-2.5">
+                                            <span className={`text-[9px] font-extrabold px-1 border uppercase ${geminiMatchResult.unit_match ? 'bg-emerald-100 text-emerald-800 border-emerald-500' : 'bg-red-100 text-red-800 border-red-500'}`}>
+                                              {geminiMatchResult.unit_match ? '✔ Sizing Type Compatible' : '⚠ Measurement Mismatch (Unit vs Wg)'}
+                                            </span>
+                                            <span className={`text-[9px] font-extrabold px-1 border uppercase ${geminiMatchResult.brand_match ? 'bg-emerald-100 text-emerald-800 border-emerald-500' : 'bg-amber-100 text-amber-800 border-amber-500'}`}>
+                                              {geminiMatchResult.brand_match ? '✔ Brand Match' : 'ℹ Brand Mismatch (Substitution OK)'}
+                                            </span>
+                                          </div>
+                                          
+                                          <button
+                                            type="button"
+                                            onClick={() => {
+                                              const targetItem = items.find(i => i.id === geminiMatchResult.matched_id);
+                                              if (targetItem) {
+                                                setEditScrapeItemMode("link");
+                                                setEditSelectedCatalogName(targetItem.name);
+                                                setEditScrapeForm(prev => ({ ...prev, name: targetItem.name }));
+                                                showVisualMessage(`Selected suggestion: "${targetItem.name}"`);
+                                              }
+                                            }}
+                                            className="mt-1 w-full bg-black hover:bg-emerald-700 text-white font-black uppercase text-[10px] tracking-wider py-1.5 border border-black shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] hover:shadow-none hover:translate-x-[1px] hover:translate-y-[1px] transition-all inline-flex items-center justify-center gap-1 cursor-pointer"
+                                          >
+                                            <Check className="w-3.5 h-3.5" /> Bind Price to Mapped Catalog Item
+                                          </button>
+                                        </div>
+                                      ) : (
+                                        <div>
+                                          <p className="font-bold text-black mb-1">
+                                            Recommendation:{" "}
+                                            <span className="text-amber-800 bg-amber-100 border border-amber-500 px-1.5 py-0.5 font-extrabold uppercase text-[10px]">
+                                              Create Brand New Item ({geminiMatchResult.confidence}% confidence)
+                                            </span>
+                                          </p>
+                                          <p className="text-[11px] text-gray-600 leading-relaxed font-semibold italic mb-2">
+                                            "{geminiMatchResult.reason}"
+                                          </p>
+                                          {geminiMatchResult.proposed_new_item && (
+                                            <div className="bg-white border-2 border-dashed border-black p-2 space-y-1 mb-2">
+                                              <p className="text-[9px] font-mono text-gray-400 uppercase font-black">Clean Catalog Recommendation:</p>
+                                              <p className="text-xs font-black text-black">
+                                                Item Name: <span className="text-emerald-700 font-bold">{geminiMatchResult.proposed_new_item.name}</span>
+                                              </p>
+                                              <p className="text-xs font-black text-black">
+                                                Category: <span className="text-emerald-700 font-bold">{geminiMatchResult.proposed_new_item.category}</span>
+                                              </p>
+                                            </div>
+                                          )}
+                                          
+                                          {geminiMatchResult.proposed_new_item && (
+                                            <button
+                                              type="button"
+                                              onClick={() => {
+                                                setEditScrapeItemMode("create");
+                                                setEditScrapeForm(prev => ({ ...prev, name: geminiMatchResult.proposed_new_item!.name }));
+                                                const catExists = categoriesList.includes(geminiMatchResult.proposed_new_item!.category);
+                                                if (catExists) {
+                                                  setEditIsCreatingCustomCategory(false);
+                                                  setEditNewCatalogCategory(geminiMatchResult.proposed_new_item!.category);
+                                                } else {
+                                                  setEditIsCreatingCustomCategory(true);
+                                                  setEditCustomCategory(geminiMatchResult.proposed_new_item!.category);
+                                                }
+                                                showVisualMessage(`Filled catalog suggestion: "${geminiMatchResult.proposed_new_item!.name}"`);
+                                              }}
+                                              className="w-full bg-[#059669] hover:bg-[#047857] text-white font-black uppercase text-[10px] tracking-wider py-1.5 border border-black shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] hover:shadow-none hover:translate-x-[1px] hover:translate-y-[1px] transition-all inline-flex items-center justify-center gap-1 cursor-pointer"
+                                            >
+                                              <Plus className="w-3.5 h-3.5" /> Initialize Catalog Item Adding
+                                            </button>
+                                          )}
+                                        </div>
+                                      )}
+                                    </div>
+                                  </div>
+                                ) : (
+                                  <div className="py-1.5 text-[11px] text-gray-400 font-bold">
+                                    No details resolved. Loading suggestions details below...
+                                  </div>
+                                )}
                               </div>
 
                               {editScrapeItemMode === "link" ? (
@@ -2633,6 +2847,222 @@ export default function AdminPage() {
               <p className="mt-3 text-xs text-gray-500 font-medium leading-relaxed">
                 Manually upload or drag-and-drop a custom <code>prices.json</code> file. This will update or merge store pricing values instantly.
               </p>
+            </div>
+          </div>
+
+          {/* Gemini AI Product Matching Test-Bed & Playground (Approach A) */}
+          <div className="bg-white border-2 border-black p-6 shadow-[6px_6px_0px_0px_rgba(0,0,0,1)] text-black">
+            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-4 pb-1.5 border-b-2 border-black">
+              <h2 className="text-base font-black uppercase tracking-tight flex items-center gap-1.5 text-black">
+                <span className="flex h-2.5 w-2.5 relative">
+                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+                  <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-emerald-500"></span>
+                </span>
+                🤖 Gemini Product Matcher (Test & Validate)
+              </h2>
+              <div className="flex items-center gap-2 font-black">
+                <button
+                  type="button"
+                  onClick={runAllMatchTestsInUI}
+                  disabled={testRunnerLoading}
+                  className="text-xs font-black uppercase tracking-wider bg-black hover:bg-emerald-600 disabled:bg-gray-400 text-white px-3 py-1.5 border border-black shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] hover:shadow-none hover:translate-x-[1px] hover:translate-y-[1px] transition-all inline-flex items-center gap-1 cursor-pointer"
+                >
+                  {testRunnerLoading ? (
+                    <RefreshCw className="w-3.5 h-3.5 animate-spin" />
+                  ) : (
+                    <Play className="w-3.5 h-3.5" />
+                  )}
+                  Run All Match Tests
+                </button>
+              </div>
+            </div>
+
+            <p className="text-xs text-gray-500 mb-6 font-medium leading-relaxed">
+              Verify the exact product alignment logic. Brand mismatches are treated as acceptable minor penalties, while packaging type differences (pricing avocados per individual unit vs bulk weight bags) or critical style descriptions (creamy vs crunchy, lactose-free) are penalized or rejected. Try a custom text match below, or run the automated spec-tests suite.
+            </p>
+
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+              {/* Left Column: Interactive Pairing Playground */}
+              <div className="space-y-4 border-2 border-black p-4 bg-gray-50">
+                <h3 className="text-xs font-black uppercase tracking-wider text-black pb-1 border-b border-black/10 flex items-center gap-1">
+                  <Search className="w-3.5 h-3.5" /> Mismatch Interactive Playground
+                </h3>
+
+                <div className="space-y-3">
+                  <div>
+                    <label className="block text-[11px] font-black uppercase text-gray-600 mb-1">
+                      scraped product title
+                    </label>
+                    <div className="flex gap-2">
+                      <input
+                        type="text"
+                        className="flex-1 text-xs font-mono p-2.5 border-2 border-black bg-white focus:bg-emerald-50 outline-none text-black font-semibold"
+                        placeholder="e.g. Demps Whole Wheat loaf 600g"
+                        value={playgroundScrapedText}
+                        onChange={(e) => setPlaygroundScrapedText(e.target.value)}
+                      />
+                      <button
+                        type="button"
+                        onClick={() => evaluatePlaygroundMatch(playgroundScrapedText)}
+                        disabled={playgroundLoading}
+                        className="bg-black hover:bg-emerald-600 disabled:bg-gray-400 text-white font-black uppercase text-xs tracking-wider px-3 py-2 border-2 border-black shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] hover:shadow-none hover:translate-x-[1px] hover:translate-y-[1px] transition-all inline-flex items-center gap-1 cursor-pointer"
+                      >
+                        {playgroundLoading ? (
+                          <RefreshCw className="w-3 h-3 animate-spin" />
+                        ) : (
+                          "Match"
+                        )}
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* Playground Result Card */}
+                  {playgroundResult && (
+                    <div className="bg-white border-2 border-black p-3.5 space-y-2 rounded-sm animate-fade-in text-black">
+                      <div className="text-xs flex items-center justify-between border-b border-gray-100 pb-1.5 mb-1.5 text-black">
+                        <span className="font-extrabold uppercase text-gray-400 text-[10px]">Evaluation Result:</span>
+                        <span className="text-[10px] font-mono font-bold bg-amber-50 rounded px-1.5">
+                          {playgroundResult.isFallback ? "Algorithmic Fallback Engine" : "Gemini 3.5 Flash"}
+                        </span>
+                      </div>
+
+                      {playgroundResult.isFallback && (
+                        <div className="bg-amber-50 border border-amber-300 text-amber-900 text-[10px] font-bold p-2 mb-2 flex flex-col gap-1 rounded-sm leading-normal">
+                          <div className="flex items-center gap-1 select-none text-amber-800">
+                            <CircleAlert className="w-3.5 h-3.5 flex-shrink-0" />
+                            <span className="uppercase tracking-wider font-extrabold">Local Fallback Engaged</span>
+                          </div>
+                          <p className="font-semibold text-gray-700">
+                            {playgroundResult.isApiError 
+                              ? "The Gemini API credits/allowances are depleted. Successfully used offline heuristic matcher."
+                              : "Using client-configured heuristic matching rules."}
+                          </p>
+                        </div>
+                      )}
+
+                      <div className="space-y-2.5 text-black">
+                        {playgroundResult.matched_id ? (
+                          <div>
+                            <div className="flex items-center gap-1.5 mb-1 text-black">
+                              <span className="text-xs font-bold">Suggested Catalog Item:</span>
+                              <span className="text-xs font-black uppercase bg-emerald-100 border border-emerald-500 text-emerald-800 px-1.5 py-0.2">
+                                {items.find(i => i.id === playgroundResult.matched_id)?.name || "Linked Entry"}
+                              </span>
+                            </div>
+                            <div className="flex items-center gap-2">
+                              <span className="text-xs font-bold text-black font-semibold">Match Confidence:</span>
+                              <span className={`text-xs font-black ${playgroundResult.confidence >= 75 ? 'text-emerald-600' : 'text-amber-600'}`}>
+                                {playgroundResult.confidence}%
+                              </span>
+                            </div>
+                          </div>
+                        ) : (
+                          <div>
+                            <div className="flex items-center gap-1.5 mb-1">
+                              <span className="text-xs font-bold text-black font-semibold">Match Outcome:</span>
+                              <span className="text-xs font-black uppercase bg-red-100 border border-red-500 text-red-800 px-1.5 py-0.2">
+                                NO MATCH (&lt;70% confidence)
+                              </span>
+                            </div>
+                            <p className="text-[11px] text-gray-500 font-semibold mb-2">
+                              The scraper name doesn't match an active catalog item. Proposing list creation:
+                            </p>
+                          </div>
+                        )}
+
+                        <p className="text-[11px] text-gray-600 leading-relaxed italic border-l-2 border-black pl-2 font-medium">
+                          "{playgroundResult.reason}"
+                        </p>
+
+                        <div className="flex flex-wrap gap-1.5 pt-1">
+                          <span className={`text-[10px] font-bold px-1.5 py-0.5 border uppercase ${playgroundResult.unit_match ? 'bg-emerald-50 text-emerald-800 border-emerald-400' : 'bg-red-50 text-red-800 border-red-400'}`}>
+                            {playgroundResult.unit_match ? '✔ Compatible Weights/Units' : '⚠ Weight-Unit Mismatch'}
+                          </span>
+                          <span className={`text-[10px] font-bold px-1.5 py-0.5 border uppercase ${playgroundResult.brand_match ? 'bg-emerald-50 text-emerald-800 border-emerald-400' : 'bg-amber-50 text-amber-800 border-amber-400'}`}>
+                            {playgroundResult.brand_match ? '✔ Brand Match' : 'ℹ Brand Substitution'}
+                          </span>
+                        </div>
+
+                        {playgroundResult.proposed_new_item && (
+                          <div className="bg-amber-50/50 border border-dashed border-amber-500 p-2.5 text-xs text-black">
+                            <span className="font-extrabold uppercase text-[9px] text-amber-800 tracking-wider block mb-1">Proposed Addition:</span>
+                            <p className="font-black">Name: <span className="text-amber-950 font-extrabold">{playgroundResult.proposed_new_item.name}</span></p>
+                            <p className="font-black mt-0.5">Category: <span className="text-amber-950 font-extrabold">{playgroundResult.proposed_new_item.category}</span></p>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              {/* Right Column: Automated Test Suite Spec Coverage */}
+              <div className="space-y-4 border-2 border-black p-4 bg-gray-50">
+                <h3 className="text-xs font-black uppercase tracking-wider text-black pb-1 border-b border-black/10 flex items-center gap-1">
+                  <Database className="w-3.5 h-3.5" /> Spec Test Coverage Report
+                </h3>
+
+                {testRunnerResults ? (
+                  <div className="space-y-3">
+                    <div className="flex items-center gap-4 bg-black text-white p-3 border-2 border-black mb-2 select-none">
+                      <div className="text-center flex-1">
+                        <span className="block text-[10px] font-bold uppercase text-gray-400">Total Specs</span>
+                        <span className="text-xl font-black">{testRunnerResults.total}</span>
+                      </div>
+                      <div className="text-center flex-1">
+                        <span className="block text-[10px] font-bold uppercase text-emerald-400">Passed</span>
+                        <span className="text-xl font-black text-emerald-400">{testRunnerResults.passed}</span>
+                      </div>
+                      <div className="text-center flex-1">
+                        <span className="block text-[10px] font-bold uppercase text-rose-400">Failed</span>
+                        <span className="text-xl font-black text-rose-400">{testRunnerResults.failed}</span>
+                      </div>
+                      <div className="text-center flex-1">
+                        <span className="block text-[10px] font-bold uppercase text-teal-400">Status</span>
+                        <span className={`text-xs font-black uppercase border px-1.5 block mt-1 ${testRunnerResults.failed === 0 ? 'bg-emerald-950 border-emerald-500 text-emerald-400' : 'bg-rose-950 border-rose-500 text-rose-400'}`}>
+                          {testRunnerResults.failed === 0 ? "PASSED ALL" : "FAILING"}
+                        </span>
+                      </div>
+                    </div>
+
+                    <div className="max-h-[300px] overflow-y-auto space-y-2 border border-black/10 p-1 bg-white">
+                      {testRunnerResults.results.map((r: any) => (
+                        <div key={r.caseId} className="p-2 border border-black bg-gray-50 flex flex-col justify-between">
+                          <div className="flex justify-between items-start gap-1">
+                            <div>
+                              <span className="text-[10px] uppercase font-bold text-gray-400 block font-mono">{r.caseId}</span>
+                              <span className="text-xs font-extrabold text-black block">{r.description}</span>
+                            </div>
+                            <span className={`text-[9px] font-black uppercase px-1 border ${r.passed ? 'bg-emerald-100 border-emerald-500 text-emerald-800' : 'bg-red-100 border-red-500 text-red-800'}`}>
+                              {r.passed ? '✔ PASSED' : '❌ FAILED'}
+                            </span>
+                          </div>
+                          
+                          <div className="text-[10px] font-mono text-gray-500 mt-1.5 space-y-0.5">
+                            <p>Scraped Input: "{r.scrapedName}"</p>
+                            <p>Resolved Item: {r.matchedId ? `ID: ${r.matchedId} (${r.confidence}%)` : "No Match"}</p>
+                            {r.proposedName && <p>Proposal: "{r.proposedName}" ({r.proposedCategory})</p>}
+                            <p className="text-[9px] text-gray-400 italic font-semibold">"{r.reason}"</p>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                ) : (
+                  <div className="text-center py-12 bg-white border-2 border-dashed border-gray-300">
+                    <p className="text-xs font-bold text-gray-400 leading-relaxed max-w-[280px] mx-auto">
+                      Automated testing suite not executed yet. Click "Run All Match Tests" to evaluate confidence levels, brand substitutions, unit vs bulk weight constraints, and recommendation accuracy.
+                    </p>
+                    <button
+                      type="button"
+                      onClick={runAllMatchTestsInUI}
+                      className="mt-3 text-xs font-black uppercase tracking-wider bg-black hover:bg-emerald-600 text-white px-3 py-1.5 border border-black shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] hover:shadow-none hover:translate-x-[1px] hover:translate-y-[1px] transition-all cursor-pointer"
+                    >
+                      Initialize Test suite
+                    </button>
+                  </div>
+                )}
+              </div>
             </div>
           </div>
 

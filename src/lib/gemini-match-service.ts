@@ -1,0 +1,424 @@
+import { GoogleGenAI, Type } from "@google/genai";
+import { RegularItem } from "./types.js";
+
+export interface MatchResult {
+  matched_id: string | null;
+  confidence: number; // 0 to 100
+  unit_match: boolean;
+  brand_match: boolean;
+  reason: string;
+  proposed_new_item?: {
+    name: string;
+    category: string;
+  };
+  isFallback?: boolean;
+  fallbackReason?: string;
+  isApiError?: boolean;
+}
+
+let geminiClientCache: GoogleGenAI | null = null;
+
+// Helper to check if weights or unit mismatch
+export function checkMeasurementTypeMismatch(nameA: string, nameB: string): boolean {
+  const normA = nameA.toLowerCase();
+  const normB = nameB.toLowerCase();
+
+  const isWeightA = normA.includes("bag") || normA.includes(" g") || /\d+g/.test(normA) || normA.includes("oz") || normA.includes("lb") || normA.includes("kg") || normA.includes("pack");
+  const isWeightB = normB.includes("bag") || normB.includes(" g") || /\d+g/.test(normB) || normB.includes("oz") || normB.includes("lb") || normB.includes("kg") || normB.includes("pack");
+
+  const isUnitA = normA.includes("each") || normA.includes("unit") || normA.includes("singles") || normA.includes("per unit") || normA.includes("piece");
+  const isUnitB = normB.includes("each") || normB.includes("unit") || normB.includes("singles") || normB.includes("per unit") || normB.includes("piece");
+
+  // If one is clearly a weight-based / packet purchase and the other is a singular unit purchase, they mismatch
+  if ((isWeightA && isUnitB) || (isUnitA && isWeightB)) {
+    return true;
+  }
+  return false;
+}
+
+// Programmatic fallback matcher (used when GEMINI_API_KEY is not defined or on network failures)
+export function runProgrammaticFallbackMatch(scrapedName: string, catalogItems: RegularItem[]): MatchResult {
+  const cleanScraped = scrapedName.trim().toLowerCase();
+  
+  // 1. Check exact match
+  const exact = catalogItems.find(item => item.name.trim().toLowerCase() === cleanScraped);
+  if (exact) {
+    return {
+      matched_id: exact.id,
+      confidence: 100,
+      unit_match: true,
+      brand_match: true,
+      reason: `Programmatic exact match for "${exact.name}"`
+    };
+  }
+
+  // 2. Perform fuzzy word intersection to score candidates
+  let bestItem: RegularItem | null = null;
+  let maxScore = 0;
+  let bestUnitMatch = true;
+  let bestBrandMatch = true;
+
+  const scrapedWords = cleanScraped.split(/[\s,()\-]+/);
+
+  for (const item of catalogItems) {
+    const catalogWords = item.name.trim().toLowerCase().split(/[\s,()\-]+/);
+    
+    // Calculate intersection
+    const intersection = scrapedWords.filter(w => w.length > 2 && catalogWords.includes(w));
+    
+    // Penalize if some critical product specifics mismatch
+    let score = intersection.length * 10;
+
+    if (score > 0) {
+      // Check weight vs unit mismatch
+      const hasUnitMismatch = checkMeasurementTypeMismatch(scrapedName, item.name);
+      if (hasUnitMismatch) {
+        score -= 15; // penalize
+      }
+
+      // Check product specificity keywords mismatch (e.g. crunchy vs smooth, lactose-free vs regular)
+      const isCrunchyScraped = cleanScraped.includes("crunchy") || cleanScraped.includes("chunky");
+      const isCrunchyCatalog = item.name.toLowerCase().includes("crunchy") || item.name.toLowerCase().includes("chunky");
+      if (isCrunchyScraped !== isCrunchyCatalog) {
+        score -= 25; // severe penalty
+      }
+
+      const isLfScraped = cleanScraped.includes("lactose free") || cleanScraped.includes("lf") || cleanScraped.includes("lactose-free");
+      const isLfCatalog = item.name.toLowerCase().includes("lactose free") || item.name.toLowerCase().includes("lf") || item.name.toLowerCase().includes("lactose-free");
+      if (isLfScraped !== isLfCatalog) {
+        score -= 30; // severe penalty
+      }
+
+      if (score > maxScore) {
+        maxScore = score;
+        bestItem = item;
+        bestUnitMatch = !hasUnitMismatch;
+        // Mock brand match check — if scraped has a common brand not in catalog
+        const brands = ["kraft", "dempster", "quaker", "heinz", "mcintosh", "natrel"];
+        const scrapedHasBrand = brands.some(b => cleanScraped.includes(b));
+        const catalogHasBrand = brands.some(b => item.name.toLowerCase().includes(b));
+        bestBrandMatch = !(scrapedHasBrand && !catalogHasBrand);
+      }
+    }
+  }
+
+  // Calculate simulated confidence
+  let confidence = Math.min(Math.max(maxScore * 2, 20), 98);
+  if (bestItem) {
+    // If unit mismatched, clamp confidence to 60 as per rules
+    if (!bestUnitMatch) {
+      confidence = Math.min(confidence, 60);
+    }
+    // Brand mismatch is minor, keep confidence fairly high (80-85)
+    if (!bestBrandMatch && bestUnitMatch && confidence > 80) {
+      confidence = Math.min(confidence, 85);
+    }
+
+    if (confidence >= 70) {
+      return {
+        matched_id: bestItem.id,
+        confidence,
+        unit_match: bestUnitMatch,
+        brand_match: bestBrandMatch,
+        reason: `Fuzzy search matching "${bestItem.name}" with confidence ${confidence}% (Brand match: ${bestBrandMatch}, Unit match: ${bestUnitMatch})`
+      };
+    }
+  }
+
+  // 3. No Match Case — suggest a new item format
+  // Derive a cleaner name: remove common brands and sizes
+  let refinedName = scrapedName
+    .replace(/(Kraft|Dempster's|Dempster|Quaker|Heinz|McIntosh|Natrel|Food Basics|Metro|Loblaws|No Frills)/gi, "")
+    .replace(/\b\d+(g|kg|ml|l|oz|lb|pcs|pack|bag)\b/gi, "")
+    .replace(/\s+/g, " ")
+    .trim();
+  
+  if (refinedName.length < 2) refinedName = scrapedName;
+  
+  // Categorize based on keywords
+  let recommendedCategory = "Pantry";
+  const normRefined = refinedName.toLowerCase();
+  if (normRefined.includes("milk") || normRefined.includes("yogurt") || normRefined.includes("cheese") || normRefined.includes("butter") || normRefined.includes("cream")) {
+    recommendedCategory = "Dairy & Eggs";
+  } else if (normRefined.includes("apple") || normRefined.includes("avocado") || normRefined.includes("lettuce") || normRefined.includes("berries") || normRefined.includes("broccoli") || normRefined.includes("strawberry")) {
+    recommendedCategory = "Produce";
+  } else if (normRefined.includes("beef") || normRefined.includes("chicken") || normRefined.includes("turkey") || normRefined.includes("pork") || normRefined.includes("bacon")) {
+    recommendedCategory = "Meat & Seafood";
+  } else if (normRefined.includes("bread") || normRefined.includes("tortilla") || normRefined.includes("bun") || normRefined.includes("bagel")) {
+    recommendedCategory = "Bakery";
+  }
+
+  return {
+    matched_id: null,
+    confidence: Math.max(confidence, 15),
+    unit_match: false,
+    brand_match: false,
+    reason: "No matching catalog item found with acceptable confidence (<70%). Programmatic analysis generated recommended addition.",
+    proposed_new_item: {
+      name: refinedName.charAt(0).toUpperCase() + refinedName.slice(1),
+      category: recommendedCategory
+    }
+  };
+}
+
+// Evaluate match using Gemini 3.5 Flash
+export async function evaluateGeminiMatch(scrapedName: string, catalogItems: RegularItem[]): Promise<MatchResult> {
+  const apiKey = process.env.GEMINI_API_KEY;
+  if (!apiKey || apiKey === "MY_GEMINI_API_KEY" || apiKey.trim() === "") {
+    const fallbackRes = runProgrammaticFallbackMatch(scrapedName, catalogItems);
+    fallbackRes.isFallback = true;
+    fallbackRes.fallbackReason = "GEMINI_API_KEY environment variable is not defined or is placeholder.";
+    return fallbackRes;
+  }
+
+  try {
+    if (!geminiClientCache) {
+      geminiClientCache = new GoogleGenAI({
+        apiKey,
+        httpOptions: {
+          headers: {
+            "User-Agent": "aistudio-build"
+          }
+        }
+      });
+    }
+
+    const candidatesList = catalogItems.map(item => ({
+      id: item.id,
+      name: item.name,
+      category: item.category
+    }));
+
+    const systemInstruction = `
+You are an expert grocery data integration system. Your mission is to match a "scrapedName" (which contains descriptive product texts from a website scrape) against a list of "catalogItems" (the canonical products on a grocery list).
+
+For your match output, determine:
+1. "matched_id": The exact "id" of the single item in "catalogItems" that matches. Set to empty string "" if there is no high-quality match.
+2. "confidence": A score between 0 and 100 indicating match quality, adhering to these rules:
+   - WEIGHT VS UNIT MEASUREMENT (WEIGHT-UNIT MISMATCH): Check if one product is measured by weight/size (e.g., avocados sold in a bag, 3lb, 454g) and the other is a single unit/piece (e.g., Avocado Each, Single Avocado, unit). If there is a unit style mismatch, PENALIZE the confidence severely, clamping it to a MAX of 60%.
+   - BRAND SUBSTITUTION & TOLERANCE: Brand changes are minor conflicts. For example, Kraft Brand Crunchy Peanut Butter is a high-confidence substitute for No Name Crunchy Peanut Butter as long as critical product features (like crunchy peanut butter) are identical. Under this rule, do NOT penalize with more than a 15% deduction (keep confidence at a solid 80%-85%).
+   - PRODUCT SPECIFICITY (MAJOR PENALTY): Critical attributes are non-negotiable. Mismatches such as crunchy vs smooth peanut butter, regular milk vs lactose-free milk, cottage cheese vs sour cream, fat-free vs whole fat constitute severe conflicts. These matches must be rejected (confidence < 45% or set "matched_id" to "").
+   - EXACT SPELLING MATCH: If lowercase exact text matches, confidence is 100%. Plurals or simple spacing (e.g. Avocado vs Avocados) should be 95%.
+3. "unit_match": True if measurement modes (weight vs unit) are compatible, false if one is weight and the other is single unit/piece.
+4. "brand_match": True if the brands match or are both generic/unspecified, false if different brands.
+5. "reason": A brief 1-sentence analytical explanation of your choice.
+6. "proposed_new_item": If confidence is below 70% (no high-quality match), populate this object with:
+   - "name": A simplified, reader-friendly canonical item name derived from the scraped name (remove store codes, brand noise, and packaging size, e.g. "Dempster's Whole Wheat sliced bread 675g" becomes "Whole Wheat Bread").
+   - "category": The best food category match. Choose from standard sections like "Produce", "Meat & Seafood", "Dairy & Eggs", "Pantry", "Bakery", "Frozen", "Beverages", "Decline/Other".
+
+Return strict JSON conforming to the response schema.
+`;
+
+    const userPrompt = `
+Scraped Item name: "${scrapedName}"
+
+Candidate Catalog Items:
+${JSON.stringify(candidatesList, null, 2)}
+`;
+
+    const response = await geminiClientCache.models.generateContent({
+      model: "gemini-3.5-flash",
+      contents: userPrompt,
+      config: {
+        systemInstruction,
+        responseMimeType: "application/json",
+        responseSchema: {
+          type: Type.OBJECT,
+          required: ["matched_id", "confidence", "unit_match", "brand_match", "reason"],
+          properties: {
+            matched_id: {
+              type: Type.STRING,
+              description: "The id of the matching catalog item, or an empty string if no quality match gets >= 70%."
+            },
+            confidence: {
+              type: Type.INTEGER,
+              description: "Determined confidence level from 0 to 100."
+            },
+            unit_match: {
+              type: Type.BOOLEAN,
+              description: "Whether the pricing unit type matches (no weight vs unit mismatch)."
+            },
+            brand_match: {
+              type: Type.BOOLEAN,
+              description: "Whether the product brands match."
+            },
+            reason: {
+              type: Type.STRING,
+              description: "Sentence explaining the matching logic and rule application."
+            },
+            proposed_new_item: {
+              type: Type.OBJECT,
+              properties: {
+                name: { type: Type.STRING, description: "Streamlined canonical item name proposed." },
+                category: { type: Type.STRING, description: "Suggested grocery category." }
+              }
+            }
+          }
+        }
+      }
+    });
+
+    const text = response.text || "";
+    const parsed = JSON.parse(text);
+
+    return {
+      matched_id: parsed.matched_id || null,
+      confidence: typeof parsed.confidence === "number" ? parsed.confidence : 0,
+      unit_match: !!parsed.unit_match,
+      brand_match: !!parsed.brand_match,
+      reason: parsed.reason || "",
+      proposed_new_item: parsed.proposed_new_item || undefined,
+      isFallback: false
+    };
+
+  } catch (error: any) {
+    console.error("Gemini Flash match API call failed, calling programmatic fallback:", error);
+    const fallbackRes = runProgrammaticFallbackMatch(scrapedName, catalogItems);
+    fallbackRes.isFallback = true;
+    fallbackRes.isApiError = true;
+    fallbackRes.fallbackReason = error?.message || String(error);
+    return fallbackRes;
+  }
+}
+
+// Test cases list for test coverage verifying weight/units, brands and specific substitutions
+export interface MatchTestCase {
+  id: string;
+  scrapedName: string;
+  catalogItems: RegularItem[];
+  expectedCondition: (res: MatchResult) => boolean;
+  expectedDescription: string;
+}
+
+export const TEST_CASES: MatchTestCase[] = [
+  {
+    id: "exact_spelling",
+    scrapedName: "Broccoli",
+    catalogItems: [
+      { id: "1", name: "Broccoli", category: "Produce", selected: false },
+      { id: "2", name: "Butter unsalted", category: "Dairy & Eggs", selected: false }
+    ],
+    expectedDescription: "Exact spelling match",
+    expectedCondition: (res) => res.matched_id === "1" && res.confidence === 100
+  },
+  {
+    id: "plural_singular",
+    scrapedName: "Avocado Each",
+    catalogItems: [
+      { id: "10", name: "Avocados Each", category: "Produce", selected: false },
+      { id: "11", name: "Orange Juice", category: "Beverages", selected: false }
+    ],
+    expectedDescription: "Singular / plurals under unit count",
+    expectedCondition: (res) => res.matched_id === "10" && res.confidence >= 90
+  },
+  {
+    id: "weight_unit_mismatch",
+    scrapedName: "Avocado Bag 3lb",
+    catalogItems: [
+      { id: "20", name: "Avocado Each", category: "Produce", selected: false }
+    ],
+    expectedDescription: "Weight sizing vs singular Unit packaging size penalty",
+    expectedCondition: (res) => res.confidence <= 60 && !res.unit_match
+  },
+  {
+    id: "brand_substitution",
+    scrapedName: "Kraft crunchy peanut butter 500g",
+    catalogItems: [
+      { id: "30", name: "Skippy crunchy peanut butter 500g", category: "Pantry", selected: false }
+    ],
+    expectedDescription: "Brand substitution minor penalty (accepts substitution, high confidence)",
+    expectedCondition: (res) => res.matched_id === "30" && res.confidence >= 75 && res.confidence <= 90 && !res.brand_match
+  },
+  {
+    id: "product_specificity_crunchy_smooth_mismatch",
+    scrapedName: "Kraft smooth peanut butter 500g",
+    catalogItems: [
+      { id: "40", name: "Kraft crunchy peanut butter 500g", category: "Pantry", selected: false }
+    ],
+    expectedDescription: "Specific property (smooth vs crunchy) mismatch major penalty",
+    expectedCondition: (res) => (res.matched_id !== "40" || res.confidence < 50)
+  },
+  {
+    id: "product_specificity_lactose_free_mismatch",
+    scrapedName: "Natrel Lactose Free Milk 1% 2L",
+    catalogItems: [
+      { id: "50", name: "Regular Milk 1% 2L", category: "Dairy & Eggs", selected: false }
+    ],
+    expectedDescription: "Lactose-Free milk vs Regular milk mismatch major penalty",
+    expectedCondition: (res) => (res.matched_id !== "50" || res.confidence < 50)
+  },
+  {
+    id: "absolutely_no_match",
+    scrapedName: "Chicken Thighs Bone-In Skin-On",
+    catalogItems: [
+      { id: "60", name: "Canned Tuna", category: "Pantry", selected: false },
+      { id: "61", name: "White Bread", category: "Bakery", selected: false }
+    ],
+    expectedDescription: "Unmatched scenario with smart item recommendations",
+    expectedCondition: (res) => res.matched_id === null && !!res.proposed_new_item && res.proposed_new_item.category === "Meat & Seafood"
+  }
+];
+
+// Runs all test cases and returns comprehensive coverage report
+export async function runAllMatchingTests(): Promise<{
+  total: number;
+  passed: number;
+  failed: number;
+  results: Array<{
+    caseId: string;
+    description: string;
+    scrapedName: string;
+    matchedId: string | null;
+    confidence: number;
+    unitMatch: boolean;
+    brandMatch: boolean;
+    reason: string;
+    passed: boolean;
+    proposedName?: string;
+    proposedCategory?: string;
+  }>;
+}> {
+  let passed = 0;
+  const results = [];
+
+  for (const tc of TEST_CASES) {
+    try {
+      const matchRes = await evaluateGeminiMatch(tc.scrapedName, tc.catalogItems);
+      const isPassed = tc.expectedCondition(matchRes);
+      if (isPassed) passed++;
+
+      results.push({
+        caseId: tc.id,
+        description: tc.expectedDescription,
+        scrapedName: tc.scrapedName,
+        matchedId: matchRes.matched_id,
+        confidence: matchRes.confidence,
+        unitMatch: matchRes.unit_match,
+        brandMatch: matchRes.brand_match,
+        reason: matchRes.reason,
+        passed: isPassed,
+        proposedName: matchRes.proposed_new_item?.name,
+        proposedCategory: matchRes.proposed_new_item?.category
+      });
+    } catch (err: any) {
+      results.push({
+        caseId: tc.id,
+        description: tc.expectedDescription,
+        scrapedName: tc.scrapedName,
+        matchedId: null,
+        confidence: 0,
+        unitMatch: false,
+        brandMatch: false,
+        reason: `Runner exception: ${err?.message || String(err)}`,
+        passed: false
+      });
+    }
+  }
+
+  return {
+    total: TEST_CASES.length,
+    passed,
+    failed: TEST_CASES.length - passed,
+    results
+  };
+}

@@ -6,6 +6,7 @@ import fs from "fs";
 import { MongoClient } from "mongodb";
 import { createServer as createViteServer } from "vite";
 import { parseCsv } from "./src/lib/csv-parser";
+import { evaluateGeminiMatch, runAllMatchingTests } from "./src/lib/gemini-match-service";
 import {
   blobGetGroceryItems,
   blobSetGroceryItems,
@@ -242,6 +243,33 @@ async function startServer() {
     } catch (error) {
       console.error("PUT telemetry error:", error);
       res.status(500).json({ error: "Failed to save telemetry logs" });
+    }
+  });
+
+  // --- Gemini Flash Matching and Test Runner Endpoints ---
+  app.post("/api/match/evaluate", async (req, res) => {
+    try {
+      const { scrapedName } = req.body;
+      if (!scrapedName) {
+        res.status(400).json({ error: "scrapedName is required in body" });
+        return;
+      }
+      const catalogItems = await blobGetRegularItems();
+      const matchResult = await evaluateGeminiMatch(scrapedName, catalogItems);
+      res.json(matchResult);
+    } catch (error: any) {
+      console.error("POST /api/match/evaluate error:", error);
+      res.status(500).json({ error: "Failed to evaluate item match", details: String(error) });
+    }
+  });
+
+  app.post("/api/match/run-tests", async (req, res) => {
+    try {
+      const testResults = await runAllMatchingTests();
+      res.json(testResults);
+    } catch (error: any) {
+      console.error("POST /api/match/run-tests error:", error);
+      res.status(500).json({ error: "Failed to execute match tests", details: String(error) });
     }
   });
 
