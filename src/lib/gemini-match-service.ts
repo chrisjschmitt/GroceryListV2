@@ -36,6 +36,45 @@ export function checkMeasurementTypeMismatch(nameA: string, nameB: string): bool
   return false;
 }
 
+export function cleanString(s: string): string {
+  return s.trim().toLowerCase().replace(/[\s,()\-]+/g, " ");
+}
+
+export function isWordMatch(w1: string, w2: string): boolean {
+  const norm1 = w1.toLowerCase();
+  const norm2 = w2.toLowerCase();
+  if (norm1 === norm2) return true;
+  
+  const stripPlural = (w: string) => {
+    if (w.endsWith("ies")) return w.slice(0, -3) + "y";
+    if (w.endsWith("es")) return w.slice(0, -2);
+    if (w.endsWith("s")) return w.slice(0, -1);
+    return w;
+  };
+  
+  return stripPlural(norm1) === stripPlural(norm2);
+}
+
+export function isPluralOrSimpleSpacingMatch(nameA: string, nameB: string): boolean {
+  const normA = cleanString(nameA);
+  const normB = cleanString(nameB);
+  
+  if (normA === normB) return true;
+  
+  const wordsA = normA.split(" ").filter(w => w.length > 0);
+  const wordsB = normB.split(" ").filter(w => w.length > 0);
+  
+  if (wordsA.length !== wordsB.length) return false;
+  
+  for (let i = 0; i < wordsA.length; i++) {
+    if (!isWordMatch(wordsA[i], wordsB[i])) {
+      return false;
+    }
+  }
+  
+  return true;
+}
+
 // Programmatic fallback matcher (used when GEMINI_API_KEY is not defined or on network failures)
 export function runProgrammaticFallbackMatch(scrapedName: string, catalogItems: RegularItem[]): MatchResult {
   const cleanScraped = scrapedName.trim().toLowerCase();
@@ -52,6 +91,18 @@ export function runProgrammaticFallbackMatch(scrapedName: string, catalogItems: 
     };
   }
 
+  // 1.5. Check plural or simple spacing match (95% confidence)
+  const pluralMatch = catalogItems.find(item => isPluralOrSimpleSpacingMatch(scrapedName, item.name));
+  if (pluralMatch) {
+    return {
+      matched_id: pluralMatch.id,
+      confidence: 95,
+      unit_match: true,
+      brand_match: true,
+      reason: `Programmatic plural or simple spacing match for "${pluralMatch.name}"`
+    };
+  }
+
   // 2. Perform fuzzy word intersection to score candidates
   let bestItem: RegularItem | null = null;
   let maxScore = 0;
@@ -64,7 +115,10 @@ export function runProgrammaticFallbackMatch(scrapedName: string, catalogItems: 
     const catalogWords = item.name.trim().toLowerCase().split(/[\s,()\-]+/);
     
     // Calculate intersection
-    const intersection = scrapedWords.filter(w => w.length > 2 && catalogWords.includes(w));
+    const intersection = scrapedWords.filter(w => {
+      if (w.length <= 2) return false;
+      return catalogWords.some(cw => isWordMatch(w, cw));
+    });
     
     // Penalize if some critical product specifics mismatch
     let score = intersection.length * 10;
