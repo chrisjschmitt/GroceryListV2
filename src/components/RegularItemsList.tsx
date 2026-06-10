@@ -1015,7 +1015,7 @@ export default function RegularItemsList({
                           e.preventDefault();
                           setContextMenu({ id: item.id, name: item.name });
                         } : undefined}
-                        className={`flex-1 flex items-center gap-2.5 px-3 py-2 border-2 border-black text-left text-sm transition-all ${
+                        className={`flex-1 flex items-start sm:items-center gap-2 px-2.5 py-1.5 sm:px-3 sm:py-2 border-2 border-black text-left text-sm transition-all ${
                           inList
                             ? "bg-emerald-50 text-emerald-800 shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] hover:bg-rose-50 hover:text-rose-600 hover:border-rose-600"
                             : "bg-white text-gray-800 shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] hover:shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] hover:-translate-x-[2px] hover:-translate-y-[2px]"
@@ -1023,7 +1023,7 @@ export default function RegularItemsList({
                         title={inList ? "Tap to remove from shopping list" : "Tap to add to shopping list"}
                       >
                         <span
-                          className={`flex-shrink-0 w-5 h-5 border-2 border-black flex items-center justify-center transition-all ${
+                          className={`flex-shrink-0 w-5 h-5 border-2 border-black flex items-center justify-center mt-0.5 sm:mt-0 transition-all ${
                             inList ? "bg-black text-white" : "bg-white text-black"
                           }`}
                         >
@@ -1031,84 +1031,87 @@ export default function RegularItemsList({
                             <div className="w-1.5 h-1.5 bg-white rotate-45"></div>
                           )}
                         </span>
-                        <span className="font-bold flex-1 overflow-hidden break-words text-xs sm:text-sm leading-tight pr-1.5">{item.name}</span>
-                        {(() => {
-                          const price = priceLookup.get(item.name.toLowerCase());
-                          if (!price) return null;
+                        
+                        <div className="flex-1 flex flex-col sm:flex-row sm:items-center justify-between gap-1.5 min-w-0">
+                          <span className="font-bold overflow-hidden break-words text-xs sm:text-sm leading-tight pr-1.5">{item.name}</span>
+                          {(() => {
+                            const price = priceLookup.get(item.name.toLowerCase());
+                            if (!price) return null;
 
-                          if (price.stores && typeof price.stores === "object") {
-                            const storeEntries = Object.entries(price.stores);
-                            if (storeEntries.length > 0) {
-                              return (
-                                <span className="ml-auto inline-flex flex-wrap gap-1 items-center">
-                                  {storeEntries.map(([storeId, storeInfo]: [string, any]) => {
-                                    const activeP = (storeInfo.is_on_sale && storeInfo.sale_price !== null && storeInfo.sale_price !== undefined) 
-                                      ? storeInfo.sale_price 
-                                      : (storeInfo.regular_price || 0);
-                                    const isLowest = checkIfLowestPriceForEntry(price, storeId);
-                                    const storeExpired = storeInfo.is_on_sale && storeInfo.valid_until && isSaleExpiredLocal(storeInfo.valid_until);
-                                    return (
-                                      <span
-                                        key={storeId}
-                                        className={`text-[9px] font-black uppercase border border-black px-1.5 py-0.2 shrink-0 inline-flex items-center gap-0.5 rounded-none ${
-                                          isLowest
-                                            ? storeInfo.is_on_sale 
-                                              ? storeExpired
-                                                ? "bg-amber-100 text-amber-800 border-yellow-500 animate-pulse"
-                                                : "bg-red-100 text-red-700 font-extrabold"
-                                              : "bg-emerald-100 text-emerald-800"
-                                            : "bg-gray-100 text-gray-500 font-normal"
-                                        }`}
-                                        title={`${storeInfo.store_name || storeId}: $${activeP.toFixed(2)}${storeInfo.valid_until ? ` (valid until ${storeInfo.valid_until})` : ""}`}
-                                      >
-                                        <span>{abbreviateStoreName(storeInfo.store_name || storeId)}:</span>
-                                        <span className={storeExpired ? "text-amber-500 font-black animate-pulse" : ""}>$</span>
-                                        <span>{activeP.toFixed(2)}</span>
-                                        {storeInfo.is_on_sale && (
-                                          <span className={storeExpired ? "text-amber-600 font-black text-[7px]" : "text-red-655 font-black text-[7px]"}>%</span>
-                                        )}
-                                        {storeInfo.is_on_sale && storeInfo.valid_until && (
-                                          <span className="text-[7.5px] text-gray-400 font-medium normal-case ml-0.5 font-mono">({storeInfo.valid_until})</span>
-                                        )}
-                                      </span>
-                                    );
-                                  })}
-                                </span>
-                              );
+                            if (price.stores && typeof price.stores === "object") {
+                              const storeEntries = Object.entries(price.stores);
+                              if (storeEntries.length > 0) {
+                                return (
+                                  <span className="sm:ml-auto inline-flex flex-wrap gap-1 items-center">
+                                    {storeEntries.map(([storeId, storeInfo]: [string, any]) => {
+                                      const activeP = (storeInfo.is_on_sale && storeInfo.sale_price !== null && storeInfo.sale_price !== undefined) 
+                                        ? storeInfo.sale_price 
+                                        : (storeInfo.regular_price || 0);
+                                      const isLowest = checkIfLowestPriceForEntry(price, storeId);
+                                      const storeExpired = storeInfo.is_on_sale && storeInfo.valid_until && isSaleExpiredLocal(storeInfo.valid_until);
+                                      return (
+                                        <span
+                                          key={storeId}
+                                          className={`text-[9px] font-black uppercase border border-black px-1.5 py-0.2 shrink-0 inline-flex items-center gap-0.5 rounded-none ${
+                                            isLowest
+                                              ? storeInfo.is_on_sale 
+                                                ? storeExpired
+                                                  ? "bg-amber-100 text-amber-800 border-yellow-500 animate-pulse"
+                                                  : "bg-red-100 text-red-700 font-extrabold"
+                                                : "bg-emerald-100 text-emerald-800"
+                                              : "bg-gray-100 text-gray-500 font-normal"
+                                          }`}
+                                          title={`${storeInfo.store_name || storeId}: $${activeP.toFixed(2)}${storeInfo.valid_until ? ` (valid until ${storeInfo.valid_until})` : ""}`}
+                                        >
+                                          <span>{abbreviateStoreName(storeInfo.store_name || storeId)}:</span>
+                                          <span className={storeExpired ? "text-amber-500 font-black animate-pulse" : ""}>$</span>
+                                          <span>{activeP.toFixed(2)}</span>
+                                          {storeInfo.is_on_sale && (
+                                            <span className={storeExpired ? "text-amber-600 font-black text-[7px]" : "text-red-600 font-black text-[7px]"}>%</span>
+                                          )}
+                                          {storeInfo.is_on_sale && storeInfo.valid_until && (
+                                            <span className="text-[7.5px] text-gray-400 font-medium normal-case ml-0.5 font-mono">({storeInfo.valid_until})</span>
+                                          )}
+                                        </span>
+                                      );
+                                    })}
+                                  </span>
+                                );
+                              }
                             }
-                          }
 
-                          // Single Store Fallback
-                          const activePrice = price.is_on_sale && price.sale_price !== null ? price.sale_price : price.regular_price;
-                          const fallbackExpired = price.is_on_sale && price.valid_until && isSaleExpiredLocal(price.valid_until);
-                          return (
-                            <span
-                              className={`ml-auto flex-shrink-0 text-[10px] font-black uppercase border border-black px-1.5 py-0.2 shrink-0 inline-flex items-center gap-0.5 ${
-                                price.is_on_sale 
-                                  ? fallbackExpired
-                                    ? "text-amber-700 bg-amber-50 border-yellow-500 animate-pulse"
-                                    : "text-red-700 bg-red-100" 
-                                  : "text-gray-500 bg-gray-50"
-                              }`}
-                              title={price.valid_until ? `Valid until ${price.valid_until}` : undefined}
-                            >
-                              <span>{abbreviateStoreName(price.store_name || "Food Basics")}:</span>
-                              <span className={fallbackExpired ? "text-amber-500 font-black animate-pulse" : ""}>$</span>
-                              <span>{activePrice?.toFixed(2)}</span>
-                              {price.is_on_sale === 1 && (
-                                <span className={fallbackExpired ? "ml-0.5 text-[7px] text-amber-600 font-bold" : "ml-0.5 text-[7px] font-bold"}>
-                                  {fallbackExpired ? "expired" : "sale"}
-                                </span>
-                              )}
-                              {price.is_on_sale && price.valid_until && (
-                                <span className="text-[8px] text-gray-400 font-medium ml-0.5 normal-case font-mono">({price.valid_until})</span>
-                              )}
-                            </span>
-                          );
-                        })()}
-                        {inList && !priceLookup.get(item.name.toLowerCase()) && (
-                          <span className="ml-auto text-[10px] font-black uppercase text-emerald-600">✔ in list</span>
-                        )}
+                            // Single Store Fallback
+                            const activePrice = price.is_on_sale && price.sale_price !== null ? price.sale_price : price.regular_price;
+                            const fallbackExpired = price.is_on_sale && price.valid_until && isSaleExpiredLocal(price.valid_until);
+                            return (
+                              <span
+                                className={`sm:ml-auto flex-shrink-0 text-[10px] font-black uppercase border border-black px-1.5 py-0.2 shrink-0 inline-flex items-center gap-0.5 ${
+                                  price.is_on_sale 
+                                    ? fallbackExpired
+                                      ? "text-amber-700 bg-amber-50 border-yellow-500 animate-pulse"
+                                      : "text-red-700 bg-red-100" 
+                                    : "text-gray-500 bg-gray-50"
+                                }`}
+                                title={price.valid_until ? `Valid until ${price.valid_until}` : undefined}
+                              >
+                                <span>{abbreviateStoreName(price.store_name || "Food Basics")}:</span>
+                                <span className={fallbackExpired ? "text-amber-500 font-black animate-pulse" : ""}>$</span>
+                                <span>{activePrice?.toFixed(2)}</span>
+                                {price.is_on_sale === 1 && (
+                                  <span className={fallbackExpired ? "ml-0.5 text-[7px] text-amber-600 font-bold" : "ml-0.5 text-[7px] font-bold"}>
+                                    {fallbackExpired ? "expired" : "sale"}
+                                  </span>
+                                )}
+                                {price.is_on_sale && price.valid_until && (
+                                  <span className="text-[8px] text-gray-400 font-medium ml-0.5 normal-case font-mono">({price.valid_until})</span>
+                                )}
+                              </span>
+                            );
+                          })()}
+                          {inList && !priceLookup.get(item.name.toLowerCase()) && (
+                            <span className="sm:ml-auto text-[10px] font-black uppercase text-emerald-600">✔ in list</span>
+                          )}
+                        </div>
                       </button>
 
                       <button
