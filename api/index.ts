@@ -152,6 +152,17 @@ app.post("/api/append-grocery", async (req, res) => {
     const { db } = await getMongoDatabase();
     const pricesCollection = db.collection("prices");
 
+    // Fetch existing pricing record from MongoDB if it exists to preserve its store_id and other stable fields
+    const existingDoc = await pricesCollection.findOne({ _id: key });
+    const existingStoreId = existingDoc?.store_id || null;
+    const existingStoreName = existingDoc?.store_name || null;
+
+    const resolvedStoreId = data.store_id || req.body.store_id || existingStoreId || "7923194";
+    const resolvedStoreName = data.store_name || req.body.store_name || existingStoreName || "Food Basics";
+
+    correctedData.store_id = resolvedStoreId;
+    correctedData.store_name = resolvedStoreName;
+
     // Upsert the record targeting the incoming key as the _id identifier
     const result = await pricesCollection.updateOne(
       { _id: key },
@@ -164,28 +175,6 @@ app.post("/api/append-grocery", async (req, res) => {
       },
       { upsert: true }
     );
-
-    // Instantly synchronize to local/blob prices database to enrich immediate client state queries
-    try {
-      const existingPrices = await blobGetPrices();
-      existingPrices[key] = {
-        item_name: correctedData.item_name || "",
-        config_name: correctedData.config_name || "",
-        store_name: correctedData.store_name || "Food Basics",
-        postal_code: correctedData.postal_code || "K7H3C6",
-        store_id: correctedData.store_id || "7923194",
-        regular_price: typeof correctedData.regular_price === "number" ? correctedData.regular_price : parseFloat(correctedData.regular_price || "0") || null,
-        sale_price: typeof correctedData.sale_price === "number" ? correctedData.sale_price : (correctedData.sale_price ? parseFloat(correctedData.sale_price) : null),
-        is_on_sale: correctedData.is_on_sale !== undefined ? (correctedData.is_on_sale ? 1 : 0) : (correctedData.sale_price ? 1 : 0),
-        last_updated: correctedData.last_updated || new Date().toISOString(),
-        lookup_url: correctedData.lookup_url || "",
-        valid_until: correctedData.valid_until || "",
-        stores: correctedData.stores || undefined
-      };
-      await blobSetPrices(existingPrices);
-    } catch (blobErr) {
-      console.error("Error keeping local prices json synchronized with append-grocery updates:", blobErr);
-    }
 
     res.json({
       success: true,
