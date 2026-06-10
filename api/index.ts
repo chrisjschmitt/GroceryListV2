@@ -82,8 +82,20 @@ async function getMongoDatabase() {
   return { client, db };
 }
 
+// Handle preflight for append-grocery
+app.options("/api/append-grocery", (req, res) => {
+  res.setHeader("Access-Control-Allow-Origin", "*");
+  res.setHeader("Access-Control-Allow-Headers", "Content-Type, X-GroceryScout-Token");
+  res.setHeader("Access-Control-Allow-Methods", "POST, OPTIONS");
+  res.status(204).end();
+});
+
 // 0. APPEND-GROCERY POST Endpoint (Tampermonkey client uploads)
 app.post("/api/append-grocery", async (req, res) => {
+  res.setHeader("Access-Control-Allow-Origin", "*");
+  res.setHeader("Access-Control-Allow-Headers", "Content-Type, X-GroceryScout-Token");
+  res.setHeader("Access-Control-Allow-Methods", "POST, OPTIONS");
+
   // Security Protocol: Match 'X-GroceryScout-Token' header in case-insensitive environmental variable
   const token = req.headers["x-groceryscout-token"];
   
@@ -158,7 +170,19 @@ app.post("/api/append-grocery", async (req, res) => {
     const existingStoreName = existingDoc?.store_name || null;
 
     const resolvedStoreId = data.store_id || req.body.store_id || existingStoreId || "7923194";
-    const resolvedStoreName = data.store_name || req.body.store_name || existingStoreName || "Food Basics";
+    let resolvedStoreName = "Food Basics";
+    const lowerStoreId = String(resolvedStoreId).toLowerCase();
+    if (lowerStoreId === "7923194" || lowerStoreId === "foodbasics") {
+      resolvedStoreName = "Food Basics";
+    } else if (lowerStoreId === "metro") {
+      resolvedStoreName = "Metro";
+    } else if (lowerStoreId === "loblaws") {
+      resolvedStoreName = "Loblaws";
+    } else if (lowerStoreId === "nofrills") {
+      resolvedStoreName = "No Frills";
+    } else {
+      resolvedStoreName = data.store_name || req.body.store_name || existingStoreName || "Food Basics";
+    }
 
     correctedData.store_id = resolvedStoreId;
     correctedData.store_name = resolvedStoreName;
