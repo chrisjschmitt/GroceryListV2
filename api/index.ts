@@ -109,6 +109,46 @@ app.post("/api/append-grocery", async (req, res) => {
       return;
     }
 
+    // Read catalog items from regular_items.json
+    const catalogItems = await blobGetRegularItems();
+    let correctedData = { ...data };
+    const configName = data.config_name || data.item_name || "";
+
+    if (configName && catalogItems.length > 0) {
+      try {
+        // Programmatic fast path for exact match
+        const exactMatch = catalogItems.find(
+          (item) => item.name.toLowerCase() === configName.toLowerCase()
+        );
+
+        if (exactMatch) {
+          correctedData.config_name = exactMatch.name;
+          correctedData.item_name = exactMatch.name;
+          correctedData.matched_catalog_id = exactMatch.id;
+          correctedData.match_confidence = 100;
+          correctedData.match_reason = "Programmatic exact string match on ingestion";
+          correctedData.original_config_name = configName;
+        } else {
+          // Apply highly optimized Gemini matcher
+          const matchResult = await evaluateGeminiMatch(configName, catalogItems);
+          if (matchResult.matched_id) {
+            const matchedItem = catalogItems.find((item) => item.id === matchResult.matched_id);
+            if (matchedItem) {
+              correctedData.config_name = matchedItem.name;
+              correctedData.item_name = matchedItem.name;
+              correctedData.matched_catalog_id = matchedItem.id;
+              correctedData.match_confidence = matchResult.confidence;
+              correctedData.match_reason = matchResult.reason;
+              correctedData.original_config_name = configName;
+              console.log(`Matched incoming "${configName}" -> corrected to catalog name "${matchedItem.name}" (${matchResult.confidence}% confidence)`);
+            }
+          }
+        }
+      } catch (matchErr) {
+        console.error("Gemini matching error in /api/append-grocery:", matchErr);
+      }
+    }
+
     const { db } = await getMongoDatabase();
     const pricesCollection = db.collection("prices");
 
@@ -118,12 +158,34 @@ app.post("/api/append-grocery", async (req, res) => {
       {
         $set: {
           _id: key,
-          ...data,
+          ...correctedData,
           synchronized_at: new Date()
         }
       },
       { upsert: true }
     );
+
+    // Instantly synchronize to local/blob prices database to enrich immediate client state queries
+    try {
+      const existingPrices = await blobGetPrices();
+      existingPrices[key] = {
+        item_name: correctedData.item_name || "",
+        config_name: correctedData.config_name || "",
+        store_name: correctedData.store_name || "Food Basics",
+        postal_code: correctedData.postal_code || "K7H3C6",
+        store_id: correctedData.store_id || "7923194",
+        regular_price: typeof correctedData.regular_price === "number" ? correctedData.regular_price : parseFloat(correctedData.regular_price || "0") || null,
+        sale_price: typeof correctedData.sale_price === "number" ? correctedData.sale_price : (correctedData.sale_price ? parseFloat(correctedData.sale_price) : null),
+        is_on_sale: correctedData.is_on_sale !== undefined ? (correctedData.is_on_sale ? 1 : 0) : (correctedData.sale_price ? 1 : 0),
+        last_updated: correctedData.last_updated || new Date().toISOString(),
+        lookup_url: correctedData.lookup_url || "",
+        valid_until: correctedData.valid_until || "",
+        stores: correctedData.stores || undefined
+      };
+      await blobSetPrices(existingPrices);
+    } catch (blobErr) {
+      console.error("Error keeping local prices json synchronized with append-grocery updates:", blobErr);
+    }
 
     res.json({
       success: true,

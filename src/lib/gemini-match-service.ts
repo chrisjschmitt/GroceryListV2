@@ -17,6 +17,8 @@ export interface MatchResult {
 }
 
 let geminiClientCache: GoogleGenAI | null = null;
+const matchCache = new Map<string, { result: MatchResult; timestamp: number }>();
+const CACHE_TTL_MS = 10 * 60 * 1000; // 10 minutes cache
 
 // Helper to check if weights or unit mismatch
 export function checkMeasurementTypeMismatch(nameA: string, nameB: string): boolean {
@@ -217,6 +219,79 @@ export function runProgrammaticFallbackMatch(scrapedName: string, catalogItems: 
 
 // Evaluate match using Gemini 3.5 Flash
 export async function evaluateGeminiMatch(scrapedName: string, catalogItems: RegularItem[]): Promise<MatchResult> {
+  const cleanScraped = scrapedName.trim().toLowerCase();
+  
+  // Fast Path 1: Check in-memory Cache to completely prevent duplicate API calls
+  const cacheKey = `${cleanScraped}::${catalogItems.map(i => i.id).sort().join(",")}`;
+  const cached = matchCache.get(cacheKey);
+  if (cached && (Date.now() - cached.timestamp < CACHE_TTL_MS)) {
+    return cached.result;
+  }
+
+  // Fast Path 2: Exact matching pre-check (100% confidence, 0 API cost)
+  const exact = catalogItems.find(item => item.name.trim().toLowerCase() === cleanScraped);
+  if (exact) {
+    const result: MatchResult = {
+      matched_id: exact.id,
+      confidence: 100,
+      unit_match: true,
+      brand_match: true,
+      reason: `Programmatic exact match for "${exact.name}"`
+    };
+    matchCache.set(cacheKey, { result, timestamp: Date.now() });
+    return result;
+  }
+
+  // Fast Path 3: Plural or simple spacing pre-check (95% confidence, 0 API cost)
+  const pluralMatch = catalogItems.find(item => isPluralOrSimpleSpacingMatch(scrapedName, item.name));
+  if (pluralMatch) {
+    const result: MatchResult = {
+      matched_id: pluralMatch.id,
+      confidence: 95,
+      unit_match: true,
+      brand_match: true,
+      reason: `Programmatic plural or simple spacing match for "${pluralMatch.name}"`
+    };
+    matchCache.set(cacheKey, { result, timestamp: Date.now() });
+    return result;
+  }
+
+  // Fast Path 4: Programmatic fuzzy heuristic matching to prune unrelated candidates
+  const scrapedWords = cleanScraped.split(/[\s,()\-]+/).filter(w => w.length > 2);
+  const scoredCandidates = catalogItems.map(item => {
+    const catalogWords = item.name.trim().toLowerCase().split(/[\s,()\-]+/);
+    const intersection = scrapedWords.filter(w => catalogWords.some(cw => isWordMatch(w, cw)));
+    let score = intersection.length * 10;
+    
+    // Add similarity score for string occurrences
+    if (item.name.toLowerCase().includes(cleanScraped) || cleanScraped.includes(item.name.toLowerCase())) {
+      score += 5;
+    }
+    return { item, score };
+  });
+
+  // Filter candidates with non-zero similarity
+  const relevantCandidates = scoredCandidates
+    .filter(sc => sc.score > 0)
+    .sort((a, b) => b.score - a.score)
+    .map(sc => sc.item);
+
+  // If catalog is populated and there is literally 0 keywords intersection, we can skip Gemini
+  // and run programmatic fallback directly (costs 0 tokens!).
+  if (relevantCandidates.length === 0 && catalogItems.length > 3) {
+    const fallbackRes = runProgrammaticFallbackMatch(scrapedName, catalogItems);
+    fallbackRes.isFallback = true;
+    fallbackRes.fallbackReason = "Cost Optimization: No overlapping keyword found in catalog; skipped Gemini call.";
+    matchCache.set(cacheKey, { result: fallbackRes, timestamp: Date.now() });
+    return fallbackRes;
+  }
+
+  // Keep at most 12 candidates to pass to Gemini (major token / context reduction!)
+  // If there are no positive scores (and catalog is small), we send the full original catalog.
+  const finalCandidates = relevantCandidates.length > 0 
+    ? relevantCandidates.slice(0, 12) 
+    : catalogItems.slice(0, 12);
+
   const apiKey = process.env.GEMINI_API_KEY;
   if (!apiKey || apiKey === "MY_GEMINI_API_KEY" || apiKey.trim() === "") {
     const fallbackRes = runProgrammaticFallbackMatch(scrapedName, catalogItems);
@@ -237,7 +312,7 @@ export async function evaluateGeminiMatch(scrapedName: string, catalogItems: Reg
       });
     }
 
-    const candidatesList = catalogItems.map(item => ({
+    const candidatesList = finalCandidates.map(item => ({
       id: item.id,
       name: item.name,
       category: item.category
@@ -315,7 +390,7 @@ ${JSON.stringify(candidatesList, null, 2)}
     const text = response.text || "";
     const parsed = JSON.parse(text);
 
-    return {
+    const result: MatchResult = {
       matched_id: parsed.matched_id || null,
       confidence: typeof parsed.confidence === "number" ? parsed.confidence : 0,
       unit_match: !!parsed.unit_match,
@@ -324,6 +399,10 @@ ${JSON.stringify(candidatesList, null, 2)}
       proposed_new_item: parsed.proposed_new_item || undefined,
       isFallback: false
     };
+
+    // Store in cache
+    matchCache.set(cacheKey, { result, timestamp: Date.now() });
+    return result;
 
   } catch (error: any) {
     console.error("Gemini Flash match API call failed, calling programmatic fallback:", error);

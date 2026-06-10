@@ -1,0 +1,101 @@
+[
+  {
+    "upc": "4060",
+    "config_name": "Broccoli",
+    "item_name": "Broccoli",
+    "matched_name": "Broccoli",
+    "matched_id": "regular-1779915020670-27-nqius",
+    "confidence": 100,
+    "reason": "Programmatic exact match for \"Broccoli\""
+  },
+  {
+    "upc": "201020",
+    "config_name": "Ground beef Lean 450g",
+    "item_name": "Lean Ground Beef",
+    "matched_name": "Ground beef Lean 450g",
+    "matched_id": "regular-1779915020670-158-15694",
+    "confidence": 100,
+    "reason": "Programmatic exact match for \"Ground beef Lean 450g\""
+  },
+  {
+    "upc": "215064",
+    "config_name": "Chicken Breasts Boneless Skinless",
+    "item_name": "Boneless Skinless Chicken Breasts",
+    "matched_name": "Chicken Breasts Boneless Skinless",
+    "matched_id": "regular-1780000536215-5uz0s",
+    "confidence": 100,
+    "reason": "Programmatic exact match for \"Chicken Breasts Boneless Skinless\""
+  },
+  {
+    "upc": "066013153737",
+    "config_name": "2% lactose free cottage cheese",
+    "item_name": "2% Lactose Free Cottage Cheese, Nordica",
+    "matched_name": "2% lactose free cottage cheese",
+    "matched_id": "regular-1780002196782-3zrl4",
+    "confidence": 100,
+    "reason": "Programmatic exact match for \"2% lactose free cottage cheese\""
+  },
+  {
+    "upc": "065684004751",
+    "config_name": "Plain lactose free yogurt",
+    "item_name": "0% Plain Lactose-Free Yogurt, Greek",
+    "matched_name": "Plain lactose free yogurt",
+    "matched_id": "regular-1779915020670-146-nz7l8",
+    "confidence": 100,
+    "reason": "Programmatic exact match for \"Plain lactose free yogurt\""
+  },
+  {
+    "upc": "064420055019",
+    "config_name": "Milk LF 1% Natrel",
+    "item_name": "1% Lactose-Free Milk, Fine-Filtered",
+    "matched_name": "Milk LF 1% Natrel",
+    "matched_id": "regular-1780000227251-qjhyv",
+    "confidence": 100,
+    "reason": "Programmatic exact match for \"Milk LF 1% Natrel\""
+  },
+  {
+    "upc": "068200148434",
+    "config_name": "Milk LF 2%",
+    "item_name": "2% Lactose-Free Milk",
+    "matched_name": "Milk LF 2%",
+    "matched_id": "regular-1780002091583-d1qmr",
+    "confidence": 100,
+    "reason": "Programmatic exact match for \"Milk LF 2%\""
+  },
+  {
+    "upc": "059749894777",
+    "config_name": "Butter unsalted",
+    "item_name": "Unsalted Butter",
+    "matched_name": "Butter unsalted",
+    "matched_id": "regular-1779915020670-118-o1289",
+    "confidence": 100,
+    "reason": "Programmatic exact match for \"Butter unsalted\""
+  },
+  {
+    "upc": "665290001184",
+    "config_name": "Strawberries 454g",
+    "item_name": "Strawberries",
+    "matched_name": "Strawberries 454g",
+    "matched_id": "regular-1779915020670-17-zsjkh",
+    "confidence": 100,
+    "reason": "Programmatic exact match for \"Strawberries 454g\""
+  },
+  {
+    "upc": "063100814137",
+    "config_name": "Ground chicken Lean 450g",
+    "item_name": "Extra Lean Ground Chicken",
+    "matched_name": "Ground Chicken Lean 450g",
+    "matched_id": "regular-1779915020670-169-92x0f",
+    "confidence": 100,
+    "reason": "Programmatic exact match for \"Ground Chicken Lean 450g\""
+  },
+  {
+    "upc": "037232001109",
+    "config_name": "Tortillas - small corn",
+    "item_name": "Corn Tortillas, La Burrita",
+    "matched_name": "Tortillas - small corn",
+    "matched_id": "regular-1779915020670-106-gs5bd",
+    "confidence": 100,
+    "reason": "Programmatic exact match for \"Tortillas - small corn\""
+  }
+]
