@@ -26,7 +26,8 @@ import {
   Image,
   Eye,
   RefreshCw,
-  Store
+  Store,
+  Download
 } from "lucide-react";
 
 const getSearchUrlForStore = (storeKey: string, itemName: string, scrapeConfig?: any) => {
@@ -437,6 +438,51 @@ export default function AdminPage() {
       } catch {
         showVisualMessage("Failed to clear catalog");
       }
+    }
+  };
+
+  const handleExportCSV = () => {
+    try {
+      if (items.length === 0) {
+        showVisualMessage("No items in the catalog to export");
+        return;
+      }
+
+      const escapeCSVValue = (val: any) => {
+        if (val === null || val === undefined) return "";
+        let str = String(val);
+        if (/[",\n\r]/.test(str)) {
+          str = '"' + str.replace(/"/g, '""') + '"';
+        }
+        return str;
+      };
+
+      const headers = ["id", "category", "name", "selected"];
+      const csvRows = [headers.join(",")];
+
+      items.forEach(item => {
+        const row = [
+          escapeCSVValue(item.id),
+          escapeCSVValue(item.category),
+          escapeCSVValue(item.name),
+          escapeCSVValue(item.selected ? "true" : "false")
+        ];
+        csvRows.push(row.join(","));
+      });
+
+      const csvString = csvRows.join("\r\n");
+      const blob = new Blob([csvString], { type: "text/csv;charset=utf-8;" });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.href = url;
+      link.setAttribute("download", `regular_items_${new Date().toISOString().split('T')[0]}.csv`);
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      showVisualMessage("Catalog exported successfully!");
+    } catch (err: any) {
+      console.error("CSV Export error:", err);
+      showVisualMessage("Failed to export catalog CSV");
     }
   };
 
@@ -2094,12 +2140,20 @@ export default function AdminPage() {
                 <Database className="w-5 h-5 text-emerald-600" /> Grocery List Catalog CRUD
               </h2>
               {items.length > 0 && (
-                <button
-                  onClick={handleClear}
-                  className="text-xs font-black uppercase tracking-wider text-red-600 hover:bg-red-50 border-2 border-black px-3 py-1 shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] hover:shadow-none hover:translate-x-[1px] hover:translate-y-[1px] transition-all bg-white"
-                >
-                  Delete entire catalog
-                </button>
+                <div className="flex items-center gap-2">
+                  <button
+                    onClick={handleExportCSV}
+                    className="text-xs font-black uppercase tracking-wider text-emerald-800 hover:bg-emerald-50 border-2 border-black px-3 py-1 shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] hover:shadow-none hover:translate-x-[1px] hover:translate-y-[1px] transition-all bg-white inline-flex items-center gap-1.5"
+                  >
+                    <Download className="w-3.5 h-3.5 text-emerald-600" /> Export Catalog CSV
+                  </button>
+                  <button
+                    onClick={handleClear}
+                    className="text-xs font-black uppercase tracking-wider text-red-600 hover:bg-red-50 border-2 border-black px-3 py-1 shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] hover:shadow-none hover:translate-x-[1px] hover:translate-y-[1px] transition-all bg-white"
+                  >
+                    Delete entire catalog
+                  </button>
+                </div>
               )}
             </div>
 
