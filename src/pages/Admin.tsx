@@ -3,6 +3,7 @@ import Link from "@/components/Link";
 import { RegularItem, ScrapeConfig, ScrapeItemConfig, ScrapeStoreConfig } from "@/lib/types";
 import CsvUpload from "@/components/CsvUpload";
 import JsonPricesUpload from "@/components/JsonPricesUpload";
+import GoogleDriveBackup from "@/components/GoogleDriveBackup";
 import { getAutoSaveEnabled, setAutoSaveEnabled } from "@/lib/client/settings";
 import { 
   Edit2, 
@@ -457,15 +458,19 @@ export default function AdminPage() {
         return str;
       };
 
-      const headers = ["id", "category", "name", "selected"];
+      const headers = ["id", "category", "name", "selected", "linked_to_scrape_config"];
       const csvRows = [headers.join(",")];
 
       items.forEach(item => {
+        const isLinked = (scrapeConfig?.items || []).some(
+          ci => ci.name && ci.name.toLowerCase() === item.name.toLowerCase()
+        );
         const row = [
           escapeCSVValue(item.id),
           escapeCSVValue(item.category),
           escapeCSVValue(item.name),
-          escapeCSVValue(item.selected ? "true" : "false")
+          escapeCSVValue(item.selected ? "true" : "false"),
+          escapeCSVValue(isLinked ? "true" : "false")
         ];
         csvRows.push(row.join(","));
       });
@@ -2880,7 +2885,7 @@ export default function AdminPage() {
           </div>
 
           {/* Catalog & Pricing Importers Grid */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 w-full">
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 w-full">
             {/* Catalog File Import CSV Block */}
             <div className="bg-white border-2 border-black p-6 shadow-[6px_6px_0px_0px_rgba(0,0,0,1)]">
               <h2 className="text-base font-black uppercase tracking-tight mb-4 pb-1.5 border-b-2 border-black">
@@ -2902,6 +2907,9 @@ export default function AdminPage() {
                 Manually upload or drag-and-drop a custom <code>prices.json</code> file. This will update or merge store pricing values instantly.
               </p>
             </div>
+
+            {/* Google Drive Import/Export Backup Block */}
+            <GoogleDriveBackup items={items} scrapeConfig={scrapeConfig} onRestoreComplete={fetchItems} />
           </div>
 
           {/* Gemini AI Product Matching Test-Bed & Playground (Approach A) */}
