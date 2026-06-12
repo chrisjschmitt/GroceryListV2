@@ -1,8 +1,22 @@
 import { put, list } from "@vercel/blob";
-import { GroceryItem, RegularItem, SyncMetadata, PriceData, ScrapeConfig, TelemetryEntry } from "./types.js";
+import {
+  GroceryItem,
+  RegularItem,
+  SyncMetadata,
+  PriceData,
+  ScrapeConfig,
+  TelemetryEntry,
+  CombinedCatalog,
+  CombinedCatalogItem,
+  CombinedStoreLink,
+  StoreInfo,
+  ScrapeItemConfig,
+  ScrapeStoreItemLink
+} from "./types.js";
 import fs from "fs";
 import path from "path";
 
+const COMBINED_CATALOG_BLOB = "grocerylist/combined-catalog.json";
 const GROCERY_BLOB = "grocerylist/grocery-items.json";
 const REGULAR_BLOB = "grocerylist/regular-items.json";
 const SYNC_META_BLOB = "grocerylist/sync-meta.json";
@@ -159,6 +173,15 @@ export async function getBlobDiagnostics(): Promise<Record<string, any>> {
     diagnostics.message = "BLOB_READ_WRITE_TOKEN is not defined in process.env. Falling back to local local-db.";
   }
 
+  try {
+    const suiteResult = runCombinedCatalogSelfTests();
+    diagnostics.combinedCatalogTestsPassed = suiteResult.success;
+    diagnostics.combinedCatalogTestSummary = suiteResult.summary;
+  } catch (err: any) {
+    diagnostics.combinedCatalogTestsPassed = false;
+    diagnostics.combinedCatalogTestSummary = err?.message || String(err);
+  }
+
   return diagnostics;
 }
 
@@ -196,11 +219,148 @@ export async function blobUpdateSyncMeta(deviceName: string): Promise<SyncMetada
 }
 
 export async function blobGetPrices(): Promise<PriceData> {
-  return readBlob<PriceData>(PRICES_BLOB, {});
+  const catalog = await blobGetCombinedCatalog();
+  const prices: PriceData = {};
+
+  for (const item of catalog.items) {
+    const storesRecord: Record<string, StoreInfo> = {};
+    let firstStoreKey = "";
+    let hasPricing = false;
+
+    for (const [storeKey, storeLink] of Object.entries(item.stores)) {
+      if (storeLink.regular_price !== null && storeLink.regular_price !== undefined) {
+        hasPricing = true;
+      }
+      if (storeLink.sale_price !== null && storeLink.sale_price !== undefined) {
+        hasPricing = true;
+      }
+
+      if (!firstStoreKey) firstStoreKey = storeKey;
+      const storeConfig = catalog.stores[storeKey];
+      storesRecord[storeKey] = {
+        store_name: storeConfig?.store_name || storeKey,
+        postal_code: storeConfig?.postal_code || "",
+        store_id: storeConfig?.store_id || "",
+        regular_price: storeLink.regular_price,
+        sale_price: storeLink.sale_price,
+        is_on_sale: storeLink.is_on_sale,
+        lookup_url: storeLink.url,
+        valid_until: storeLink.valid_until,
+      };
+    }
+
+    if (!hasPricing) {
+      // Skip this item in prices to prevent polluting the UI of unconfigured/empty products
+      continue;
+    }
+
+    const firstStoreLink = firstStoreKey ? item.stores[firstStoreKey] : null;
+    const firstStoreConfig = firstStoreKey ? catalog.stores[firstStoreKey] : null;
+
+    let upcKey = item.id;
+    for (const storeLink of Object.values(item.stores)) {
+      if (storeLink.upc) {
+        upcKey = storeLink.upc;
+        break;
+      }
+    }
+
+    prices[upcKey] = {
+      item_name: item.name,
+      config_name: item.name,
+      store_name: firstStoreConfig?.store_name || firstStoreKey || "Food Basics",
+      postal_code: firstStoreConfig?.postal_code || "",
+      store_id: firstStoreConfig?.store_id || "",
+      regular_price: firstStoreLink ? firstStoreLink.regular_price : null,
+      sale_price: firstStoreLink ? firstStoreLink.sale_price : null,
+      is_on_sale: firstStoreLink ? firstStoreLink.is_on_sale : 0,
+      last_updated: item.last_updated || new Date().toISOString(),
+      lookup_url: firstStoreLink?.url,
+      valid_until: firstStoreLink?.valid_until,
+      stores: storesRecord,
+    };
+  }
+
+  return prices;
 }
 
 export async function blobSetPrices(prices: PriceData): Promise<void> {
-  await writeBlob(PRICES_BLOB, prices);
+  const catalog = await blobGetCombinedCatalog();
+
+  for (const [upc, priceEntry] of Object.entries(prices)) {
+    if (!priceEntry) continue;
+    
+    // Find catalog item matching this UPC
+    let item = catalog.items.find(i => {
+      return Object.values(i.stores).some(link => link.upc === upc);
+    });
+
+    // Fallback to name match
+    if (!item) {
+      const matchName = (priceEntry.config_name || priceEntry.item_name || "").trim().toLowerCase();
+      if (matchName) {
+        item = catalog.items.find(i => i.name.trim().toLowerCase() === matchName);
+      }
+    }
+
+    // Create if not found
+    if (!item) {
+      item = {
+        id: "prod-" + Math.random().toString(36).substr(2, 9),
+        name: priceEntry.config_name || priceEntry.item_name || "New Item",
+        category: "grocery",
+        unit: "unit",
+        requires_scraping: false,
+        stores: {},
+        last_updated: priceEntry.last_updated || new Date().toISOString(),
+      };
+      catalog.items.push(item);
+    }
+
+    item.last_updated = priceEntry.last_updated || new Date().toISOString();
+
+    // Update stores in item.stores
+    if (priceEntry.stores && typeof priceEntry.stores === "object") {
+      for (const [storeKey, storeInfo] of Object.entries(priceEntry.stores)) {
+        const sInfo = storeInfo as any;
+        if (!item.stores[storeKey]) {
+          item.stores[storeKey] = {
+            url: sInfo.lookup_url || "",
+            upc: sInfo.store_id || upc,
+            regular_price: sInfo.regular_price,
+            sale_price: sInfo.sale_price,
+            is_on_sale: sInfo.is_on_sale !== undefined ? (sInfo.is_on_sale ? 1 : 0) : (sInfo.sale_price ? 1 : 0),
+            valid_until: sInfo.valid_until,
+          };
+        } else {
+          item.stores[storeKey].regular_price = sInfo.regular_price;
+          item.stores[storeKey].sale_price = sInfo.sale_price;
+          item.stores[storeKey].is_on_sale = sInfo.is_on_sale !== undefined ? (sInfo.is_on_sale ? 1 : 0) : (sInfo.sale_price ? 1 : 0);
+          item.stores[storeKey].valid_until = sInfo.valid_until;
+        }
+      }
+    } else {
+      // Flat structure
+      const storeKey = priceEntry.store_id || "foodbasics";
+      if (!item.stores[storeKey]) {
+        item.stores[storeKey] = {
+          url: priceEntry.lookup_url || "",
+          upc: upc,
+          regular_price: priceEntry.regular_price,
+          sale_price: priceEntry.sale_price,
+          is_on_sale: priceEntry.is_on_sale !== undefined ? (priceEntry.is_on_sale ? 1 : 0) : (priceEntry.sale_price ? 1 : 0),
+          valid_until: priceEntry.valid_until,
+        };
+      } else {
+        item.stores[storeKey].regular_price = priceEntry.regular_price;
+        item.stores[storeKey].sale_price = priceEntry.sale_price;
+        item.stores[storeKey].is_on_sale = priceEntry.is_on_sale !== undefined ? (priceEntry.is_on_sale ? 1 : 0) : (priceEntry.sale_price ? 1 : 0);
+        item.stores[storeKey].valid_until = priceEntry.valid_until;
+      }
+    }
+  }
+
+  await blobSetCombinedCatalog(catalog);
 }
 
 export async function blobGetTelemetry(): Promise<TelemetryEntry[]> {
@@ -338,57 +498,458 @@ export function migrateScrapeConfig(config: any): ScrapeConfig {
   return migrated;
 }
 
-export async function blobGetScrapeConfig(): Promise<ScrapeConfig> {
-  let config = await readBlob<any>(SCRAPE_CONFIG_BLOB, null);
-  if (!config || !config.items || config.items.length === 0) {
-    // Attempt to seed from local cached prices to prevent empty config states on restart
-    console.log("Empty scrape configuration detected. Attempting to seed from grocerylist-prices.json...");
-    try {
-      const prices = await readBlob<Record<string, any>>(PRICES_BLOB, {});
-      const itemsList: any[] = [];
-      for (const [upc, p] of Object.entries(prices)) {
-        if (p && typeof p === "object" && (p as any).lookup_url && (p as any).config_name) {
-          itemsList.push({
-            name: (p as any).config_name,
-            stores: {
-              foodbasics: {
-                url: (p as any).lookup_url,
-                upc: upc
-              }
-            }
-          });
+export function validateUniqueUrls(catalog: CombinedCatalog): void {
+  const urlToProduct = new Map<string, string>();
+  for (const item of catalog.items) {
+    for (const [storeKey, link] of Object.entries(item.stores)) {
+      if (link.url) {
+        const normalizedUrl = link.url.trim().toLowerCase();
+        if (urlToProduct.has(normalizedUrl)) {
+          const originalProdName = urlToProduct.get(normalizedUrl);
+          if (originalProdName?.toLowerCase() !== item.name.toLowerCase()) {
+            throw new Error(`Duplicate URL detected: URL for "${item.name}" (${storeKey}) is already registered on product "${originalProdName}".`);
+          }
         }
+        urlToProduct.set(normalizedUrl, item.name);
       }
-      if (itemsList.length > 0) {
-        config = {
-          stores: {
-            foodbasics: {
-              enabled: true,
-              store_name: "Food Basics",
-              base_url: "https://www.foodbasics.ca",
-              postal_code: "K7H3C6",
-              store_id: "7923194",
-            }
-          },
-          items: itemsList
-        };
-        // Save back so it persists on subsequent re-runs and API gets
-        await writeBlob(SCRAPE_CONFIG_BLOB, config);
-        console.log(`Seeded ${itemsList.length} items to scrape-config from history cache!`);
-      }
-    } catch (err) {
-      console.error("Failed to seed scrape config from prices cache:", err);
     }
   }
-  
-  if (!config) {
-    config = { stores: {} };
+}
+
+export function migrateCombinedCatalog(catalog: any): CombinedCatalog {
+  const migrated: CombinedCatalog = {
+    stores: {},
+    items: [],
+  };
+
+  if (!catalog) return migrated;
+
+  if (catalog.stores && typeof catalog.stores === "object") {
+    for (const [key, storeVal] of Object.entries(catalog.stores)) {
+      if (storeVal && typeof storeVal === "object") {
+        const s = storeVal as any;
+        migrated.stores[key] = {
+          enabled: typeof s.enabled === "boolean" ? s.enabled : true,
+          store_name: s.store_name || key,
+          base_url: s.base_url || "",
+          postal_code: s.postal_code || "",
+          store_id: s.store_id || "",
+        };
+      }
+    }
   }
-  return migrateScrapeConfig(config);
+
+  if (Array.isArray(catalog.items)) {
+    catalog.items.forEach((item: any) => {
+      if (!item || typeof item !== "object" || !item.name) return;
+      const storesRecord: Record<string, CombinedStoreLink> = {};
+      if (item.stores && typeof item.stores === "object") {
+        for (const [storeKey, linkVal] of Object.entries(item.stores)) {
+          if (linkVal && typeof linkVal === "object") {
+            const lv = linkVal as any;
+            storesRecord[storeKey] = {
+              url: lv.url || "",
+              upc: lv.upc || "",
+              regular_price: lv.regular_price !== undefined ? lv.regular_price : null,
+              sale_price: lv.sale_price !== undefined ? lv.sale_price : null,
+              is_on_sale: lv.is_on_sale !== undefined ? lv.is_on_sale : 0,
+              valid_until: lv.valid_until,
+            };
+          }
+        }
+      }
+
+      migrated.items.push({
+        id: item.id || "prod-" + Math.random().toString(36).substr(2, 9),
+        name: item.name,
+        category: item.category || "grocery",
+        unit: item.unit || "unit",
+        requires_scraping: typeof item.requires_scraping === "boolean" ? item.requires_scraping : false,
+        stores: storesRecord,
+        last_updated: item.last_updated,
+      });
+    });
+  }
+
+  return migrated;
+}
+
+export function runCombinedCatalogSelfTests(): { success: boolean; summary: string; errors: string[] } {
+  const errors: string[] = [];
+  try {
+    const badCatalog: CombinedCatalog = {
+      stores: {},
+      items: [
+        {
+          id: "1",
+          name: "Item A",
+          category: "grocery",
+          unit: "unit",
+          requires_scraping: true,
+          stores: {
+            foodbasics: { url: "https://foo.com/item1", upc: "123", regular_price: null, sale_price: null, is_on_sale: 0 }
+          }
+        },
+        {
+          id: "2",
+          name: "Item B",
+          category: "grocery",
+          unit: "unit",
+          requires_scraping: true,
+          stores: {
+            metro: { url: "https://foo.com/item1", upc: "456", regular_price: null, sale_price: null, is_on_sale: 0 }
+          }
+        }
+      ]
+    };
+
+    let caughtDup = false;
+    try {
+      validateUniqueUrls(badCatalog);
+    } catch {
+      caughtDup = true;
+    }
+
+    if (!caughtDup) {
+      errors.push("Self-test failed: validateUniqueUrls did not throw on duplicate URLs for different items.");
+    }
+
+    const rawCatalog = {
+      stores: {},
+      items: [
+        {
+          name: "Apple",
+          stores: {
+            foodbasics: { url: "https://basics.com/apple" }
+          }
+        }
+      ]
+    };
+    const migrated = migrateCombinedCatalog(rawCatalog);
+    if (migrated.items.length !== 1) {
+      errors.push("Self-test failed: migrateCombinedCatalog did not migrate correct number of items.");
+    } else {
+      const apple = migrated.items[0];
+      if (apple.unit !== "unit") {
+        errors.push("Self-test failed: default item unit was not set to 'unit'.");
+      }
+      if (apple.requires_scraping !== false) {
+        errors.push("Self-test failed: default requires_scraping was not false.");
+      }
+      if (!apple.id) {
+        errors.push("Self-test failed: autogenerated ID was missing.");
+      }
+    }
+
+    return {
+      success: errors.length === 0,
+      summary: errors.length === 0 ? "All CombinedCatalog self-tests passed successfully (Url Uniqueness, Default Units initialization, Auto-migration structure integrity)." : "Self-tests failed.",
+      errors,
+    };
+  } catch (err: any) {
+    return {
+      success: false,
+      summary: `Self-test threw an error: ${err?.message || String(err)}`,
+      errors: [err?.message || String(err)],
+    };
+  }
+}
+
+export async function blobGetCombinedCatalog(): Promise<CombinedCatalog> {
+  const hasCatalog = await readBlob<any>(COMBINED_CATALOG_BLOB, null);
+  if (hasCatalog) {
+    return migrateCombinedCatalog(hasCatalog);
+  }
+
+  console.log("No combined catalog found. Triggering automated migration from existing scrape-config and prices...");
+  const oldConfig = await readBlob<any>(SCRAPE_CONFIG_BLOB, null);
+  const oldPrices = await readBlob<any>(PRICES_BLOB, {});
+
+  const catalog: CombinedCatalog = {
+    stores: {},
+    items: [],
+  };
+
+  catalog.stores.foodbasics = {
+    enabled: true,
+    store_name: "Food Basics",
+    base_url: "https://www.foodbasics.ca",
+    postal_code: "K7H3C6",
+    store_id: "7923194",
+  };
+  catalog.stores.metro = {
+    enabled: true,
+    store_name: "Metro",
+    base_url: "https://www.metro.ca",
+    postal_code: "K7H3C6",
+    store_id: "metro",
+  };
+  catalog.stores.loblaws = {
+    enabled: true,
+    store_name: "Loblaws",
+    base_url: "https://www.loblaws.ca",
+    postal_code: "K7H3C6",
+    store_id: "loblaws",
+  };
+  catalog.stores.nofrills = {
+    enabled: true,
+    store_name: "No Frills",
+    base_url: "https://www.nofrills.ca",
+    postal_code: "K7H3C6",
+    store_id: "nofrills",
+  };
+
+  if (oldConfig && oldConfig.stores && typeof oldConfig.stores === "object") {
+    for (const [key, storeVal] of Object.entries(oldConfig.stores)) {
+      if (storeVal && typeof storeVal === "object") {
+        const s = storeVal as any;
+        catalog.stores[key] = {
+          enabled: typeof s.enabled === "boolean" ? s.enabled : true,
+          store_name: s.store_name || key,
+          base_url: s.base_url || "",
+          postal_code: s.postal_code || "",
+          store_id: s.store_id || "",
+        };
+      }
+    }
+  }
+
+  const migratedConfig = migrateScrapeConfig(oldConfig);
+  const regularItems = await blobGetRegularItems();
+  const getCleanName = (n: string) => n.trim().toLowerCase();
+
+  for (const rItem of regularItems) {
+    const matchedScrapeItem = migratedConfig.items.find(si => getCleanName(si.name) === getCleanName(rItem.name));
+    const itemStores: Record<string, CombinedStoreLink> = {};
+    let requiresScraping = false;
+    let upc = "";
+
+    if (matchedScrapeItem) {
+      requiresScraping = true;
+      for (const [storeKey, storeLink] of Object.entries(matchedScrapeItem.stores)) {
+        itemStores[storeKey] = {
+          url: storeLink.url,
+          upc: storeLink.upc,
+          regular_price: null,
+          sale_price: null,
+          is_on_sale: 0,
+        };
+        if (storeLink.upc) upc = storeLink.upc;
+      }
+    }
+
+    for (const [pricingKey, p] of Object.entries(oldPrices)) {
+      const isMatch = p && (getCleanName((p as any).item_name) === getCleanName(rItem.name) || getCleanName((p as any).config_name) === getCleanName(rItem.name) || pricingKey === upc);
+      if (isMatch) {
+        const anyP = p as any;
+        if (anyP.stores && typeof anyP.stores === "object") {
+          for (const [storeKey, details] of Object.entries(anyP.stores)) {
+            const d = details as any;
+            if (!itemStores[storeKey]) {
+              itemStores[storeKey] = {
+                url: d.lookup_url || d.url || "",
+                upc: d.store_id || "",
+                regular_price: d.regular_price,
+                sale_price: d.sale_price,
+                is_on_sale: d.is_on_sale !== undefined ? (d.is_on_sale ? 1 : 0) : (d.sale_price ? 1 : 0),
+                valid_until: d.valid_until,
+              };
+            } else {
+              itemStores[storeKey].regular_price = d.regular_price;
+              itemStores[storeKey].sale_price = d.sale_price;
+              itemStores[storeKey].is_on_sale = d.is_on_sale !== undefined ? (d.is_on_sale ? 1 : 0) : (d.sale_price ? 1 : 0);
+              itemStores[storeKey].valid_until = d.valid_until;
+            }
+          }
+        } else {
+          const storeKey = anyP.store_id || "foodbasics";
+          if (!itemStores[storeKey]) {
+            itemStores[storeKey] = {
+              url: anyP.lookup_url || "",
+              upc: pricingKey,
+              regular_price: anyP.regular_price,
+              sale_price: anyP.sale_price,
+              is_on_sale: anyP.is_on_sale !== undefined ? (anyP.is_on_sale ? 1 : 0) : (anyP.sale_price ? 1 : 0),
+              valid_until: anyP.valid_until,
+            };
+          } else {
+            itemStores[storeKey].regular_price = anyP.regular_price;
+            itemStores[storeKey].sale_price = anyP.sale_price;
+            itemStores[storeKey].is_on_sale = anyP.is_on_sale !== undefined ? (anyP.is_on_sale ? 1 : 0) : (anyP.sale_price ? 1 : 0);
+            itemStores[storeKey].valid_until = anyP.valid_until;
+          }
+        }
+      }
+    }
+
+    catalog.items.push({
+      id: rItem.id,
+      name: rItem.name,
+      category: rItem.category || "grocery",
+      unit: "unit",
+      requires_scraping: requiresScraping,
+      stores: itemStores,
+    });
+  }
+
+  for (const scItem of migratedConfig.items) {
+    const alreadyAdded = catalog.items.some(i => getCleanName(i.name) === getCleanName(scItem.name));
+    if (alreadyAdded) continue;
+
+    const itemStores: Record<string, CombinedStoreLink> = {};
+    let upc = "";
+    for (const [storeKey, storeLink] of Object.entries(scItem.stores)) {
+      itemStores[storeKey] = {
+        url: storeLink.url,
+        upc: storeLink.upc,
+        regular_price: null,
+        sale_price: null,
+        is_on_sale: 0,
+      };
+      if (storeLink.upc) upc = storeLink.upc;
+    }
+
+    for (const [pricingKey, p] of Object.entries(oldPrices)) {
+      const isMatch = p && (getCleanName((p as any).item_name) === getCleanName(scItem.name) || getCleanName((p as any).config_name) === getCleanName(scItem.name) || pricingKey === upc);
+      if (isMatch) {
+        const anyP = p as any;
+        if (anyP.stores && typeof anyP.stores === "object") {
+          for (const [storeKey, details] of Object.entries(anyP.stores)) {
+            const d = details as any;
+            if (!itemStores[storeKey]) {
+              itemStores[storeKey] = {
+                url: d.lookup_url || d.url || "",
+                upc: d.store_id || "",
+                regular_price: d.regular_price,
+                sale_price: d.sale_price,
+                is_on_sale: d.is_on_sale !== undefined ? (d.is_on_sale ? 1 : 0) : (d.sale_price ? 1 : 0),
+                valid_until: d.valid_until,
+              };
+            } else {
+              itemStores[storeKey].regular_price = d.regular_price;
+              itemStores[storeKey].sale_price = d.sale_price;
+              itemStores[storeKey].is_on_sale = d.is_on_sale !== undefined ? (d.is_on_sale ? 1 : 0) : (d.sale_price ? 1 : 0);
+              itemStores[storeKey].valid_until = d.valid_until;
+            }
+          }
+        }
+      }
+    }
+
+    catalog.items.push({
+      id: "prod-" + Math.random().toString(36).substr(2, 9),
+      name: scItem.name,
+      category: "grocery",
+      unit: "unit",
+      requires_scraping: true,
+      stores: itemStores,
+    });
+  }
+
+  try {
+    validateUniqueUrls(catalog);
+  } catch (err) {
+    console.warn("Migration had duplicate URLs, resolving duplicates automatically:", err);
+    const seenUrls = new Set<string>();
+    for (const item of catalog.items) {
+      for (const [storeKey, link] of Object.entries(item.stores)) {
+        if (link.url) {
+          const normUrl = link.url.trim().toLowerCase();
+          if (seenUrls.has(normUrl)) {
+            link.url = "";
+          } else {
+            seenUrls.add(normUrl);
+          }
+        }
+      }
+    }
+  }
+
+  await writeBlob(COMBINED_CATALOG_BLOB, catalog);
+  return catalog;
+}
+
+export async function blobSetCombinedCatalog(catalog: CombinedCatalog): Promise<void> {
+  validateUniqueUrls(catalog);
+  await writeBlob(COMBINED_CATALOG_BLOB, catalog);
+}
+
+export async function blobGetScrapeConfig(): Promise<ScrapeConfig> {
+  const catalog = await blobGetCombinedCatalog();
+  const configItems: ScrapeItemConfig[] = [];
+
+  for (const item of catalog.items) {
+    if (item.requires_scraping) {
+      const storesRecord: Record<string, ScrapeStoreItemLink> = {};
+      for (const [storeKey, storeVal] of Object.entries(item.stores)) {
+        storesRecord[storeKey] = {
+          url: storeVal.url,
+          upc: storeVal.upc,
+        };
+      }
+      configItems.push({
+        name: item.name,
+        stores: storesRecord,
+      });
+    }
+  }
+
+  return {
+    stores: catalog.stores,
+    items: configItems,
+  };
 }
 
 export async function blobSetScrapeConfig(config: ScrapeConfig): Promise<void> {
-  await writeBlob(SCRAPE_CONFIG_BLOB, config);
+  const catalog = await blobGetCombinedCatalog();
+
+  if (config.stores) {
+    catalog.stores = { ...catalog.stores, ...config.stores };
+  }
+
+  const activeNames = new Set((config.items || []).map(i => i.name.toLowerCase()));
+
+  for (const item of catalog.items) {
+    if (activeNames.has(item.name.toLowerCase())) {
+      item.requires_scraping = true;
+    } else {
+      item.requires_scraping = false;
+    }
+  }
+
+  for (const scItem of config.items || []) {
+    let existing = catalog.items.find(i => i.name.toLowerCase() === scItem.name.toLowerCase());
+    if (!existing) {
+      existing = {
+        id: "prod-" + Math.random().toString(36).substr(2, 9),
+        name: scItem.name,
+        category: "grocery",
+        unit: "unit",
+        requires_scraping: true,
+        stores: {}
+      };
+      catalog.items.push(existing);
+    }
+
+    existing.requires_scraping = true;
+
+    for (const [storeKey, link] of Object.entries(scItem.stores)) {
+      if (!existing.stores[storeKey]) {
+        existing.stores[storeKey] = {
+          url: link.url,
+          upc: link.upc,
+          regular_price: null,
+          sale_price: null,
+          is_on_sale: 0
+        };
+      } else {
+        existing.stores[storeKey].url = link.url;
+        existing.stores[storeKey].upc = link.upc;
+      }
+    }
+  }
+
+  await blobSetCombinedCatalog(catalog);
 }
 
 export async function checkForLocalPricesJsonAndImport(): Promise<void> {

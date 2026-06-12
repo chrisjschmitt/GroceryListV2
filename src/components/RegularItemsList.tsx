@@ -942,7 +942,8 @@ export default function RegularItemsList({
                   const inList = alreadyInList.has(item.name.toLowerCase());
                   const isEditing = editState?.type === "edit" && editState.itemId === item.id;
                   const hasPriceLink = !!(scrapeConfig?.items?.some(
-                    (sc: any) => sc.name.toLowerCase() === item.name.toLowerCase() && sc.stores?.foodbasics?.url
+                    (sc: any) => sc.name.toLowerCase() === item.name.toLowerCase() && 
+                    Object.values(sc.stores || {}).some((storeLink: any) => !!storeLink?.url)
                   ));
 
                   const priceEntry = priceLookup.get(item.name.toLowerCase());

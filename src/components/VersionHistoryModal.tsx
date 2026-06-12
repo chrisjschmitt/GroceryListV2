@@ -21,6 +21,24 @@ interface VersionEntry {
 
 const VERSIONS: VersionEntry[] = [
   {
+    version: "1.4.0",
+    date: "June 2026",
+    type: "minor",
+    title: "Unified Database & Combined Catalog Engine",
+    changes: [
+      {
+        icon: <Database className="w-4 h-4 text-emerald-600" />,
+        category: "Unified Schema Engine",
+        description: "Migrated the multi-file setup into a single, fully coherent combined catalog JSON repository mapping items, multi-retailer stores, scraping states, and active pricings in one single file.",
+      },
+      {
+        icon: <Sparkles className="w-4 h-4 text-emerald-600" />,
+        category: "Automated Integrity Tests",
+        description: "Added a comprehensive self-diagnostic test suite executing at server startup to validate URL uniqueness, prevent double lookup mappings, and maintain data purity.",
+      },
+    ],
+  },
+  {
     version: "1.3.0",
     date: "June 2026",
     type: "minor",

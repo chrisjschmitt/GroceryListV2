@@ -87,6 +87,30 @@ export type ScrapeConfig = {
   items: ScrapeItemConfig[];
 };
 
+export interface CombinedStoreLink {
+  url: string;
+  upc: string;
+  regular_price: number | null;
+  sale_price: number | null;
+  is_on_sale: number;
+  valid_until?: string;
+}
+
+export interface CombinedCatalogItem {
+  id: string;
+  name: string;
+  category: string;
+  unit: string;
+  requires_scraping: boolean;
+  stores: Record<string, CombinedStoreLink>;
+  last_updated?: string;
+}
+
+export interface CombinedCatalog {
+  stores: Record<string, ScrapeStoreConfig>;
+  items: CombinedCatalogItem[];
+}
+
 export interface SyncMetadata {
   lastSavedBy: string;
   lastSavedTime: number;
