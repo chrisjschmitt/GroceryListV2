@@ -1,5 +1,5 @@
 import React from "react";
-import { X, Calendar, GitBranch, Sparkles, Database, Layout, Smartphone } from "lucide-react";
+import { X, Calendar, GitBranch, Sparkles, Database, Layout, Smartphone, Cloud, FileSpreadsheet } from "lucide-react";
 
 interface VersionHistoryModalProps {
   isOpen: boolean;
@@ -20,6 +20,24 @@ interface VersionEntry {
 }
 
 const VERSIONS: VersionEntry[] = [
+  {
+    version: "1.3.0",
+    date: "June 2026",
+    type: "minor",
+    title: "Google Drive Sync & Portal Upgrades",
+    changes: [
+      {
+        icon: <Cloud className="w-4 h-4 text-emerald-600" />,
+        category: "Google Drive Integration",
+        description: "Added full integration with Google Drive to securely back up and restore your regular items catalog in either JSON or CSV formats at any time.",
+      },
+      {
+        icon: <FileSpreadsheet className="w-4 h-4 text-emerald-600" />,
+        category: "Smart Exporter Column",
+        description: "Introduced a new boolean column in the regular items CSV exporter signifying whether an item is currently mapped to an active scraper config record.",
+      },
+    ],
+  },
   {
     version: "1.2.0",
     date: "June 2026",
