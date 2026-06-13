@@ -84,6 +84,21 @@ async function getMongoDatabase() {
   return { client, db };
 }
 
+function extractUpcFromUrl(url: string): string | null {
+  if (!url) return null;
+  // Match "/p/123456789" or "/p/064420055019" which represents the product UPC/SKU
+  const pMatch = url.match(/\/p\/([a-zA-Z0-9_\-]+)/);
+  if (pMatch && pMatch[1]) {
+    return pMatch[1];
+  }
+  // Alternate match: look for sequences of digits between 8-15 characters at the end of path segments
+  const digitMatch = url.match(/\/(\d{8,15})([?\/]|$)/);
+  if (digitMatch && digitMatch[1]) {
+    return digitMatch[1];
+  }
+  return null;
+}
+
 // Handle preflight for append-grocery
 app.options("/api/append-grocery", (req, res) => {
   res.setHeader("Access-Control-Allow-Origin", "*");
@@ -163,11 +178,30 @@ app.post("/api/append-grocery", async (req, res) => {
       }
     }
 
+    let finalKey = key;
+    let urlToSave = data.url || data.lookup_url || data.lookupUrl || "";
+    
+    // Check if key itself is a URL
+    if (key.startsWith("http://") || key.startsWith("https://")) {
+      urlToSave = key;
+      const extracted = extractUpcFromUrl(key);
+      if (extracted) {
+        finalKey = extracted;
+      } else {
+        finalKey = `manual-${Date.now()}`;
+      }
+    }
+
+    // Ensure correctedData contains correct structured values
+    correctedData.upc = finalKey;
+    correctedData.url = urlToSave;
+    correctedData.lookup_url = urlToSave;
+
     const { db } = await getMongoDatabase();
     const pricesCollection = db.collection("prices");
 
     // Fetch existing pricing record from MongoDB if it exists to preserve its store_id and other stable fields
-    const existingDoc = await pricesCollection.findOne({ _id: key });
+    const existingDoc = await pricesCollection.findOne({ _id: finalKey });
     const existingStoreId = existingDoc?.store_id || null;
     const existingStoreName = existingDoc?.store_name || null;
 
@@ -189,12 +223,12 @@ app.post("/api/append-grocery", async (req, res) => {
     correctedData.store_id = resolvedStoreId;
     correctedData.store_name = resolvedStoreName;
 
-    // Upsert the record targeting the incoming key as the _id identifier
+    // Upsert the record targeting the clean UPC as the _id identifier
     const result = await pricesCollection.updateOne(
-      { _id: key },
+      { _id: finalKey },
       {
         $set: {
-          _id: key,
+          _id: finalKey,
           ...correctedData,
           synchronized_at: new Date()
         }
@@ -207,7 +241,7 @@ app.post("/api/append-grocery", async (req, res) => {
         const catalog = await blobGetCombinedCatalog();
         const catalogItem = catalog.items.find((i: any) => i.id === correctedData.matched_catalog_id);
         if (catalogItem) {
-          const inputUrl = data.url || data.lookup_url || data.lookupUrl || req.body.url || "";
+          const inputUrl = urlToSave;
           let fStoreKey = "foodbasics";
           const lowerUrl = inputUrl.toLowerCase();
           if (lowerUrl.includes("metro.ca")) {
@@ -226,7 +260,7 @@ app.post("/api/append-grocery", async (req, res) => {
           catalogItem.requires_scraping = true;
           catalogItem.stores[fStoreKey] = {
             url: inputUrl,
-            upc: key || data.upc || data.sku || `manual-${Date.now()}`,
+            upc: finalKey,
             regular_price: null,
             sale_price: null,
             is_on_sale: 0,
@@ -245,11 +279,11 @@ app.post("/api/append-grocery", async (req, res) => {
 
     res.json({
       success: true,
-      message: `Successfully synchronized pricing record under target key: ${key}`,
+      message: `Successfully synchronized pricing record under target key: ${finalKey}`,
       matchedCount: result.matchedCount,
       modifiedCount: result.modifiedCount,
       upsertedCount: result.upsertedCount,
-      upsertedId: result.upsertedId ? (result.upsertedId._id || result.upsertedId) : key
+      upsertedId: result.upsertedId ? (result.upsertedId._id || result.upsertedId) : finalKey
     });
   } catch (error: any) {
     console.error("Error in POST /api/append-grocery:", error);
