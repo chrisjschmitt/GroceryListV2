@@ -21,6 +21,37 @@ interface VersionEntry {
 
 const VERSIONS: VersionEntry[] = [
   {
+    version: "1.4.2",
+    date: "June 2026",
+    type: "patch",
+    title: "Automated Ingestion Catalog Spawning Control",
+    changes: [
+      {
+        icon: <Sparkles className="w-4 h-4 text-emerald-600" />,
+        category: "Ingestion Core",
+        description: "Fixed a bug where scraping unmatched items resulted in no action in the interface. Real-time API uploads for unmatched commodities (e.g., 'English Muffins') are now parsed and auto-spawned in both regular lists and catalog models as active candidates.",
+      },
+    ],
+  },
+  {
+    version: "1.4.1",
+    date: "June 2026",
+    type: "patch",
+    title: "API URL Match Safety & Manual Override Enhancements",
+    changes: [
+      {
+        icon: <Sparkles className="w-4 h-4 text-emerald-600" />,
+        category: "API Match Safety",
+        description: "Fixed a bug in /api/append-grocery where incoming HTTP URLs in the UPC parameter were incorrectly written as the UPC instead of the locator URL. Clean UPC codes are now automatically extracted and mapped.",
+      },
+      {
+        icon: <Layout className="w-4 h-4 text-emerald-600" />,
+        category: "Manual Price Editor",
+        description: "Added helper controls for 'Flyer Wednesday' date picks, validation enforcing 'valid_until' constraints, weekly price tracking toggles, and external scraper title overrides.",
+      },
+    ],
+  },
+  {
     version: "1.4.0",
     date: "June 2026",
     type: "minor",

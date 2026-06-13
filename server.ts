@@ -163,6 +163,46 @@ async function startServer() {
                 correctedData.original_config_name = configName;
                 console.log(`Matched incoming "${configName}" -> corrected to catalog name "${matchedItem.name}" (${matchResult.confidence}% confidence)`);
               }
+            } else {
+              // Unmatched ingestion fallback: Automatically create a new catalog item as requested
+              // to ensure pricing actually appears in the UI instead of silently disappearing
+              const proposedName = matchResult.proposed_new_item?.name || configName;
+              const proposedCategory = matchResult.proposed_new_item?.category || "Bakery";
+
+              const newId = `regular-unmatched-${Date.now()}-${Math.random().toString(36).substring(2, 7)}`;
+              
+              // 1. Create and save new regular item
+              const newRegularItem = {
+                id: newId,
+                name: proposedName,
+                category: proposedCategory,
+                selected: false
+              };
+              const updatedRegularItems = [...catalogItems, newRegularItem];
+              await blobSetRegularItems(updatedRegularItems);
+              console.log(`[Auto-Create] Auto-created new catalog regular item "${proposedName}" with ID ${newId}`);
+
+              // 2. Create and save new combined-catalog item
+              const catalog = await blobGetCombinedCatalog();
+              const newCombinedItem = {
+                id: newId,
+                name: proposedName,
+                category: proposedCategory,
+                unit: "each",
+                requires_scraping: true,
+                stores: {}
+              };
+              catalog.items.push(newCombinedItem);
+              await blobSetCombinedCatalog(catalog);
+              console.log(`[Auto-Create] Added "${proposedName}" (ID ${newId}) to combined catalog`);
+
+              // Link pricing record to this newly-spawned item
+              correctedData.config_name = proposedName;
+              correctedData.item_name = proposedName;
+              correctedData.matched_catalog_id = newId;
+              correctedData.match_confidence = matchResult.confidence || 50;
+              correctedData.match_reason = `Auto-created catalog item from unmatched scrape (Gemini suggested "${proposedName}")`;
+              correctedData.original_config_name = configName;
             }
           }
         } catch (matchErr) {
