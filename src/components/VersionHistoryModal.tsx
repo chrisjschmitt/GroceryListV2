@@ -21,6 +21,52 @@ interface VersionEntry {
 
 const VERSIONS: VersionEntry[] = [
   {
+    version: "1.4.4",
+    date: "June 2026",
+    type: "patch",
+    title: "Live Database Syncing & Robust Dynamic Repair",
+    changes: [
+      {
+        icon: <Database className="w-4 h-4 text-emerald-600" />,
+        category: "MongoDB Real-Time Sync",
+        description: "Wired both GET /api/sync and GET /api/prices to pull and merge actual price tracking history from the remote MongoDB collection. Prices, URLs, and scraping metadata are now natively kept in lockstep.",
+      },
+      {
+        icon: <Layout className="w-4 h-4 text-emerald-600" />,
+        category: "Interactive Pricing Repair",
+        description: "Fixed the interactive pricing modal trigger for the yellow '$' indicators. Users can now tap any expired or untracked state to immediately open the manual repair window to write back to the live database.",
+      },
+      {
+        icon: <Sparkles className="w-4 h-4 text-emerald-600" />,
+        category: "Ingestion URL Matcher",
+        description: "Upgraded the isUrl detection logic inside the ingestion pipeline to parse all web store and domain variations, safeguarding the product UPC from address corruption.",
+      },
+    ],
+  },
+  {
+    version: "1.4.3",
+    date: "June 2026",
+    type: "patch",
+    title: "Pricing URL Population & Interactive Flow Enhancements",
+    changes: [
+      {
+        icon: <Layout className="w-4 h-4 text-emerald-600" />,
+        category: "Consolidated Tables",
+        description: "Fixed a bug where configured catalog items without active pricing did not populate in the Consolidated Pricing Table. Now, the table lists all active URLs for full inspection and easy editing across any grocery target.",
+      },
+      {
+        icon: <Sparkles className="w-4 h-4 text-emerald-600" />,
+        category: "API Match Guard",
+        description: "Hardened the /api/append-grocery parser to prevent incoming product URLs from spilling into the UPC field in case of regex mismatches. Added custom URL matchers and fallbacks to data.upc.",
+      },
+      {
+        icon: <Sparkles className="w-4 h-4 text-emerald-600" />,
+        category: "Data Merge Engine",
+        description: "Improved database synchronization so incoming scrape-URLs do not discard or clear existing prices. They are now merged and preserved seamlessly with existing pricing structures on the fly.",
+      },
+    ],
+  },
+  {
     version: "1.4.2",
     date: "June 2026",
     type: "patch",

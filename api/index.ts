@@ -84,6 +84,108 @@ async function getMongoDatabase() {
   return { client, db };
 }
 
+function isSaleExpired(validUntil?: string | null): boolean {
+  if (!validUntil) return false;
+  const expiryDate = new Date(validUntil);
+  if (isNaN(expiryDate.getTime())) return false;
+  const now = new Date();
+  if (/^\d{4}-\d{2}-\d{2}$/.test(validUntil.trim())) {
+    const [y, m, d] = validUntil.trim().split("-").map(Number);
+    const targetDate = new Date(y, m - 1, d, 23, 59, 59, 999);
+    return now > targetDate;
+  }
+  return now > expiryDate;
+}
+
+async function mergeMongoPrices(prices: any): Promise<any> {
+  try {
+    const { db } = await getMongoDatabase();
+    const pricesCollection = db.collection("prices");
+    const mongoDocs = await pricesCollection.find().toArray();
+    
+    for (const doc of mongoDocs) {
+      const upc = doc._id || doc.upc;
+      if (!upc) continue;
+      
+      const existingEntry = prices[upc] || { stores: {} };
+      
+      const storeId = doc.store_id || "foodbasics";
+      const storeName = doc.store_name || "Food Basics";
+      
+      // Build updated stores mapping
+      const updatedStores = { ...(existingEntry.stores || {}) };
+      
+      // Extract specific pricing properties safely
+      const regPrice = typeof doc.regular_price === "number" ? doc.regular_price : (doc.regular_price ? parseFloat(doc.regular_price) : null);
+      const salePrice = typeof doc.sale_price === "number" ? doc.sale_price : (doc.sale_price ? parseFloat(doc.sale_price) : null);
+      const isOnSale = doc.is_on_sale !== undefined ? (doc.is_on_sale ? 1 : 0) : (salePrice !== null ? 1 : 0);
+      
+      // Map store normalized key (e.g. foodbasics, metro, loblaws, nofrills)
+      let storeKey = "foodbasics";
+      const lowerStoreId = String(storeId).toLowerCase();
+      if (lowerStoreId.includes("metro")) storeKey = "metro";
+      else if (lowerStoreId.includes("loblaws")) storeKey = "loblaws";
+      else if (lowerStoreId.includes("nofrills")) storeKey = "nofrills";
+      else if (lowerStoreId === "7923194" || lowerStoreId.includes("foodbasics")) storeKey = "foodbasics";
+      else storeKey = storeId;
+      
+      updatedStores[storeKey] = {
+        store_name: storeName,
+        postal_code: doc.postal_code || existingEntry.stores?.[storeKey]?.postal_code || "K7H3C6",
+        store_id: storeId,
+        regular_price: regPrice !== null && regPrice !== undefined ? regPrice : (existingEntry.stores?.[storeKey]?.regular_price ?? null),
+        sale_price: salePrice !== null && salePrice !== undefined ? salePrice : (existingEntry.stores?.[storeKey]?.sale_price ?? null),
+        is_on_sale: doc.is_on_sale !== undefined ? isOnSale : (existingEntry.stores?.[storeKey]?.is_on_sale ?? 0),
+        lookup_url: doc.url || doc.lookup_url || doc.lookupUrl || existingEntry.stores?.[storeKey]?.lookup_url || "",
+        valid_until: doc.valid_until || existingEntry.stores?.[storeKey]?.valid_until || "",
+        last_updated: doc.last_updated || (doc.synchronized_at instanceof Date ? doc.synchronized_at.toISOString() : (typeof doc.synchronized_at === 'string' ? doc.synchronized_at : null)) || existingEntry.stores?.[storeKey]?.last_updated || new Date().toISOString(),
+        track_pricing: doc.track_pricing === 1 || doc.track_pricing === true || existingEntry.stores?.[storeKey]?.track_pricing ? 1 : 0,
+        external_name: doc.external_name || doc.item_name || existingEntry.stores?.[storeKey]?.external_name || "",
+      };
+      
+      // Determine the best price info from all available stores
+      const storeKeys = Object.keys(updatedStores);
+      let lowestStoreKey = storeKey;
+      let lowestPrice = Infinity;
+      for (const key of storeKeys) {
+        const s = updatedStores[key];
+        const p = (s.is_on_sale && s.sale_price !== null && s.sale_price !== undefined && !isSaleExpired(s.valid_until)) ? s.sale_price : (s.regular_price || 0);
+        if (p < lowestPrice && p > 0) {
+          lowestPrice = p;
+          lowestStoreKey = key;
+        }
+      }
+      
+      const bestStore = updatedStores[lowestStoreKey];
+      
+      prices[upc] = {
+        item_name: doc.item_name || existingEntry.item_name || "",
+        config_name: doc.config_name || existingEntry.config_name || doc.item_name || "",
+        store_name: bestStore.store_name,
+        postal_code: bestStore.postal_code,
+        store_id: bestStore.store_id,
+        regular_price: bestStore.regular_price,
+        sale_price: bestStore.sale_price,
+        is_on_sale: bestStore.is_on_sale,
+        last_updated: bestStore.last_updated || new Date().toISOString(),
+        lookup_url: bestStore.lookup_url || doc.url || doc.lookup_url || "",
+        valid_until: bestStore.valid_until || "",
+        track_pricing: bestStore.track_pricing !== undefined ? (bestStore.track_pricing ? 1 : 0) : 0,
+        external_name: bestStore.external_name || "",
+        stores: updatedStores
+      };
+    }
+  } catch (err) {
+    console.warn("MongoDB merge failed (will use blob store fallback only):", err);
+  }
+  return prices;
+}
+
+async function getMergedPrices(): Promise<any> {
+  const prices = await blobGetPrices();
+  return mergeMongoPrices(prices);
+}
+
 function extractUpcFromUrl(url: string): string | null {
   if (!url) return null;
   // Match "/p/123456789" or "/p/064420055019" which represents the product UPC/SKU
@@ -220,15 +322,36 @@ app.post("/api/append-grocery", async (req, res) => {
 
     let finalKey = key;
     let urlToSave = data.url || data.lookup_url || data.lookupUrl || "";
-    
-    // Check if key itself is a URL
-    if (key.startsWith("http://") || key.startsWith("https://")) {
-      urlToSave = key;
+
+    const isUrl = (str: string) => {
+      if (!str) return false;
+      const s = str.trim().toLowerCase();
+      return (
+        s.startsWith("http://") || 
+        s.startsWith("https://") || 
+        s.startsWith("www.") || 
+        s.includes("metro.ca") || 
+        s.includes("foodbasics.ca") || 
+        s.includes("loblaws.ca") || 
+        s.includes("nofrills.ca") ||
+        s.includes(".ca") ||
+        s.includes(".com") ||
+        s.includes("product")
+      );
+    };
+
+    if (isUrl(key)) {
+      urlToSave = key.trim();
       const extracted = extractUpcFromUrl(key);
       if (extracted) {
         finalKey = extracted;
       } else {
-        finalKey = `manual-${Date.now()}`;
+        const dUpc = data.upc || data.id;
+        if (dUpc && !isUrl(String(dUpc))) {
+          finalKey = String(dUpc);
+        } else {
+          finalKey = `manual-${Date.now()}`;
+        }
       }
     }
 
@@ -297,20 +420,36 @@ app.post("/api/append-grocery", async (req, res) => {
             else if (lowerId === "nofrills") fStoreKey = "nofrills";
           }
 
+          const existingStoreLink = (catalogItem.stores[fStoreKey] || {}) as any;
+
+          let regVal = typeof data.regular_price === "number" ? data.regular_price : (typeof data.price === "number" ? data.price : (data.regular_price || data.price ? parseFloat(data.regular_price || data.price) : null));
+          let saleVal = typeof data.sale_price === "number" ? data.sale_price : (data.sale_price ? parseFloat(data.sale_price) : null);
+          let isOnSaleVal = data.is_on_sale !== undefined ? (data.is_on_sale ? 1 : 0) : (saleVal !== null ? 1 : 0);
+
+          if (regVal === null && existingStoreLink.regular_price !== undefined) {
+            regVal = existingStoreLink.regular_price;
+          }
+          if (saleVal === null && existingStoreLink.sale_price !== undefined) {
+            saleVal = existingStoreLink.sale_price;
+          }
+          if (data.is_on_sale === undefined && existingStoreLink.is_on_sale !== undefined) {
+            isOnSaleVal = existingStoreLink.is_on_sale;
+          }
+
           catalogItem.requires_scraping = true;
           catalogItem.stores[fStoreKey] = {
             url: inputUrl,
             upc: finalKey,
-            regular_price: null,
-            sale_price: null,
-            is_on_sale: 0,
-            external_name: data.item_name || data.config_name || "",
-            track_pricing: false,
-            valid_until: ""
+            regular_price: regVal,
+            sale_price: saleVal,
+            is_on_sale: isOnSaleVal,
+            external_name: data.item_name || data.config_name || existingStoreLink.external_name || "",
+            track_pricing: data.track_pricing === 1 || data.track_pricing === true || data.track_pricing === "true" || !!existingStoreLink.track_pricing,
+            valid_until: data.valid_until || existingStoreLink.valid_until || ""
           };
 
           await blobSetCombinedCatalog(catalog);
-          console.log(`Successfully synced matched item "${catalogItem.name}" link to combined-catalog under store "${fStoreKey}" with empty pricing`);
+          console.log(`Successfully synced matched item "${catalogItem.name}" link to combined-catalog under store "${fStoreKey}" with pricing fields merged`);
         }
       } catch (catalogErr) {
         console.error("Error updating combined-catalog in /api/append-grocery:", catalogErr);
@@ -341,7 +480,7 @@ app.get("/api/sync", async (req, res) => {
       blobGetGroceryItems(),
       blobGetRegularItems(),
       blobGetSyncMeta(),
-      blobGetPrices(),
+      getMergedPrices(),
     ]);
     res.json({ groceryItems, regularItems, syncMeta, prices });
   } catch (error) {
@@ -373,7 +512,7 @@ app.put("/api/sync", async (req, res) => {
 // 3. GET /api/prices
 app.get("/api/prices", async (req, res) => {
   try {
-    const prices = await blobGetPrices();
+    const prices = await getMergedPrices();
     res.json({ prices });
   } catch (error) {
     console.error("GET /api/prices error:", error);
@@ -597,7 +736,7 @@ app.post("/api/prices/import-json", upload.single("file"), async (req, res) => {
   }
 });
 
-// POST /api/admin/prices (Create/Update single price record with match safety)
+// POST /api/admin/prices (Create/Update single price record using nested stores & MongoDB sync)
 app.post("/api/admin/prices", async (req, res) => {
   try {
     const { upc, item } = req.body;
@@ -606,41 +745,97 @@ app.post("/api/admin/prices", async (req, res) => {
       return;
     }
     const existingPrices = await blobGetPrices();
-
-    // Check if another entry already has the same Match Key and Store combination.
-    const matchKey = (item.config_name || item.item_name || "").trim().toLowerCase();
-    const storeId = (item.store_id || "").trim().toLowerCase();
-
-    // Find if a duplicate exists on another key
-    const duplicateKey = Object.keys(existingPrices).find(k => {
-      if (k === upc) return false;
-      const p = existingPrices[k];
-      const pMatchKey = (p.config_name || p.item_name || "").trim().toLowerCase();
-      const pStoreId = (p.store_id || "").trim().toLowerCase();
-      return pMatchKey === matchKey && pStoreId === storeId;
-    });
-
-    if (duplicateKey) {
-      // Remove the old separate entry to prevent duplicates
-      delete existingPrices[duplicateKey];
-    }
-
-    existingPrices[upc] = {
-      item_name: item.item_name || "",
-      config_name: item.config_name || "",
-      store_name: item.store_name || "Food Basics",
+    const currentEntry = (existingPrices[upc] || { stores: {} }) as any;
+    
+    const targetStoreId = item.store_id || "foodbasics";
+    const targetStoreName = item.store_name || "Food Basics";
+    
+    const updatedStores = { ...(currentEntry.stores || {}) };
+    const regPrice = typeof item.regular_price === "number" ? item.regular_price : (item.regular_price ? parseFloat(item.regular_price) : null);
+    const salePrice = typeof item.sale_price === "number" ? item.sale_price : (item.sale_price ? parseFloat(item.sale_price) : null);
+    const isOnSale = item.is_on_sale !== undefined ? (item.is_on_sale ? 1 : 0) : (salePrice !== null && salePrice !== undefined && salePrice !== "" ? 1 : 0);
+    
+    updatedStores[targetStoreId] = {
+      store_name: targetStoreName,
       postal_code: item.postal_code || "K7H3C6",
-      store_id: item.store_id || "7923194",
-      regular_price: typeof item.regular_price === "number" ? item.regular_price : parseFloat(item.regular_price) || null,
-      sale_price: typeof item.sale_price === "number" ? item.sale_price : (item.sale_price ? parseFloat(item.sale_price) : null),
-      is_on_sale: item.is_on_sale !== undefined ? (item.is_on_sale ? 1 : 0) : (item.sale_price !== null && item.sale_price !== undefined && item.sale_price !== "" ? 1 : 0),
-      last_updated: item.last_updated || new Date().toISOString(),
+      store_id: targetStoreId,
+      regular_price: regPrice,
+      sale_price: salePrice,
+      is_on_sale: isOnSale,
       lookup_url: item.lookup_url || "",
       valid_until: item.valid_until || "",
+      last_updated: item.last_updated || new Date().toISOString(),
       track_pricing: item.track_pricing === 1 || item.track_pricing === true || item.track_pricing === "true" ? 1 : 0,
       external_name: item.external_name || "",
     };
+    
+    // Compute the lowest price store or default to the target store
+    const storeKeys = Object.keys(updatedStores);
+    let lowestStoreKey = targetStoreId;
+    let lowestPrice = Infinity;
+    for (const key of storeKeys) {
+      const s = updatedStores[key];
+      const p = (s.is_on_sale && s.sale_price !== null && s.sale_price !== undefined && !isSaleExpired(s.valid_until)) ? s.sale_price : (s.regular_price || 0);
+      if (p < lowestPrice && p > 0) {
+        lowestPrice = p;
+        lowestStoreKey = key;
+      }
+    }
+    
+    const bestStore = updatedStores[lowestStoreKey];
+    
+    existingPrices[upc] = {
+      item_name: item.item_name || currentEntry.item_name || "",
+      config_name: item.config_name || currentEntry.config_name || "",
+      store_name: bestStore.store_name,
+      postal_code: bestStore.postal_code,
+      store_id: bestStore.store_id,
+      regular_price: bestStore.regular_price,
+      sale_price: bestStore.sale_price,
+      is_on_sale: bestStore.is_on_sale,
+      last_updated: item.last_updated || new Date().toISOString(),
+      lookup_url: bestStore.lookup_url,
+      valid_until: bestStore.valid_until || "",
+      track_pricing: bestStore.track_pricing !== undefined ? (bestStore.track_pricing ? 1 : 0) : 0,
+      external_name: bestStore.external_name || "",
+      stores: updatedStores
+    };
+
+    // 1. Write price entry to static combined catalog file
     await blobSetPrices(existingPrices);
+
+    // 2. Write/Upsert to MongoDB Atlas
+    try {
+      const { db } = await getMongoDatabase();
+      const pricesCollection = db.collection("prices");
+      
+      const mongoRecord = {
+        _id: upc,
+        upc: upc,
+        item_name: item.item_name || currentEntry.item_name || "",
+        config_name: item.config_name || currentEntry.config_name || "",
+        store_name: targetStoreName,
+        store_id: targetStoreId,
+        regular_price: regPrice,
+        sale_price: salePrice,
+        is_on_sale: isOnSale,
+        postal_code: item.postal_code || "K7H3C6",
+        lookup_url: item.lookup_url || "",
+        valid_until: item.valid_until || "",
+        track_pricing: item.track_pricing === 1 || item.track_pricing === true || item.track_pricing === "true" ? 1 : 0,
+        external_name: item.external_name || "",
+        synchronized_at: new Date()
+      };
+      
+      await pricesCollection.updateOne(
+        { _id: upc },
+        { $set: mongoRecord },
+        { upsert: true }
+      );
+    } catch (mongoErr) {
+      console.warn("Manual price Mongo integration write failed:", mongoErr);
+    }
+
     res.json({ success: true, prices: existingPrices });
   } catch (error: any) {
     console.error("POST /api/admin/prices error:", error);

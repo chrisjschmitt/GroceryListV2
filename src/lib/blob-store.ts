@@ -234,6 +234,9 @@ export async function blobGetPrices(): Promise<PriceData> {
       if (storeLink.sale_price !== null && storeLink.sale_price !== undefined) {
         hasPricing = true;
       }
+      if (storeLink.url) {
+        hasPricing = true;
+      }
 
       if (!firstStoreKey) firstStoreKey = storeKey;
       const storeConfig = catalog.stores[storeKey];

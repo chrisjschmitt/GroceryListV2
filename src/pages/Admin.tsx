@@ -2781,8 +2781,9 @@ export default function AdminPage() {
                                   const label = getStoreDisplayNameDef(scrapeConfig, sKey);
                                   const expiredVal = sInfo.is_on_sale && sInfo.valid_until && isSaleExpiredAdmin(sInfo.valid_until);
                                   const priceVal = (sInfo.is_on_sale && sInfo.sale_price !== null && sInfo.sale_price !== undefined) ? sInfo.sale_price : sInfo.regular_price;
-                                  return (
-                                    <span key={sKey} className="text-[8px] sm:text-[9px] bg-gray-50 border border-gray-200 px-1.5 py-0.5 font-bold text-gray-700 inline-flex flex-wrap items-center gap-0.5 rounded" title={`${label}${sInfo.valid_until ? ` (valid until ${sInfo.valid_until})` : ""}`}>
+                                  
+                                  const TagContent = (
+                                    <>
                                       <span className="text-gray-400">{label}:</span>
                                       <span className="text-black">${priceVal !== null && priceVal !== undefined && typeof priceVal === 'number' ? priceVal.toFixed(2) : "N/A"}</span>
                                       {sInfo.is_on_sale === 1 && (
@@ -2793,6 +2794,30 @@ export default function AdminPage() {
                                           ({sInfo.valid_until})
                                         </span>
                                       )}
+                                      {sInfo.lookup_url && (
+                                        <ExternalLink className="w-2.5 h-2.5 ml-0.5 text-emerald-600 inline-block" />
+                                      )}
+                                    </>
+                                  );
+
+                                  if (sInfo.lookup_url) {
+                                    return (
+                                      <a
+                                        key={sKey}
+                                        href={sInfo.lookup_url}
+                                        target="_blank"
+                                        rel="noreferrer"
+                                        className="text-[8px] sm:text-[9px] bg-emerald-50/50 hover:bg-emerald-100/70 border border-emerald-300 hover:border-emerald-400 px-1.5 py-0.5 font-bold inline-flex items-center gap-0.5 rounded transition-all cursor-pointer"
+                                        title={`View product page on ${label}`}
+                                      >
+                                        {TagContent}
+                                      </a>
+                                    );
+                                  }
+
+                                  return (
+                                    <span key={sKey} className="text-[8px] sm:text-[9px] bg-gray-50 border border-gray-200 px-1.5 py-0.5 font-bold text-gray-700 inline-flex flex-wrap items-center gap-0.5 rounded" title={`${label}${sInfo.valid_until ? ` (valid until ${sInfo.valid_until})` : ""}`}>
+                                      {TagContent}
                                     </span>
                                   );
                                 })}
