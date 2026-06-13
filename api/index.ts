@@ -22,6 +22,8 @@ import {
   blobSetTelemetry,
   blobAppendTelemetry,
   checkForLocalPricesJsonAndImport,
+  blobGetCombinedCatalog,
+  blobSetCombinedCatalog,
 } from "../src/lib/blob-store.js";
 
 const app = express();
@@ -199,6 +201,47 @@ app.post("/api/append-grocery", async (req, res) => {
       },
       { upsert: true }
     );
+
+    if (correctedData.matched_catalog_id) {
+      try {
+        const catalog = await blobGetCombinedCatalog();
+        const catalogItem = catalog.items.find((i: any) => i.id === correctedData.matched_catalog_id);
+        if (catalogItem) {
+          const inputUrl = data.url || data.lookup_url || data.lookupUrl || req.body.url || "";
+          let fStoreKey = "foodbasics";
+          const lowerUrl = inputUrl.toLowerCase();
+          if (lowerUrl.includes("metro.ca")) {
+            fStoreKey = "metro";
+          } else if (lowerUrl.includes("loblaws.ca")) {
+            fStoreKey = "loblaws";
+          } else if (lowerUrl.includes("nofrills.ca")) {
+            fStoreKey = "nofrills";
+          } else {
+            const lowerId = String(resolvedStoreId).toLowerCase();
+            if (lowerId === "metro") fStoreKey = "metro";
+            else if (lowerId === "loblaws") fStoreKey = "loblaws";
+            else if (lowerId === "nofrills") fStoreKey = "nofrills";
+          }
+
+          catalogItem.requires_scraping = true;
+          catalogItem.stores[fStoreKey] = {
+            url: inputUrl,
+            upc: key || data.upc || data.sku || `manual-${Date.now()}`,
+            regular_price: null,
+            sale_price: null,
+            is_on_sale: 0,
+            external_name: data.item_name || data.config_name || "",
+            track_pricing: false,
+            valid_until: ""
+          };
+
+          await blobSetCombinedCatalog(catalog);
+          console.log(`Successfully synced matched item "${catalogItem.name}" link to combined-catalog under store "${fStoreKey}" with empty pricing`);
+        }
+      } catch (catalogErr) {
+        console.error("Error updating combined-catalog in /api/append-grocery:", catalogErr);
+      }
+    }
 
     res.json({
       success: true,
@@ -520,6 +563,8 @@ app.post("/api/admin/prices", async (req, res) => {
       last_updated: item.last_updated || new Date().toISOString(),
       lookup_url: item.lookup_url || "",
       valid_until: item.valid_until || "",
+      track_pricing: item.track_pricing === 1 || item.track_pricing === true || item.track_pricing === "true" ? 1 : 0,
+      external_name: item.external_name || "",
     };
     await blobSetPrices(existingPrices);
     res.json({ success: true, prices: existingPrices });

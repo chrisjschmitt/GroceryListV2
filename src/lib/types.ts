@@ -45,6 +45,8 @@ export interface StoreInfo {
   is_on_sale: number;
   lookup_url?: string;
   valid_until?: string;
+  track_pricing?: number | boolean;
+  external_name?: string;
 }
 
 export interface PriceEntry {
@@ -59,6 +61,8 @@ export interface PriceEntry {
   last_updated: string;
   lookup_url?: string;
   valid_until?: string;
+  track_pricing?: number | boolean;
+  external_name?: string;
   stores?: Record<string, StoreInfo>;
 }
 
@@ -67,6 +71,8 @@ export type PriceData = Record<string, PriceEntry>;
 export interface ScrapeStoreItemLink {
   url: string;
   upc: string;
+  track_pricing?: boolean;
+  external_name?: string;
 }
 
 export interface ScrapeItemConfig {
@@ -94,6 +100,8 @@ export interface CombinedStoreLink {
   sale_price: number | null;
   is_on_sale: number;
   valid_until?: string;
+  track_pricing?: boolean;
+  external_name?: string;
 }
 
 export interface CombinedCatalogItem {

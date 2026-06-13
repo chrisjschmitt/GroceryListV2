@@ -148,6 +148,9 @@ export default function RegularItemsList({
   const [repairSalePrice, setRepairSalePrice] = useState("");
   const [repairIsOnSale, setRepairIsOnSale] = useState(false);
   const [repairUpc, setRepairUpc] = useState("");
+  const [repairValidUntil, setRepairValidUntil] = useState("");
+  const [repairTrackPricing, setRepairTrackPricing] = useState(false);
+  const [repairExternalName, setRepairExternalName] = useState("");
   
   // Search query state for general catalog filtering
   const [searchQuery, setSearchQuery] = useState("");
@@ -209,6 +212,10 @@ export default function RegularItemsList({
   const handleLoadStoreContextForModal = (item: RegularItem, storeKey: string) => {
     let initialUrl = "";
     let initialUpc = "";
+    let initialExternalName = "";
+    let initialTrackPricing = false;
+    let initialValidUntil = "";
+
     if (scrapeConfig?.items) {
       const match = scrapeConfig.items.find(
         (sc: any) => sc.name.toLowerCase() === item.name.toLowerCase()
@@ -216,6 +223,12 @@ export default function RegularItemsList({
       if (match?.stores && match.stores[storeKey]) {
         initialUrl = match.stores[storeKey].url || "";
         initialUpc = match.stores[storeKey].upc || "";
+        if ((match.stores[storeKey] as any).external_name) {
+          initialExternalName = (match.stores[storeKey] as any).external_name;
+        }
+        if ((match.stores[storeKey] as any).track_pricing !== undefined) {
+          initialTrackPricing = !!(match.stores[storeKey] as any).track_pricing;
+        }
       }
     }
 
@@ -237,6 +250,13 @@ export default function RegularItemsList({
         regP = storeInfo.regular_price !== null && storeInfo.regular_price !== undefined ? String(storeInfo.regular_price) : "";
         saleP = storeInfo.sale_price !== null && storeInfo.sale_price !== undefined ? String(storeInfo.sale_price) : "";
         ios = storeInfo.is_on_sale === 1 || !!storeInfo.is_on_sale;
+        initialValidUntil = storeInfo.valid_until || "";
+        if (storeInfo.track_pricing !== undefined) {
+          initialTrackPricing = storeInfo.track_pricing === 1 || !!storeInfo.track_pricing;
+        }
+        if (storeInfo.external_name) {
+          initialExternalName = storeInfo.external_name;
+        }
         
         const rp = storeInfo.regular_price;
         const isRegInvalid = rp === null || rp === undefined || typeof rp !== "number" || isNaN(rp) || rp <= 0;
@@ -245,10 +265,13 @@ export default function RegularItemsList({
       }
     }
 
-    setIsRepairExpanded(isCorrupted);
+    setIsRepairExpanded(isCorrupted || !regP); // Expand by default if no pricing exists yet
     setRepairRegularPrice(regP);
     setRepairSalePrice(saleP);
     setRepairIsOnSale(ios);
+    setRepairValidUntil(initialValidUntil);
+    setRepairTrackPricing(initialTrackPricing);
+    setRepairExternalName(initialExternalName);
 
     if (!initialUpc && prices) {
       const found = Object.entries(prices).find(([_, value]) => 
@@ -642,6 +665,19 @@ export default function RegularItemsList({
       return;
     }
 
+    // Chris has to enter an end date for the sale of this item before he can save it.
+    if (repairIsOnSale) {
+      if (!repairValidUntil.trim()) {
+        alert("Please enter a sale end date (Valid Until) before saving this item.");
+        return;
+      }
+      const parsedDate = Date.parse(repairValidUntil);
+      if (isNaN(parsedDate)) {
+        alert("Please enter a valid sale end date (YYYY-MM-DD or standard date format).");
+        return;
+      }
+    }
+
     const storeNames = getDynamicStoreNames();
     const storeIdMap = getDynamicStoreIdMap();
 
@@ -660,6 +696,9 @@ export default function RegularItemsList({
         sale_price: repairIsOnSale ? parsedSale : null,
         is_on_sale: repairIsOnSale ? 1 : 0,
         lookup_url: modalUrl.trim() || "",
+        valid_until: repairIsOnSale ? repairValidUntil : "",
+        track_pricing: repairTrackPricing,
+        external_name: repairExternalName.trim(),
         last_updated: new Date().toISOString()
       }
     };
@@ -1321,6 +1360,21 @@ export default function RegularItemsList({
                       Overridden prices are written directly to prices.json for this UPC. Fixed corrupted entries instantly.
                     </p>
 
+                    {/* Scraped / External Name */}
+                    <div>
+                      <label className="text-[10px] font-black uppercase block mb-1 text-black">Scraped Product Name (External Name)</label>
+                      <input
+                        type="text"
+                        placeholder="e.g. Natrel 1% Lactose-Free Milk Fine-Filtered"
+                        value={repairExternalName}
+                        onChange={(e) => setRepairExternalName(e.target.value)}
+                        className="w-full px-2.5 py-1.5 text-xs border-2 border-black bg-white focus:outline-none font-bold text-black"
+                      />
+                      <span className="text-[9px] text-gray-500 mt-0.5 block">
+                        Stores the exact product catalog title matched on the web page.
+                      </span>
+                    </div>
+
                     <div className="grid grid-cols-2 gap-2">
                       <div>
                         <label className="text-[10px] font-black uppercase block mb-1 text-black">Regular Price ($) *</label>
@@ -1355,12 +1409,54 @@ export default function RegularItemsList({
                           placeholder={repairIsOnSale ? "e.g. 2.49" : "N/A - Check 'On Sale'"}
                           disabled={!repairIsOnSale}
                           value={repairSalePrice}
-                          onChange={(e) => setRepairSalePrice(e.target.value)}
+                          onChange={(e) => {
+                            const val = e.target.value;
+                            setRepairSalePrice(val);
+                            if (val && !isNaN(parseFloat(val)) && parseFloat(val) > 0) {
+                              setRepairIsOnSale(true);
+                            }
+                          }}
                           className={`w-full px-2.5 py-1.5 text-xs border-2 border-black focus:outline-none font-bold text-black ${
                             !repairIsOnSale ? "bg-gray-100 text-gray-400 cursor-not-allowed border-gray-300" : "bg-white"
                           }`}
                         />
                       </div>
+                    </div>
+
+                    {/* Sale End Date / Valid Until */}
+                    <div className={repairIsOnSale ? "opacity-100 transition-opacity" : "opacity-50 transition-opacity"}>
+                      <div className="flex items-center justify-between mb-1">
+                        <label className="text-[10px] font-black uppercase text-black flex items-center gap-1">
+                          Sale End Date (Valid Until) {repairIsOnSale && <span className="text-red-500 font-bold">*</span>}
+                        </label>
+                        {repairIsOnSale && (
+                          <button
+                            type="button"
+                            onClick={() => {
+                              const d = new Date();
+                              const day = d.getDay();
+                              const daysToWednesday = (3 - day + 7) % 7 || 7;
+                              d.setDate(d.getDate() + daysToWednesday);
+                              const yyyy = d.getFullYear();
+                              const mm = String(d.getMonth() + 1).padStart(2, '0');
+                              const dd = String(d.getDate()).padStart(2, '0');
+                              setRepairValidUntil(`${yyyy}-${mm}-${dd}`);
+                            }}
+                            className="text-[9px] px-1.5 py-0.5 bg-amber-100 hover:bg-amber-200 text-amber-900 border-2 border-black font-black uppercase transition-colors"
+                          >
+                            📅 Flyer Wednesday
+                          </button>
+                        )}
+                      </div>
+                      <input
+                        type="date"
+                        disabled={!repairIsOnSale}
+                        value={repairValidUntil}
+                        onChange={(e) => setRepairValidUntil(e.target.value)}
+                        className={`w-full px-2.5 py-1.5 text-xs border-2 border-black focus:outline-none font-bold text-black ${
+                          !repairIsOnSale ? "bg-gray-100 text-gray-400 cursor-not-allowed border-gray-300" : "bg-white"
+                        }`}
+                      />
                     </div>
 
                     <div className="grid grid-cols-1 gap-2">
@@ -1374,6 +1470,20 @@ export default function RegularItemsList({
                           className="w-full px-2.5 py-1.5 text-xs border-2 border-black bg-white focus:outline-none font-bold text-mono text-black"
                         />
                       </div>
+                    </div>
+
+                    {/* Track weekly pricing toggle */}
+                    <div className="flex items-center gap-2 pt-1 pb-1">
+                      <input
+                        type="checkbox"
+                        id="track_pricing_checkbox"
+                        checked={repairTrackPricing}
+                        onChange={(e) => setRepairTrackPricing(e.target.checked)}
+                        className="accent-black w-4 h-4 border-2 border-black cursor-pointer"
+                      />
+                      <label htmlFor="track_pricing_checkbox" className="text-xs font-black uppercase text-black select-none cursor-pointer flex items-center gap-1.5">
+                        ⭐ Track pricing weekly for this item
+                      </label>
                     </div>
 
                     <button

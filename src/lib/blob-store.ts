@@ -323,6 +323,8 @@ export async function blobSetPrices(prices: PriceData): Promise<void> {
     if (priceEntry.stores && typeof priceEntry.stores === "object") {
       for (const [storeKey, storeInfo] of Object.entries(priceEntry.stores)) {
         const sInfo = storeInfo as any;
+        const trackVal = sInfo.track_pricing === 1 || sInfo.track_pricing === true;
+        const extName = sInfo.external_name || "";
         if (!item.stores[storeKey]) {
           item.stores[storeKey] = {
             url: sInfo.lookup_url || "",
@@ -331,17 +333,25 @@ export async function blobSetPrices(prices: PriceData): Promise<void> {
             sale_price: sInfo.sale_price,
             is_on_sale: sInfo.is_on_sale !== undefined ? (sInfo.is_on_sale ? 1 : 0) : (sInfo.sale_price ? 1 : 0),
             valid_until: sInfo.valid_until,
+            track_pricing: trackVal,
+            external_name: extName
           };
         } else {
           item.stores[storeKey].regular_price = sInfo.regular_price;
           item.stores[storeKey].sale_price = sInfo.sale_price;
           item.stores[storeKey].is_on_sale = sInfo.is_on_sale !== undefined ? (sInfo.is_on_sale ? 1 : 0) : (sInfo.sale_price ? 1 : 0);
           item.stores[storeKey].valid_until = sInfo.valid_until;
+          item.stores[storeKey].track_pricing = trackVal;
+          if (extName) {
+            item.stores[storeKey].external_name = extName;
+          }
         }
       }
     } else {
       // Flat structure
       const storeKey = priceEntry.store_id || "foodbasics";
+      const trackVal = priceEntry.track_pricing === 1 || priceEntry.track_pricing === true;
+      const extName = priceEntry.external_name || "";
       if (!item.stores[storeKey]) {
         item.stores[storeKey] = {
           url: priceEntry.lookup_url || "",
@@ -350,12 +360,18 @@ export async function blobSetPrices(prices: PriceData): Promise<void> {
           sale_price: priceEntry.sale_price,
           is_on_sale: priceEntry.is_on_sale !== undefined ? (priceEntry.is_on_sale ? 1 : 0) : (priceEntry.sale_price ? 1 : 0),
           valid_until: priceEntry.valid_until,
+          track_pricing: trackVal,
+          external_name: extName
         };
       } else {
         item.stores[storeKey].regular_price = priceEntry.regular_price;
         item.stores[storeKey].sale_price = priceEntry.sale_price;
         item.stores[storeKey].is_on_sale = priceEntry.is_on_sale !== undefined ? (priceEntry.is_on_sale ? 1 : 0) : (priceEntry.sale_price ? 1 : 0);
         item.stores[storeKey].valid_until = priceEntry.valid_until;
+        item.stores[storeKey].track_pricing = trackVal;
+        if (extName) {
+          item.stores[storeKey].external_name = extName;
+        }
       }
     }
   }
@@ -885,6 +901,8 @@ export async function blobGetScrapeConfig(): Promise<ScrapeConfig> {
         storesRecord[storeKey] = {
           url: storeVal.url,
           upc: storeVal.upc,
+          track_pricing: storeVal.track_pricing,
+          external_name: storeVal.external_name,
         };
       }
       configItems.push({
