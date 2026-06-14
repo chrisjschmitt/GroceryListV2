@@ -2827,13 +2827,20 @@ export default function AdminPage() {
                       </div>
                       <div>
                         <label className="block text-[10px] font-bold text-gray-500 uppercase mb-1">Unit</label>
-                        <input
-                          type="text"
+                        <select
                           value={catalogItemForm.unit}
                           onChange={(e) => setCatalogItemForm({ ...catalogItemForm, unit: e.target.value })}
-                          placeholder="e.g. unit, g, ml, lb"
-                          className="w-full p-2 border-2 border-black font-medium text-xs text-black"
-                        />
+                          className="w-full p-2 border-2 border-black font-medium text-xs text-black bg-white cursor-pointer"
+                        >
+                          {["unit", "g", "kg", "ml", "l", "lb", "oz", "gal", "dozen", "bunch", "bag", "can", "box", "pack"].map((u) => (
+                            <option key={u} value={u}>
+                              {u}
+                            </option>
+                          ))}
+                          {catalogItemForm.unit && !["unit", "g", "kg", "ml", "l", "lb", "oz", "gal", "dozen", "bunch", "bag", "can", "box", "pack"].includes(catalogItemForm.unit) && (
+                            <option value={catalogItemForm.unit}>{catalogItemForm.unit}</option>
+                          )}
+                        </select>
                       </div>
                     </div>
 
