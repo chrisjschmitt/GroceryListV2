@@ -26,6 +26,7 @@ import {
   blobGetCombinedCatalog,
   blobSetCombinedCatalog,
 } from "./src/lib/blob-store";
+import { RegularItem } from "./src/lib/types";
 
 // Use standard memory storage for multer CSV upload
 const upload = multer({ storage: multer.memoryStorage() });
@@ -232,12 +233,19 @@ async function startServer() {
         return;
       }
 
-      // Read catalog items from regular_items.json
-      const catalogItems = await blobGetRegularItems();
+      // Read catalog registry directly from combined-catalog.json
+      const catalog = await blobGetCombinedCatalog();
+      const catalogItems: RegularItem[] = (catalog.items || []).map((item) => ({
+        id: item.id,
+        name: item.name,
+        category: item.category,
+        selected: false,
+        unit: item.unit
+      }));
       let correctedData = { ...data };
       const configName = data.config_name || data.item_name || "";
 
-      if (configName && catalogItems.length > 0) {
+      if (configName) {
         try {
           // Programmatic fast path for exact match
           const exactMatch = catalogItems.find(
@@ -273,30 +281,18 @@ async function startServer() {
 
               const newId = `regular-unmatched-${Date.now()}-${Math.random().toString(36).substring(2, 7)}`;
               
-              // 1. Create and save new regular item
-              const newRegularItem = {
-                id: newId,
-                name: proposedName,
-                category: proposedCategory,
-                selected: false
-              };
-              const updatedRegularItems = [...catalogItems, newRegularItem];
-              await blobSetRegularItems(updatedRegularItems);
-              console.log(`[Auto-Create] Auto-created new catalog regular item "${proposedName}" with ID ${newId}`);
-
-              // 2. Create and save new combined-catalog item
-              const catalog = await blobGetCombinedCatalog();
+              // Create and save new combined-catalog item directly
               const newCombinedItem = {
                 id: newId,
                 name: proposedName,
                 category: proposedCategory,
-                unit: "each",
+                unit: "unit",
                 requires_scraping: true,
                 stores: {}
               };
               catalog.items.push(newCombinedItem);
               await blobSetCombinedCatalog(catalog);
-              console.log(`[Auto-Create] Added "${proposedName}" (ID ${newId}) to combined catalog`);
+              console.log(`[Auto-Create] Auto-created catalog item "${proposedName}" (ID ${newId}) under combined-catalog registry`);
 
               // Link pricing record to this newly-spawned item
               correctedData.config_name = proposedName;
