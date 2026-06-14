@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import Link from "@/components/Link";
 import { RegularItem, ScrapeConfig, ScrapeItemConfig, ScrapeStoreConfig } from "@/lib/types";
 import CsvUpload from "@/components/CsvUpload";
@@ -112,6 +112,24 @@ export default function AdminPage() {
   // Scrape config state
   const [scrapeConfig, setScrapeConfig] = useState<ScrapeConfig>({ stores: {} });
   const [scrapeLoading, setScrapeLoading] = useState(true);
+
+  // Dynamic store name mapping derived from active scrape configurations & defaults
+  const dynamicStoreNames = useMemo(() => {
+    const defaults: Record<string, string> = {
+      foodbasics: "Food Basics",
+      metro: "Metro",
+      loblaws: "Loblaws",
+      nofrills: "No Frills"
+    };
+    if (scrapeConfig?.stores) {
+      Object.entries(scrapeConfig.stores).forEach(([key, sObj]: [string, any]) => {
+        if (sObj?.store_name) {
+          defaults[key] = sObj.store_name;
+        }
+      });
+    }
+    return defaults;
+  }, [scrapeConfig]);
   
   // Adding Scrape Item states (Option 3 integrated)
   const [addingItem, setAddingItem] = useState(false);
@@ -2847,10 +2865,11 @@ export default function AdminPage() {
                             onChange={(e) => setSelectedCatalogStore(e.target.value)}
                             className="p-1 border border-black bg-white font-extrabold text-[10px] uppercase text-black"
                           >
-                            <option value="foodbasics">Food Basics</option>
-                            <option value="metro">Metro</option>
-                            <option value="loblaws">Loblaws</option>
-                            <option value="nofrills">No Frills</option>
+                            {Object.entries(dynamicStoreNames).map(([key, name]) => (
+                              <option key={key} value={key}>
+                                {name}
+                              </option>
+                            ))}
                           </select>
                         </div>
                       </div>
@@ -2858,7 +2877,7 @@ export default function AdminPage() {
                       <div className="mb-2">
                         {catalogItemForm.stores?.[selectedCatalogStore] ? (
                           <div className="bg-emerald-50 text-emerald-800 border border-emerald-300 text-[10px] font-bold px-2 py-1 flex items-center justify-between leading-normal">
-                            <span>● "{storeNames[selectedCatalogStore] || selectedCatalogStore}" pricing link is currently configured.</span>
+                            <span>● "{dynamicStoreNames[selectedCatalogStore] || selectedCatalogStore}" pricing link is currently configured.</span>
                             <button
                               type="button"
                               onClick={() => removeStoreFromItem(selectedCatalogStore)}
@@ -2869,7 +2888,7 @@ export default function AdminPage() {
                           </div>
                         ) : (
                           <div className="bg-gray-150 text-gray-600 border border-gray-300 text-[9px] font-bold px-2 py-1 leading-normal">
-                            ✕ No active pricing link for "{storeNames[selectedCatalogStore] || selectedCatalogStore}" in this form. Fill fields below to add it.
+                            ✕ No active pricing link for "{dynamicStoreNames[selectedCatalogStore] || selectedCatalogStore}" in this form. Fill fields below to add it.
                           </div>
                         )}
                       </div>
@@ -2974,7 +2993,7 @@ export default function AdminPage() {
                           onClick={() => removeStoreFromItem(selectedCatalogStore)}
                           className="bg-white hover:bg-red-50 text-red-600 font-bold border border-red-500 px-2 py-1 text-[10px] uppercase"
                         >
-                          Purge {storeNames[selectedCatalogStore] || selectedCatalogStore} Link
+                          Purge {dynamicStoreNames[selectedCatalogStore] || selectedCatalogStore} Link
                         </button>
                       )}
                     </div>
@@ -3063,7 +3082,7 @@ export default function AdminPage() {
                                         }`}
                                       >
                                         <div className="flex items-center justify-between gap-2 font-extrabold text-[9px] uppercase border-b border-gray-150 pb-0.5">
-                                          <span className="text-black">{storeNames[storeKey] || storeKey}</span>
+                                          <span className="text-black">{dynamicStoreNames[storeKey] || storeKey}</span>
                                           {isTracked && <span className="text-[8px] text-green-700 bg-green-50 px-1 border border-green-300">Tracking</span>}
                                         </div>
                                         <div className="font-medium text-gray-700 font-mono flex flex-col">
