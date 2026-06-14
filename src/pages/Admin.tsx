@@ -555,8 +555,9 @@ export default function AdminPage() {
         sale_price: "",
         is_on_sale: false,
         valid_until: "",
-        track_pricing: false,
-        external_name: ""
+        track_pricing: true,
+        external_name: "",
+        is_verified: false
       };
       updatedStores[selectedCatalogStore] = {
         ...currentStore,
@@ -623,6 +624,7 @@ export default function AdminPage() {
       
       const isOnSale = s.is_on_sale === true || s.is_on_sale === 1 || String(s.is_on_sale) === "true" ? 1 : 0;
       const trackPricing = s.track_pricing === true || s.track_pricing === 1 || String(s.track_pricing) === "true";
+      const isVerified = s.is_verified === true || s.is_verified === 1 || String(s.is_verified) === "true";
 
       newItem.stores[storeKey] = {
         url: s.url || "",
@@ -632,7 +634,8 @@ export default function AdminPage() {
         is_on_sale: isOnSale,
         valid_until: s.valid_until || "",
         track_pricing: trackPricing,
-        external_name: s.external_name || ""
+        external_name: s.external_name || "",
+        is_verified: isVerified
       };
     }
 
@@ -2865,11 +2868,14 @@ export default function AdminPage() {
                             onChange={(e) => setSelectedCatalogStore(e.target.value)}
                             className="p-1 border border-black bg-white font-extrabold text-[10px] uppercase text-black"
                           >
-                            {Object.entries(dynamicStoreNames).map(([key, name]) => (
-                              <option key={key} value={key}>
-                                {name}
-                              </option>
-                            ))}
+                            {Object.entries(dynamicStoreNames).map(([key, name]) => {
+                              const hasActiveLink = !!catalogItemForm.stores?.[key]?.url;
+                              return (
+                                <option key={key} value={key}>
+                                  {name} {hasActiveLink ? " (🔗 Active Link)" : " (No Link)"}
+                                </option>
+                              );
+                            })}
                           </select>
                         </div>
                       </div>
@@ -2895,7 +2901,19 @@ export default function AdminPage() {
 
                       <div className="space-y-2 text-xs">
                         <div>
-                          <label className="block text-[9px] font-bold text-gray-500 uppercase">Product Scraper URL</label>
+                          <div className="flex items-center justify-between mb-1">
+                            <label className="block text-[9px] font-bold text-gray-500 uppercase">Product Scraper URL</label>
+                            {catalogItemForm.stores?.[selectedCatalogStore]?.url && (
+                              <a
+                                href={catalogItemForm.stores[selectedCatalogStore].url}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="inline-flex items-center gap-1 text-[9px] text-indigo-700 bg-indigo-50 border border-indigo-200 px-1 py-0.5 font-bold hover:bg-indigo-100 uppercase"
+                              >
+                                Test/Visit URL ↗
+                              </a>
+                            )}
+                          </div>
                           <input
                             type="text"
                             value={catalogItemForm.stores?.[selectedCatalogStore]?.url || ""}
@@ -2903,6 +2921,23 @@ export default function AdminPage() {
                             placeholder="e.g. https://www.foodbasics.ca/p/..."
                             className="w-full p-1.5 border border-black font-medium text-xs text-black"
                           />
+                          
+                          <div className="mt-1.5 flex items-center justify-between bg-gray-50 border border-black p-1.5">
+                            <label className="inline-flex items-center gap-1.5 cursor-pointer select-none">
+                              <input
+                                type="checkbox"
+                                checked={!!catalogItemForm.stores?.[selectedCatalogStore]?.is_verified}
+                                onChange={(e) => handleStoreFieldChange("is_verified", e.target.checked)}
+                                className="w-4 h-4 accent-indigo-600 border border-black rounded"
+                              />
+                              <span className="text-[10px] font-black uppercase text-black">Link is Verified Active</span>
+                            </label>
+                            {catalogItemForm.stores?.[selectedCatalogStore]?.is_verified ? (
+                              <span className="text-[8px] bg-blue-100 text-blue-800 border border-blue-400 font-bold uppercase px-1 py-0.5">Verified ✓</span>
+                            ) : (
+                              <span className="text-[8px] bg-amber-100 text-amber-800 border border-amber-400 font-bold uppercase px-1 py-0.5">Unverified ✕</span>
+                            )}
+                          </div>
                         </div>
 
                         <div className="grid grid-cols-2 gap-2">
@@ -3074,6 +3109,7 @@ export default function AdminPage() {
                                     const sInfo = item.stores[storeKey];
                                     const isPromo = (sInfo.is_on_sale === 1 || sInfo.is_on_sale === true) && !(sInfo.valid_until && isSaleExpiredAdmin(sInfo.valid_until));
                                     const isTracked = sInfo.track_pricing === true || sInfo.track_pricing === 1;
+                                    const isVerified = sInfo.is_verified === true || sInfo.is_verified === 1;
                                     return (
                                       <div
                                         key={storeKey}
@@ -3083,7 +3119,10 @@ export default function AdminPage() {
                                       >
                                         <div className="flex items-center justify-between gap-2 font-extrabold text-[9px] uppercase border-b border-gray-150 pb-0.5">
                                           <span className="text-black">{dynamicStoreNames[storeKey] || storeKey}</span>
-                                          {isTracked && <span className="text-[8px] text-green-700 bg-green-50 px-1 border border-green-300">Tracking</span>}
+                                          <div className="flex gap-1 items-center">
+                                            {isVerified && <span className="text-[8px] text-blue-700 bg-blue-50 px-1 border border-blue-300" title="Link is verified">✓ Verified</span>}
+                                            {isTracked && <span className="text-[8px] text-green-700 bg-green-50 px-1 border border-green-300">Tracking</span>}
+                                          </div>
                                         </div>
                                         <div className="font-medium text-gray-700 font-mono flex flex-col">
                                           {sInfo.regular_price != null ? (
