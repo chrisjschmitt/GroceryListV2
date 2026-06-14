@@ -21,6 +21,19 @@ interface VersionEntry {
 
 const VERSIONS: VersionEntry[] = [
   {
+    version: "1.4.9",
+    date: "June 2026",
+    type: "patch",
+    title: "Layout Cleanliness & Shopping List Suffix Optimization",
+    changes: [
+      {
+        icon: <Layout className="w-4 h-4 text-emerald-600" />,
+        category: "UI Cleanliness",
+        description: "Optimized alignment check in the Quick Catalog Item Creator panel, removed the redundant unit display from catalog item badges, and conditioned the shopping list unit label to omit displaying case-insensitive 'unit' values.",
+      },
+    ],
+  },
+  {
     version: "1.4.8",
     date: "June 2026",
     type: "patch",

@@ -145,7 +145,7 @@ export default function GroceryItemRow({ item, onToggle, onRemove, onUpdateQuant
         </div>
       ) : (
         <span className="text-xs font-black bg-gray-100 border border-black px-1.5 py-0.5 shrink-0 text-black">
-          {item.quantity} {item.unit}
+          {item.quantity}{item.unit && item.unit.toLowerCase() !== "unit" ? ` ${item.unit}` : ""}
         </span>
       )}
 
@@ -162,7 +162,7 @@ export default function GroceryItemRow({ item, onToggle, onRemove, onUpdateQuant
           >
             <span>{item.name}</span>
             <ExternalLink className="w-3 h-3 text-gray-400 group-hover/link:text-emerald-600 transition-colors" />
-            {!item.checked && item.unit !== "unit" && (
+            {!item.checked && item.unit && item.unit.toLowerCase() !== "unit" && (
               <span className="text-[10px] text-gray-400 font-bold uppercase tracking-wider">
                 ({item.unit})
               </span>
@@ -171,7 +171,7 @@ export default function GroceryItemRow({ item, onToggle, onRemove, onUpdateQuant
         ) : (
           <span className={`text-sm font-bold ${item.checked ? "line-through text-gray-400 font-normal" : "text-gray-900"}`}>
             {item.name}
-            {!item.checked && item.unit !== "unit" && (
+            {!item.checked && item.unit && item.unit.toLowerCase() !== "unit" && (
               <span className="ml-1.5 text-[10px] text-gray-500 font-bold uppercase tracking-wider">
                 ({item.unit})
               </span>

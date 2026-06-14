@@ -2471,46 +2471,49 @@ export default function AdminPage() {
             </div>
 
             {/* Top-Level global category item creator */}
-            <div className="bg-emerald-50 border-2 border-black p-4 mb-6 shadow-[3px_3px_0px_0px_rgba(0,0,0,1)] text-black">
-              <span className="text-xs font-black text-emerald-800 uppercase tracking-wider block mb-2 font-black">⚡ Quick catalog item creator</span>
+            <div className="bg-emerald-50 border-2 border-black p-4 mb-6 shadow-[3px_3px_0px_0px_rgba(0,0,0,1)] text-black animate-fade-in">
+              <span className="text-xs font-black text-emerald-800 uppercase tracking-wider block mb-2">⚡ Quick catalog item creator</span>
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 mb-3">
                 <div>
                   <label className="text-[10px] uppercase font-black tracking-wider text-gray-500 block mb-0.5">Product Name</label>
+                  <div className="mb-1.5 mt-0.5 py-0.5 opacity-0 select-none hidden sm:block">
+                    <span className="text-[10px] px-1">Alignment spacer</span>
+                  </div>
                   <input
                     type="text"
                     placeholder="e.g. Avocados, French Onion Dip"
                     value={newGlobalItemName}
                     onChange={(e) => setNewGlobalItemName(e.target.value)}
-                    className="w-full px-2.5 py-1.5 text-xs border-2 border-black bg-white focus:outline-none font-bold text-black"
+                    className="w-full h-8 px-2.5 text-xs border-2 border-black bg-white focus:outline-none font-bold text-black"
                   />
                 </div>
                 <div>
                   <label className="text-[10px] uppercase font-black tracking-wider text-gray-500 block mb-0.5">Category Folder</label>
                   
-                  <div className="flex items-center gap-2 mb-1.5 mt-0.5">
+                  <div className="flex items-center gap-2 mb-1.5 mt-0.5 py-0.5">
                     <input
                       type="checkbox"
                       id="globalCatIsCustom"
                       checked={globalCatIsCustom}
                       onChange={(e) => setGlobalCatIsCustom(e.target.checked)}
-                      className="accent-black w-3.5 h-3.5"
+                      className="accent-black w-3.5 h-3.5 cursor-pointer"
                     />
-                    <label htmlFor="globalCatIsCustom" className="text-[10px] font-bold text-black">Add brand new category</label>
+                    <label htmlFor="globalCatIsCustom" className="text-[10px] font-bold text-black cursor-pointer select-none">Add brand new category</label>
                   </div>
 
                   {globalCatIsCustom ? (
                     <input
                       type="text"
-                      placeholder="Custom category (e.g. Frozen Food, Deli)"
+                      placeholder="Custom category (e.g. Frozen Food)"
                       value={newGlobalCustomCat}
                       onChange={(e) => setNewGlobalCustomCat(e.target.value)}
-                      className="w-full px-2.5 py-1 text-xs border-2 border-black bg-white focus:outline-none font-bold"
+                      className="w-full h-8 px-2.5 text-xs border-2 border-black bg-white focus:outline-none font-bold text-black placeholder-gray-400"
                     />
                   ) : (
                     <select
                       value={newGlobalCategory}
                       onChange={(e) => setNewGlobalCategory(e.target.value)}
-                      className="w-full px-2.5 py-1 text-xs border-2 border-black bg-white focus:outline-none font-bold"
+                      className="w-full h-8 px-2.5 text-xs border-2 border-black bg-white focus:outline-none font-bold text-black cursor-pointer"
                     >
                       <option value="">-- Choose category --</option>
                       {categoriesList.map(cat => (
@@ -2523,12 +2526,12 @@ export default function AdminPage() {
                 <div>
                   <label className="text-[10px] uppercase font-black tracking-wider text-gray-500 block mb-0.5">Base Unit</label>
                   <div className="mb-1.5 mt-0.5 py-0.5">
-                    <span className="text-[10px] font-bold text-[#b45309] uppercase bg-amber-50 px-1 border border-amber-200">Default Shopping List Unit</span>
+                    <span className="text-[10px] font-bold text-[#b45309] uppercase bg-amber-50 px-1 border border-amber-200 rounded-sm">Default Shopping List Unit</span>
                   </div>
                   <select
                     value={newGlobalUnit}
                     onChange={(e) => setNewGlobalUnit(e.target.value)}
-                    className="w-full px-2.5 py-1 text-xs border-2 border-black bg-white focus:outline-none font-bold text-black cursor-pointer"
+                    className="w-full h-8 px-2.5 text-xs border-2 border-black bg-white focus:outline-none font-bold text-black cursor-pointer"
                   >
                     {["unit", "g", "kg", "ml", "l", "lb", "oz", "gal", "dozen", "bunch", "bag", "can", "box", "pack"].map((u) => (
                       <option key={u} value={u}>{u}</option>
@@ -2539,7 +2542,7 @@ export default function AdminPage() {
               <button
                 onClick={handleCreateGlobalItem}
                 disabled={!newGlobalItemName.trim()}
-                className="w-full py-1 text-xs font-black uppercase text-white bg-black hover:bg-emerald-600 disabled:opacity-40 border border-black text-center cursor-pointer"
+                className="w-full h-8 text-xs font-black uppercase text-white bg-black hover:bg-emerald-605 disabled:opacity-40 border border-black text-center cursor-pointer transition-colors"
               >
                 + Save Catalog Product
               </button>
@@ -2648,12 +2651,7 @@ export default function AdminPage() {
                               key={item.id}
                               className="inline-flex items-center gap-2 pl-2.5 pr-1.5 py-1 bg-white text-gray-800 text-xs font-bold border border-black shadow-[1.5px_1.5px_0px_0px_rgba(0,0,0,1)] group hover:bg-[#fee2e2]/10 transition-colors"
                             >
-                              <span className="flex items-center gap-1.5 flex-nowrap">
-                                <span className="text-black">{item.name}</span>
-                                <span className="text-[9px] font-black uppercase text-amber-700 bg-amber-50 border border-amber-200 px-1 rounded-sm tracking-wider scale-[0.95]" title="Base Unit">
-                                  {item.unit || "unit"}
-                                </span>
-                              </span>
+                              <span className="text-black">{item.name}</span>
                               <div className="flex items-center gap-1">
                                 <button
                                   onClick={() => handleStartEditCatalog(item)}
