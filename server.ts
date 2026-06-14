@@ -940,6 +940,33 @@ async function startServer() {
     }
   });
 
+  // 6.5. GET /api/catalog
+  app.get("/api/catalog", async (req, res) => {
+    try {
+      const catalog = await blobGetCombinedCatalog();
+      res.json(catalog);
+    } catch (error) {
+      console.error("GET /api/catalog error:", error);
+      res.status(500).json({ error: "Failed to fetch combined catalog data" });
+    }
+  });
+
+  // 6.6. PUT /api/catalog
+  app.put("/api/catalog", async (req, res) => {
+    try {
+      const catalog = req.body;
+      if (!catalog || typeof catalog !== "object" || !Array.isArray(catalog.items)) {
+        res.status(400).json({ error: "Invalid catalog payload structure" });
+        return;
+      }
+      await blobSetCombinedCatalog(catalog);
+      res.json({ success: true, catalog });
+    } catch (error: any) {
+      console.error("PUT /api/catalog error:", error);
+      res.status(500).json({ error: "Failed to update combined catalog data", details: String(error) });
+    }
+  });
+
   // 7. GET /api/scrape-config
   app.get("/api/scrape-config", async (req, res) => {
     try {

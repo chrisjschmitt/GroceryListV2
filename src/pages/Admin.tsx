@@ -95,6 +95,13 @@ const isSaleExpiredAdmin = (validUntil?: string | null): boolean => {
   return now > expiryDate;
 };
 
+const storeNames: Record<string, string> = {
+  foodbasics: "Food Basics",
+  metro: "Metro",
+  loblaws: "Loblaws",
+  nofrills: "No Frills"
+};
+
 export default function AdminPage() {
   const [items, setItems] = useState<RegularItem[]>([]);
   const [loading, setLoading] = useState(true);
@@ -253,6 +260,34 @@ export default function AdminPage() {
     valid_until: ""
   });
 
+  // Combined Catalog Manager State
+  const [catalog, setCatalog] = useState<any>(null);
+  const [catalogLoading, setCatalogLoading] = useState(true);
+  const [catalogScrapedFilter, setCatalogScrapedFilter] = useState("all");
+  const [catalogSaleFilter, setCatalogSaleFilter] = useState("all");
+  const [catalogTrackedFilter, setCatalogTrackedFilter] = useState("all");
+
+  const [editingCatalogItem, setEditingCatalogItem] = useState<any>(null);
+  const [selectedCatalogStore, setSelectedCatalogStore] = useState<string>("foodbasics");
+  const [catalogItemForm, setCatalogItemForm] = useState<any>({
+    id: "",
+    name: "",
+    category: "grocery",
+    unit: "unit",
+    requires_scraping: false,
+    stores: {},
+    editStore: {
+      url: "",
+      upc: "",
+      regular_price: "",
+      sale_price: "",
+      is_on_sale: false,
+      valid_until: "",
+      track_pricing: false,
+      external_name: ""
+    }
+  });
+
   // Scraper console states
   const [scraperStatus, setScraperStatus] = useState<{
     isRunning: boolean;
@@ -382,27 +417,31 @@ export default function AdminPage() {
     let cancelled = false;
     async function load() {
       try {
-        const [itemsRes, configRes, pricesRes] = await Promise.all([
+        const [itemsRes, configRes, pricesRes, catalogRes] = await Promise.all([
           fetch("/api/regular-items"),
           fetch("/api/scrape-config"),
           fetch("/api/prices"),
+          fetch("/api/catalog"),
         ]);
         const itemsData = await itemsRes.json();
         const configData = await configRes.json();
         const pricesData = await pricesRes.json();
+        const catalogData = await catalogRes.json();
         if (!cancelled) {
           setItems(itemsData.items || []);
           const normalizedConfig = ensureDefaultStores(configData);
           setScrapeConfig(normalizedConfig);
           setPrices(pricesData.prices || {});
+          setCatalog(catalogData || { stores: {}, items: [] });
         }
-      } catch {
-        // silently fail
+      } catch (err) {
+        console.error("Error loading admin system datasets:", err);
       } finally {
         if (!cancelled) {
           setLoading(false);
           setScrapeLoading(false);
           setPricesLoading(false);
+          setCatalogLoading(false);
         }
       }
     }
@@ -411,6 +450,188 @@ export default function AdminPage() {
       cancelled = true;
     };
   }, []);
+
+  const fetchCatalog = async () => {
+    try {
+      setCatalogLoading(true);
+      const res = await fetch("/api/catalog");
+      if (res.ok) {
+        const data = await res.json();
+        setCatalog(data || { stores: {}, items: [] });
+      }
+    } catch (err) {
+      console.error("Failed to fetch catalog:", err);
+    } finally {
+      setCatalogLoading(false);
+    }
+  };
+
+  const saveCatalog = async (updatedCatalog: any) => {
+    try {
+      setCatalogLoading(true);
+      const response = await fetch("/api/catalog", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(updatedCatalog),
+      });
+      if (response.ok) {
+        const data = await response.json();
+        setCatalog(data.catalog || updatedCatalog);
+        showVisualMessage("Combined catalog saved successfully!");
+        return true;
+      } else {
+        showVisualMessage("Failed to save combined catalog to server");
+      }
+    } catch (err) {
+      console.error("Error saving catalog:", err);
+      showVisualMessage("Failed to save combined catalog to server");
+    } finally {
+      setCatalogLoading(false);
+    }
+    return false;
+  };
+
+  const [isAddingCatalogItem, setIsAddingCatalogItem] = useState(false);
+  const [visibleCatalogCount, setVisibleCatalogCount] = useState(30);
+
+  const handleOpenEditCatalog = (item: any) => {
+    setIsAddingCatalogItem(false);
+    setEditingCatalogItem(item);
+    
+    // Choose first store key if stores exist, otherwise default to "foodbasics"
+    const existingStoreKeys = Object.keys(item.stores || {});
+    const initialStore = existingStoreKeys.length > 0 ? existingStoreKeys[0] : "foodbasics";
+    setSelectedCatalogStore(initialStore);
+    
+    setCatalogItemForm({
+      id: item.id || "",
+      name: item.name || "",
+      category: item.category || "grocery",
+      unit: item.unit || "unit",
+      requires_scraping: item.requires_scraping === true,
+      stores: JSON.parse(JSON.stringify(item.stores || {}))
+    });
+  };
+
+  const handleOpenAddCatalog = () => {
+    setIsAddingCatalogItem(true);
+    setEditingCatalogItem(null);
+    setSelectedCatalogStore("foodbasics");
+    setCatalogItemForm({
+      id: `catalog-${Date.now()}-${Math.random().toString(36).substring(2, 7)}`,
+      name: "",
+      category: "grocery",
+      unit: "unit",
+      requires_scraping: false,
+      stores: {}
+    });
+  };
+
+  const handleStoreFieldChange = (field: string, val: any) => {
+    setCatalogItemForm((prev: any) => {
+      const updatedStores = { ...prev.stores };
+      const currentStore = updatedStores[selectedCatalogStore] || {
+        url: "",
+        upc: "",
+        regular_price: "",
+        sale_price: "",
+        is_on_sale: false,
+        valid_until: "",
+        track_pricing: false,
+        external_name: ""
+      };
+      updatedStores[selectedCatalogStore] = {
+        ...currentStore,
+        [field]: val
+      };
+      return {
+        ...prev,
+        stores: updatedStores
+      };
+    });
+  };
+
+  const removeStoreFromItem = (storeKey: string) => {
+    if (confirm(`Remove store-specific price rules & tracking for "${storeKey}" on this item?`)) {
+      setCatalogItemForm((prev: any) => {
+        const updatedStores = { ...prev.stores };
+        delete updatedStores[storeKey];
+        return {
+          ...prev,
+          stores: updatedStores
+        };
+      });
+      showVisualMessage(`Store "${storeKey}" config removed from form. Apply changes by clicking "Save Catalog Product Entry".`);
+    }
+  };
+
+  const deleteCatalogItem = async (itemId: string, itemName: string) => {
+    if (confirm(`Are you sure you want to completely delete the catalog item "${itemName}"? This will prune all store-specific metadata, URLs, and scraper configurations.`)) {
+      if (!catalog) return;
+      const updatedItems = catalog.items.filter((item: any) => item.id !== itemId);
+      const updatedCatalog = { ...catalog, items: updatedItems };
+      await saveCatalog(updatedCatalog);
+    }
+  };
+
+  const saveCatalogItemSubmit = async (e: any) => {
+    e.preventDefault();
+    if (!catalogItemForm.name.trim()) {
+      showVisualMessage("Product Name is required!");
+      return;
+    }
+
+    if (!catalog) return;
+
+    // Standardize catalog item entries
+    const newItem = {
+      id: catalogItemForm.id || `catalog-${Date.now()}-${Math.random().toString(36).substring(2, 7)}`,
+      name: catalogItemForm.name.trim(),
+      category: catalogItemForm.category || "grocery",
+      unit: catalogItemForm.unit || "unit",
+      requires_scraping: !!catalogItemForm.requires_scraping,
+      stores: {} as Record<string, any>
+    };
+
+    // Clean pricing fields inside stores dictionary
+    for (const [storeKey, storeDetails] of Object.entries(catalogItemForm.stores)) {
+      const s = storeDetails as any;
+      
+      const regPrice = typeof s.regular_price === "number" ? s.regular_price : 
+                       (s.regular_price && String(s.regular_price).trim() !== "" ? parseFloat(s.regular_price) : null);
+      
+      const salePrice = typeof s.sale_price === "number" ? s.sale_price : 
+                        (s.sale_price && String(s.sale_price).trim() !== "" ? parseFloat(s.sale_price) : null);
+      
+      const isOnSale = s.is_on_sale === true || s.is_on_sale === 1 || String(s.is_on_sale) === "true" ? 1 : 0;
+      const trackPricing = s.track_pricing === true || s.track_pricing === 1 || String(s.track_pricing) === "true";
+
+      newItem.stores[storeKey] = {
+        url: s.url || "",
+        upc: s.upc || "",
+        regular_price: isNaN(regPrice as number) ? null : regPrice,
+        sale_price: isNaN(salePrice as number) ? null : salePrice,
+        is_on_sale: isOnSale,
+        valid_until: s.valid_until || "",
+        track_pricing: trackPricing,
+        external_name: s.external_name || ""
+      };
+    }
+
+    let updatedItems;
+    if (editingCatalogItem) {
+      updatedItems = catalog.items.map((item: any) => item.id === editingCatalogItem.id ? newItem : item);
+    } else {
+      updatedItems = [newItem, ...catalog.items];
+    }
+
+    const updatedCatalog = { ...catalog, items: updatedItems };
+    const success = await saveCatalog(updatedCatalog);
+    if (success) {
+      setEditingCatalogItem(null);
+      setIsAddingCatalogItem(false);
+    }
+  };
 
   const saveCatalogItems = async (updatedItems: RegularItem[]) => {
     try {
@@ -1229,6 +1450,39 @@ export default function AdminPage() {
     return acc;
   }, {} as Record<string, RegularItem[]>);
 
+  // Derive filtered combined-catalog entries
+  const filteredCatalogItems = (catalog?.items || []).filter((item: any) => {
+    if (catalogSearch.trim() !== "") {
+      const q = catalogSearch.toLowerCase();
+      const matchName = item.name?.toLowerCase().includes(q);
+      const matchId = String(item.id)?.toLowerCase().includes(q);
+      const matchStores = Object.entries(item.stores || {}).some(([storeKey, storeDetails]: [string, any]) => {
+        return (
+          storeKey.toLowerCase().includes(q) ||
+          String(storeDetails?.upc)?.toLowerCase().includes(q) ||
+          String(storeDetails?.external_name)?.toLowerCase().includes(q)
+        );
+      });
+      if (!matchName && !matchId && !matchStores) return false;
+    }
+
+    if (catalogScrapedFilter === "scraped" && !item.requires_scraping) return false;
+    if (catalogScrapedFilter === "not-scraped" && item.requires_scraping) return false;
+
+    const anyOnSale = Object.values(item.stores || {}).some((s: any) => {
+      const isExp = s.valid_until && isSaleExpiredAdmin(s.valid_until);
+      return (s.is_on_sale === 1 || s.is_on_sale === true) && !isExp;
+    });
+    if (catalogSaleFilter === "sale" && !anyOnSale) return false;
+    if (catalogSaleFilter === "not-sale" && anyOnSale) return false;
+
+    const anyTracked = Object.values(item.stores || {}).some((s: any) => s.track_pricing === true || s.track_pricing === 1);
+    if (catalogTrackedFilter === "tracked" && !anyTracked) return false;
+    if (catalogTrackedFilter === "not-tracked" && anyTracked) return false;
+
+    return true;
+  });
+
   return (
     <main className="flex-1 bg-[#f9fafb] text-[#111827] min-h-screen font-sans">
       <div className="max-w-4xl mx-auto px-4 py-8">
@@ -1511,7 +1765,7 @@ export default function AdminPage() {
           </div>
 
           {/* Price Check Scraper CRUD Configuration Section */}
-          <div className="bg-white border-2 border-black p-6 shadow-[6px_6px_0px_0px_rgba(0,0,0,1)]">
+          <div className="hidden bg-white border-2 border-black p-6 shadow-[6px_6px_0px_0px_rgba(0,0,0,1)]">
             <div className="flex items-center justify-between mb-4 pb-1.5 border-b-2 border-black">
               <h2 className="text-base font-black uppercase tracking-tight flex items-center gap-2">
                 <LinkIcon className="w-5 h-5 text-emerald-600" /> Price Check Links & URLs
@@ -2367,6 +2621,514 @@ export default function AdminPage() {
             ) : (
               <div className="text-center py-10 border-2 border-dashed border-gray-300 bg-gray-50">
                 <p className="text-sm font-bold text-gray-500">No catalog items match your search filter.</p>
+              </div>
+            )}
+          </div>
+
+          {/* Combined Catalog Registry CRUD Section */}
+          <div className="bg-white border-2 border-black p-6 shadow-[6px_6px_0px_0px_rgba(0,0,0,1)] text-black mt-8">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-4 pb-1.5 border-b-2 border-black">
+              <h2 className="text-base font-black uppercase tracking-tight flex items-center gap-2">
+                <Database className="w-5 h-5 text-indigo-600" /> Combined Catalog Registry Manager (combined-catalog.json)
+              </h2>
+              <button
+                type="button"
+                onClick={handleOpenAddCatalog}
+                className="text-xs font-black uppercase tracking-wider text-black bg-indigo-400 hover:bg-indigo-300 border-2 border-black px-3 py-1 shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] hover:shadow-none hover:translate-x-[1px] hover:translate-y-[1px] transition-all"
+              >
+                + Add Catalog Product
+              </button>
+            </div>
+
+            <p className="text-xs text-gray-500 mb-6 font-medium leading-relaxed">
+              This panel provides complete CRUD controls over your master catalog (<code>combined-catalog.json</code>). You can fine-tune global metrics (Name, category, and scraping required) and store-specific scrape triggers, pricing definitions, and validation dates in one consolidated view.
+            </p>
+
+            {/* Micro Metrics Row */}
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+              <div className="border border-black p-2.5 bg-gray-50 shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]">
+                <span className="text-[10px] font-bold text-gray-400 uppercase tracking-wider block">Total Catalog Items</span>
+                <span className="text-xl font-black">{catalog?.items?.length || 0}</span>
+              </div>
+              <div className="border border-black p-2.5 bg-emerald-50 shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]">
+                <span className="text-[10px] font-bold text-emerald-600 uppercase tracking-wider block">Requires Scraping</span>
+                <span className="text-xl font-black text-emerald-800">
+                  {catalog ? catalog.items.filter((i: any) => i.requires_scraping).length : 0}
+                </span>
+              </div>
+              <div className="border border-black p-2.5 bg-amber-50 shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]">
+                <span className="text-[10px] font-bold text-amber-600 uppercase tracking-wider block">Currently On Sale</span>
+                <span className="text-xl font-black text-amber-800">
+                  {catalog ? catalog.items.filter((item: any) => 
+                    Object.values(item.stores || {}).some((s: any) => (s.is_on_sale === 1 || s.is_on_sale === true) && !(s.valid_until && isSaleExpiredAdmin(s.valid_until)))
+                  ).length : 0}
+                </span>
+              </div>
+              <div className="border border-black p-2.5 bg-indigo-50 shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]">
+                <span className="text-[10px] font-bold text-indigo-600 uppercase tracking-wider block">Tracked Stores</span>
+                <span className="text-xl font-black text-indigo-800">
+                  {catalog ? catalog.items.filter((item: any) => 
+                    Object.values(item.stores || {}).some((s: any) => s.track_pricing === true || s.track_pricing === 1)
+                  ).length : 0}
+                </span>
+              </div>
+            </div>
+
+            {/* Catalog Search & Filters */}
+            <div className="bg-gray-50 border-2 border-black p-4 mb-6 space-y-3">
+              <div className="flex flex-col md:flex-row gap-3">
+                <div className="flex-1 relative">
+                  <Search className="absolute left-3 top-2.5 h-4 w-4 text-gray-400" />
+                  <input
+                    type="text"
+                    placeholder="Search by product name, ID, store key or store UPC..."
+                    value={catalogSearch}
+                    onChange={(e) => {
+                      setCatalogSearch(e.target.value);
+                      setVisibleCatalogCount(30);
+                    }}
+                    className="w-full pl-9 pr-4 py-2 border-2 border-black bg-white font-medium text-xs placeholder-gray-400 focus:outline-none focus:ring-0 text-black leading-tight"
+                  />
+                  {catalogSearch && (
+                    <button
+                      type="button"
+                      onClick={() => setCatalogSearch("")}
+                      className="absolute right-3 top-2 text-xs font-bold text-black border border-black bg-white px-1 hover:bg-gray-100"
+                    >
+                      Clear
+                    </button>
+                  )}
+                </div>
+
+                <div className="grid grid-cols-3 gap-2 w-full md:w-auto">
+                  <div>
+                    <label className="block text-[9px] font-black uppercase text-gray-400 mb-0.5">Scraping</label>
+                    <select
+                      value={catalogScrapedFilter}
+                      onChange={(e) => {
+                        setCatalogScrapedFilter(e.target.value);
+                        setVisibleCatalogCount(30);
+                      }}
+                      className="py-1.5 px-2 border-2 border-black bg-white font-black text-[11px] uppercase tracking-wider leading-relaxed text-black w-full text-xs"
+                    >
+                      <option value="all">All Items</option>
+                      <option value="scraped">Scraped</option>
+                      <option value="not-scraped">Not Scraped</option>
+                    </select>
+                  </div>
+
+                  <div>
+                    <label className="block text-[9px] font-black uppercase text-gray-400 mb-0.5">Sale Status</label>
+                    <select
+                      value={catalogSaleFilter}
+                      onChange={(e) => {
+                        setCatalogSaleFilter(e.target.value);
+                        setVisibleCatalogCount(30);
+                      }}
+                      className="py-1.5 px-2 border-2 border-black bg-white font-black text-[11px] uppercase tracking-wider leading-relaxed text-black w-full text-xs"
+                    >
+                      <option value="all">All Promo</option>
+                      <option value="sale">On Sale</option>
+                      <option value="not-sale">Not On Sale</option>
+                    </select>
+                  </div>
+
+                  <div>
+                    <label className="block text-[9px] font-black uppercase text-gray-400 mb-0.5">Price Tracking</label>
+                    <select
+                      value={catalogTrackedFilter}
+                      onChange={(e) => {
+                        setCatalogTrackedFilter(e.target.value);
+                        setVisibleCatalogCount(30);
+                      }}
+                      className="py-1.5 px-2 border-2 border-black bg-white font-black text-[11px] uppercase tracking-wider leading-relaxed text-black w-full text-xs"
+                    >
+                      <option value="all">All Tracking</option>
+                      <option value="tracked">Tracked</option>
+                      <option value="not-tracked">Not Tracked</option>
+                    </select>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Catalog Item Editing Drawer/Form Container */}
+            {(editingCatalogItem || isAddingCatalogItem) && catalogItemForm && (
+              <form
+                onSubmit={saveCatalogItemSubmit}
+                className="bg-indigo-50 border-2 border-black p-5 mb-6 shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] text-black space-y-4"
+              >
+                <div className="flex items-center justify-between border-b border-black pb-2 mb-2">
+                  <h3 className="text-xs font-black uppercase tracking-wider flex items-center gap-1.5">
+                    {editingCatalogItem ? `✏ Edit Catalog Entry ID: ${catalogItemForm.id}` : `✨ Add New Catalog Entry`}
+                  </h3>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setEditingCatalogItem(null);
+                      setIsAddingCatalogItem(false);
+                    }}
+                    className="p-1 border border-black bg-white hover:bg-gray-100"
+                  >
+                    <X className="w-4 h-4 text-black" />
+                  </button>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+                  {/* Left Column: Global Product Fields */}
+                  <div className="space-y-3 p-3 bg-white border border-black">
+                    <h4 className="text-[10px] font-black uppercase tracking-wider text-indigo-700 pb-1 border-b border-gray-100">
+                      1. Global Product Data (Item Level)
+                    </h4>
+                    
+                    <div>
+                      <label className="block text-[10px] font-bold text-gray-500 uppercase mb-1">Product Title / Name *</label>
+                      <input
+                        type="text"
+                        value={catalogItemForm.name}
+                        onChange={(e) => setCatalogItemForm({ ...catalogItemForm, name: e.target.value })}
+                        placeholder="e.g. Apples Granny Smith"
+                        className="w-full p-2 border-2 border-black font-medium text-xs text-black"
+                        required
+                      />
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-2">
+                      <div>
+                        <label className="block text-[10px] font-bold text-gray-500 uppercase mb-1">Category</label>
+                        <input
+                          type="text"
+                          value={catalogItemForm.category}
+                          onChange={(e) => setCatalogItemForm({ ...catalogItemForm, category: e.target.value })}
+                          placeholder="e.g. Fruit, Dairy, Meat"
+                          className="w-full p-2 border-2 border-black font-medium text-xs text-black"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-[10px] font-bold text-gray-500 uppercase mb-1">Unit</label>
+                        <input
+                          type="text"
+                          value={catalogItemForm.unit}
+                          onChange={(e) => setCatalogItemForm({ ...catalogItemForm, unit: e.target.value })}
+                          placeholder="e.g. unit, g, ml, lb"
+                          className="w-full p-2 border-2 border-black font-medium text-xs text-black"
+                        />
+                      </div>
+                    </div>
+
+                    <div className="pt-2">
+                      <label className="inline-flex items-center gap-2 cursor-pointer select-none">
+                        <input
+                          type="checkbox"
+                          checked={catalogItemForm.requires_scraping}
+                          onChange={(e) => setCatalogItemForm({ ...catalogItemForm, requires_scraping: e.target.checked })}
+                          className="w-4 h-4 accent-indigo-600 border-2 border-black rounded"
+                        />
+                        <span className="text-xs font-extrabold uppercase">Requires Scraper Ingestion</span>
+                      </label>
+                      <p className="text-[9px] text-gray-400 mt-1 leading-normal">
+                        If checked, the scraper subprocess is authorized to automatically periodically scan the linked store URLs to fetch and overwrite pricing fields.
+                      </p>
+                    </div>
+                  </div>
+
+                  {/* Right Column: Store Override and Price Linking */}
+                  <div className="space-y-3 p-3 bg-white border border-black flex flex-col justify-between">
+                    <div>
+                      <div className="flex items-center justify-between pb-1 border-b border-gray-100 mb-2">
+                        <h4 className="text-[10px] font-black uppercase tracking-wider text-amber-700">
+                          2. Store-Specific Overrides
+                        </h4>
+                        
+                        <div className="flex items-center gap-1">
+                          <label className="text-[9px] font-black uppercase text-gray-400">Store:</label>
+                          <select
+                            value={selectedCatalogStore}
+                            onChange={(e) => setSelectedCatalogStore(e.target.value)}
+                            className="p-1 border border-black bg-white font-extrabold text-[10px] uppercase text-black"
+                          >
+                            <option value="foodbasics">Food Basics</option>
+                            <option value="metro">Metro</option>
+                            <option value="loblaws">Loblaws</option>
+                            <option value="nofrills">No Frills</option>
+                          </select>
+                        </div>
+                      </div>
+
+                      <div className="mb-2">
+                        {catalogItemForm.stores?.[selectedCatalogStore] ? (
+                          <div className="bg-emerald-50 text-emerald-800 border border-emerald-300 text-[10px] font-bold px-2 py-1 flex items-center justify-between leading-normal">
+                            <span>● "{storeNames[selectedCatalogStore] || selectedCatalogStore}" pricing link is currently configured.</span>
+                            <button
+                              type="button"
+                              onClick={() => removeStoreFromItem(selectedCatalogStore)}
+                              className="text-[9px] font-black text-red-600 underline hover:no-underline"
+                            >
+                              Delete link
+                            </button>
+                          </div>
+                        ) : (
+                          <div className="bg-gray-150 text-gray-600 border border-gray-300 text-[9px] font-bold px-2 py-1 leading-normal">
+                            ✕ No active pricing link for "{storeNames[selectedCatalogStore] || selectedCatalogStore}" in this form. Fill fields below to add it.
+                          </div>
+                        )}
+                      </div>
+
+                      <div className="space-y-2 text-xs">
+                        <div>
+                          <label className="block text-[9px] font-bold text-gray-500 uppercase">Product Scraper URL</label>
+                          <input
+                            type="text"
+                            value={catalogItemForm.stores?.[selectedCatalogStore]?.url || ""}
+                            onChange={(e) => handleStoreFieldChange("url", e.target.value)}
+                            placeholder="e.g. https://www.foodbasics.ca/p/..."
+                            className="w-full p-1.5 border border-black font-medium text-xs text-black"
+                          />
+                        </div>
+
+                        <div className="grid grid-cols-2 gap-2">
+                          <div>
+                            <label className="block text-[9px] font-bold text-gray-500 uppercase">Store UPC/SKU</label>
+                            <input
+                              type="text"
+                              value={catalogItemForm.stores?.[selectedCatalogStore]?.upc || ""}
+                              onChange={(e) => handleStoreFieldChange("upc", e.target.value)}
+                              placeholder="Store Item ID"
+                              className="w-full p-1.5 border border-black font-medium text-xs text-black"
+                            />
+                          </div>
+
+                          <div>
+                            <label className="block text-[9px] font-bold text-gray-500 uppercase">External Scraped Name</label>
+                            <input
+                              type="text"
+                              value={catalogItemForm.stores?.[selectedCatalogStore]?.external_name || ""}
+                              onChange={(e) => handleStoreFieldChange("external_name", e.target.value)}
+                              placeholder="Matches scraper scrape"
+                              className="w-full p-1.5 border border-black font-medium text-xs text-black"
+                            />
+                          </div>
+                        </div>
+
+                        <div className="grid grid-cols-3 gap-2">
+                          <div>
+                            <label className="block text-[9px] font-bold text-gray-500 uppercase">Regular Price</label>
+                            <input
+                              type="text"
+                              value={catalogItemForm.stores?.[selectedCatalogStore]?.regular_price ?? ""}
+                              onChange={(e) => handleStoreFieldChange("regular_price", e.target.value)}
+                              placeholder="0.00"
+                              className="w-full p-1.5 border border-black font-medium text-xs text-black"
+                            />
+                          </div>
+                          <div>
+                            <label className="block text-[9px] font-bold text-gray-500 uppercase">Sale Price</label>
+                            <input
+                              type="text"
+                              value={catalogItemForm.stores?.[selectedCatalogStore]?.sale_price ?? ""}
+                              onChange={(e) => handleStoreFieldChange("sale_price", e.target.value)}
+                              placeholder="0.00"
+                              className="w-full p-1.5 border border-black font-medium text-xs text-black"
+                            />
+                          </div>
+                          <div>
+                            <label className="block text-[9px] font-bold text-gray-500 uppercase">Valid Until (Expiry)</label>
+                            <input
+                              type="text"
+                              value={catalogItemForm.stores?.[selectedCatalogStore]?.valid_until || ""}
+                              onChange={(e) => handleStoreFieldChange("valid_until", e.target.value)}
+                              placeholder="YYYY-MM-DD"
+                              className="w-full p-1.5 border border-black font-medium text-xs text-black"
+                            />
+                          </div>
+                        </div>
+
+                        <div className="flex flex-wrap gap-4 pt-1">
+                          <label className="inline-flex items-center gap-1.5 cursor-pointer">
+                            <input
+                              type="checkbox"
+                              checked={!!catalogItemForm.stores?.[selectedCatalogStore]?.is_on_sale}
+                              onChange={(e) => handleStoreFieldChange("is_on_sale", e.target.checked ? 1 : 0)}
+                              className="w-3.5 h-3.5 accent-amber-600 border border-black rounded"
+                            />
+                            <span className="text-[10px] font-bold uppercase">Mark store on-sale</span>
+                          </label>
+
+                          <label className="inline-flex items-center gap-1.5 cursor-pointer">
+                            <input
+                              type="checkbox"
+                              checked={!!catalogItemForm.stores?.[selectedCatalogStore]?.track_pricing}
+                              onChange={(e) => handleStoreFieldChange("track_pricing", e.target.checked)}
+                              className="w-3.5 h-3.5 accent-amber-600 border border-black rounded"
+                            />
+                            <span className="text-[10px] font-bold uppercase">Track Store prices</span>
+                          </label>
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="pt-2 border-t border-gray-100 flex items-center justify-end gap-2 text-xs">
+                      {catalogItemForm.stores?.[selectedCatalogStore] && (
+                        <button
+                          type="button"
+                          onClick={() => removeStoreFromItem(selectedCatalogStore)}
+                          className="bg-white hover:bg-red-50 text-red-600 font-bold border border-red-500 px-2 py-1 text-[10px] uppercase"
+                        >
+                          Purge {storeNames[selectedCatalogStore] || selectedCatalogStore} Link
+                        </button>
+                      )}
+                    </div>
+                  </div>
+                </div>
+
+                <div className="flex items-center justify-end gap-3 pt-3 border-t border-black">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setEditingCatalogItem(null);
+                      setIsAddingCatalogItem(false);
+                    }}
+                    className="text-xs font-black uppercase tracking-wider text-black bg-white hover:bg-gray-100 border-2 border-black px-4 py-2 shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] hover:shadow-none hover:translate-x-[1px] hover:translate-y-[1px] transition-all"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="submit"
+                    className="text-xs font-black uppercase tracking-wider text-white bg-indigo-600 hover:bg-indigo-500 border-2 border-black px-4 py-2 shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] hover:shadow-none hover:translate-x-[1px] hover:translate-y-[1px] transition-all flex items-center gap-1"
+                  >
+                    <Save className="w-4 h-4 text-white" /> Save Catalog Product Entry
+                  </button>
+                </div>
+              </form>
+            )}
+
+            {/* Catalog Grid View */}
+            {catalogLoading ? (
+              <div className="flex items-center justify-center py-12">
+                <RefreshCw className="animate-spin w-8 h-8 text-indigo-500" />
+                <span className="ml-2 font-bold text-sm">Synchronizing Catalog Payload...</span>
+              </div>
+            ) : filteredCatalogItems.length > 0 ? (
+              <div className="space-y-3">
+                <div className="max-h-[500px] overflow-y-auto border-2 border-black rounded-sm custom-scrollbar bg-white p-2">
+                  <table className="w-full text-left text-xs border-collapse">
+                    <thead>
+                      <tr className="bg-indigo-50 border-b-2 border-black text-[10px] font-black uppercase text-indigo-900 tracking-wider">
+                        <th className="p-2 border-r border-black">Product Details</th>
+                        <th className="p-2 border-r border-black">Scraping</th>
+                        <th className="p-2 border-r border-black">Configured Retailers & Pricing Details</th>
+                        <th className="p-2 text-right">Actions</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {filteredCatalogItems.slice(0, visibleCatalogCount).map((item: any) => {
+                        const storeKeys = Object.keys(item.stores || {});
+                        return (
+                          <tr key={item.id} className="border-b border-black hover:bg-indigo-50/20 text-black">
+                            <td className="p-2.5 border-r border-black leading-normal align-top max-w-[200px]">
+                              <span className="font-extrabold text-[#111827] text-xs block">{item.name}</span>
+                              <span className="text-[10px] text-gray-500 font-mono block">ID: {item.id}</span>
+                              <div className="flex items-center gap-1.5 mt-1">
+                                <span className="bg-gray-100 text-gray-800 text-[9px] font-bold px-1.5 py-0.5 border border-gray-400 capitalize whitespace-nowrap">
+                                  {item.category || "Grocery"}
+                                </span>
+                                <span className="bg-gray-100 text-gray-800 text-[9px] font-bold px-1.5 py-0.5 border border-gray-400 italic whitespace-nowrap">
+                                  {item.unit || "unit"}
+                                </span>
+                              </div>
+                            </td>
+                            <td className="p-2.5 border-r border-black align-top">
+                              {item.requires_scraping ? (
+                                <span className="bg-emerald-100 text-emerald-800 border border-emerald-400 text-[9px] font-black uppercase px-2 py-0.5 select-none block text-center whitespace-nowrap">
+                                  📡 Scraper Active
+                                </span>
+                              ) : (
+                                <span className="bg-gray-100 text-gray-500 border border-gray-300 text-[9px] font-bold uppercase px-2 py-0.5 select-none block text-center whitespace-nowrap">
+                                  Manual Only
+                                </span>
+                              )}
+                            </td>
+                            <td className="p-2.5 border-r border-black align-top leading-normal">
+                              {storeKeys.length > 0 ? (
+                                <div className="flex flex-wrap gap-2">
+                                  {storeKeys.map((storeKey) => {
+                                    const sInfo = item.stores[storeKey];
+                                    const isPromo = (sInfo.is_on_sale === 1 || sInfo.is_on_sale === true) && !(sInfo.valid_until && isSaleExpiredAdmin(sInfo.valid_until));
+                                    const isTracked = sInfo.track_pricing === true || sInfo.track_pricing === 1;
+                                    return (
+                                      <div
+                                        key={storeKey}
+                                        className={`p-1.5 border border-black rounded-sm max-w-[240px] text-[10px] space-y-0.5 ${
+                                          isPromo ? "bg-amber-50" : "bg-white"
+                                        }`}
+                                      >
+                                        <div className="flex items-center justify-between gap-2 font-extrabold text-[9px] uppercase border-b border-gray-150 pb-0.5">
+                                          <span className="text-black">{storeNames[storeKey] || storeKey}</span>
+                                          {isTracked && <span className="text-[8px] text-green-700 bg-green-50 px-1 border border-green-300">Tracking</span>}
+                                        </div>
+                                        <div className="font-medium text-gray-700 font-mono flex flex-col">
+                                          {sInfo.regular_price != null ? (
+                                            <span>Reg: <strong className="text-black">${Number(sInfo.regular_price).toFixed(2)}</strong></span>
+                                          ) : (
+                                            <span className="text-gray-300">Reg: --</span>
+                                          )}
+                                          {isPromo && sInfo.sale_price != null ? (
+                                            <span className="text-amber-800">
+                                              Sale: <strong className="text-red-650">${Number(sInfo.sale_price).toFixed(2)}</strong>
+                                            </span>
+                                          ) : null}
+                                          {sInfo.upc && <span className="text-[8px] text-gray-400">UPC: {sInfo.upc}</span>}
+                                        </div>
+                                      </div>
+                                    );
+                                  })}
+                                </div>
+                              ) : (
+                                <span className="text-[10px] text-gray-400 italic font-medium">No store specific definitions mapped</span>
+                              )}
+                            </td>
+                            <td className="p-2.5 align-top text-right space-y-1">
+                              <div className="flex justify-end items-center gap-1">
+                                <button
+                                  type="button"
+                                  onClick={() => handleOpenEditCatalog(item)}
+                                  className="p-1 border border-black bg-white hover:bg-indigo-50 text-black flex items-center gap-1 text-[10px] font-black uppercase tracking-wider"
+                                  title="Edit catalog details"
+                                >
+                                  <Edit2 className="w-3" /> Edit
+                                </button>
+                                <button
+                                  type="button"
+                                  onClick={() => deleteCatalogItem(item.id, item.name)}
+                                  className="p-1 border border-black bg-white hover:bg-red-50 text-red-600 flex items-center gap-1 text-[10px] font-black uppercase tracking-wider"
+                                  title="Purge catalog item"
+                                >
+                                  <Trash2 className="w-3" /> Delete
+                                </button>
+                              </div>
+                            </td>
+                          </tr>
+                        );
+                      })}
+                    </tbody>
+                  </table>
+                </div>
+
+                {filteredCatalogItems.length > visibleCatalogCount && (
+                  <div className="flex justify-center pt-2">
+                    <button
+                      type="button"
+                      onClick={() => setVisibleCatalogCount((prev) => prev + 30)}
+                      className="text-xs font-black uppercase bg-white hover:bg-gray-150 border-2 border-black pr-4 pl-4 pt-1.5 pb-1.5 shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] active:shadow-none active:translate-x-[1px] active:translate-y-[1px] transition-all"
+                    >
+                      Load More Products (+30)
+                    </button>
+                  </div>
+                )}
+              </div>
+            ) : (
+              <div className="text-center py-10 border-2 border-dashed border-gray-300 bg-gray-50">
+                <p className="text-sm font-bold text-gray-500">No catalog items found matching filters.</p>
               </div>
             )}
           </div>

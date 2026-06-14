@@ -21,6 +21,24 @@ interface VersionEntry {
 
 const VERSIONS: VersionEntry[] = [
   {
+    version: "1.4.5",
+    date: "June 2026",
+    type: "patch",
+    title: "Unified Master Catalog & Scraper Configuration",
+    changes: [
+      {
+        icon: <Database className="w-4 h-4 text-emerald-600" />,
+        category: "Master Catalog CRUD Core",
+        description: "Implemented a full-featured, live CRUD manager for combined-catalog.json, allowing admins to add products, adjust categories, and instantly define URL maps directly from the UI.",
+      },
+      {
+        icon: <Layout className="w-4 h-4 text-emerald-600" />,
+        category: "Interface Streamlining",
+        description: "Safely hid the outdated 'Price Check Links & URLs' configuration block since product price mapping rules and url paths are now fully consolidated under the new Combined Catalog Manager.",
+      },
+    ],
+  },
+  {
     version: "1.4.4",
     date: "June 2026",
     type: "patch",
