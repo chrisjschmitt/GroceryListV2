@@ -21,6 +21,50 @@ interface VersionEntry {
 
 const VERSIONS: VersionEntry[] = [
   {
+    version: "1.4.8",
+    date: "June 2026",
+    type: "patch",
+    title: "Grocery List Catalog Unit Selector Integration",
+    changes: [
+      {
+        icon: <Database className="w-4 h-4 text-emerald-600" />,
+        category: "Catalog CRUD Enhancement",
+        description: "Added a versatile Unit dropdown picker to the top Quick Catalog Item Creator and inline edit badges inside the Grocery List Catalog CRUD panel, allowing participants to save correct base units directly.",
+      },
+    ],
+  },
+  {
+    version: "1.4.7",
+    date: "June 2026",
+    type: "patch",
+    title: "Robust Store Fields Checkbox State Synchronization",
+    changes: [
+      {
+        icon: <Sparkles className="w-4 h-4 text-emerald-600" />,
+        category: "State Preservation",
+        description: "Fixed a bug where checking/unchecking 'Track Store Prices' would clear the checkbox status for 'Link is Verified Active' under catalog store edit forms by ensuring default and loaded parameters are thoroughly merged on edit transitions.",
+      },
+    ],
+  },
+  {
+    version: "1.4.6",
+    date: "June 2026",
+    type: "patch",
+    title: "Unified Single-Source-of-Truth Catalog Integration",
+    changes: [
+      {
+        icon: <Database className="w-4 h-4 text-emerald-600" />,
+        category: "Single Data Store Integration",
+        description: "Unified the general regular items and the master combined catalog into a single data source logic. Synchronized catalog changes instantly with the main page's Item Catalog form.",
+      },
+      {
+        icon: <Sparkles className="w-4 h-4 text-emerald-600" />,
+        category: "Smart Unit Mapping",
+        description: "Enabled dynamic unit mappings when selecting items from the catalog, ensuring they retain their proper unit (e.g. g, ml, lb, custom types) when added to the Shopping List.",
+      },
+    ],
+  },
+  {
     version: "1.4.5",
     date: "June 2026",
     type: "patch",

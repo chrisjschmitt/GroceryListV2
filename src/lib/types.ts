@@ -34,6 +34,7 @@ export interface RegularItem {
   category: string;
   name: string;
   selected: boolean;
+  unit?: string;
 }
 
 export interface StoreInfo {

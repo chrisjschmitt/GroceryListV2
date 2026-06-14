@@ -407,7 +407,7 @@ export function useOfflineStore(): OfflineStore {
     const newItems = selected.filter((s) => !currentNames.has(s.name.toLowerCase()));
 
     for (const ri of newItems) {
-      await addGroceryItem(ri.name, 1, "unit", ri.category);
+      await addGroceryItem(ri.name, 1, (ri as any).unit || "unit", ri.category);
     }
 
     const allRegular = await localGetRegularItems();

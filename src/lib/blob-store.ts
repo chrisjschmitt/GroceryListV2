@@ -194,11 +194,41 @@ export async function blobSetGroceryItems(items: GroceryItem[]): Promise<void> {
 }
 
 export async function blobGetRegularItems(): Promise<RegularItem[]> {
-  return readBlob<RegularItem[]>(REGULAR_BLOB, []);
+  const catalog = await blobGetCombinedCatalog();
+  return catalog.items as any;
 }
 
 export async function blobSetRegularItems(items: RegularItem[]): Promise<void> {
-  await writeBlob(REGULAR_BLOB, items);
+  const catalog = await blobGetCombinedCatalog();
+  
+  const existingMap = new Map<string, any>();
+  for (const item of catalog.items) {
+    existingMap.set(item.id, item);
+  }
+  
+  const updatedItems = items.map((updatedItem) => {
+    const existing = existingMap.get(updatedItem.id) || catalog.items.find(i => i.name.toLowerCase() === updatedItem.name.toLowerCase());
+    if (existing) {
+      return {
+        ...existing,
+        name: updatedItem.name,
+        category: updatedItem.category || existing.category || "grocery",
+        unit: (updatedItem as any).unit || existing.unit || "unit",
+      };
+    } else {
+      return {
+        id: updatedItem.id || `catalog-${Date.now()}-${Math.random().toString(36).substring(2, 7)}`,
+        name: updatedItem.name,
+        category: updatedItem.category || "grocery",
+        unit: (updatedItem as any).unit || "unit",
+        requires_scraping: false,
+        stores: {},
+      };
+    }
+  });
+
+  catalog.items = updatedItems;
+  await writeBlob(COMBINED_CATALOG_BLOB, catalog);
 }
 
 export async function blobGetSyncMeta(): Promise<SyncMetadata | null> {

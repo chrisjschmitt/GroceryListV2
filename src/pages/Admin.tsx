@@ -172,6 +172,8 @@ export default function AdminPage() {
   const [newGlobalCategory, setNewGlobalCategory] = useState("");
   const [newGlobalCustomCat, setNewGlobalCustomCat] = useState("");
   const [globalCatIsCustom, setGlobalCatIsCustom] = useState(false);
+  const [newGlobalUnit, setNewGlobalUnit] = useState("unit");
+  const [editCatalogUnit, setEditCatalogUnit] = useState("unit");
 
   const [scrapeMsg, setScrapeMsg] = useState<string | null>(null);
   const [catalogSearch, setCatalogSearch] = useState("");
@@ -548,7 +550,7 @@ export default function AdminPage() {
   const handleStoreFieldChange = (field: string, val: any) => {
     setCatalogItemForm((prev: any) => {
       const updatedStores = { ...prev.stores };
-      const currentStore = updatedStores[selectedCatalogStore] || {
+      const defaultStoreObj = {
         url: "",
         upc: "",
         regular_price: "",
@@ -558,6 +560,10 @@ export default function AdminPage() {
         track_pricing: true,
         external_name: "",
         is_verified: false
+      };
+      const currentStore = {
+        ...defaultStoreObj,
+        ...(updatedStores[selectedCatalogStore] || {})
       };
       updatedStores[selectedCatalogStore] = {
         ...currentStore,
@@ -997,6 +1003,7 @@ export default function AdminPage() {
       category: targetCategory,
       name: trimmedFormName,
       selected: false,
+      unit: newGlobalUnit,
     };
 
     const updated = [...items, newItem];
@@ -1005,6 +1012,7 @@ export default function AdminPage() {
       setNewGlobalCategory("");
       setNewGlobalCustomCat("");
       setGlobalCatIsCustom(false);
+      setNewGlobalUnit("unit");
     }
   };
 
@@ -1145,6 +1153,7 @@ export default function AdminPage() {
   const handleStartEditCatalog = (item: RegularItem) => {
     setEditingCatalogId(item.id);
     setEditCatalogName(item.name);
+    setEditCatalogUnit(item.unit || "unit");
   };
 
   const handleEditCatalogItemSubmit = async (id: string) => {
@@ -1155,7 +1164,7 @@ export default function AdminPage() {
     }
 
     const updated = items.map(item => 
-      item.id === id ? { ...item, name: trimmed } : item
+      item.id === id ? { ...item, name: trimmed, unit: editCatalogUnit } : item
     );
 
     if (await saveCatalogItems(updated)) {
@@ -2462,9 +2471,9 @@ export default function AdminPage() {
             </div>
 
             {/* Top-Level global category item creator */}
-            <div className="bg-emerald-50 border-2 border-black p-4 mb-6 shadow-[3px_3px_0px_0px_rgba(0,0,0,1)]">
-              <span className="text-xs font-black text-emerald-800 uppercase tracking-wider block mb-2">⚡ Quick catalog item creator</span>
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-3">
+            <div className="bg-emerald-50 border-2 border-black p-4 mb-6 shadow-[3px_3px_0px_0px_rgba(0,0,0,1)] text-black">
+              <span className="text-xs font-black text-emerald-800 uppercase tracking-wider block mb-2 font-black">⚡ Quick catalog item creator</span>
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 mb-3">
                 <div>
                   <label className="text-[10px] uppercase font-black tracking-wider text-gray-500 block mb-0.5">Product Name</label>
                   <input
@@ -2511,11 +2520,26 @@ export default function AdminPage() {
                     </select>
                   )}
                 </div>
+                <div>
+                  <label className="text-[10px] uppercase font-black tracking-wider text-gray-500 block mb-0.5">Base Unit</label>
+                  <div className="mb-1.5 mt-0.5 py-0.5">
+                    <span className="text-[10px] font-bold text-[#b45309] uppercase bg-amber-50 px-1 border border-amber-200">Default Shopping List Unit</span>
+                  </div>
+                  <select
+                    value={newGlobalUnit}
+                    onChange={(e) => setNewGlobalUnit(e.target.value)}
+                    className="w-full px-2.5 py-1 text-xs border-2 border-black bg-white focus:outline-none font-bold text-black cursor-pointer"
+                  >
+                    {["unit", "g", "kg", "ml", "l", "lb", "oz", "gal", "dozen", "bunch", "bag", "can", "box", "pack"].map((u) => (
+                      <option key={u} value={u}>{u}</option>
+                    ))}
+                  </select>
+                </div>
               </div>
               <button
                 onClick={handleCreateGlobalItem}
                 disabled={!newGlobalItemName.trim()}
-                className="w-full py-1 text-xs font-black uppercase text-white bg-black hover:bg-emerald-600 disabled:opacity-40 border border-black text-center"
+                className="w-full py-1 text-xs font-black uppercase text-white bg-black hover:bg-emerald-600 disabled:opacity-40 border border-black text-center cursor-pointer"
               >
                 + Save Catalog Product
               </button>
@@ -2580,7 +2604,7 @@ export default function AdminPage() {
 
                           if (isEditingThisItem) {
                             return (
-                              <div key={item.id} className="inline-flex items-center gap-1.5 px-2 py-1 bg-white border border-black shadow-[1.5px_1.5px_0px_0px_rgba(0,0,0,1)]">
+                              <div key={item.id} className="inline-flex items-center gap-1.5 px-2 py-1 bg-white border border-black shadow-[1.5px_1.5px_0px_0px_rgba(0,0,0,1)] text-black">
                                 <input
                                   type="text"
                                   value={editCatalogName}
@@ -2589,9 +2613,18 @@ export default function AdminPage() {
                                     if (e.key === "Enter") handleEditCatalogItemSubmit(item.id);
                                     if (e.key === "Escape") setEditingCatalogId(null);
                                   }}
-                                  className="text-xs outline-none bg-transparent font-bold border-b border-black text-black w-32"
+                                  className="text-xs outline-none bg-transparent font-bold border-b border-black text-black w-28 bg-white"
                                   autoFocus
                                 />
+                                <select
+                                  value={editCatalogUnit}
+                                  onChange={(e) => setEditCatalogUnit(e.target.value)}
+                                  className="text-[10px] font-bold border border-black px-1 py-0.5 bg-white cursor-pointer text-black"
+                                >
+                                  {["unit", "g", "kg", "ml", "l", "lb", "oz", "gal", "dozen", "bunch", "bag", "can", "box", "pack"].map((u) => (
+                                    <option key={u} value={u}>{u}</option>
+                                  ))}
+                                </select>
                                 <button
                                   onClick={() => handleEditCatalogItemSubmit(item.id)}
                                   className="text-emerald-600 hover:text-emerald-800"
@@ -2615,12 +2648,17 @@ export default function AdminPage() {
                               key={item.id}
                               className="inline-flex items-center gap-2 pl-2.5 pr-1.5 py-1 bg-white text-gray-800 text-xs font-bold border border-black shadow-[1.5px_1.5px_0px_0px_rgba(0,0,0,1)] group hover:bg-[#fee2e2]/10 transition-colors"
                             >
-                              <span>{item.name}</span>
+                              <span className="flex items-center gap-1.5 flex-nowrap">
+                                <span className="text-black">{item.name}</span>
+                                <span className="text-[9px] font-black uppercase text-amber-700 bg-amber-50 border border-amber-200 px-1 rounded-sm tracking-wider scale-[0.95]" title="Base Unit">
+                                  {item.unit || "unit"}
+                                </span>
+                              </span>
                               <div className="flex items-center gap-1">
                                 <button
                                   onClick={() => handleStartEditCatalog(item)}
                                   className="text-gray-400 hover:text-[#059669] transition-colors p-0.5 mr-0.5 border border-transparent rounded hover:bg-gray-150"
-                                  title={`Rename ${item.name}`}
+                                  title={`Rename/Edit ${item.name}`}
                                 >
                                   <Edit2 className="w-3 h-3" />
                                 </button>

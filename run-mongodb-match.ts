@@ -11,12 +11,28 @@ async function run() {
 
   // Load regular items
   let regularItems: any[] = [];
-  try {
-    const rawReg = fs.readFileSync(path.join(process.cwd(), "db-storage", "grocerylist-regular-items.json"), "utf8");
-    regularItems = JSON.parse(rawReg);
-    console.log(`Loaded ${regularItems.length} regular catalog items from local storage.`);
-  } catch (err) {
-    console.warn("Could not read local regular-items file, fetching via mock/empty:", err);
+  const regularPath = path.join(process.cwd(), "db-storage", "grocerylist-regular-items.json");
+  const fallbackCatalogPath = path.join(process.cwd(), "db-storage", "grocerylist-combined-catalog.json");
+  
+  if (fs.existsSync(regularPath)) {
+    try {
+      const rawReg = fs.readFileSync(regularPath, "utf8");
+      regularItems = JSON.parse(rawReg);
+      console.log(`Loaded ${regularItems.length} regular catalog items from local storage.`);
+    } catch (err) {
+      console.warn("Could not read local regular-items file, trying unified catalog:", err);
+    }
+  }
+
+  if (regularItems.length === 0 && fs.existsSync(fallbackCatalogPath)) {
+    try {
+      const rawCatalog = fs.readFileSync(fallbackCatalogPath, "utf8");
+      const catalogData = JSON.parse(rawCatalog);
+      regularItems = catalogData.items || [];
+      console.log(`Loaded ${regularItems.length} catalog items from unified combined-catalog.`);
+    } catch (err) {
+      console.error("Could not read unified combined-catalog file either:", err);
+    }
   }
 
   // Load prices.json
