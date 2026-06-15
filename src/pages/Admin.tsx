@@ -535,13 +535,20 @@ export default function AdminPage() {
     const initialStore = existingStoreKeys.length > 0 ? existingStoreKeys[0] : "foodbasics";
     setSelectedCatalogStore(initialStore);
     
+    const sanitizedStores = JSON.parse(JSON.stringify(item.stores || {}));
+    for (const storeKey of Object.keys(sanitizedStores)) {
+      if (sanitizedStores[storeKey] && sanitizedStores[storeKey].url) {
+        sanitizedStores[storeKey].url = ensureHttps(sanitizedStores[storeKey].url);
+      }
+    }
+    
     setCatalogItemForm({
       id: item.id || "",
       name: item.name || "",
       category: item.category || "grocery",
       unit: item.unit || "unit",
       requires_scraping: item.requires_scraping === true,
-      stores: JSON.parse(JSON.stringify(item.stores || {}))
+      stores: sanitizedStores
     });
   };
 
@@ -645,7 +652,7 @@ export default function AdminPage() {
       const isVerified = s.is_verified === true || s.is_verified === 1 || String(s.is_verified) === "true";
 
       newItem.stores[storeKey] = {
-        url: s.url || "",
+        url: s.url ? ensureHttps(s.url) : "",
         upc: s.upc || "",
         regular_price: isNaN(regPrice as number) ? null : regPrice,
         sale_price: isNaN(salePrice as number) ? null : salePrice,
