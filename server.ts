@@ -310,7 +310,9 @@ async function startServer() {
 
       function ensureHttps(url: string): string {
         if (!url) return "";
-        const trimmed = url.trim();
+        let trimmed = url.trim();
+        // Remove surrounding or embedded double quotes/backslashes/single quotes
+        trimmed = trimmed.replace(/["\\']/g, "");
         if (!trimmed) return "";
         if (/^https?:\/\//i.test(trimmed)) {
           return trimmed;
@@ -319,7 +321,7 @@ async function startServer() {
       }
 
       let finalKey = key;
-      let urlToSave = ensureHttps(data.url || data.lookup_url || data.lookupUrl || "");
+      let urlToSave = ensureHttps(data.url || data.lookup_url || data.lookupUrl || data.raw_share_url || "");
 
       const isUrl = (str: string) => {
         if (!str) return false;
@@ -357,6 +359,7 @@ async function startServer() {
       correctedData.upc = finalKey;
       correctedData.url = urlToSave;
       correctedData.lookup_url = urlToSave;
+      correctedData.raw_share_url = data.raw_share_url || urlToSave;
 
       const { db } = await getMongoDatabase();
       const pricesCollection = db.collection("prices");
@@ -397,14 +400,17 @@ async function startServer() {
         { upsert: true }
       );
 
-      if (correctedData.matched_catalog_id) {
+      // Read the logged entry directly from the MongoDB prices table to populate the combined catalog
+      const priceDoc = await pricesCollection.findOne({ _id: finalKey });
+
+      if (priceDoc && priceDoc.matched_catalog_id) {
         try {
           const catalog = await blobGetCombinedCatalog();
-          const catalogItem = catalog.items.find((i: any) => i.id === correctedData.matched_catalog_id);
+          const catalogItem = catalog.items.find((i: any) => i.id === priceDoc.matched_catalog_id);
           if (catalogItem) {
-            const inputUrl = urlToSave;
+            const dbUrl = ensureHttps(priceDoc.lookup_url || priceDoc.url || priceDoc.raw_share_url || "");
             let fStoreKey = "foodbasics";
-            const lowerUrl = inputUrl.toLowerCase();
+            const lowerUrl = dbUrl.toLowerCase();
             if (lowerUrl.includes("metro.ca")) {
               fStoreKey = "metro";
             } else if (lowerUrl.includes("loblaws.ca")) {
@@ -412,7 +418,7 @@ async function startServer() {
             } else if (lowerUrl.includes("nofrills.ca")) {
               fStoreKey = "nofrills";
             } else {
-              const lowerId = String(resolvedStoreId).toLowerCase();
+              const lowerId = String(priceDoc.store_id || "").toLowerCase();
               if (lowerId === "metro") fStoreKey = "metro";
               else if (lowerId === "loblaws") fStoreKey = "loblaws";
               else if (lowerId === "nofrills") fStoreKey = "nofrills";
@@ -420,9 +426,9 @@ async function startServer() {
 
             const existingStoreLink = (catalogItem.stores[fStoreKey] || {}) as any;
 
-            let regVal = typeof data.regular_price === "number" ? data.regular_price : (typeof data.price === "number" ? data.price : (data.regular_price || data.price ? parseFloat(data.regular_price || data.price) : null));
-            let saleVal = typeof data.sale_price === "number" ? data.sale_price : (data.sale_price ? parseFloat(data.sale_price) : null);
-            let isOnSaleVal = data.is_on_sale !== undefined ? (data.is_on_sale ? 1 : 0) : (saleVal !== null ? 1 : 0);
+            let regVal = typeof priceDoc.regular_price === "number" ? priceDoc.regular_price : (priceDoc.regular_price ? parseFloat(priceDoc.regular_price) : null);
+            let saleVal = typeof priceDoc.sale_price === "number" ? priceDoc.sale_price : (priceDoc.sale_price ? parseFloat(priceDoc.sale_price) : null);
+            let isOnSaleVal = priceDoc.is_on_sale !== undefined ? (priceDoc.is_on_sale ? 1 : 0) : (saleVal !== null ? 1 : 0);
 
             if (regVal === null && existingStoreLink.regular_price !== undefined) {
               regVal = existingStoreLink.regular_price;
@@ -430,24 +436,24 @@ async function startServer() {
             if (saleVal === null && existingStoreLink.sale_price !== undefined) {
               saleVal = existingStoreLink.sale_price;
             }
-            if (data.is_on_sale === undefined && existingStoreLink.is_on_sale !== undefined) {
+            if (priceDoc.is_on_sale === undefined && existingStoreLink.is_on_sale !== undefined) {
               isOnSaleVal = existingStoreLink.is_on_sale;
             }
 
             catalogItem.requires_scraping = true;
             catalogItem.stores[fStoreKey] = {
-              url: inputUrl,
-              upc: finalKey,
+              url: dbUrl,
+              upc: priceDoc._id || finalKey,
               regular_price: regVal,
               sale_price: saleVal,
               is_on_sale: isOnSaleVal,
-              external_name: data.item_name || data.config_name || existingStoreLink.external_name || "",
-              track_pricing: data.track_pricing === 1 || data.track_pricing === true || data.track_pricing === "true" || !!existingStoreLink.track_pricing,
-              valid_until: data.valid_until || existingStoreLink.valid_until || ""
+              external_name: priceDoc.item_name || priceDoc.config_name || existingStoreLink.external_name || "",
+              track_pricing: priceDoc.track_pricing === 1 || priceDoc.track_pricing === true || priceDoc.track_pricing === "true" || !!existingStoreLink.track_pricing,
+              valid_until: priceDoc.valid_until || existingStoreLink.valid_until || ""
             };
 
             await blobSetCombinedCatalog(catalog);
-            console.log(`Successfully synced matched item "${catalogItem.name}" link to combined-catalog under store "${fStoreKey}" with pricing fields merged`);
+            console.log(`Successfully synced matched item "${catalogItem.name}" to combined-catalog under store "${fStoreKey}" from MongoDB prices log entry.`);
           }
         } catch (catalogErr) {
           console.error("Error updating combined-catalog in /api/append-grocery:", catalogErr);

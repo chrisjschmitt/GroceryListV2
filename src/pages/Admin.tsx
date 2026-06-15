@@ -76,7 +76,9 @@ const getStoreDisplayName = (storeKey: string) => {
 
 const ensureHttps = (url: string): string => {
   if (!url) return "";
-  const trimmed = url.trim();
+  let trimmed = url.trim();
+  // Strip quotes and backslashes
+  trimmed = trimmed.replace(/["\\']/g, "");
   if (!trimmed) return "";
   if (/^https?:\/\//i.test(trimmed)) {
     return trimmed;
