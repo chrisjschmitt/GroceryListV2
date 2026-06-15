@@ -74,6 +74,16 @@ const getStoreDisplayName = (storeKey: string) => {
   return names[storeKey] || storeKey;
 };
 
+const ensureHttps = (url: string): string => {
+  if (!url) return "";
+  const trimmed = url.trim();
+  if (!trimmed) return "";
+  if (/^https?:\/\//i.test(trimmed)) {
+    return trimmed;
+  }
+  return `https://${trimmed}`;
+};
+
 const getNormalizedStoreKey = (storeId: string) => {
   if (!storeId) return "foodbasics";
   const s = storeId.toLowerCase();
@@ -845,7 +855,7 @@ export default function AdminPage() {
     config.stores[rawKey] = {
       enabled: storeForm.enabled,
       store_name: storeForm.store_name.trim(),
-      base_url: storeForm.base_url.trim(),
+      base_url: ensureHttps(storeForm.base_url),
       postal_code: storeForm.postal_code.trim(),
       store_id: storeForm.store_id.trim() || rawKey,
     };
@@ -1123,7 +1133,7 @@ export default function AdminPage() {
         regular_price: isNaN(regPriceParsed) ? null : regPriceParsed,
         sale_price: isNaN(salePriceParsed) ? null : salePriceParsed,
         is_on_sale: priceForm.is_on_sale ? 1 : 0,
-        lookup_url: priceForm.lookup_url.trim(),
+        lookup_url: ensureHttps(priceForm.lookup_url),
         valid_until: priceForm.valid_until.trim(),
         last_updated: new Date().toISOString()
       }
@@ -1274,7 +1284,7 @@ export default function AdminPage() {
     if (existingItem) {
       if (!existingItem.stores) existingItem.stores = {};
       existingItem.stores[storeKey] = {
-        url: newScrapeItem.url.trim(),
+        url: ensureHttps(newScrapeItem.url),
         upc,
       };
     } else {
@@ -1282,7 +1292,7 @@ export default function AdminPage() {
         name: finalItemName,
         stores: {
           [storeKey]: {
-            url: newScrapeItem.url.trim(),
+            url: ensureHttps(newScrapeItem.url),
             upc,
           }
         }
@@ -1392,20 +1402,20 @@ export default function AdminPage() {
         const conflict = config.items.find(i => i.name.toLowerCase() === finalItemName.toLowerCase() && i.name !== editingScrapeUpc);
         if (conflict) {
           conflict.stores[editingScrapeStoreKey] = {
-            url: editScrapeForm.url.trim(),
+            url: ensureHttps(editScrapeForm.url),
             upc: finalUpc,
           };
           config.items = config.items.filter(i => i.name !== editingScrapeUpc);
         } else {
           itemConfig.name = finalItemName;
           itemConfig.stores[editingScrapeStoreKey] = {
-            url: editScrapeForm.url.trim(),
+            url: ensureHttps(editScrapeForm.url),
             upc: finalUpc,
           };
         }
       } else {
         itemConfig.stores[editingScrapeStoreKey] = {
-          url: editScrapeForm.url.trim(),
+          url: ensureHttps(editScrapeForm.url),
           upc: finalUpc,
         };
       }
@@ -1415,7 +1425,7 @@ export default function AdminPage() {
         name: finalItemName,
         stores: {
           [editingScrapeStoreKey]: {
-            url: editScrapeForm.url.trim(),
+            url: ensureHttps(editScrapeForm.url),
             upc: finalUpc,
           }
         }

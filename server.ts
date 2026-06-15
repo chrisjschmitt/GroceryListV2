@@ -308,8 +308,18 @@ async function startServer() {
         }
       }
 
+      function ensureHttps(url: string): string {
+        if (!url) return "";
+        const trimmed = url.trim();
+        if (!trimmed) return "";
+        if (/^https?:\/\//i.test(trimmed)) {
+          return trimmed;
+        }
+        return `https://${trimmed}`;
+      }
+
       let finalKey = key;
-      let urlToSave = data.url || data.lookup_url || data.lookupUrl || "";
+      let urlToSave = ensureHttps(data.url || data.lookup_url || data.lookupUrl || "");
 
       const isUrl = (str: string) => {
         if (!str) return false;
@@ -329,7 +339,7 @@ async function startServer() {
       };
 
       if (isUrl(key)) {
-        urlToSave = key.trim();
+        urlToSave = ensureHttps(key);
         const extracted = extractUpcFromUrl(key);
         if (extracted) {
           finalKey = extracted;
