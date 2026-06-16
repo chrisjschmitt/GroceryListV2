@@ -40,6 +40,7 @@ const getSearchUrlForStore = (storeKey: string, itemName: string, scrapeConfig?:
       if (storeKey === "metro") return `https://www.metro.ca/en/search?filter=${enc}`;
       if (storeKey === "loblaws") return `https://www.loblaws.ca/search?search-bar=${enc}`;
       if (storeKey === "nofrills") return `https://www.nofrills.ca/search?search-bar=${enc}`;
+      if (storeKey === "freshco") return `https://freshco.com/search?q=${enc}`;
       return `${store.base_url}/search?q=${enc}`;
     }
   }
@@ -48,6 +49,7 @@ const getSearchUrlForStore = (storeKey: string, itemName: string, scrapeConfig?:
     case "metro": return `https://www.metro.ca/en/search?filter=${enc}`;
     case "loblaws": return `https://www.loblaws.ca/search?search-bar=${enc}`;
     case "nofrills": return `https://www.nofrills.ca/search?search-bar=${enc}`;
+    case "freshco": return `https://freshco.com/search?q=${enc}`;
     default: return `https://www.google.com/search?q=${encodeURIComponent(itemName + ' ' + storeKey)}`;
   }
 };
@@ -59,7 +61,8 @@ const getStoreDisplayNameDef = (scrapeConfig: any, storeKey: string) => {
     foodbasics: "Food Basics",
     metro: "Metro",
     loblaws: "Loblaws",
-    nofrills: "No Frills"
+    nofrills: "No Frills",
+    freshco: "FreshCo"
   };
   return names[storeKey] || storeKey;
 };
@@ -69,7 +72,8 @@ const getStoreDisplayName = (storeKey: string) => {
     foodbasics: "Food Basics",
     metro: "Metro",
     loblaws: "Loblaws",
-    nofrills: "No Frills"
+    nofrills: "No Frills",
+    freshco: "FreshCo"
   };
   return names[storeKey] || storeKey;
 };
@@ -111,7 +115,8 @@ const storeNames: Record<string, string> = {
   foodbasics: "Food Basics",
   metro: "Metro",
   loblaws: "Loblaws",
-  nofrills: "No Frills"
+  nofrills: "No Frills",
+  freshco: "FreshCo"
 };
 
 export default function AdminPage() {
@@ -131,7 +136,8 @@ export default function AdminPage() {
       foodbasics: "Food Basics",
       metro: "Metro",
       loblaws: "Loblaws",
-      nofrills: "No Frills"
+      nofrills: "No Frills",
+      freshco: "FreshCo"
     };
     if (scrapeConfig?.stores) {
       Object.entries(scrapeConfig.stores).forEach(([key, sObj]: [string, any]) => {
@@ -799,6 +805,15 @@ export default function AdminPage() {
         store_id: "nofrills",
       };
     }
+    if (!updated.stores.freshco) {
+      updated.stores.freshco = {
+        enabled: true,
+        store_name: "FreshCo",
+        base_url: "https://freshco.com",
+        postal_code: "K7H3C6",
+        store_id: "freshco",
+      };
+    }
     return updated;
   };
 
@@ -910,13 +925,15 @@ export default function AdminPage() {
         foodbasics: "Food Basics",
         metro: "Metro",
         loblaws: "Loblaws",
-        nofrills: "No Frills"
+        nofrills: "No Frills",
+        freshco: "FreshCo"
       };
       const baseUrls: Record<string, string> = {
         foodbasics: "https://www.foodbasics.ca",
         metro: "https://www.metro.ca",
         loblaws: "https://www.loblaws.ca",
-        nofrills: "https://www.nofrills.ca"
+        nofrills: "https://www.nofrills.ca",
+        freshco: "https://freshco.com"
       };
       config.stores[currentStoreKey] = {
         enabled: true,
@@ -1262,13 +1279,15 @@ export default function AdminPage() {
       foodbasics: "Food Basics",
       metro: "Metro",
       loblaws: "Loblaws",
-      nofrills: "No Frills"
+      nofrills: "No Frills",
+      freshco: "FreshCo"
     };
     const baseUrls: Record<string, string> = {
       foodbasics: "https://www.foodbasics.ca",
       metro: "https://www.metro.ca",
       loblaws: "https://www.loblaws.ca",
-      nofrills: "https://www.nofrills.ca"
+      nofrills: "https://www.nofrills.ca",
+      freshco: "https://freshco.com"
     };
 
     if (!config.stores[storeKey]) {

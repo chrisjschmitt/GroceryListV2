@@ -377,17 +377,35 @@ async function startServer() {
         const existingStoreId = existingDoc?.store_id || null;
         const existingStoreName = existingDoc?.store_name || null;
 
-        const resolvedStoreId = data.store_id || req.body.store_id || existingStoreId || "7923194";
+        const dbUrl = ensureHttps(data.lookup_url || data.url || data.raw_share_url || req.body.lookup_url || "");
+        const lowerUrl = dbUrl.toLowerCase();
+
+        let resolvedStoreId = data.store_id || req.body.store_id || existingStoreId;
+        if (!resolvedStoreId) {
+          if (lowerUrl.includes("metro.ca")) resolvedStoreId = "metro";
+          else if (lowerUrl.includes("loblaws.ca")) resolvedStoreId = "loblaws";
+          else if (lowerUrl.includes("nofrills.ca")) resolvedStoreId = "nofrills";
+          else if (lowerUrl.includes("freshco")) resolvedStoreId = "freshco";
+          else resolvedStoreId = "7923194"; // foodbasics
+        }
+
         let resolvedStoreName = "Food Basics";
         const lowerStoreId = String(resolvedStoreId).toLowerCase();
         if (lowerStoreId === "7923194" || lowerStoreId === "foodbasics") {
-          resolvedStoreName = "Food Basics";
+          if (lowerUrl.includes("freshco")) {
+            resolvedStoreId = "freshco";
+            resolvedStoreName = "FreshCo";
+          } else {
+            resolvedStoreName = "Food Basics";
+          }
         } else if (lowerStoreId === "metro") {
           resolvedStoreName = "Metro";
         } else if (lowerStoreId === "loblaws") {
           resolvedStoreName = "Loblaws";
         } else if (lowerStoreId === "nofrills") {
           resolvedStoreName = "No Frills";
+        } else if (lowerStoreId === "freshco" || lowerStoreId.includes("freshco")) {
+          resolvedStoreName = "FreshCo";
         } else {
           resolvedStoreName = data.store_name || req.body.store_name || existingStoreName || "Food Basics";
         }
@@ -422,7 +440,17 @@ async function startServer() {
         console.warn("MongoDB write skipped in append-grocery (using local fallback emulation):", dbErr.message || dbErr);
 
         // Local fallback emulation: construct priceDoc directly from request/correctedData
-        const resolvedStoreId = data.store_id || req.body.store_id || "7923194";
+        const dbUrl = ensureHttps(data.lookup_url || data.url || data.raw_share_url || req.body.lookup_url || "");
+        const lowerUrl = dbUrl.toLowerCase();
+
+        let resolvedStoreId = data.store_id || req.body.store_id || "7923194";
+        if (resolvedStoreId === "7923194" || resolvedStoreId === "foodbasics") {
+          if (lowerUrl.includes("metro.ca")) resolvedStoreId = "metro";
+          else if (lowerUrl.includes("loblaws.ca")) resolvedStoreId = "loblaws";
+          else if (lowerUrl.includes("nofrills.ca")) resolvedStoreId = "nofrills";
+          else if (lowerUrl.includes("freshco")) resolvedStoreId = "freshco";
+        }
+
         let resolvedStoreName = "Food Basics";
         const lowerStoreId = String(resolvedStoreId).toLowerCase();
         if (lowerStoreId === "7923194" || lowerStoreId === "foodbasics") {
@@ -433,6 +461,8 @@ async function startServer() {
           resolvedStoreName = "Loblaws";
         } else if (lowerStoreId === "nofrills") {
           resolvedStoreName = "No Frills";
+        } else if (lowerStoreId === "freshco" || lowerStoreId.includes("freshco")) {
+          resolvedStoreName = "FreshCo";
         } else {
           resolvedStoreName = data.store_name || req.body.store_name || "Food Basics";
         }
@@ -461,11 +491,14 @@ async function startServer() {
               fStoreKey = "loblaws";
             } else if (lowerUrl.includes("nofrills.ca")) {
               fStoreKey = "nofrills";
+            } else if (lowerUrl.includes("freshco")) {
+              fStoreKey = "freshco";
             } else {
               const lowerId = String(priceDoc.store_id || "").toLowerCase();
               if (lowerId === "metro") fStoreKey = "metro";
               else if (lowerId === "loblaws") fStoreKey = "loblaws";
               else if (lowerId === "nofrills") fStoreKey = "nofrills";
+              else if (lowerId === "freshco" || lowerId.includes("freshco")) fStoreKey = "freshco";
             }
 
             const existingStoreLink = (catalogItem.stores[fStoreKey] || {}) as any;

@@ -544,6 +544,17 @@ export function migrateScrapeConfig(config: any): ScrapeConfig {
     };
   }
 
+  // Ensure freshco exists as a store
+  if (!migrated.stores.freshco) {
+    migrated.stores.freshco = {
+      enabled: true,
+      store_name: "FreshCo",
+      base_url: "https://freshco.com",
+      postal_code: "K7H3C6",
+      store_id: "freshco",
+    };
+  }
+
   return migrated;
 }
 
@@ -746,6 +757,13 @@ export async function blobGetCombinedCatalog(): Promise<CombinedCatalog> {
     base_url: "https://www.nofrills.ca",
     postal_code: "K7H3C6",
     store_id: "nofrills",
+  };
+  catalog.stores.freshco = {
+    enabled: true,
+    store_name: "FreshCo",
+    base_url: "https://freshco.com",
+    postal_code: "K7H3C6",
+    store_id: "freshco",
   };
 
   if (oldConfig && oldConfig.stores && typeof oldConfig.stores === "object") {

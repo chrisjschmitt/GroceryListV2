@@ -103,6 +103,8 @@ function getSearchUrlForStore(storeKey: string, itemName: string): string {
       return `https://www.loblaws.ca/search?search-bar=${encodedName}`;
     case "nofrills":
       return `https://www.nofrills.ca/search?search-bar=${encodedName}`;
+    case "freshco":
+      return `https://freshco.com/search?q=${encodedName}`;
     default:
       return `https://www.google.com/search?q=${encodeURIComponent(itemName + " " + storeKey)}`;
   }
@@ -165,7 +167,8 @@ export default function RegularItemsList({
       foodbasics: "Food Basics",
       metro: "Metro",
       loblaws: "Loblaws",
-      nofrills: "No Frills"
+      nofrills: "No Frills",
+      freshco: "FreshCo"
     };
     if (scrapeConfig?.stores) {
       Object.entries(scrapeConfig.stores).forEach(([key, store]: [string, any]) => {
@@ -182,7 +185,8 @@ export default function RegularItemsList({
       foodbasics: "7923194",
       metro: "metro",
       loblaws: "loblaws",
-      nofrills: "nofrills"
+      nofrills: "nofrills",
+      freshco: "freshco"
     };
     if (scrapeConfig?.stores) {
       Object.entries(scrapeConfig.stores).forEach(([key, store]: [string, any]) => {
@@ -540,7 +544,8 @@ export default function RegularItemsList({
         foodbasics: "https://www.foodbasics.ca",
         metro: "https://www.metro.ca",
         loblaws: "https://www.loblaws.ca",
-        nofrills: "https://www.nofrills.ca"
+        nofrills: "https://www.nofrills.ca",
+        freshco: "https://freshco.com"
       };
       config.stores[storeKey] = {
         enabled: true,

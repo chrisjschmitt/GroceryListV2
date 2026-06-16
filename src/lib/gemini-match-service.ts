@@ -184,7 +184,7 @@ export function runProgrammaticFallbackMatch(scrapedName: string, catalogItems: 
   // 3. No Match Case — suggest a new item format
   // Derive a cleaner name: remove common brands and sizes
   let refinedName = scrapedName
-    .replace(/(Kraft|Dempster's|Dempster|Quaker|Heinz|McIntosh|Natrel|Food Basics|Metro|Loblaws|No Frills)/gi, "")
+    .replace(/(Kraft|Dempster's|Dempster|Quaker|Heinz|McIntosh|Natrel|Food Basics|Metro|Loblaws|No Frills|FreshCo|Fresh Co)/gi, "")
     .replace(/\b\d+(g|kg|ml|l|oz|lb|pcs|pack|bag)\b/gi, "")
     .replace(/\s+/g, " ")
     .trim();
