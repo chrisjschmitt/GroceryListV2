@@ -561,6 +561,7 @@ export default function RegularItemsList({
     if (existingItem) {
       if (!existingItem.stores) existingItem.stores = {};
       existingItem.stores[storeKey] = {
+        ...(existingItem.stores[storeKey] || {}),
         url: trimmedUrl,
         upc,
       };

@@ -103,6 +103,7 @@ export interface CombinedStoreLink {
   valid_until?: string;
   track_pricing?: boolean;
   external_name?: string;
+  is_verified?: boolean;
 }
 
 export interface CombinedCatalogItem {
