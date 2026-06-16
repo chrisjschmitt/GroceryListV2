@@ -62,7 +62,8 @@ const getStoreDisplayNameDef = (scrapeConfig: any, storeKey: string) => {
     metro: "Metro",
     loblaws: "Loblaws",
     nofrills: "No Frills",
-    freshco: "FreshCo"
+    freshco: "FreshCo",
+    yourindependentgrocer: "Your Independent Grocer"
   };
   return names[storeKey] || storeKey;
 };
@@ -73,7 +74,8 @@ const getStoreDisplayName = (storeKey: string) => {
     metro: "Metro",
     loblaws: "Loblaws",
     nofrills: "No Frills",
-    freshco: "FreshCo"
+    freshco: "FreshCo",
+    yourindependentgrocer: "Your Independent Grocer"
   };
   return names[storeKey] || storeKey;
 };
@@ -116,7 +118,8 @@ const storeNames: Record<string, string> = {
   metro: "Metro",
   loblaws: "Loblaws",
   nofrills: "No Frills",
-  freshco: "FreshCo"
+  freshco: "FreshCo",
+  yourindependentgrocer: "Your Independent Grocer"
 };
 
 export default function AdminPage() {
@@ -137,7 +140,8 @@ export default function AdminPage() {
       metro: "Metro",
       loblaws: "Loblaws",
       nofrills: "No Frills",
-      freshco: "FreshCo"
+      freshco: "FreshCo",
+      yourindependentgrocer: "Your Independent Grocer"
     };
     if (scrapeConfig?.stores) {
       Object.entries(scrapeConfig.stores).forEach(([key, sObj]: [string, any]) => {
@@ -814,6 +818,15 @@ export default function AdminPage() {
         store_id: "freshco",
       };
     }
+    if (!updated.stores.yourindependentgrocer) {
+      updated.stores.yourindependentgrocer = {
+        enabled: true,
+        store_name: "Your Independent Grocer",
+        base_url: "https://www.yourindependentgrocer.ca",
+        postal_code: "K7H3C6",
+        store_id: "yourindependentgrocer",
+      };
+    }
     return updated;
   };
 
@@ -926,14 +939,16 @@ export default function AdminPage() {
         metro: "Metro",
         loblaws: "Loblaws",
         nofrills: "No Frills",
-        freshco: "FreshCo"
+        freshco: "FreshCo",
+        yourindependentgrocer: "Your Independent Grocer"
       };
       const baseUrls: Record<string, string> = {
         foodbasics: "https://www.foodbasics.ca",
         metro: "https://www.metro.ca",
         loblaws: "https://www.loblaws.ca",
         nofrills: "https://www.nofrills.ca",
-        freshco: "https://freshco.com"
+        freshco: "https://freshco.com",
+        yourindependentgrocer: "https://www.yourindependentgrocer.ca"
       };
       config.stores[currentStoreKey] = {
         enabled: true,
@@ -1280,14 +1295,16 @@ export default function AdminPage() {
       metro: "Metro",
       loblaws: "Loblaws",
       nofrills: "No Frills",
-      freshco: "FreshCo"
+      freshco: "FreshCo",
+      yourindependentgrocer: "Your Independent Grocer"
     };
     const baseUrls: Record<string, string> = {
       foodbasics: "https://www.foodbasics.ca",
       metro: "https://www.metro.ca",
       loblaws: "https://www.loblaws.ca",
       nofrills: "https://www.nofrills.ca",
-      freshco: "https://freshco.com"
+      freshco: "https://freshco.com",
+      yourindependentgrocer: "https://www.yourindependentgrocer.ca"
     };
 
     if (!config.stores[storeKey]) {

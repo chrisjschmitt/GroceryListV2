@@ -555,6 +555,17 @@ export function migrateScrapeConfig(config: any): ScrapeConfig {
     };
   }
 
+  // Ensure yourindependentgrocer exists as a store
+  if (!migrated.stores.yourindependentgrocer) {
+    migrated.stores.yourindependentgrocer = {
+      enabled: true,
+      store_name: "Your Independent Grocer",
+      base_url: "https://www.yourindependentgrocer.ca",
+      postal_code: "K7H3C6",
+      store_id: "yourindependentgrocer",
+    };
+  }
+
   return migrated;
 }
 
@@ -764,6 +775,13 @@ export async function blobGetCombinedCatalog(): Promise<CombinedCatalog> {
     base_url: "https://freshco.com",
     postal_code: "K7H3C6",
     store_id: "freshco",
+  };
+  catalog.stores.yourindependentgrocer = {
+    enabled: true,
+    store_name: "Your Independent Grocer",
+    base_url: "https://www.yourindependentgrocer.ca",
+    postal_code: "K7H3C6",
+    store_id: "yourindependentgrocer",
   };
 
   if (oldConfig && oldConfig.stores && typeof oldConfig.stores === "object") {

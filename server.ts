@@ -386,6 +386,7 @@ async function startServer() {
           else if (lowerUrl.includes("loblaws.ca")) resolvedStoreId = "loblaws";
           else if (lowerUrl.includes("nofrills.ca")) resolvedStoreId = "nofrills";
           else if (lowerUrl.includes("freshco")) resolvedStoreId = "freshco";
+          else if (lowerUrl.includes("yourindependentgrocer")) resolvedStoreId = "yourindependentgrocer";
           else resolvedStoreId = "7923194"; // foodbasics
         }
 
@@ -395,6 +396,9 @@ async function startServer() {
           if (lowerUrl.includes("freshco")) {
             resolvedStoreId = "freshco";
             resolvedStoreName = "FreshCo";
+          } else if (lowerUrl.includes("yourindependentgrocer")) {
+            resolvedStoreId = "yourindependentgrocer";
+            resolvedStoreName = "Your Independent Grocer";
           } else {
             resolvedStoreName = "Food Basics";
           }
@@ -406,6 +410,8 @@ async function startServer() {
           resolvedStoreName = "No Frills";
         } else if (lowerStoreId === "freshco" || lowerStoreId.includes("freshco")) {
           resolvedStoreName = "FreshCo";
+        } else if (lowerStoreId === "yourindependentgrocer" || lowerStoreId.includes("yourindependentgrocer")) {
+          resolvedStoreName = "Your Independent Grocer";
         } else {
           resolvedStoreName = data.store_name || req.body.store_name || existingStoreName || "Food Basics";
         }
@@ -449,6 +455,7 @@ async function startServer() {
           else if (lowerUrl.includes("loblaws.ca")) resolvedStoreId = "loblaws";
           else if (lowerUrl.includes("nofrills.ca")) resolvedStoreId = "nofrills";
           else if (lowerUrl.includes("freshco")) resolvedStoreId = "freshco";
+          else if (lowerUrl.includes("yourindependentgrocer")) resolvedStoreId = "yourindependentgrocer";
         }
 
         let resolvedStoreName = "Food Basics";
@@ -463,6 +470,8 @@ async function startServer() {
           resolvedStoreName = "No Frills";
         } else if (lowerStoreId === "freshco" || lowerStoreId.includes("freshco")) {
           resolvedStoreName = "FreshCo";
+        } else if (lowerStoreId === "yourindependentgrocer" || lowerStoreId.includes("yourindependentgrocer")) {
+          resolvedStoreName = "Your Independent Grocer";
         } else {
           resolvedStoreName = data.store_name || req.body.store_name || "Food Basics";
         }
@@ -493,12 +502,15 @@ async function startServer() {
               fStoreKey = "nofrills";
             } else if (lowerUrl.includes("freshco")) {
               fStoreKey = "freshco";
+            } else if (lowerUrl.includes("yourindependentgrocer")) {
+              fStoreKey = "yourindependentgrocer";
             } else {
               const lowerId = String(priceDoc.store_id || "").toLowerCase();
               if (lowerId === "metro") fStoreKey = "metro";
               else if (lowerId === "loblaws") fStoreKey = "loblaws";
               else if (lowerId === "nofrills") fStoreKey = "nofrills";
               else if (lowerId === "freshco" || lowerId.includes("freshco")) fStoreKey = "freshco";
+              else if (lowerId === "yourindependentgrocer" || lowerId.includes("yourindependentgrocer")) fStoreKey = "yourindependentgrocer";
             }
 
             const existingStoreLink = (catalogItem.stores[fStoreKey] || {}) as any;
