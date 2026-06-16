@@ -21,30 +21,68 @@ export function parseCsv(content: string): CsvParseResult {
 
   const firstLine = lines[0].toLowerCase();
   const startIndex =
-    firstLine.includes("category") || firstLine.includes("item") ? 1 : 0;
+    firstLine.includes("category") || firstLine.includes("item") || firstLine.includes("name") ? 1 : 0;
+
+  let catIdx = -1;
+  let nameIdx = -1;
+  let idIdx = -1;
+  let selectedIdx = -1;
+  let unitIdx = -1;
+
+  if (startIndex === 1) {
+    const headers = parseCsvLine(lines[0]).map((h) => h.trim().toLowerCase());
+    catIdx = headers.indexOf("category");
+    nameIdx = headers.indexOf("name");
+    if (nameIdx === -1) {
+      nameIdx = headers.indexOf("item");
+    }
+    idIdx = headers.indexOf("id");
+    selectedIdx = headers.indexOf("selected");
+    unitIdx = headers.indexOf("unit");
+  }
+
+  const hasMappedHeaders = catIdx !== -1 && nameIdx !== -1;
 
   for (let i = startIndex; i < lines.length; i++) {
     const line = lines[i];
     const columns = parseCsvLine(line);
 
-    if (columns.length < 2) {
-      errors.push(`Line ${i + 1}: Expected at least 2 columns (category, item), got ${columns.length}`);
-      continue;
-    }
+    let category = "";
+    let name = "";
+    let id = "";
+    let selected = false;
+    let unit = "unit";
 
-    const category = columns[0].trim();
-    const name = columns[1].trim();
+    if (hasMappedHeaders) {
+      category = columns[catIdx]?.trim() || "";
+      name = columns[nameIdx]?.trim() || "";
+      id = idIdx !== -1 && columns[idIdx]?.trim() ? columns[idIdx].trim() : "";
+      selected = selectedIdx !== -1 && columns[selectedIdx]?.trim().toLowerCase() === "true";
+      unit = unitIdx !== -1 && columns[unitIdx]?.trim() ? columns[unitIdx].trim() : "unit";
+    } else {
+      if (columns.length < 2) {
+        errors.push(`Line ${i + 1}: Expected at least 2 columns (category, item), got ${columns.length}`);
+        continue;
+      }
+      category = columns[0].trim();
+      name = columns[1].trim();
+    }
 
     if (!category || !name) {
       errors.push(`Line ${i + 1}: Category and item name cannot be empty`);
       continue;
     }
 
+    if (!id) {
+      id = `regular-${Date.now()}-${i}-${Math.random().toString(36).slice(2, 7)}`;
+    }
+
     items.push({
-      id: `regular-${Date.now()}-${i}-${Math.random().toString(36).slice(2, 7)}`,
+      id,
       category,
       name,
-      selected: false,
+      selected,
+      unit,
     });
   }
 

@@ -736,7 +736,7 @@ export default function AdminPage() {
         return str;
       };
 
-      const headers = ["id", "category", "name", "selected", "linked_to_scrape_config"];
+      const headers = ["id", "category", "name", "selected", "unit", "linked_to_scrape_config"];
       const csvRows = [headers.join(",")];
 
       items.forEach(item => {
@@ -748,6 +748,7 @@ export default function AdminPage() {
           escapeCSVValue(item.category),
           escapeCSVValue(item.name),
           escapeCSVValue(item.selected ? "true" : "false"),
+          escapeCSVValue(item.unit || "unit"),
           escapeCSVValue(isLinked ? "true" : "false")
         ];
         csvRows.push(row.join(","));

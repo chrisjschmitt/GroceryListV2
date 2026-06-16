@@ -13,6 +13,7 @@ import {
   ScrapeItemConfig,
   ScrapeStoreItemLink
 } from "./types.js";
+import { standardizeCategory } from "./categories.js";
 import fs from "fs";
 import path from "path";
 
@@ -186,7 +187,11 @@ export async function getBlobDiagnostics(): Promise<Record<string, any>> {
 }
 
 export async function blobGetGroceryItems(): Promise<GroceryItem[]> {
-  return readBlob<GroceryItem[]>(GROCERY_BLOB, []);
+  const items = await readBlob<GroceryItem[]>(GROCERY_BLOB, []);
+  return items.map(item => ({
+    ...item,
+    category: standardizeCategory(item.category)
+  }));
 }
 
 export async function blobSetGroceryItems(items: GroceryItem[]): Promise<void> {
@@ -633,7 +638,7 @@ export function migrateCombinedCatalog(catalog: any): CombinedCatalog {
       migrated.items.push({
         id: item.id || "prod-" + Math.random().toString(36).substr(2, 9),
         name: item.name,
-        category: item.category || "grocery",
+        category: standardizeCategory(item.category || "Pantry Staples"),
         unit: item.unit || "unit",
         requires_scraping: typeof item.requires_scraping === "boolean" ? item.requires_scraping : false,
         stores: storesRecord,
@@ -956,6 +961,11 @@ export async function blobGetCombinedCatalog(): Promise<CombinedCatalog> {
 
 export async function blobSetCombinedCatalog(catalog: CombinedCatalog): Promise<void> {
   validateUniqueUrls(catalog);
+  if (catalog && Array.isArray(catalog.items)) {
+    catalog.items.forEach(item => {
+      item.category = standardizeCategory(item.category);
+    });
+  }
   await writeBlob(COMBINED_CATALOG_BLOB, catalog);
 }
 

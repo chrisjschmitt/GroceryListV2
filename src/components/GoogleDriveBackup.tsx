@@ -138,7 +138,7 @@ export default function GoogleDriveBackup({ items, scrapeConfig, onRestoreComple
         filename = `grocery_catalog_backup_${today}.json`;
         mimeType = "application/json";
       } else {
-        const headers = ["id", "category", "name", "selected", "linked_to_scrape_config"];
+        const headers = ["id", "category", "name", "selected", "unit", "linked_to_scrape_config"];
         const rows = [headers.join(",")];
         items.forEach(item => {
           const isLinked = (scrapeConfig?.items || []).some(
@@ -149,6 +149,7 @@ export default function GoogleDriveBackup({ items, scrapeConfig, onRestoreComple
             escapeCSVValue(item.category),
             escapeCSVValue(item.name),
             escapeCSVValue(item.selected ? "true" : "false"),
+            escapeCSVValue(item.unit || "unit"),
             escapeCSVValue(isLinked ? "true" : "false")
           ].join(","));
         });
@@ -233,6 +234,7 @@ export default function GoogleDriveBackup({ items, scrapeConfig, onRestoreComple
     const catIdx = headers.indexOf("category");
     const nameIdx = headers.indexOf("name");
     const selIdx = headers.indexOf("selected");
+    const unitIdx = headers.indexOf("unit");
 
     // Standard fallback if columns don't match our headers
     if (catIdx === -1 || nameIdx === -1) {
@@ -249,7 +251,8 @@ export default function GoogleDriveBackup({ items, scrapeConfig, onRestoreComple
             id: `regular-${Date.now()}-${i}-${Math.random().toString(36).slice(2, 7)}`,
             category,
             name,
-            selected: false
+            selected: false,
+            unit: "unit"
           });
         }
       }
@@ -268,8 +271,9 @@ export default function GoogleDriveBackup({ items, scrapeConfig, onRestoreComple
         : `regular-${Date.now()}-${i}-${Math.random().toString(36).slice(2, 7)}`;
       
       const selected = selIdx !== -1 && columns[selIdx]?.trim().toLowerCase() === "true";
+      const unit = unitIdx !== -1 && columns[unitIdx]?.trim() ? columns[unitIdx].trim() : "unit";
 
-      items.push({ id, category, name, selected });
+      items.push({ id, category, name, selected, unit });
     }
     return items;
   }
