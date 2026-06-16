@@ -89,7 +89,7 @@ export default function JsonPricesUpload({ onUploadComplete }: JsonPricesUploadP
 
         <div className="text-3xl mb-2">🏷️</div>
         <p className="text-sm font-medium text-gray-700">
-          {uploading ? "Uploading..." : "Upload prices.json File"}
+          {uploading ? "Uploading..." : "Upload Pricing JSON File"}
         </p>
         <p className="text-xs text-gray-400 mt-1">
           Supports array format or standard nested key-value UPC mapping

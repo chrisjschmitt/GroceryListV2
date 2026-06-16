@@ -3811,7 +3811,7 @@ export default function AdminPage() {
               </h2>
               <JsonPricesUpload onUploadComplete={handlePricesUploaded} />
               <p className="mt-3 text-xs text-gray-500 font-medium leading-relaxed">
-                Manually upload or drag-and-drop a custom <code>prices.json</code> file. This will update or merge store pricing values instantly.
+                Manually upload or drag-and-drop a custom <code>prices.json</code> configuration. This will update or merge store pricing values directly into the active Combined Catalog Registry database.
               </p>
             </div>
 

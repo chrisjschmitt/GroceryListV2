@@ -378,7 +378,7 @@ export default function RegularItemsList({
       if (hasPriceEntry) {
         if (corrupted) {
           statusLabel = "Corrupted Pricing Data";
-          statusDesc = `This item's pricing record in prices.json for ${storeLabelName} contains empty, null, or invalid price values.`;
+          statusDesc = `This item's pricing record in the catalog registry for ${storeLabelName} contains empty, null, or invalid price values.`;
           statusBoxClass = "bg-rose-50 border-rose-500 text-rose-900 shadow-[2px_2px_0px_0px_rgba(239,68,68,1)]";
           statusDotClass = "bg-rose-500 animate-pulse";
         } else if (saleExpired) {
@@ -388,13 +388,13 @@ export default function RegularItemsList({
           statusDotClass = "bg-amber-500 animate-pulse";
         } else {
           statusLabel = "Active & Verified Price";
-          statusDesc = `Successfully linked in scrape_config.json and verified pricing for ${storeLabelName} is loaded from prices.json.`;
+          statusDesc = `Successfully linked in the combined catalog and verified pricing for ${storeLabelName} is active.`;
           statusBoxClass = "bg-emerald-50 border-emerald-500 text-emerald-955 shadow-[2px_2px_0px_0px_rgba(16,185,129,1)]";
           statusDotClass = "bg-emerald-500";
         }
       } else {
         statusLabel = "Configured (No Pricing Loaded Yet)";
-        statusDesc = `Item is registered in scrape_config.json for ${storeLabelName}, but has not completed scanning or matching prices.json records.`;
+        statusDesc = `Item is registered in the catalog for ${storeLabelName}, but has not completed scanning or matching active catalog records.`;
         statusBoxClass = "bg-amber-50 border-amber-500 text-amber-900 shadow-[2px_2px_0px_0px_rgba(245,158,11,1)]";
         statusDotClass = "bg-amber-400 animate-pulse";
       }
@@ -402,7 +402,7 @@ export default function RegularItemsList({
       if (hasPriceEntry) {
         if (corrupted) {
           statusLabel = "Unlinked with Corrupted Data";
-          statusDesc = `Pricing records are loaded from prices.json for ${storeLabelName} but are corrupt, and no configuration URL exists.`;
+          statusDesc = `Pricing records are active in the combined catalog for ${storeLabelName} but are corrupt, and no configuration URL exists.`;
           statusBoxClass = "bg-rose-50 border-rose-500 text-rose-900 shadow-[2px_2px_0px_0px_rgba(239,68,68,1)]";
           statusDotClass = "bg-rose-500 animate-pulse";
         } else if (saleExpired) {
@@ -412,7 +412,7 @@ export default function RegularItemsList({
           statusDotClass = "bg-amber-500 animate-pulse";
         } else {
           statusLabel = "Manual Prices Loaded (Unlinked)";
-          statusDesc = `Verified pricing for ${storeLabelName} is loaded in prices.json, but no active automated link exists in scrape_config.json.`;
+          statusDesc = `Verified pricing for ${storeLabelName} is loaded in the combined catalog, but no active automated link exists in scrape_config.json.`;
           statusBoxClass = "bg-emerald-50 border-emerald-500 text-emerald-955 shadow-[2px_2px_0px_0px_rgba(16,185,129,1)]";
           statusDotClass = "bg-emerald-600";
         }
@@ -1005,23 +1005,23 @@ export default function RegularItemsList({
                     if (hasPriceEntry) {
                       if (isPriceCorrupted(priceEntry)) {
                         indicatorColorClass = "bg-rose-500 text-white hover:bg-rose-600 shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] hover:shadow-none hover:translate-x-[1px] hover:translate-y-[1px]";
-                        tooltipText = `Pricing is CORRUPTED in prices.json for "${item.name}" (active link)`;
+                        tooltipText = `Pricing is CORRUPTED in the combined catalog for "${item.name}" (active link)`;
                       } else {
                         indicatorColorClass = "bg-emerald-500 text-white hover:bg-emerald-600 shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] hover:shadow-none hover:translate-x-[1px] hover:translate-y-[1px]";
                         tooltipText = `Edit price check for "${item.name}" (active link with prices)`;
                       }
                     } else {
                       indicatorColorClass = "bg-amber-400 text-black hover:bg-amber-500 shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] hover:shadow-none hover:translate-x-[1px] hover:translate-y-[1px]";
-                      tooltipText = `Item registered for scraping, but NO prices loaded in prices.json for "${item.name}"`;
+                      tooltipText = `Item registered for scraping, but NO prices active in the combined catalog for "${item.name}"`;
                     }
                   } else {
                     if (hasPriceEntry) {
                       if (isPriceCorrupted(priceEntry)) {
                         indicatorColorClass = "bg-rose-500 text-white hover:bg-rose-600 shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] hover:shadow-none hover:translate-x-[1px] hover:translate-y-[1px]";
-                        tooltipText = `Pricing is CORRUPTED in prices.json (unlinked to scrape_config)`;
+                        tooltipText = `Pricing is CORRUPTED in the combined catalog (unlinked)`;
                       } else {
                         indicatorColorClass = "bg-emerald-500 text-white hover:bg-emerald-600 shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] hover:shadow-none hover:translate-x-[1px] hover:translate-y-[1px]";
-                        tooltipText = `Prices loaded in prices.json for "${item.name}" (unlinked to scrape_config)`;
+                        tooltipText = `Prices loaded in the combined catalog for "${item.name}" (unlinked)`;
                       }
                     }
                   }
@@ -1357,7 +1357,7 @@ export default function RegularItemsList({
                 {isRepairExpanded && (
                   <div className="p-3 bg-white space-y-3 text-left animate-fade-in text-black">
                     <p className="text-[10px] font-bold text-[#4b5563] leading-snug uppercase tracking-wider">
-                      Overridden prices are written directly to prices.json for this UPC. Fixed corrupted entries instantly.
+                      Overridden prices are written directly to the combined catalog registry for this UPC. Fixed corrupted entries instantly.
                     </p>
 
                     {/* Scraped / External Name */}
