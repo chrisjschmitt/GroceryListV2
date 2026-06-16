@@ -192,16 +192,24 @@ export function runProgrammaticFallbackMatch(scrapedName: string, catalogItems: 
   if (refinedName.length < 2) refinedName = scrapedName;
   
   // Categorize based on keywords
-  let recommendedCategory = "Pantry";
+  let recommendedCategory = "Pantry Staples";
   const normRefined = refinedName.toLowerCase();
-  if (normRefined.includes("milk") || normRefined.includes("yogurt") || normRefined.includes("cheese") || normRefined.includes("butter") || normRefined.includes("cream")) {
+  if (normRefined.includes("milk") || normRefined.includes("yogurt") || normRefined.includes("cheese") || normRefined.includes("butter") || normRefined.includes("cream") || normRefined.includes("dairy") || normRefined.includes("eggs")) {
     recommendedCategory = "Dairy & Eggs";
-  } else if (normRefined.includes("apple") || normRefined.includes("avocado") || normRefined.includes("lettuce") || normRefined.includes("berries") || normRefined.includes("broccoli") || normRefined.includes("strawberry")) {
-    recommendedCategory = "Produce";
-  } else if (normRefined.includes("beef") || normRefined.includes("chicken") || normRefined.includes("turkey") || normRefined.includes("pork") || normRefined.includes("bacon")) {
+  } else if (normRefined.includes("apple") || normRefined.includes("avocado") || normRefined.includes("lettuce") || normRefined.includes("berries") || normRefined.includes("broccoli") || normRefined.includes("strawberry") || normRefined.includes("fruit") || normRefined.includes("veggie") || normRefined.includes("veg") || normRefined.includes("cucumber") || normRefined.includes("onion") || normRefined.includes("garlic") || normRefined.includes("potato") || normRefined.includes("carrot")) {
+    recommendedCategory = "Fresh Produce";
+  } else if (normRefined.includes("beef") || normRefined.includes("chicken") || normRefined.includes("turkey") || normRefined.includes("pork") || normRefined.includes("bacon") || normRefined.includes("meat") || normRefined.includes("salmon") || normRefined.includes("shrimp") || normRefined.includes("sausage") || normRefined.includes("lamb")) {
     recommendedCategory = "Meat & Seafood";
-  } else if (normRefined.includes("bread") || normRefined.includes("tortilla") || normRefined.includes("bun") || normRefined.includes("bagel")) {
-    recommendedCategory = "Bakery";
+  } else if (normRefined.includes("bread") || normRefined.includes("tortilla") || normRefined.includes("bun") || normRefined.includes("bagel") || normRefined.includes("croissant") || normRefined.includes("naan") || normRefined.includes("bakery")) {
+    recommendedCategory = "Bakery & Breads";
+  } else if (normRefined.includes("coffee") || normRefined.includes("tea") || normRefined.includes("espresso") || normRefined.includes("juice") || normRefined.includes("cider") || normRefined.includes("soda") || normRefined.includes("water") || normRefined.includes("beverage") || normRefined.includes("chips") || normRefined.includes("popcorn") || normRefined.includes("pretzel") || normRefined.includes("cracker") || normRefined.includes("cookie") || normRefined.includes("snack") || normRefined.includes("candy") || normRefined.includes("chocolate") || normRefined.includes("ice cream")) {
+    recommendedCategory = "Snacks & Beverages";
+  } else if (normRefined.includes("flour") || normRefined.includes("sugar") || normRefined.includes("salt") || normRefined.includes("pepper") || normRefined.includes("spice") || normRefined.includes("baking") || normRefined.includes("almond") || normRefined.includes("cashew") || normRefined.includes("peanut") || normRefined.includes("walnut") || normRefined.includes("pecan") || normRefined.includes("seed")) {
+    recommendedCategory = "Baking & Spices";
+  } else if (normRefined.includes("deodorant") || normRefined.includes("toothpaste") || normRefined.includes("razor") || normRefined.includes("soap") || normRefined.includes("shampoo") || normRefined.includes("conditioner") || normRefined.includes("gaviscon") || normRefined.includes("niquil") || normRefined.includes("cepacol") || normRefined.includes("med") || normRefined.includes("tylenol") || normRefined.includes("advil") || normRefined.includes("garbage bag") || normRefined.includes("paper towel") || normRefined.includes("napkin") || normRefined.includes("plate") || normRefined.includes("detergent") || normRefined.includes("foil") || normRefined.includes("ziploc")) {
+    recommendedCategory = "Health, Personal & Household";
+  } else if (normRefined.includes("wine") || normRefined.includes("beer") || normRefined.includes("rum") || normRefined.includes("alcohol")) {
+    recommendedCategory = "Beer, Wine & Spirits";
   }
 
   return {
@@ -333,7 +341,7 @@ For your match output, determine:
 5. "reason": A brief 1-sentence analytical explanation of your choice.
 6. "proposed_new_item": If confidence is below 70% (no high-quality match), populate this object with:
    - "name": A simplified, reader-friendly canonical item name derived from the scraped name (remove store codes, brand noise, and packaging size, e.g. "Dempster's Whole Wheat sliced bread 675g" becomes "Whole Wheat Bread").
-   - "category": The best food category match. Choose from standard sections like "Produce", "Meat & Seafood", "Dairy & Eggs", "Pantry", "Bakery", "Frozen", "Beverages", "Decline/Other".
+   - "category": The best food category match. Choose from standard sections: "Fresh Produce", "Bakery & Breads", "Meat & Seafood", "Dairy & Eggs", "Pantry Staples", "Baking & Spices", "Snacks & Beverages", "Health, Personal & Household", "Beer, Wine & Spirits".
 
 Return strict JSON conforming to the response schema.
 `;

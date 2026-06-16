@@ -40,7 +40,7 @@
     {
       "id": "regular-1779915020670-1-ygtcc",
       "name": "Apples - honey crisp - gals",
-      "category": "Fruit",
+      "category": "Fresh Produce",
       "unit": "unit",
       "requires_scraping": false,
       "stores": {}
@@ -48,7 +48,7 @@
     {
       "id": "regular-1779915020670-10-n2h71",
       "name": "Limes - M",
-      "category": "Fruit",
+      "category": "Fresh Produce",
       "unit": "unit",
       "requires_scraping": false,
       "stores": {}
@@ -56,7 +56,7 @@
     {
       "id": "regular-1779915020670-100-q166f",
       "name": "Croissants",
-      "category": "Bread",
+      "category": "Bakery & Breads",
       "unit": "unit",
       "requires_scraping": false,
       "stores": {}
@@ -64,7 +64,7 @@
     {
       "id": "regular-1779915020670-101-bgj1m",
       "name": "Slider. Buns",
-      "category": "Bread",
+      "category": "Bakery & Breads",
       "unit": "unit",
       "requires_scraping": false,
       "stores": {}
@@ -72,7 +72,7 @@
     {
       "id": "regular-1779915020670-102-1kaba",
       "name": "Carbanot bread - Costco",
-      "category": "Bread",
+      "category": "Bakery & Breads",
       "unit": "unit",
       "requires_scraping": false,
       "stores": {}
@@ -80,7 +80,7 @@
     {
       "id": "regular-1779915020670-103-wzmso",
       "name": "English muffins - Whole-wheat - no frills 1.75",
-      "category": "Bread",
+      "category": "Bakery & Breads",
       "unit": "unit",
       "requires_scraping": false,
       "stores": {}
@@ -88,7 +88,7 @@
     {
       "id": "regular-1779915020670-104-4jvqh",
       "name": "High fibre tortilla wraps - costo -",
-      "category": "Bread",
+      "category": "Bakery & Breads",
       "unit": "unit",
       "requires_scraping": false,
       "stores": {}
@@ -96,7 +96,7 @@
     {
       "id": "regular-1779915020670-105-nhpfg",
       "name": "Naans",
-      "category": "Bread",
+      "category": "Bakery & Breads",
       "unit": "unit",
       "requires_scraping": false,
       "stores": {}
@@ -104,7 +104,7 @@
     {
       "id": "regular-1779915020670-106-gs5bd",
       "name": "Tortillas - small corn",
-      "category": "Bread",
+      "category": "Bakery & Breads",
       "unit": "unit",
       "requires_scraping": false,
       "stores": {
@@ -121,7 +121,7 @@
     {
       "id": "regular-1779915020670-107-8amre",
       "name": "Refried beans",
-      "category": "Bread",
+      "category": "Pantry Staples",
       "unit": "unit",
       "requires_scraping": false,
       "stores": {}
@@ -129,7 +129,7 @@
     {
       "id": "regular-1779915020670-109-kbcuy",
       "name": "Eggs - 18",
-      "category": "Dairy",
+      "category": "Dairy & Eggs",
       "unit": "unit",
       "requires_scraping": false,
       "stores": {}
@@ -137,7 +137,7 @@
     {
       "id": "regular-1779915020670-11-5recl",
       "name": "Oranges FB",
-      "category": "Fruit",
+      "category": "Fresh Produce",
       "unit": "unit",
       "requires_scraping": false,
       "stores": {}
@@ -145,7 +145,7 @@
     {
       "id": "regular-1779915020670-110-f9voo",
       "name": "Egg whites - Costco",
-      "category": "Dairy",
+      "category": "Dairy & Eggs",
       "unit": "unit",
       "requires_scraping": false,
       "stores": {}
@@ -153,7 +153,7 @@
     {
       "id": "regular-1779915020670-111-bxjyz",
       "name": "Milk 1% - 1 lf - Food B - $5.99",
-      "category": "Dairy",
+      "category": "Dairy & Eggs",
       "unit": "unit",
       "requires_scraping": false,
       "stores": {}
@@ -161,7 +161,7 @@
     {
       "id": "regular-1779915020670-112-piec4",
       "name": "Milk 2%lf - Costco",
-      "category": "Dairy",
+      "category": "Dairy & Eggs",
       "unit": "unit",
       "requires_scraping": false,
       "stores": {}
@@ -169,7 +169,7 @@
     {
       "id": "regular-1779915020670-113-tc2wh",
       "name": "Whole milk 4% lf",
-      "category": "Dairy",
+      "category": "Dairy & Eggs",
       "unit": "unit",
       "requires_scraping": false,
       "stores": {}
@@ -177,7 +177,7 @@
     {
       "id": "regular-1779915020670-114-t01ri",
       "name": "Coffee cream - C",
-      "category": "Dairy",
+      "category": "Dairy & Eggs",
       "unit": "unit",
       "requires_scraping": false,
       "stores": {}
@@ -185,7 +185,7 @@
     {
       "id": "regular-1779915020670-115-cmbhj",
       "name": "Oat milk",
-      "category": "Dairy",
+      "category": "Pantry Staples",
       "unit": "unit",
       "requires_scraping": false,
       "stores": {}
@@ -193,7 +193,7 @@
     {
       "id": "regular-1779915020670-116-v38g3",
       "name": "Whipping Cream - LF",
-      "category": "Dairy",
+      "category": "Dairy & Eggs",
       "unit": "unit",
       "requires_scraping": false,
       "stores": {}
@@ -201,7 +201,7 @@
     {
       "id": "regular-1779915020670-117-xcgi0",
       "name": "A Sour Cream LF",
-      "category": "Dairy",
+      "category": "Dairy & Eggs",
       "unit": "unit",
       "requires_scraping": false,
       "stores": {}
@@ -209,7 +209,7 @@
     {
       "id": "regular-1779915020670-118-o1289",
       "name": "Butter unsalted",
-      "category": "Dairy",
+      "category": "Dairy & Eggs",
       "unit": "unit",
       "requires_scraping": false,
       "stores": {
@@ -226,7 +226,7 @@
     {
       "id": "regular-1779915020670-119-gf3lc",
       "name": "Ice cream - caramel and chocolate.",
-      "category": "Dairy",
+      "category": "Dairy & Eggs",
       "unit": "unit",
       "requires_scraping": false,
       "stores": {}
@@ -234,7 +234,7 @@
     {
       "id": "regular-1779915020670-12-tbht3",
       "name": "Papaya",
-      "category": "Fruit",
+      "category": "Fresh Produce",
       "unit": "unit",
       "requires_scraping": false,
       "stores": {}
@@ -242,7 +242,7 @@
     {
       "id": "regular-1779915020670-121-e9g9e",
       "name": "Cheese",
-      "category": "Dairy",
+      "category": "Dairy & Eggs",
       "unit": "unit",
       "requires_scraping": false,
       "stores": {}
@@ -250,7 +250,7 @@
     {
       "id": "regular-1779915020670-122-jd315",
       "name": "Baby bells",
-      "category": "Dairy",
+      "category": "Dairy & Eggs",
       "unit": "unit",
       "requires_scraping": false,
       "stores": {}
@@ -258,7 +258,7 @@
     {
       "id": "regular-1779915020670-123-p5zeu",
       "name": "Black Diamond cheddar slices",
-      "category": "Dairy",
+      "category": "Dairy & Eggs",
       "unit": "unit",
       "requires_scraping": false,
       "stores": {}
@@ -266,7 +266,7 @@
     {
       "id": "regular-1779915020670-124-t156t",
       "name": "Boccino",
-      "category": "Dairy",
+      "category": "Dairy & Eggs",
       "unit": "unit",
       "requires_scraping": false,
       "stores": {}
@@ -274,7 +274,7 @@
     {
       "id": "regular-1779915020670-125-lu0vd",
       "name": "Bri",
-      "category": "Dairy",
+      "category": "Dairy & Eggs",
       "unit": "unit",
       "requires_scraping": false,
       "stores": {}
@@ -282,7 +282,7 @@
     {
       "id": "regular-1779915020670-126-9bk6o",
       "name": "Cottage Cheese lf",
-      "category": "Dairy",
+      "category": "Dairy & Eggs",
       "unit": "unit",
       "requires_scraping": false,
       "stores": {}
@@ -290,7 +290,7 @@
     {
       "id": "regular-1779915020670-127-f90ub",
       "name": "Cream cheese l/f",
-      "category": "Dairy",
+      "category": "Dairy & Eggs",
       "unit": "unit",
       "requires_scraping": false,
       "stores": {}
@@ -298,7 +298,7 @@
     {
       "id": "regular-1779915020670-128-8upl5",
       "name": "Feta l/f",
-      "category": "Dairy",
+      "category": "Dairy & Eggs",
       "unit": "unit",
       "requires_scraping": false,
       "stores": {}
@@ -306,7 +306,7 @@
     {
       "id": "regular-1779915020670-129-u7ofq",
       "name": "Goat cheese",
-      "category": "Dairy",
+      "category": "Dairy & Eggs",
       "unit": "unit",
       "requires_scraping": false,
       "stores": {}
@@ -314,7 +314,7 @@
     {
       "id": "regular-1779915020670-13-ks4g9",
       "name": "Peaches for salsa",
-      "category": "Fruit",
+      "category": "Fresh Produce",
       "unit": "unit",
       "requires_scraping": false,
       "stores": {}
@@ -322,7 +322,7 @@
     {
       "id": "regular-1779915020670-130-62myz",
       "name": "Havarti",
-      "category": "Dairy",
+      "category": "Dairy & Eggs",
       "unit": "unit",
       "requires_scraping": false,
       "stores": {}
@@ -330,7 +330,7 @@
     {
       "id": "regular-1779915020670-131-3xe6t",
       "name": "Imperial",
-      "category": "Dairy",
+      "category": "Dairy & Eggs",
       "unit": "unit",
       "requires_scraping": false,
       "stores": {}
@@ -338,7 +338,7 @@
     {
       "id": "regular-1779915020670-132-18q99",
       "name": "Jarlsburg",
-      "category": "Dairy",
+      "category": "Dairy & Eggs",
       "unit": "unit",
       "requires_scraping": false,
       "stores": {}
@@ -346,7 +346,7 @@
     {
       "id": "regular-1779915020670-133-ws1xt",
       "name": "Lactose free - GS",
-      "category": "Dairy",
+      "category": "Pantry Staples",
       "unit": "unit",
       "requires_scraping": false,
       "stores": {}
@@ -354,7 +354,7 @@
     {
       "id": "regular-1779915020670-134-dzwhn",
       "name": "Mild cheddar for Kait",
-      "category": "Dairy",
+      "category": "Dairy & Eggs",
       "unit": "unit",
       "requires_scraping": false,
       "stores": {}
@@ -362,7 +362,7 @@
     {
       "id": "regular-1779915020670-135-t06tg",
       "name": "Mozarella - fresh",
-      "category": "Dairy",
+      "category": "Dairy & Eggs",
       "unit": "unit",
       "requires_scraping": false,
       "stores": {}
@@ -370,7 +370,7 @@
     {
       "id": "regular-1779915020670-136-wkbu5",
       "name": "Mozarella l/f",
-      "category": "Dairy",
+      "category": "Dairy & Eggs",
       "unit": "unit",
       "requires_scraping": false,
       "stores": {}
@@ -378,7 +378,7 @@
     {
       "id": "regular-1779915020670-137-o86sk",
       "name": "Old cheddar -Costco",
-      "category": "Dairy",
+      "category": "Dairy & Eggs",
       "unit": "unit",
       "requires_scraping": false,
       "stores": {}
@@ -386,7 +386,7 @@
     {
       "id": "regular-1779915020670-138-v89xj",
       "name": "Parmesan - Costco",
-      "category": "Dairy",
+      "category": "Dairy & Eggs",
       "unit": "unit",
       "requires_scraping": false,
       "stores": {}
@@ -394,7 +394,7 @@
     {
       "id": "regular-1779915020670-139-rx9ia",
       "name": "Raclette cheese - C",
-      "category": "Dairy",
+      "category": "Dairy & Eggs",
       "unit": "unit",
       "requires_scraping": false,
       "stores": {}
@@ -402,7 +402,7 @@
     {
       "id": "regular-1779915020670-14-3urdk",
       "name": "Pears x6",
-      "category": "Fruit",
+      "category": "Fresh Produce",
       "unit": "unit",
       "requires_scraping": false,
       "stores": {}
@@ -410,7 +410,7 @@
     {
       "id": "regular-1779915020670-140-r5k8z",
       "name": "Swiss - Costco",
-      "category": "Dairy",
+      "category": "Dairy & Eggs",
       "unit": "unit",
       "requires_scraping": false,
       "stores": {}
@@ -418,7 +418,7 @@
     {
       "id": "regular-1779915020670-141-i9zvd",
       "name": "Lactose Free cheese",
-      "category": "Dairy",
+      "category": "Dairy & Eggs",
       "unit": "unit",
       "requires_scraping": false,
       "stores": {}
@@ -426,7 +426,7 @@
     {
       "id": "regular-1779915020670-142-0b2wb",
       "name": "Grated lactose free cheese",
-      "category": "Dairy",
+      "category": "Dairy & Eggs",
       "unit": "unit",
       "requires_scraping": false,
       "stores": {}
@@ -434,7 +434,7 @@
     {
       "id": "regular-1779915020670-143-d66na",
       "name": "Yogurt",
-      "category": "Dairy",
+      "category": "Dairy & Eggs",
       "unit": "unit",
       "requires_scraping": false,
       "stores": {}
@@ -442,7 +442,7 @@
     {
       "id": "regular-1779915020670-144-u3lla",
       "name": "OKIOS Vanilla",
-      "category": "Dairy",
+      "category": "Baking & Spices",
       "unit": "unit",
       "requires_scraping": false,
       "stores": {}
@@ -450,7 +450,7 @@
     {
       "id": "regular-1779915020670-145-qjb33",
       "name": "Flavour Ed Yogurt",
-      "category": "Dairy",
+      "category": "Dairy & Eggs",
       "unit": "unit",
       "requires_scraping": false,
       "stores": {}
@@ -458,7 +458,7 @@
     {
       "id": "regular-1779915020670-146-nz7l8",
       "name": "Plain lactose free yogurt",
-      "category": "Dairy",
+      "category": "Dairy & Eggs",
       "unit": "unit",
       "requires_scraping": false,
       "stores": {
@@ -475,7 +475,7 @@
     {
       "id": "regular-1779915020670-147-zunbr",
       "name": "LF Coconut yogurt - GS",
-      "category": "Dairy",
+      "category": "Baking & Spices",
       "unit": "unit",
       "requires_scraping": false,
       "stores": {}
@@ -483,7 +483,7 @@
     {
       "id": "regular-1779915020670-148-zl5qg",
       "name": "Ice cream -",
-      "category": "Dairy",
+      "category": "Dairy & Eggs",
       "unit": "unit",
       "requires_scraping": false,
       "stores": {}
@@ -491,7 +491,7 @@
     {
       "id": "regular-1779915020670-149-d9f5m",
       "name": "LF Ice cream",
-      "category": "Dairy",
+      "category": "Dairy & Eggs",
       "unit": "unit",
       "requires_scraping": false,
       "stores": {}
@@ -499,7 +499,7 @@
     {
       "id": "regular-1779915020670-15-4v0lv",
       "name": "Pomegranate",
-      "category": "Fruit",
+      "category": "Fresh Produce",
       "unit": "unit",
       "requires_scraping": false,
       "stores": {}
@@ -507,7 +507,7 @@
     {
       "id": "regular-1779915020670-150-pgft7",
       "name": "Creto",
-      "category": "Dairy",
+      "category": "Pantry Staples",
       "unit": "unit",
       "requires_scraping": false,
       "stores": {}
@@ -515,7 +515,7 @@
     {
       "id": "regular-1779915020670-151-xklan",
       "name": "Orange juice - C",
-      "category": "Dairy",
+      "category": "Snacks & Beverages",
       "unit": "unit",
       "requires_scraping": false,
       "stores": {}
@@ -523,7 +523,7 @@
     {
       "id": "regular-1779915020670-152-731ww",
       "name": "Baked beans",
-      "category": "Dairy",
+      "category": "Pantry Staples",
       "unit": "unit",
       "requires_scraping": false,
       "stores": {}
@@ -531,7 +531,7 @@
     {
       "id": "regular-1779915020670-154-q64km",
       "name": "Beef",
-      "category": "Meats/Fish",
+      "category": "Meat & Seafood",
       "unit": "unit",
       "requires_scraping": false,
       "stores": {}
@@ -539,7 +539,7 @@
     {
       "id": "regular-1779915020670-155-y1074",
       "name": "Fondue meats",
-      "category": "Meats/Fish",
+      "category": "Meat & Seafood",
       "unit": "unit",
       "requires_scraping": false,
       "stores": {}
@@ -547,7 +547,7 @@
     {
       "id": "regular-1779915020670-156-aw5ez",
       "name": "Beef strips",
-      "category": "Meats/Fish",
+      "category": "Meat & Seafood",
       "unit": "unit",
       "requires_scraping": false,
       "stores": {}
@@ -555,7 +555,7 @@
     {
       "id": "regular-1779915020670-157-qfeo2",
       "name": "Eye of the round",
-      "category": "Meats/Fish",
+      "category": "Pantry Staples",
       "unit": "unit",
       "requires_scraping": false,
       "stores": {}
@@ -563,7 +563,7 @@
     {
       "id": "regular-1779915020670-158-15694",
       "name": "Ground beef Lean 450g",
-      "category": "Meats/Fish",
+      "category": "Meat & Seafood",
       "unit": "unit",
       "requires_scraping": false,
       "stores": {
@@ -580,7 +580,7 @@
     {
       "id": "regular-1779915020670-159-xv54n",
       "name": "Roast beef",
-      "category": "Meats/Fish",
+      "category": "Meat & Seafood",
       "unit": "unit",
       "requires_scraping": false,
       "stores": {}
@@ -588,7 +588,7 @@
     {
       "id": "regular-1779915020670-16-leq68",
       "name": "Raspberries",
-      "category": "Fruit",
+      "category": "Fresh Produce",
       "unit": "unit",
       "requires_scraping": false,
       "stores": {}
@@ -596,7 +596,7 @@
     {
       "id": "regular-1779915020670-160-oegcy",
       "name": "Sirloin Tip",
-      "category": "Meats/Fish",
+      "category": "Meat & Seafood",
       "unit": "unit",
       "requires_scraping": false,
       "stores": {}
@@ -604,7 +604,7 @@
     {
       "id": "regular-1779915020670-161-qr11z",
       "name": "Stewing beef",
-      "category": "Meats/Fish",
+      "category": "Meat & Seafood",
       "unit": "unit",
       "requires_scraping": false,
       "stores": {}
@@ -612,7 +612,7 @@
     {
       "id": "regular-1779915020670-162-l6boq",
       "name": "Tenderloin - C",
-      "category": "Meats/Fish",
+      "category": "Meat & Seafood",
       "unit": "unit",
       "requires_scraping": false,
       "stores": {}
@@ -620,7 +620,7 @@
     {
       "id": "regular-1779915020670-163-dwunt",
       "name": "Top sirloin",
-      "category": "Meats/Fish",
+      "category": "Meat & Seafood",
       "unit": "unit",
       "requires_scraping": false,
       "stores": {}
@@ -628,7 +628,7 @@
     {
       "id": "regular-1779915020670-164-s94p2",
       "name": "Chicken",
-      "category": "Meats/Fish",
+      "category": "Meat & Seafood",
       "unit": "unit",
       "requires_scraping": false,
       "stores": {}
@@ -636,7 +636,7 @@
     {
       "id": "regular-1779915020670-165-v9f56",
       "name": "BBQ Chicken - Costco",
-      "category": "Meats/Fish",
+      "category": "Meat & Seafood",
       "unit": "unit",
       "requires_scraping": false,
       "stores": {}
@@ -644,7 +644,7 @@
     {
       "id": "regular-1779915020670-166-n8xoo",
       "name": "Chicken Breast - Metro 4.99",
-      "category": "Meats/Fish",
+      "category": "Meat & Seafood",
       "unit": "unit",
       "requires_scraping": false,
       "stores": {}
@@ -652,7 +652,7 @@
     {
       "id": "regular-1779915020670-167-95isq",
       "name": "Chicken drumsticks",
-      "category": "Meats/Fish",
+      "category": "Meat & Seafood",
       "unit": "unit",
       "requires_scraping": false,
       "stores": {}
@@ -660,7 +660,7 @@
     {
       "id": "regular-1779915020670-168-55vr1",
       "name": "Chicken thighs",
-      "category": "Meats/Fish",
+      "category": "Meat & Seafood",
       "unit": "unit",
       "requires_scraping": false,
       "stores": {}
@@ -668,7 +668,7 @@
     {
       "id": "regular-1779915020670-169-92x0f",
       "name": "Ground Chicken Lean 450g",
-      "category": "Meats/Fish",
+      "category": "Meat & Seafood",
       "unit": "unit",
       "requires_scraping": false,
       "stores": {
@@ -685,7 +685,7 @@
     {
       "id": "regular-1779915020670-17-zsjkh",
       "name": "Strawberries 454g",
-      "category": "Fruit",
+      "category": "Fresh Produce",
       "unit": "unit",
       "requires_scraping": false,
       "stores": {
@@ -702,7 +702,7 @@
     {
       "id": "regular-1779915020670-170-xwll8",
       "name": "Whole chicken - Food B - 4.99/lb",
-      "category": "Meats/Fish",
+      "category": "Meat & Seafood",
       "unit": "unit",
       "requires_scraping": false,
       "stores": {}
@@ -710,7 +710,7 @@
     {
       "id": "regular-1779915020670-171-unt0x",
       "name": "Lamb",
-      "category": "Meats/Fish",
+      "category": "Meat & Seafood",
       "unit": "unit",
       "requires_scraping": false,
       "stores": {}
@@ -718,7 +718,7 @@
     {
       "id": "regular-1779915020670-172-mvlkv",
       "name": "Pork",
-      "category": "Meats/Fish",
+      "category": "Meat & Seafood",
       "unit": "unit",
       "requires_scraping": false,
       "stores": {}
@@ -726,7 +726,7 @@
     {
       "id": "regular-1779915020670-173-e19af",
       "name": "Bacon -return and buy one more",
-      "category": "Meats/Fish",
+      "category": "Meat & Seafood",
       "unit": "unit",
       "requires_scraping": false,
       "stores": {}
@@ -734,7 +734,7 @@
     {
       "id": "regular-1779915020670-174-na283",
       "name": "Ground pork",
-      "category": "Meats/Fish",
+      "category": "Meat & Seafood",
       "unit": "unit",
       "requires_scraping": false,
       "stores": {}
@@ -742,7 +742,7 @@
     {
       "id": "regular-1779915020670-175-6oikr",
       "name": "ham - spiral",
-      "category": "Meats/Fish",
+      "category": "Meat & Seafood",
       "unit": "unit",
       "requires_scraping": false,
       "stores": {}
@@ -750,7 +750,7 @@
     {
       "id": "regular-1779915020670-176-bu6ac",
       "name": "Marinated pork chops",
-      "category": "Meats/Fish",
+      "category": "Meat & Seafood",
       "unit": "unit",
       "requires_scraping": false,
       "stores": {}
@@ -758,7 +758,7 @@
     {
       "id": "regular-1779915020670-177-4ap0e",
       "name": "Peameal bacon",
-      "category": "Meats/Fish",
+      "category": "Meat & Seafood",
       "unit": "unit",
       "requires_scraping": false,
       "stores": {}
@@ -766,7 +766,7 @@
     {
       "id": "regular-1779915020670-178-59mf2",
       "name": "Pork chops -Food B 2.98",
-      "category": "Meats/Fish",
+      "category": "Meat & Seafood",
       "unit": "unit",
       "requires_scraping": false,
       "stores": {}
@@ -774,7 +774,7 @@
     {
       "id": "regular-1779915020670-179-vbfyn",
       "name": "Tenderloin",
-      "category": "Meats/Fish",
+      "category": "Meat & Seafood",
       "unit": "unit",
       "requires_scraping": false,
       "stores": {}
@@ -782,7 +782,7 @@
     {
       "id": "regular-1779915020670-18-vr7oa",
       "name": "Mandarin Oranges -M",
-      "category": "Fruit",
+      "category": "Fresh Produce",
       "unit": "unit",
       "requires_scraping": false,
       "stores": {}
@@ -790,7 +790,7 @@
     {
       "id": "regular-1779915020670-180-7cjti",
       "name": "Sausages - Costco",
-      "category": "Meats/Fish",
+      "category": "Meat & Seafood",
       "unit": "unit",
       "requires_scraping": false,
       "stores": {}
@@ -798,7 +798,7 @@
     {
       "id": "regular-1779915020670-181-u978v",
       "name": "Seafood",
-      "category": "Meats/Fish",
+      "category": "Meat & Seafood",
       "unit": "unit",
       "requires_scraping": false,
       "stores": {}
@@ -806,7 +806,7 @@
     {
       "id": "regular-1779915020670-182-1j214",
       "name": "Basa Loins -Costco",
-      "category": "Meats/Fish",
+      "category": "Meat & Seafood",
       "unit": "unit",
       "requires_scraping": false,
       "stores": {}
@@ -814,7 +814,7 @@
     {
       "id": "regular-1779915020670-183-gawgd",
       "name": "Mahi-Mahi",
-      "category": "Meats/Fish",
+      "category": "Meat & Seafood",
       "unit": "unit",
       "requires_scraping": false,
       "stores": {}
@@ -822,7 +822,7 @@
     {
       "id": "regular-1779915020670-184-fhzio",
       "name": "Salmon - Costco",
-      "category": "Meats/Fish",
+      "category": "Meat & Seafood",
       "unit": "unit",
       "requires_scraping": false,
       "stores": {}
@@ -830,7 +830,7 @@
     {
       "id": "regular-1779915020670-185-whm48",
       "name": "Shrimp - Costco",
-      "category": "Meats/Fish",
+      "category": "Meat & Seafood",
       "unit": "unit",
       "requires_scraping": false,
       "stores": {}
@@ -838,7 +838,7 @@
     {
       "id": "regular-1779915020670-186-8e0pv",
       "name": "Smoked Salmon - Costco",
-      "category": "Meats/Fish",
+      "category": "Meat & Seafood",
       "unit": "unit",
       "requires_scraping": false,
       "stores": {}
@@ -846,7 +846,7 @@
     {
       "id": "regular-1779915020670-187-gw742",
       "name": "Talapia",
-      "category": "Meats/Fish",
+      "category": "Meat & Seafood",
       "unit": "unit",
       "requires_scraping": false,
       "stores": {}
@@ -854,7 +854,7 @@
     {
       "id": "regular-1779915020670-188-aclwl",
       "name": "Trout - Costco",
-      "category": "Meats/Fish",
+      "category": "Meat & Seafood",
       "unit": "unit",
       "requires_scraping": false,
       "stores": {}
@@ -862,7 +862,7 @@
     {
       "id": "regular-1779915020670-189-i00ml",
       "name": "Tuna -Costco",
-      "category": "Meats/Fish",
+      "category": "Meat & Seafood",
       "unit": "unit",
       "requires_scraping": false,
       "stores": {}
@@ -870,7 +870,7 @@
     {
       "id": "regular-1779915020670-190-ya58i",
       "name": "Turkey",
-      "category": "Meats/Fish",
+      "category": "Meat & Seafood",
       "unit": "unit",
       "requires_scraping": false,
       "stores": {}
@@ -878,7 +878,7 @@
     {
       "id": "regular-1779915020670-191-usgbj",
       "name": "Turkey breast",
-      "category": "Meats/Fish",
+      "category": "Meat & Seafood",
       "unit": "unit",
       "requires_scraping": false,
       "stores": {}
@@ -886,7 +886,7 @@
     {
       "id": "regular-1779915020670-192-symyw",
       "name": "Ground turkey - Costco",
-      "category": "Meats/Fish",
+      "category": "Meat & Seafood",
       "unit": "unit",
       "requires_scraping": false,
       "stores": {}
@@ -894,7 +894,7 @@
     {
       "id": "regular-1779915020670-194-gkb7s",
       "name": "Beans and Lentils",
-      "category": "Other",
+      "category": "Pantry Staples",
       "unit": "unit",
       "requires_scraping": false,
       "stores": {}
@@ -902,7 +902,7 @@
     {
       "id": "regular-1779915020670-195-g1fz3",
       "name": "Baked beans",
-      "category": "Other",
+      "category": "Pantry Staples",
       "unit": "unit",
       "requires_scraping": false,
       "stores": {}
@@ -910,7 +910,7 @@
     {
       "id": "regular-1779915020670-196-dlamj",
       "name": "Black beans",
-      "category": "Other",
+      "category": "Pantry Staples",
       "unit": "unit",
       "requires_scraping": false,
       "stores": {}
@@ -918,7 +918,7 @@
     {
       "id": "regular-1779915020670-197-cswdt",
       "name": "Chickpeas",
-      "category": "Other",
+      "category": "Pantry Staples",
       "unit": "unit",
       "requires_scraping": false,
       "stores": {}
@@ -926,7 +926,7 @@
     {
       "id": "regular-1779915020670-198-5u102",
       "name": "Kidney beans",
-      "category": "Other",
+      "category": "Pantry Staples",
       "unit": "unit",
       "requires_scraping": false,
       "stores": {}
@@ -934,7 +934,7 @@
     {
       "id": "regular-1779915020670-199-hoi62",
       "name": "Mixed beans",
-      "category": "Other",
+      "category": "Pantry Staples",
       "unit": "unit",
       "requires_scraping": false,
       "stores": {}
@@ -942,7 +942,7 @@
     {
       "id": "regular-1779915020670-2-06cqa",
       "name": "Apricots - FB",
-      "category": "Fruit",
+      "category": "Fresh Produce",
       "unit": "unit",
       "requires_scraping": false,
       "stores": {}
@@ -950,7 +950,7 @@
     {
       "id": "regular-1779915020670-20-ptbs1",
       "name": "Arugula",
-      "category": "Vegetables",
+      "category": "Fresh Produce",
       "unit": "unit",
       "requires_scraping": false,
       "stores": {}
@@ -958,7 +958,7 @@
     {
       "id": "regular-1779915020670-200-n96xg",
       "name": "Pinto beans 15 oz",
-      "category": "Other",
+      "category": "Pantry Staples",
       "unit": "unit",
       "requires_scraping": false,
       "stores": {}
@@ -966,7 +966,7 @@
     {
       "id": "regular-1779915020670-201-cx7mc",
       "name": "Split peas",
-      "category": "Other",
+      "category": "Pantry Staples",
       "unit": "unit",
       "requires_scraping": false,
       "stores": {}
@@ -974,7 +974,7 @@
     {
       "id": "regular-1779915020670-202-4s3xi",
       "name": "White beans",
-      "category": "Other",
+      "category": "Pantry Staples",
       "unit": "unit",
       "requires_scraping": false,
       "stores": {}
@@ -982,7 +982,7 @@
     {
       "id": "regular-1779915020670-203-1bgzf",
       "name": "Green lentils - GSI",
-      "category": "Other",
+      "category": "Pantry Staples",
       "unit": "unit",
       "requires_scraping": false,
       "stores": {}
@@ -990,7 +990,7 @@
     {
       "id": "regular-1779915020670-204-3klw2",
       "name": "Red lentils",
-      "category": "Other",
+      "category": "Pantry Staples",
       "unit": "unit",
       "requires_scraping": false,
       "stores": {}
@@ -998,7 +998,7 @@
     {
       "id": "regular-1779915020670-206-svlqv",
       "name": "Cereal and Grains",
-      "category": "Other",
+      "category": "Pantry Staples",
       "unit": "unit",
       "requires_scraping": false,
       "stores": {}
@@ -1006,7 +1006,7 @@
     {
       "id": "regular-1779915020670-207-u2q40",
       "name": "All Bran",
-      "category": "Other",
+      "category": "Pantry Staples",
       "unit": "unit",
       "requires_scraping": false,
       "stores": {}
@@ -1014,7 +1014,7 @@
     {
       "id": "regular-1779915020670-208-u64xt",
       "name": "Oatmeal",
-      "category": "Other",
+      "category": "Pantry Staples",
       "unit": "unit",
       "requires_scraping": false,
       "stores": {}
@@ -1022,7 +1022,7 @@
     {
       "id": "regular-1779915020670-209-rdj46",
       "name": "Quinoa - Costco",
-      "category": "Other",
+      "category": "Pantry Staples",
       "unit": "unit",
       "requires_scraping": false,
       "stores": {}
@@ -1030,7 +1030,7 @@
     {
       "id": "regular-1779915020670-21-wmj7w",
       "name": "Asparagus",
-      "category": "Vegetables",
+      "category": "Fresh Produce",
       "unit": "unit",
       "requires_scraping": false,
       "stores": {}
@@ -1038,7 +1038,7 @@
     {
       "id": "regular-1779915020670-210-5sg75",
       "name": "Rice - Brown",
-      "category": "Other",
+      "category": "Pantry Staples",
       "unit": "unit",
       "requires_scraping": false,
       "stores": {}
@@ -1046,7 +1046,7 @@
     {
       "id": "regular-1779915020670-211-yt2u8",
       "name": "Rice - White",
-      "category": "Other",
+      "category": "Pantry Staples",
       "unit": "unit",
       "requires_scraping": false,
       "stores": {}
@@ -1054,7 +1054,7 @@
     {
       "id": "regular-1779915020670-212-k4c0x",
       "name": "Wild rice mix",
-      "category": "Other",
+      "category": "Pantry Staples",
       "unit": "unit",
       "requires_scraping": false,
       "stores": {}
@@ -1062,7 +1062,7 @@
     {
       "id": "regular-1779915020670-213-jbslw",
       "name": "Steel Cut Oats",
-      "category": "Other",
+      "category": "Pantry Staples",
       "unit": "unit",
       "requires_scraping": false,
       "stores": {}
@@ -1070,7 +1070,7 @@
     {
       "id": "regular-1779915020670-215-4vhiw",
       "name": "Nuts and Seeds",
-      "category": "Other",
+      "category": "Baking & Spices",
       "unit": "unit",
       "requires_scraping": false,
       "stores": {}
@@ -1078,7 +1078,7 @@
     {
       "id": "regular-1779915020670-216-71h7d",
       "name": "Almonds ground -Costco",
-      "category": "Other",
+      "category": "Baking & Spices",
       "unit": "unit",
       "requires_scraping": false,
       "stores": {}
@@ -1086,7 +1086,7 @@
     {
       "id": "regular-1779915020670-217-ijwgf",
       "name": "Almonds whole",
-      "category": "Other",
+      "category": "Baking & Spices",
       "unit": "unit",
       "requires_scraping": false,
       "stores": {}
@@ -1094,7 +1094,7 @@
     {
       "id": "regular-1779915020670-218-oj5op",
       "name": "Almonds slivered - Costco",
-      "category": "Other",
+      "category": "Baking & Spices",
       "unit": "unit",
       "requires_scraping": false,
       "stores": {}
@@ -1102,7 +1102,7 @@
     {
       "id": "regular-1779915020670-219-1couy",
       "name": "Cashews",
-      "category": "Other",
+      "category": "Baking & Spices",
       "unit": "unit",
       "requires_scraping": false,
       "stores": {}
@@ -1110,7 +1110,7 @@
     {
       "id": "regular-1779915020670-22-kzaec",
       "name": "Avocados -FB",
-      "category": "Vegetables",
+      "category": "Fresh Produce",
       "unit": "unit",
       "requires_scraping": false,
       "stores": {}
@@ -1118,7 +1118,7 @@
     {
       "id": "regular-1779915020670-220-nxdq6",
       "name": "Chia -Costco",
-      "category": "Other",
+      "category": "Baking & Spices",
       "unit": "unit",
       "requires_scraping": false,
       "stores": {}
@@ -1126,7 +1126,7 @@
     {
       "id": "regular-1779915020670-221-gqr6e",
       "name": "Hemp hearts",
-      "category": "Other",
+      "category": "Baking & Spices",
       "unit": "unit",
       "requires_scraping": false,
       "stores": {}
@@ -1134,7 +1134,7 @@
     {
       "id": "regular-1779915020670-222-4psro",
       "name": "Peanuts - Costco",
-      "category": "Other",
+      "category": "Baking & Spices",
       "unit": "unit",
       "requires_scraping": false,
       "stores": {}
@@ -1142,7 +1142,7 @@
     {
       "id": "regular-1779915020670-223-7zmn6",
       "name": "Peanut butter -Food B - 4.44",
-      "category": "Other",
+      "category": "Pantry Staples",
       "unit": "unit",
       "requires_scraping": false,
       "stores": {}
@@ -1150,7 +1150,7 @@
     {
       "id": "regular-1779915020670-224-h9kcb",
       "name": "Peanut butter dried",
-      "category": "Other",
+      "category": "Pantry Staples",
       "unit": "unit",
       "requires_scraping": false,
       "stores": {}
@@ -1158,7 +1158,7 @@
     {
       "id": "regular-1779915020670-225-3d84o",
       "name": "Pecans - Costco",
-      "category": "Other",
+      "category": "Baking & Spices",
       "unit": "unit",
       "requires_scraping": false,
       "stores": {}
@@ -1166,7 +1166,7 @@
     {
       "id": "regular-1779915020670-226-dcsax",
       "name": "Popcorn",
-      "category": "Other",
+      "category": "Snacks & Beverages",
       "unit": "unit",
       "requires_scraping": false,
       "stores": {}
@@ -1174,7 +1174,7 @@
     {
       "id": "regular-1779915020670-227-xc5xy",
       "name": "Pumpkin seeds",
-      "category": "Other",
+      "category": "Baking & Spices",
       "unit": "unit",
       "requires_scraping": false,
       "stores": {}
@@ -1182,7 +1182,7 @@
     {
       "id": "regular-1779915020670-228-ggy9w",
       "name": "Sunflower seeds",
-      "category": "Other",
+      "category": "Baking & Spices",
       "unit": "unit",
       "requires_scraping": false,
       "stores": {}
@@ -1190,7 +1190,7 @@
     {
       "id": "regular-1779915020670-229-vby9v",
       "name": "Walnuts -Costco",
-      "category": "Other",
+      "category": "Baking & Spices",
       "unit": "unit",
       "requires_scraping": false,
       "stores": {}
@@ -1198,7 +1198,7 @@
     {
       "id": "regular-1779915020670-23-wkcvp",
       "name": "Bean Sprouts",
-      "category": "Vegetables",
+      "category": "Fresh Produce",
       "unit": "unit",
       "requires_scraping": false,
       "stores": {}
@@ -1206,7 +1206,7 @@
     {
       "id": "regular-1779915020670-230-csh2k",
       "name": "Tofu spread - C",
-      "category": "Other",
+      "category": "Pantry Staples",
       "unit": "unit",
       "requires_scraping": false,
       "stores": {}
@@ -1214,7 +1214,7 @@
     {
       "id": "regular-1779915020670-231-pfah2",
       "name": "Pickles",
-      "category": "Other",
+      "category": "Pantry Staples",
       "unit": "unit",
       "requires_scraping": false,
       "stores": {}
@@ -1222,7 +1222,7 @@
     {
       "id": "regular-1779915020670-232-temye",
       "name": "Tahini",
-      "category": "Other",
+      "category": "Pantry Staples",
       "unit": "unit",
       "requires_scraping": false,
       "stores": {}
@@ -1230,7 +1230,7 @@
     {
       "id": "regular-1779915020670-233-v2ym8",
       "name": "Beef bullion - Costco",
-      "category": "Other",
+      "category": "Meat & Seafood",
       "unit": "unit",
       "requires_scraping": false,
       "stores": {}
@@ -1238,7 +1238,7 @@
     {
       "id": "regular-1779915020670-234-q48oi",
       "name": "Sauer kraut",
-      "category": "Other",
+      "category": "Pantry Staples",
       "unit": "unit",
       "requires_scraping": false,
       "stores": {}
@@ -1246,7 +1246,7 @@
     {
       "id": "regular-1779915020670-235-a1glt",
       "name": "Olives",
-      "category": "Other",
+      "category": "Pantry Staples",
       "unit": "unit",
       "requires_scraping": false,
       "stores": {}
@@ -1254,7 +1254,7 @@
     {
       "id": "regular-1779915020670-236-crzgk",
       "name": "Vinegar",
-      "category": "Other",
+      "category": "Pantry Staples",
       "unit": "unit",
       "requires_scraping": false,
       "stores": {}
@@ -1262,7 +1262,7 @@
     {
       "id": "regular-1779915020670-237-aq7p3",
       "name": "Cream style corn",
-      "category": "Other",
+      "category": "Dairy & Eggs",
       "unit": "unit",
       "requires_scraping": false,
       "stores": {}
@@ -1270,7 +1270,7 @@
     {
       "id": "regular-1779915020670-238-ttlyk",
       "name": "Soya Sauce - low sodium",
-      "category": "Other",
+      "category": "Pantry Staples",
       "unit": "unit",
       "requires_scraping": false,
       "stores": {}
@@ -1278,7 +1278,7 @@
     {
       "id": "regular-1779915020670-239-sqxna",
       "name": "Apple Sauce",
-      "category": "Other",
+      "category": "Fresh Produce",
       "unit": "unit",
       "requires_scraping": false,
       "stores": {}
@@ -1286,7 +1286,7 @@
     {
       "id": "regular-1779915020670-24-lybrk",
       "name": "Beans",
-      "category": "Vegetables",
+      "category": "Pantry Staples",
       "unit": "unit",
       "requires_scraping": false,
       "stores": {}
@@ -1294,7 +1294,7 @@
     {
       "id": "regular-1779915020670-240-7aj14",
       "name": "Mayonnaise - Food B - 5.48",
-      "category": "Other",
+      "category": "Pantry Staples",
       "unit": "unit",
       "requires_scraping": false,
       "stores": {}
@@ -1302,7 +1302,7 @@
     {
       "id": "regular-1779915020670-241-qvg85",
       "name": "Olive Oil - costco",
-      "category": "Other",
+      "category": "Pantry Staples",
       "unit": "unit",
       "requires_scraping": false,
       "stores": {}
@@ -1310,7 +1310,7 @@
     {
       "id": "regular-1779915020670-242-ymkpr",
       "name": "Maple syrup - costco",
-      "category": "Other",
+      "category": "Pantry Staples",
       "unit": "unit",
       "requires_scraping": false,
       "stores": {}
@@ -1318,7 +1318,7 @@
     {
       "id": "regular-1779915020670-243-ujyse",
       "name": "Canola oil - metro",
-      "category": "Other",
+      "category": "Pantry Staples",
       "unit": "unit",
       "requires_scraping": false,
       "stores": {}
@@ -1326,7 +1326,7 @@
     {
       "id": "regular-1779915020670-244-s6vn1",
       "name": "Biscoff cookies or coconut cookies if I find them",
-      "category": "Other",
+      "category": "Snacks & Beverages",
       "unit": "unit",
       "requires_scraping": false,
       "stores": {}
@@ -1334,7 +1334,7 @@
     {
       "id": "regular-1779915020670-245-nkzm1",
       "name": "Tamarind paste",
-      "category": "Other",
+      "category": "Pantry Staples",
       "unit": "unit",
       "requires_scraping": false,
       "stores": {}
@@ -1342,7 +1342,7 @@
     {
       "id": "regular-1779915020670-246-r52hq",
       "name": "Rice noodles",
-      "category": "Other",
+      "category": "Pantry Staples",
       "unit": "unit",
       "requires_scraping": false,
       "stores": {}
@@ -1350,7 +1350,7 @@
     {
       "id": "regular-1779915020670-247-serqz",
       "name": "Egg Noodles",
-      "category": "Other",
+      "category": "Dairy & Eggs",
       "unit": "unit",
       "requires_scraping": false,
       "stores": {}
@@ -1358,7 +1358,7 @@
     {
       "id": "regular-1779915020670-248-rr491",
       "name": "Ramen - Costco",
-      "category": "Other",
+      "category": "Pantry Staples",
       "unit": "unit",
       "requires_scraping": false,
       "stores": {}
@@ -1366,7 +1366,7 @@
     {
       "id": "regular-1779915020670-249-of8kr",
       "name": "Kraft Dinner",
-      "category": "Other",
+      "category": "Pantry Staples",
       "unit": "unit",
       "requires_scraping": false,
       "stores": {}
@@ -1374,7 +1374,7 @@
     {
       "id": "regular-1779915020670-25-cnlsj",
       "name": "Basil",
-      "category": "Vegetables",
+      "category": "Fresh Produce",
       "unit": "unit",
       "requires_scraping": false,
       "stores": {}
@@ -1382,7 +1382,7 @@
     {
       "id": "regular-1779915020670-250-zt8x6",
       "name": "Dried shrimp",
-      "category": "Other",
+      "category": "Meat & Seafood",
       "unit": "unit",
       "requires_scraping": false,
       "stores": {}
@@ -1390,7 +1390,7 @@
     {
       "id": "regular-1779915020670-251-4fnti",
       "name": "Saharachi sauce",
-      "category": "Other",
+      "category": "Pantry Staples",
       "unit": "unit",
       "requires_scraping": false,
       "stores": {}
@@ -1398,7 +1398,7 @@
     {
       "id": "regular-1779915020670-252-vh5ft",
       "name": "Tofu-Firm - organic",
-      "category": "Other",
+      "category": "Pantry Staples",
       "unit": "unit",
       "requires_scraping": false,
       "stores": {}
@@ -1406,7 +1406,7 @@
     {
       "id": "regular-1779915020670-253-0zdv6",
       "name": "Salted turnip packaged",
-      "category": "Other",
+      "category": "Fresh Produce",
       "unit": "unit",
       "requires_scraping": false,
       "stores": {}
@@ -1414,7 +1414,7 @@
     {
       "id": "regular-1779915020670-254-1ezsn",
       "name": "Coffee - pods - GS",
-      "category": "Other",
+      "category": "Snacks & Beverages",
       "unit": "unit",
       "requires_scraping": false,
       "stores": {}
@@ -1422,7 +1422,7 @@
     {
       "id": "regular-1779915020670-255-8nvki",
       "name": "Instant coffee - Costco",
-      "category": "Other",
+      "category": "Snacks & Beverages",
       "unit": "unit",
       "requires_scraping": false,
       "stores": {}
@@ -1430,7 +1430,7 @@
     {
       "id": "regular-1779915020670-256-ki8pa",
       "name": "Decaf instant expresso",
-      "category": "Other",
+      "category": "Snacks & Beverages",
       "unit": "unit",
       "requires_scraping": false,
       "stores": {}
@@ -1438,7 +1438,7 @@
     {
       "id": "regular-1779915020670-257-1at8k",
       "name": "Decaf Tasters Choice - Food Basics. 4.98",
-      "category": "Other",
+      "category": "Pantry Staples",
       "unit": "unit",
       "requires_scraping": false,
       "stores": {}
@@ -1446,7 +1446,7 @@
     {
       "id": "regular-1779915020670-258-m3rp2",
       "name": "Decaf Tea",
-      "category": "Other",
+      "category": "Snacks & Beverages",
       "unit": "unit",
       "requires_scraping": false,
       "stores": {}
@@ -1454,7 +1454,7 @@
     {
       "id": "regular-1779915020670-259-85sxd",
       "name": "Tea",
-      "category": "Other",
+      "category": "Snacks & Beverages",
       "unit": "unit",
       "requires_scraping": false,
       "stores": {}
@@ -1462,7 +1462,7 @@
     {
       "id": "regular-1779915020670-26-xw8hx",
       "name": "Beets - 10lbs bag 3.99 no frills",
-      "category": "Vegetables",
+      "category": "Fresh Produce",
       "unit": "unit",
       "requires_scraping": false,
       "stores": {}
@@ -1470,7 +1470,7 @@
     {
       "id": "regular-1779915020670-260-p7f8g",
       "name": "Honey -  Costco",
-      "category": "Other",
+      "category": "Pantry Staples",
       "unit": "unit",
       "requires_scraping": false,
       "stores": {}
@@ -1478,7 +1478,7 @@
     {
       "id": "regular-1779915020670-261-v6774",
       "name": "Hummus - FreshCo - 3.49",
-      "category": "Other",
+      "category": "Pantry Staples",
       "unit": "unit",
       "requires_scraping": false,
       "stores": {}
@@ -1486,7 +1486,7 @@
     {
       "id": "regular-1779915020670-262-nj7h1",
       "name": "Salsa - mild - Food B - 2.99",
-      "category": "Other",
+      "category": "Pantry Staples",
       "unit": "unit",
       "requires_scraping": false,
       "stores": {}
@@ -1494,7 +1494,7 @@
     {
       "id": "regular-1779915020670-263-y2pc5",
       "name": "Tostadas - M",
-      "category": "Other",
+      "category": "Snacks & Beverages",
       "unit": "unit",
       "requires_scraping": false,
       "stores": {}
@@ -1502,7 +1502,7 @@
     {
       "id": "regular-1779915020670-264-wtmpy",
       "name": "Corn chips - C",
-      "category": "Other",
+      "category": "Snacks & Beverages",
       "unit": "unit",
       "requires_scraping": false,
       "stores": {}
@@ -1510,7 +1510,7 @@
     {
       "id": "regular-1779915020670-265-9qdlk",
       "name": "Cesar salad dressing - Costco",
-      "category": "Other",
+      "category": "Pantry Staples",
       "unit": "unit",
       "requires_scraping": false,
       "stores": {}
@@ -1518,7 +1518,7 @@
     {
       "id": "regular-1779915020670-266-0svjw",
       "name": "Greek salad dressing",
-      "category": "Other",
+      "category": "Pantry Staples",
       "unit": "unit",
       "requires_scraping": false,
       "stores": {}
@@ -1526,7 +1526,7 @@
     {
       "id": "regular-1779915020670-267-qu98b",
       "name": "Asian salad dressing - Costco",
-      "category": "Other",
+      "category": "Pantry Staples",
       "unit": "unit",
       "requires_scraping": false,
       "stores": {}
@@ -1534,7 +1534,7 @@
     {
       "id": "regular-1779915020670-268-9c8ri",
       "name": "Sliced Pickles - bread and butter preferably",
-      "category": "Other",
+      "category": "Dairy & Eggs",
       "unit": "unit",
       "requires_scraping": false,
       "stores": {}
@@ -1542,7 +1542,7 @@
     {
       "id": "regular-1779915020670-269-5mvq1",
       "name": "Dill pickles -CLa",
-      "category": "Other",
+      "category": "Fresh Produce",
       "unit": "unit",
       "requires_scraping": false,
       "stores": {}
@@ -1550,7 +1550,7 @@
     {
       "id": "regular-1779915020670-27-nqius",
       "name": "Broccoli",
-      "category": "Vegetables",
+      "category": "Fresh Produce",
       "unit": "unit",
       "requires_scraping": false,
       "stores": {
@@ -1567,7 +1567,7 @@
     {
       "id": "regular-1779915020670-270-pbs7f",
       "name": "Ketchup - FreshCo - 2,49",
-      "category": "Other",
+      "category": "Pantry Staples",
       "unit": "unit",
       "requires_scraping": false,
       "stores": {}
@@ -1575,7 +1575,7 @@
     {
       "id": "regular-1779915020670-271-5ux0d",
       "name": "Flavoured Mayo -2.49",
-      "category": "Other",
+      "category": "Pantry Staples",
       "unit": "unit",
       "requires_scraping": false,
       "stores": {}
@@ -1583,7 +1583,7 @@
     {
       "id": "regular-1779915020670-272-7rv5m",
       "name": "Yellow mustard",
-      "category": "Other",
+      "category": "Pantry Staples",
       "unit": "unit",
       "requires_scraping": false,
       "stores": {}
@@ -1591,7 +1591,7 @@
     {
       "id": "regular-1779915020670-273-nag9v",
       "name": "Apple cider",
-      "category": "Other",
+      "category": "Fresh Produce",
       "unit": "unit",
       "requires_scraping": false,
       "stores": {}
@@ -1599,7 +1599,7 @@
     {
       "id": "regular-1779915020670-274-pdehj",
       "name": "Taini",
-      "category": "Other",
+      "category": "Pantry Staples",
       "unit": "unit",
       "requires_scraping": false,
       "stores": {}
@@ -1607,7 +1607,7 @@
     {
       "id": "regular-1779915020670-275-w8yjk",
       "name": "Marmalade jam",
-      "category": "Other",
+      "category": "Pantry Staples",
       "unit": "unit",
       "requires_scraping": false,
       "stores": {}
@@ -1615,7 +1615,7 @@
     {
       "id": "regular-1779915020670-276-gn06a",
       "name": "Masks",
-      "category": "Other",
+      "category": "Health, Personal & Household",
       "unit": "unit",
       "requires_scraping": false,
       "stores": {}
@@ -1623,7 +1623,7 @@
     {
       "id": "regular-1779915020670-277-pzx9s",
       "name": "Chicken broth - Costco",
-      "category": "Other",
+      "category": "Pantry Staples",
       "unit": "unit",
       "requires_scraping": false,
       "stores": {}
@@ -1631,7 +1631,7 @@
     {
       "id": "regular-1779915020670-278-sw9w7",
       "name": "Beef Broth - 2 boxes no frills no name 1.29",
-      "category": "Other",
+      "category": "Pantry Staples",
       "unit": "unit",
       "requires_scraping": false,
       "stores": {}
@@ -1639,7 +1639,7 @@
     {
       "id": "regular-1779915020670-279-z6bt9",
       "name": "Coconut milk - 15 oz",
-      "category": "Other",
+      "category": "Baking & Spices",
       "unit": "unit",
       "requires_scraping": false,
       "stores": {}
@@ -1647,7 +1647,7 @@
     {
       "id": "regular-1779915020670-28-3ebwg",
       "name": "Brussels sprouts",
-      "category": "Vegetables",
+      "category": "Fresh Produce",
       "unit": "unit",
       "requires_scraping": false,
       "stores": {}
@@ -1655,7 +1655,7 @@
     {
       "id": "regular-1779915020670-280-94xij",
       "name": "Coconut cream slab - FreshCo",
-      "category": "Other",
+      "category": "Baking & Spices",
       "unit": "unit",
       "requires_scraping": false,
       "stores": {}
@@ -1663,7 +1663,7 @@
     {
       "id": "regular-1779915020670-281-29ral",
       "name": "Macaroni",
-      "category": "Other",
+      "category": "Pantry Staples",
       "unit": "unit",
       "requires_scraping": false,
       "stores": {}
@@ -1671,7 +1671,7 @@
     {
       "id": "regular-1779915020670-282-gng4j",
       "name": "Rice cakes",
-      "category": "Other",
+      "category": "Snacks & Beverages",
       "unit": "unit",
       "requires_scraping": false,
       "stores": {}
@@ -1679,7 +1679,7 @@
     {
       "id": "regular-1779915020670-283-vvx0f",
       "name": "High fibre crackers",
-      "category": "Other",
+      "category": "Snacks & Beverages",
       "unit": "unit",
       "requires_scraping": false,
       "stores": {}
@@ -1687,7 +1687,7 @@
     {
       "id": "regular-1779915020670-284-yddri",
       "name": "Lemon Ginger Tea",
-      "category": "Other",
+      "category": "Fresh Produce",
       "unit": "unit",
       "requires_scraping": false,
       "stores": {}
@@ -1695,7 +1695,7 @@
     {
       "id": "regular-1779915020670-285-nmg2l",
       "name": "Bubbly soft drinks",
-      "category": "Other",
+      "category": "Snacks & Beverages",
       "unit": "unit",
       "requires_scraping": false,
       "stores": {}
@@ -1703,7 +1703,7 @@
     {
       "id": "regular-1779915020670-286-jcqxs",
       "name": "Table salt",
-      "category": "Other",
+      "category": "Baking & Spices",
       "unit": "unit",
       "requires_scraping": false,
       "stores": {}
@@ -1711,7 +1711,7 @@
     {
       "id": "regular-1779915020670-287-ivow7",
       "name": "Ice cream cones",
-      "category": "Other",
+      "category": "Dairy & Eggs",
       "unit": "unit",
       "requires_scraping": false,
       "stores": {}
@@ -1719,7 +1719,7 @@
     {
       "id": "regular-1779915020670-288-tlxfi",
       "name": "Ice cream",
-      "category": "Other",
+      "category": "Dairy & Eggs",
       "unit": "unit",
       "requires_scraping": false,
       "stores": {}
@@ -1727,7 +1727,7 @@
     {
       "id": "regular-1779915020670-289-8ujpj",
       "name": "GF ice cream cones",
-      "category": "Other",
+      "category": "Dairy & Eggs",
       "unit": "unit",
       "requires_scraping": false,
       "stores": {}
@@ -1735,7 +1735,7 @@
     {
       "id": "regular-1779915020670-29-xi3ms",
       "name": "cabbage - Food B",
-      "category": "Vegetables",
+      "category": "Fresh Produce",
       "unit": "unit",
       "requires_scraping": false,
       "stores": {}
@@ -1743,7 +1743,7 @@
     {
       "id": "regular-1779915020670-290-nr1nm",
       "name": "Chicago Mix",
-      "category": "Other",
+      "category": "Snacks & Beverages",
       "unit": "unit",
       "requires_scraping": false,
       "stores": {}
@@ -1751,7 +1751,7 @@
     {
       "id": "regular-1779915020670-291-5ultz",
       "name": "Snack to share all weekend - Costco",
-      "category": "Other",
+      "category": "Snacks & Beverages",
       "unit": "unit",
       "requires_scraping": false,
       "stores": {}
@@ -1759,7 +1759,7 @@
     {
       "id": "regular-1779915020670-292-4cocy",
       "name": "Other campfire snack- C",
-      "category": "Other",
+      "category": "Snacks & Beverages",
       "unit": "unit",
       "requires_scraping": false,
       "stores": {}
@@ -1767,7 +1767,7 @@
     {
       "id": "regular-1779915020670-293-i8am7",
       "name": "Gluten free crackers - C",
-      "category": "Other",
+      "category": "Snacks & Beverages",
       "unit": "unit",
       "requires_scraping": false,
       "stores": {}
@@ -1775,7 +1775,7 @@
     {
       "id": "regular-1779915020670-294-2bpux",
       "name": "Peanut butter pretzels - C",
-      "category": "Other",
+      "category": "Snacks & Beverages",
       "unit": "unit",
       "requires_scraping": false,
       "stores": {}
@@ -1783,7 +1783,7 @@
     {
       "id": "regular-1779915020670-295-3ou9c",
       "name": "Soba noodles -C",
-      "category": "Other",
+      "category": "Pantry Staples",
       "unit": "unit",
       "requires_scraping": false,
       "stores": {}
@@ -1791,7 +1791,7 @@
     {
       "id": "regular-1779915020670-296-ridxl",
       "name": "Dried chickpeas",
-      "category": "Other",
+      "category": "Pantry Staples",
       "unit": "unit",
       "requires_scraping": false,
       "stores": {}
@@ -1799,7 +1799,7 @@
     {
       "id": "regular-1779915020670-297-291xf",
       "name": "Dried edamame",
-      "category": "Other",
+      "category": "Pantry Staples",
       "unit": "unit",
       "requires_scraping": false,
       "stores": {}
@@ -1807,7 +1807,7 @@
     {
       "id": "regular-1779915020670-298-la0v6",
       "name": "Cranberries - Costco",
-      "category": "Other",
+      "category": "Fresh Produce",
       "unit": "unit",
       "requires_scraping": false,
       "stores": {}
@@ -1815,7 +1815,7 @@
     {
       "id": "regular-1779915020670-3-5fdno",
       "name": "Bananas",
-      "category": "Fruit",
+      "category": "Fresh Produce",
       "unit": "unit",
       "requires_scraping": false,
       "stores": {}
@@ -1823,7 +1823,7 @@
     {
       "id": "regular-1779915020670-30-26ht1",
       "name": "Carrots",
-      "category": "Vegetables",
+      "category": "Pantry Staples",
       "unit": "unit",
       "requires_scraping": false,
       "stores": {}
@@ -1831,7 +1831,7 @@
     {
       "id": "regular-1779915020670-300-utfuq",
       "name": "French Fries - C",
-      "category": "Frozen",
+      "category": "Pantry Staples",
       "unit": "unit",
       "requires_scraping": false,
       "stores": {}
@@ -1839,7 +1839,7 @@
     {
       "id": "regular-1779915020670-301-f1wdu",
       "name": "Blueberries",
-      "category": "Frozen",
+      "category": "Fresh Produce",
       "unit": "unit",
       "requires_scraping": false,
       "stores": {}
@@ -1847,7 +1847,7 @@
     {
       "id": "regular-1779915020670-302-f1pr3",
       "name": "Mixed Berries - GS",
-      "category": "Frozen",
+      "category": "Fresh Produce",
       "unit": "unit",
       "requires_scraping": false,
       "stores": {}
@@ -1855,7 +1855,7 @@
     {
       "id": "regular-1779915020670-303-52h1g",
       "name": "Sliced Strawberries-C",
-      "category": "Frozen",
+      "category": "Fresh Produce",
       "unit": "unit",
       "requires_scraping": false,
       "stores": {}
@@ -1863,7 +1863,7 @@
     {
       "id": "regular-1779915020670-304-0af1h",
       "name": "Spring rolls - C",
-      "category": "Frozen",
+      "category": "Bakery & Breads",
       "unit": "unit",
       "requires_scraping": false,
       "stores": {}
@@ -1871,7 +1871,7 @@
     {
       "id": "regular-1779915020670-305-81ev1",
       "name": "Frozen corn",
-      "category": "Frozen",
+      "category": "Pantry Staples",
       "unit": "unit",
       "requires_scraping": false,
       "stores": {}
@@ -1879,7 +1879,7 @@
     {
       "id": "regular-1779915020670-306-6qex4",
       "name": "Frozen peas",
-      "category": "Frozen",
+      "category": "Pantry Staples",
       "unit": "unit",
       "requires_scraping": false,
       "stores": {}
@@ -1887,7 +1887,7 @@
     {
       "id": "regular-1779915020670-307-0eqx5",
       "name": "Okra",
-      "category": "Frozen",
+      "category": "Fresh Produce",
       "unit": "unit",
       "requires_scraping": false,
       "stores": {}
@@ -1895,7 +1895,7 @@
     {
       "id": "regular-1779915020670-308-n5d5u",
       "name": "Egg roll wrappers",
-      "category": "Frozen",
+      "category": "Dairy & Eggs",
       "unit": "unit",
       "requires_scraping": false,
       "stores": {}
@@ -1903,7 +1903,7 @@
     {
       "id": "regular-1779915020670-309-orzkq",
       "name": "Pizza - Metro -",
-      "category": "Frozen",
+      "category": "Pantry Staples",
       "unit": "unit",
       "requires_scraping": false,
       "stores": {}
@@ -1911,7 +1911,7 @@
     {
       "id": "regular-1779915020670-31-2ipo6",
       "name": "baby carrots",
-      "category": "Vegetables",
+      "category": "Pantry Staples",
       "unit": "unit",
       "requires_scraping": false,
       "stores": {}
@@ -1919,7 +1919,7 @@
     {
       "id": "regular-1779915020670-310-vs8hz",
       "name": "Peaches frozen",
-      "category": "Frozen",
+      "category": "Pantry Staples",
       "unit": "unit",
       "requires_scraping": false,
       "stores": {}
@@ -1927,7 +1927,7 @@
     {
       "id": "regular-1779915020670-311-p469r",
       "name": "Orange Juice",
-      "category": "Frozen",
+      "category": "Snacks & Beverages",
       "unit": "unit",
       "requires_scraping": false,
       "stores": {}
@@ -1935,7 +1935,7 @@
     {
       "id": "regular-1779915020670-312-xixux",
       "name": "Green beans",
-      "category": "Frozen",
+      "category": "Pantry Staples",
       "unit": "unit",
       "requires_scraping": false,
       "stores": {}
@@ -1943,7 +1943,7 @@
     {
       "id": "regular-1779915020670-313-ozry7",
       "name": "Edamame",
-      "category": "Frozen",
+      "category": "Pantry Staples",
       "unit": "unit",
       "requires_scraping": false,
       "stores": {}
@@ -1951,7 +1951,7 @@
     {
       "id": "regular-1779915020670-314-7h5tl",
       "name": "Pepperoni",
-      "category": "Frozen",
+      "category": "Fresh Produce",
       "unit": "unit",
       "requires_scraping": false,
       "stores": {}
@@ -1959,7 +1959,7 @@
     {
       "id": "regular-1779915020670-315-xnzxi",
       "name": "Yogurt tubes",
-      "category": "Frozen",
+      "category": "Dairy & Eggs",
       "unit": "unit",
       "requires_scraping": false,
       "stores": {}
@@ -1967,7 +1967,7 @@
     {
       "id": "regular-1779915020670-317-7ytdj",
       "name": "Vol en vont - frozen pastry",
-      "category": "Canned goods/dry goods",
+      "category": "Pantry Staples",
       "unit": "unit",
       "requires_scraping": false,
       "stores": {}
@@ -1975,7 +1975,7 @@
     {
       "id": "regular-1779915020670-318-t3doq",
       "name": "Salsa ( mild)",
-      "category": "Canned goods/dry goods",
+      "category": "Pantry Staples",
       "unit": "unit",
       "requires_scraping": false,
       "stores": {}
@@ -1983,7 +1983,7 @@
     {
       "id": "regular-1779915020670-319-x9g0n",
       "name": "Pineapple",
-      "category": "Canned goods/dry goods",
+      "category": "Fresh Produce",
       "unit": "unit",
       "requires_scraping": false,
       "stores": {}
@@ -1991,7 +1991,7 @@
     {
       "id": "regular-1779915020670-32-il1ni",
       "name": "Carrots Japanese",
-      "category": "Vegetables",
+      "category": "Pantry Staples",
       "unit": "unit",
       "requires_scraping": false,
       "stores": {}
@@ -1999,7 +1999,7 @@
     {
       "id": "regular-1779915020670-320-tas8q",
       "name": "Condensed milk",
-      "category": "Canned goods/dry goods",
+      "category": "Dairy & Eggs",
       "unit": "unit",
       "requires_scraping": false,
       "stores": {}
@@ -2007,7 +2007,7 @@
     {
       "id": "regular-1779915020670-321-ek4np",
       "name": "Evaporated milk 1.5 cups",
-      "category": "Canned goods/dry goods",
+      "category": "Dairy & Eggs",
       "unit": "unit",
       "requires_scraping": false,
       "stores": {}
@@ -2015,7 +2015,7 @@
     {
       "id": "regular-1779915020670-33-ra1bk",
       "name": "Celery - M",
-      "category": "Vegetables",
+      "category": "Fresh Produce",
       "unit": "unit",
       "requires_scraping": false,
       "stores": {}
@@ -2023,7 +2023,7 @@
     {
       "id": "regular-1779915020670-34-06fdf",
       "name": "Cauliflower",
-      "category": "Vegetables",
+      "category": "Fresh Produce",
       "unit": "unit",
       "requires_scraping": false,
       "stores": {}
@@ -2031,7 +2031,7 @@
     {
       "id": "regular-1779915020670-35-qq278",
       "name": "Coriander - FreshCo .99",
-      "category": "Vegetables",
+      "category": "Fresh Produce",
       "unit": "unit",
       "requires_scraping": false,
       "stores": {}
@@ -2039,7 +2039,7 @@
     {
       "id": "regular-1779915020670-36-w7l8z",
       "name": "Cucumbers - mini FreshCo 2.99",
-      "category": "Vegetables",
+      "category": "Fresh Produce",
       "unit": "unit",
       "requires_scraping": false,
       "stores": {}
@@ -2047,7 +2047,7 @@
     {
       "id": "regular-1779915020670-37-c08gm",
       "name": "Corn on the cob",
-      "category": "Vegetables",
+      "category": "Fresh Produce",
       "unit": "unit",
       "requires_scraping": false,
       "stores": {}
@@ -2055,7 +2055,7 @@
     {
       "id": "regular-1779915020670-38-5kupe",
       "name": "Dill",
-      "category": "Vegetables",
+      "category": "Fresh Produce",
       "unit": "unit",
       "requires_scraping": false,
       "stores": {}
@@ -2063,7 +2063,7 @@
     {
       "id": "regular-1779915020670-39-cjghz",
       "name": "Eggplant",
-      "category": "Vegetables",
+      "category": "Fresh Produce",
       "unit": "unit",
       "requires_scraping": false,
       "stores": {}
@@ -2071,7 +2071,7 @@
     {
       "id": "regular-1779915020670-4-luoje",
       "name": "Blackberries",
-      "category": "Fruit",
+      "category": "Fresh Produce",
       "unit": "unit",
       "requires_scraping": false,
       "stores": {}
@@ -2079,7 +2079,7 @@
     {
       "id": "regular-1779915020670-40-5yftb",
       "name": "Fennel bulb",
-      "category": "Vegetables",
+      "category": "Fresh Produce",
       "unit": "unit",
       "requires_scraping": false,
       "stores": {}
@@ -2087,7 +2087,7 @@
     {
       "id": "regular-1779915020670-41-dbmpm",
       "name": "Garlic - .99",
-      "category": "Vegetables",
+      "category": "Fresh Produce",
       "unit": "unit",
       "requires_scraping": false,
       "stores": {}
@@ -2095,7 +2095,7 @@
     {
       "id": "regular-1779915020670-42-blomq",
       "name": "Ginger",
-      "category": "Vegetables",
+      "category": "Fresh Produce",
       "unit": "unit",
       "requires_scraping": false,
       "stores": {}
@@ -2103,7 +2103,7 @@
     {
       "id": "regular-1779915020670-43-axrtx",
       "name": "Jicama",
-      "category": "Vegetables",
+      "category": "Fresh Produce",
       "unit": "unit",
       "requires_scraping": false,
       "stores": {}
@@ -2111,7 +2111,7 @@
     {
       "id": "regular-1779915020670-44-k5wfh",
       "name": "Kalep",
-      "category": "Vegetables",
+      "category": "Fresh Produce",
       "unit": "unit",
       "requires_scraping": false,
       "stores": {}
@@ -2119,7 +2119,7 @@
     {
       "id": "regular-1779915020670-45-104sf",
       "name": "Leek - 1",
-      "category": "Vegetables",
+      "category": "Fresh Produce",
       "unit": "unit",
       "requires_scraping": false,
       "stores": {}
@@ -2127,7 +2127,7 @@
     {
       "id": "regular-1779915020670-46-3agqu",
       "name": "Lettuce",
-      "category": "Vegetables",
+      "category": "Fresh Produce",
       "unit": "unit",
       "requires_scraping": false,
       "stores": {}
@@ -2135,7 +2135,7 @@
     {
       "id": "regular-1779915020670-47-pr6tr",
       "name": "romaine - for salad",
-      "category": "Vegetables",
+      "category": "Fresh Produce",
       "unit": "unit",
       "requires_scraping": false,
       "stores": {}
@@ -2143,7 +2143,7 @@
     {
       "id": "regular-1779915020670-48-0z2hu",
       "name": "Iceburg",
-      "category": "Vegetables",
+      "category": "Fresh Produce",
       "unit": "unit",
       "requires_scraping": false,
       "stores": {}
@@ -2151,7 +2151,7 @@
     {
       "id": "regular-1779915020670-49-xrkyg",
       "name": "Mix (small) - Costco",
-      "category": "Vegetables",
+      "category": "Pantry Staples",
       "unit": "unit",
       "requires_scraping": false,
       "stores": {}
@@ -2159,7 +2159,7 @@
     {
       "id": "regular-1779915020670-5-w4ac6",
       "name": "Blueberries - pint",
-      "category": "Fruit",
+      "category": "Fresh Produce",
       "unit": "unit",
       "requires_scraping": false,
       "stores": {}
@@ -2167,7 +2167,7 @@
     {
       "id": "regular-1779915020670-50-xxdyn",
       "name": "Arugula - Costco",
-      "category": "Vegetables",
+      "category": "Fresh Produce",
       "unit": "unit",
       "requires_scraping": false,
       "stores": {}
@@ -2175,7 +2175,7 @@
     {
       "id": "regular-1779915020670-51-1ikfm",
       "name": "Spring Mix - Costco",
-      "category": "Vegetables",
+      "category": "Fresh Produce",
       "unit": "unit",
       "requires_scraping": false,
       "stores": {}
@@ -2183,7 +2183,7 @@
     {
       "id": "regular-1779915020670-52-6lpwd",
       "name": "Mint",
-      "category": "Vegetables",
+      "category": "Fresh Produce",
       "unit": "unit",
       "requires_scraping": false,
       "stores": {}
@@ -2191,7 +2191,7 @@
     {
       "id": "regular-1779915020670-53-uzc7p",
       "name": "Mushrooms - Costco",
-      "category": "Vegetables",
+      "category": "Fresh Produce",
       "unit": "unit",
       "requires_scraping": false,
       "stores": {}
@@ -2199,7 +2199,7 @@
     {
       "id": "regular-1779915020670-54-vl4hq",
       "name": "white - 2.49  2",
-      "category": "Vegetables",
+      "category": "Pantry Staples",
       "unit": "unit",
       "requires_scraping": false,
       "stores": {}
@@ -2207,7 +2207,7 @@
     {
       "id": "regular-1779915020670-55-zixvc",
       "name": "Mini Bella’s",
-      "category": "Vegetables",
+      "category": "Fresh Produce",
       "unit": "unit",
       "requires_scraping": false,
       "stores": {}
@@ -2215,7 +2215,7 @@
     {
       "id": "regular-1779915020670-56-yw14e",
       "name": "Portabellos",
-      "category": "Vegetables",
+      "category": "Fresh Produce",
       "unit": "unit",
       "requires_scraping": false,
       "stores": {}
@@ -2223,7 +2223,7 @@
     {
       "id": "regular-1779915020670-57-ch9qc",
       "name": "Oyster",
-      "category": "Vegetables",
+      "category": "Fresh Produce",
       "unit": "unit",
       "requires_scraping": false,
       "stores": {}
@@ -2231,7 +2231,7 @@
     {
       "id": "regular-1779915020670-58-bozjx",
       "name": "Cremini",
-      "category": "Vegetables",
+      "category": "Fresh Produce",
       "unit": "unit",
       "requires_scraping": false,
       "stores": {}
@@ -2239,7 +2239,7 @@
     {
       "id": "regular-1779915020670-59-1fra4",
       "name": "Onions",
-      "category": "Vegetables",
+      "category": "Fresh Produce",
       "unit": "unit",
       "requires_scraping": false,
       "stores": {}
@@ -2247,7 +2247,7 @@
     {
       "id": "regular-1779915020670-6-nmszl",
       "name": "Raspberries",
-      "category": "Fruit",
+      "category": "Fresh Produce",
       "unit": "unit",
       "requires_scraping": false,
       "stores": {}
@@ -2255,7 +2255,7 @@
     {
       "id": "regular-1779915020670-60-ggnhb",
       "name": "Red onion - M",
-      "category": "Vegetables",
+      "category": "Fresh Produce",
       "unit": "unit",
       "requires_scraping": false,
       "stores": {}
@@ -2263,7 +2263,7 @@
     {
       "id": "regular-1779915020670-61-6ne9f",
       "name": "White Onion",
-      "category": "Vegetables",
+      "category": "Fresh Produce",
       "unit": "unit",
       "requires_scraping": false,
       "stores": {}
@@ -2271,7 +2271,7 @@
     {
       "id": "regular-1779915020670-62-qjz4m",
       "name": "Green Onions",
-      "category": "Vegetables",
+      "category": "Fresh Produce",
       "unit": "unit",
       "requires_scraping": false,
       "stores": {}
@@ -2279,7 +2279,7 @@
     {
       "id": "regular-1779915020670-63-0slj8",
       "name": "Yellow onions - big bag FreshCo 2.99",
-      "category": "Vegetables",
+      "category": "Fresh Produce",
       "unit": "unit",
       "requires_scraping": false,
       "stores": {}
@@ -2287,7 +2287,7 @@
     {
       "id": "regular-1779915020670-64-xv72i",
       "name": "Parsley",
-      "category": "Vegetables",
+      "category": "Fresh Produce",
       "unit": "unit",
       "requires_scraping": false,
       "stores": {}
@@ -2295,7 +2295,7 @@
     {
       "id": "regular-1779915020670-65-dp07w",
       "name": "Parsnips",
-      "category": "Vegetables",
+      "category": "Fresh Produce",
       "unit": "unit",
       "requires_scraping": false,
       "stores": {}
@@ -2303,7 +2303,7 @@
     {
       "id": "regular-1779915020670-66-4owt2",
       "name": "Peppers",
-      "category": "Vegetables",
+      "category": "Fresh Produce",
       "unit": "unit",
       "requires_scraping": false,
       "stores": {}
@@ -2311,7 +2311,7 @@
     {
       "id": "regular-1779915020670-67-u98iq",
       "name": "Red 4",
-      "category": "Vegetables",
+      "category": "Pantry Staples",
       "unit": "unit",
       "requires_scraping": false,
       "stores": {}
@@ -2319,7 +2319,7 @@
     {
       "id": "regular-1779915020670-68-9zorn",
       "name": "Potatoes",
-      "category": "Vegetables",
+      "category": "Fresh Produce",
       "unit": "unit",
       "requires_scraping": false,
       "stores": {}
@@ -2327,7 +2327,7 @@
     {
       "id": "regular-1779915020670-69-pjnfc",
       "name": "Baby -Costco",
-      "category": "Vegetables",
+      "category": "Pantry Staples",
       "unit": "unit",
       "requires_scraping": false,
       "stores": {}
@@ -2335,7 +2335,7 @@
     {
       "id": "regular-1779915020670-7-06ckd",
       "name": "Grapes - green",
-      "category": "Fruit",
+      "category": "Fresh Produce",
       "unit": "unit",
       "requires_scraping": false,
       "stores": {}
@@ -2343,7 +2343,7 @@
     {
       "id": "regular-1779915020670-70-1xse8",
       "name": "Sweet potatoes",
-      "category": "Vegetables",
+      "category": "Fresh Produce",
       "unit": "unit",
       "requires_scraping": false,
       "stores": {}
@@ -2351,7 +2351,7 @@
     {
       "id": "regular-1779915020670-71-ttfq9",
       "name": "Russet",
-      "category": "Vegetables",
+      "category": "Fresh Produce",
       "unit": "unit",
       "requires_scraping": false,
       "stores": {}
@@ -2359,7 +2359,7 @@
     {
       "id": "regular-1779915020670-72-k5sjn",
       "name": "Youkon Gold",
-      "category": "Vegetables",
+      "category": "Fresh Produce",
       "unit": "unit",
       "requires_scraping": false,
       "stores": {}
@@ -2367,7 +2367,7 @@
     {
       "id": "regular-1779915020670-73-quszu",
       "name": "New",
-      "category": "Vegetables",
+      "category": "Pantry Staples",
       "unit": "unit",
       "requires_scraping": false,
       "stores": {}
@@ -2375,7 +2375,7 @@
     {
       "id": "regular-1779915020670-74-8lcr6",
       "name": "Radishes",
-      "category": "Vegetables",
+      "category": "Fresh Produce",
       "unit": "unit",
       "requires_scraping": false,
       "stores": {}
@@ -2383,7 +2383,7 @@
     {
       "id": "regular-1779915020670-75-q50n8",
       "name": "Red cabbage",
-      "category": "Vegetables",
+      "category": "Fresh Produce",
       "unit": "unit",
       "requires_scraping": false,
       "stores": {}
@@ -2391,7 +2391,7 @@
     {
       "id": "regular-1779915020670-76-1s12l",
       "name": "Red peppers 2",
-      "category": "Vegetables",
+      "category": "Fresh Produce",
       "unit": "unit",
       "requires_scraping": false,
       "stores": {}
@@ -2399,7 +2399,7 @@
     {
       "id": "regular-1779915020670-77-m5xv4",
       "name": "Tri coloured peppers",
-      "category": "Vegetables",
+      "category": "Fresh Produce",
       "unit": "unit",
       "requires_scraping": false,
       "stores": {}
@@ -2407,7 +2407,7 @@
     {
       "id": "regular-1779915020670-78-jn5ul",
       "name": "Turnip",
-      "category": "Vegetables",
+      "category": "Fresh Produce",
       "unit": "unit",
       "requires_scraping": false,
       "stores": {}
@@ -2415,7 +2415,7 @@
     {
       "id": "regular-1779915020670-79-wk31y",
       "name": "Spinach -Costco",
-      "category": "Vegetables",
+      "category": "Fresh Produce",
       "unit": "unit",
       "requires_scraping": false,
       "stores": {}
@@ -2423,7 +2423,7 @@
     {
       "id": "regular-1779915020670-8-fqe2j",
       "name": "Kiwi",
-      "category": "Fruit",
+      "category": "Fresh Produce",
       "unit": "unit",
       "requires_scraping": false,
       "stores": {}
@@ -2431,7 +2431,7 @@
     {
       "id": "regular-1779915020670-80-jdz7u",
       "name": "Squash",
-      "category": "Vegetables",
+      "category": "Fresh Produce",
       "unit": "unit",
       "requires_scraping": false,
       "stores": {}
@@ -2439,7 +2439,7 @@
     {
       "id": "regular-1779915020670-81-yrgnh",
       "name": "Spaghetti - no frills",
-      "category": "Vegetables",
+      "category": "Pantry Staples",
       "unit": "unit",
       "requires_scraping": false,
       "stores": {}
@@ -2447,7 +2447,7 @@
     {
       "id": "regular-1779915020670-82-xgdej",
       "name": "Butternut",
-      "category": "Vegetables",
+      "category": "Fresh Produce",
       "unit": "unit",
       "requires_scraping": false,
       "stores": {}
@@ -2455,7 +2455,7 @@
     {
       "id": "regular-1779915020670-83-z7y7i",
       "name": "Acorn",
-      "category": "Vegetables",
+      "category": "Fresh Produce",
       "unit": "unit",
       "requires_scraping": false,
       "stores": {}
@@ -2463,7 +2463,7 @@
     {
       "id": "regular-1779915020670-84-gga65",
       "name": "Sweet pea pods",
-      "category": "Vegetables",
+      "category": "Fresh Produce",
       "unit": "unit",
       "requires_scraping": false,
       "stores": {}
@@ -2471,7 +2471,7 @@
     {
       "id": "regular-1779915020670-85-oejkx",
       "name": "Tomatoes",
-      "category": "Vegetables",
+      "category": "Fresh Produce",
       "unit": "unit",
       "requires_scraping": false,
       "stores": {}
@@ -2479,7 +2479,7 @@
     {
       "id": "regular-1779915020670-86-917gz",
       "name": "Baby Tomatoes -FB",
-      "category": "Vegetables",
+      "category": "Fresh Produce",
       "unit": "unit",
       "requires_scraping": false,
       "stores": {}
@@ -2487,7 +2487,7 @@
     {
       "id": "regular-1779915020670-87-pzmaw",
       "name": "Plum tomatoes - FB",
-      "category": "Vegetables",
+      "category": "Fresh Produce",
       "unit": "unit",
       "requires_scraping": false,
       "stores": {}
@@ -2495,7 +2495,7 @@
     {
       "id": "regular-1779915020670-88-4zfvw",
       "name": "Large tomatoes -C",
-      "category": "Vegetables",
+      "category": "Fresh Produce",
       "unit": "unit",
       "requires_scraping": false,
       "stores": {}
@@ -2503,7 +2503,7 @@
     {
       "id": "regular-1779915020670-89-xkj21",
       "name": "Small vine tomatoes",
-      "category": "Vegetables",
+      "category": "Fresh Produce",
       "unit": "unit",
       "requires_scraping": false,
       "stores": {}
@@ -2511,7 +2511,7 @@
     {
       "id": "regular-1779915020670-9-yq931",
       "name": "Lemons - M",
-      "category": "Fruit",
+      "category": "Pantry Staples",
       "unit": "unit",
       "requires_scraping": false,
       "stores": {}
@@ -2519,7 +2519,7 @@
     {
       "id": "regular-1779915020670-90-o8cpz",
       "name": "Zucchini - Costco",
-      "category": "Vegetables",
+      "category": "Fresh Produce",
       "unit": "unit",
       "requires_scraping": false,
       "stores": {}
@@ -2527,7 +2527,7 @@
     {
       "id": "regular-1779915020670-92-76exu",
       "name": "Bagels - Kettlemans",
-      "category": "Bread",
+      "category": "Bakery & Breads",
       "unit": "unit",
       "requires_scraping": false,
       "stores": {}
@@ -2535,7 +2535,7 @@
     {
       "id": "regular-1779915020670-93-4rcv7",
       "name": "Baguette- C - 8 cups of bread cubes.",
-      "category": "Bread",
+      "category": "Bakery & Breads",
       "unit": "unit",
       "requires_scraping": false,
       "stores": {}
@@ -2543,7 +2543,7 @@
     {
       "id": "regular-1779915020670-94-t2v3c",
       "name": "Cheese bread",
-      "category": "Bread",
+      "category": "Dairy & Eggs",
       "unit": "unit",
       "requires_scraping": false,
       "stores": {}
@@ -2551,7 +2551,7 @@
     {
       "id": "regular-1779915020670-95-vjr4e",
       "name": "Pita bread-whole wheat",
-      "category": "Bread",
+      "category": "Bakery & Breads",
       "unit": "unit",
       "requires_scraping": false,
       "stores": {}
@@ -2559,7 +2559,7 @@
     {
       "id": "regular-1779915020670-96-h1t5r",
       "name": "Rye bread",
-      "category": "Bread",
+      "category": "Bakery & Breads",
       "unit": "unit",
       "requires_scraping": false,
       "stores": {}
@@ -2567,7 +2567,7 @@
     {
       "id": "regular-1779915020670-97-ly903",
       "name": "Burger buns",
-      "category": "Bread",
+      "category": "Bakery & Breads",
       "unit": "unit",
       "requires_scraping": false,
       "stores": {}
@@ -2575,7 +2575,7 @@
     {
       "id": "regular-1779915020670-98-h1ppf",
       "name": "Sausage buns cut on top",
-      "category": "Bread",
+      "category": "Meat & Seafood",
       "unit": "unit",
       "requires_scraping": false,
       "stores": {}
@@ -2583,7 +2583,7 @@
     {
       "id": "regular-1779915020670-99-z0j41",
       "name": "Sandwich rolls",
-      "category": "Bread",
+      "category": "Bakery & Breads",
       "unit": "unit",
       "requires_scraping": false,
       "stores": {}
@@ -2591,7 +2591,7 @@
     {
       "id": "regular-1779915020671-322-13htl",
       "name": "Cookies - C",
-      "category": "Canned goods/dry goods",
+      "category": "Snacks & Beverages",
       "unit": "unit",
       "requires_scraping": false,
       "stores": {}
@@ -2599,7 +2599,7 @@
     {
       "id": "regular-1779915020671-323-9fldp",
       "name": "Lemon jam",
-      "category": "Canned goods/dry goods",
+      "category": "Pantry Staples",
       "unit": "unit",
       "requires_scraping": false,
       "stores": {}
@@ -2607,7 +2607,7 @@
     {
       "id": "regular-1779915020671-324-dcxhv",
       "name": "Pizza sauce - GS",
-      "category": "Canned goods/dry goods",
+      "category": "Pantry Staples",
       "unit": "unit",
       "requires_scraping": false,
       "stores": {}
@@ -2615,7 +2615,7 @@
     {
       "id": "regular-1779915020671-325-qhmfz",
       "name": "Sun dried tomatoes",
-      "category": "Canned goods/dry goods",
+      "category": "Pantry Staples",
       "unit": "unit",
       "requires_scraping": false,
       "stores": {}
@@ -2623,7 +2623,7 @@
     {
       "id": "regular-1779915020671-326-5gr7u",
       "name": "Diced tomatoes - 2 cans - Wait till Thursday",
-      "category": "Canned goods/dry goods",
+      "category": "Fresh Produce",
       "unit": "unit",
       "requires_scraping": false,
       "stores": {}
@@ -2631,7 +2631,7 @@
     {
       "id": "regular-1779915020671-327-fc8cw",
       "name": "Crushed tomatoes  28oz - Wait till Thursday",
-      "category": "Canned goods/dry goods",
+      "category": "Fresh Produce",
       "unit": "unit",
       "requires_scraping": false,
       "stores": {}
@@ -2639,7 +2639,7 @@
     {
       "id": "regular-1779915020671-328-cdpv2",
       "name": "Tomato paste 3",
-      "category": "Canned goods/dry goods",
+      "category": "Fresh Produce",
       "unit": "unit",
       "requires_scraping": false,
       "stores": {}
@@ -2647,7 +2647,7 @@
     {
       "id": "regular-1779915020671-329-j66gj",
       "name": "Tomato Sauce - 2 GS",
-      "category": "Canned goods/dry goods",
+      "category": "Fresh Produce",
       "unit": "unit",
       "requires_scraping": false,
       "stores": {}
@@ -2655,7 +2655,7 @@
     {
       "id": "regular-1779915020671-330-z6htk",
       "name": "Pasta - curly",
-      "category": "Canned goods/dry goods",
+      "category": "Pantry Staples",
       "unit": "unit",
       "requires_scraping": false,
       "stores": {}
@@ -2663,7 +2663,7 @@
     {
       "id": "regular-1779915020671-331-2m49q",
       "name": "Orzo",
-      "category": "Canned goods/dry goods",
+      "category": "Pantry Staples",
       "unit": "unit",
       "requires_scraping": false,
       "stores": {}
@@ -2671,7 +2671,7 @@
     {
       "id": "regular-1779915020671-332-ninil",
       "name": "Wraps",
-      "category": "Canned goods/dry goods",
+      "category": "Bakery & Breads",
       "unit": "unit",
       "requires_scraping": false,
       "stores": {}
@@ -2679,7 +2679,7 @@
     {
       "id": "regular-1779915020671-333-m5x0x",
       "name": "Barley",
-      "category": "Canned goods/dry goods",
+      "category": "Pantry Staples",
       "unit": "unit",
       "requires_scraping": false,
       "stores": {}
@@ -2687,7 +2687,7 @@
     {
       "id": "regular-1779915020671-334-rspeg",
       "name": "Green lentils - GS",
-      "category": "Canned goods/dry goods",
+      "category": "Pantry Staples",
       "unit": "unit",
       "requires_scraping": false,
       "stores": {}
@@ -2695,7 +2695,7 @@
     {
       "id": "regular-1779915020671-335-86wbp",
       "name": "Oyster sauce",
-      "category": "Canned goods/dry goods",
+      "category": "Fresh Produce",
       "unit": "unit",
       "requires_scraping": false,
       "stores": {}
@@ -2703,7 +2703,7 @@
     {
       "id": "regular-1779915020671-336-hxmln",
       "name": "Fish Sauce",
-      "category": "Canned goods/dry goods",
+      "category": "Pantry Staples",
       "unit": "unit",
       "requires_scraping": false,
       "stores": {}
@@ -2711,7 +2711,7 @@
     {
       "id": "regular-1779915020671-337-l1ozz",
       "name": "Tamarind paste",
-      "category": "Canned goods/dry goods",
+      "category": "Pantry Staples",
       "unit": "unit",
       "requires_scraping": false,
       "stores": {}
@@ -2719,7 +2719,7 @@
     {
       "id": "regular-1779915020671-338-quuox",
       "name": "Pomegranate-cranberry juice",
-      "category": "Canned goods/dry goods",
+      "category": "Snacks & Beverages",
       "unit": "unit",
       "requires_scraping": false,
       "stores": {}
@@ -2727,7 +2727,7 @@
     {
       "id": "regular-1779915020671-339-dpygq",
       "name": "Coffee - Freshco 4.99 Nescafé",
-      "category": "Canned goods/dry goods",
+      "category": "Snacks & Beverages",
       "unit": "unit",
       "requires_scraping": false,
       "stores": {}
@@ -2735,7 +2735,7 @@
     {
       "id": "regular-1779915020671-340-2fv5j",
       "name": "Corn - Freshco .79",
-      "category": "Canned goods/dry goods",
+      "category": "Pantry Staples",
       "unit": "unit",
       "requires_scraping": false,
       "stores": {}
@@ -2743,7 +2743,7 @@
     {
       "id": "regular-1779915020671-341-p4fv2",
       "name": "Tea - Twinigs 3.99 Feshco",
-      "category": "Canned goods/dry goods",
+      "category": "Snacks & Beverages",
       "unit": "unit",
       "requires_scraping": false,
       "stores": {}
@@ -2751,7 +2751,7 @@
     {
       "id": "regular-1779915020671-343-2cdi1",
       "name": "Wet ones",
-      "category": "Toiletries",
+      "category": "Health, Personal & Household",
       "unit": "unit",
       "requires_scraping": false,
       "stores": {}
@@ -2759,7 +2759,7 @@
     {
       "id": "regular-1779915020671-344-lionb",
       "name": "Deodorant",
-      "category": "Toiletries",
+      "category": "Health, Personal & Household",
       "unit": "unit",
       "requires_scraping": false,
       "stores": {}
@@ -2767,7 +2767,7 @@
     {
       "id": "regular-1779915020671-345-q6h9m",
       "name": "Razors -C",
-      "category": "Toiletries",
+      "category": "Health, Personal & Household",
       "unit": "unit",
       "requires_scraping": false,
       "stores": {}
@@ -2775,7 +2775,7 @@
     {
       "id": "regular-1779915020671-346-tzb0w",
       "name": "Toothpaste",
-      "category": "Toiletries",
+      "category": "Health, Personal & Household",
       "unit": "unit",
       "requires_scraping": false,
       "stores": {}
@@ -2783,7 +2783,7 @@
     {
       "id": "regular-1779915020671-347-shr8a",
       "name": "Tooth brush heads",
-      "category": "Toiletries",
+      "category": "Health, Personal & Household",
       "unit": "unit",
       "requires_scraping": false,
       "stores": {}
@@ -2791,7 +2791,7 @@
     {
       "id": "regular-1779915020671-348-g3rha",
       "name": "Dental Toothpicks -C",
-      "category": "Toiletries",
+      "category": "Health, Personal & Household",
       "unit": "unit",
       "requires_scraping": false,
       "stores": {}
@@ -2799,7 +2799,7 @@
     {
       "id": "regular-1779915020671-349-mslli",
       "name": "Toilet paper. - GS",
-      "category": "Toiletries",
+      "category": "Health, Personal & Household",
       "unit": "unit",
       "requires_scraping": false,
       "stores": {}
@@ -2807,7 +2807,7 @@
     {
       "id": "regular-1779915020671-350-9sdyy",
       "name": "Paper Towels",
-      "category": "Toiletries",
+      "category": "Health, Personal & Household",
       "unit": "unit",
       "requires_scraping": false,
       "stores": {}
@@ -2815,7 +2815,7 @@
     {
       "id": "regular-1779915020671-351-ovkm7",
       "name": "Kleenex",
-      "category": "Toiletries",
+      "category": "Health, Personal & Household",
       "unit": "unit",
       "requires_scraping": false,
       "stores": {}
@@ -2823,7 +2823,7 @@
     {
       "id": "regular-1779915020671-352-nw80p",
       "name": "Dish soap - GS",
-      "category": "Toiletries",
+      "category": "Health, Personal & Household",
       "unit": "unit",
       "requires_scraping": false,
       "stores": {}
@@ -2831,7 +2831,7 @@
     {
       "id": "regular-1779915020671-353-3q877",
       "name": "Shaving cream",
-      "category": "Toiletries",
+      "category": "Dairy & Eggs",
       "unit": "unit",
       "requires_scraping": false,
       "stores": {}
@@ -2839,7 +2839,7 @@
     {
       "id": "regular-1779915020671-354-ri5hq",
       "name": "Make up remover",
-      "category": "Toiletries",
+      "category": "Pantry Staples",
       "unit": "unit",
       "requires_scraping": false,
       "stores": {}
@@ -2847,7 +2847,7 @@
     {
       "id": "regular-1779915020671-355-p8ebk",
       "name": "Tylenol",
-      "category": "Toiletries",
+      "category": "Health, Personal & Household",
       "unit": "unit",
       "requires_scraping": false,
       "stores": {}
@@ -2855,7 +2855,7 @@
     {
       "id": "regular-1779915020671-356-mwc26",
       "name": "Benedryl",
-      "category": "Toiletries",
+      "category": "Health, Personal & Household",
       "unit": "unit",
       "requires_scraping": false,
       "stores": {}
@@ -2863,7 +2863,7 @@
     {
       "id": "regular-1779915020671-357-bzqpe",
       "name": "Shampoo",
-      "category": "Toiletries",
+      "category": "Meat & Seafood",
       "unit": "unit",
       "requires_scraping": false,
       "stores": {}
@@ -2871,7 +2871,7 @@
     {
       "id": "regular-1779915020671-358-osxls",
       "name": "Conditioner",
-      "category": "Toiletries",
+      "category": "Health, Personal & Household",
       "unit": "unit",
       "requires_scraping": false,
       "stores": {}
@@ -2879,7 +2879,7 @@
     {
       "id": "regular-1779915020671-359-tf5z8",
       "name": "Body Wash",
-      "category": "Toiletries",
+      "category": "Health, Personal & Household",
       "unit": "unit",
       "requires_scraping": false,
       "stores": {}
@@ -2887,7 +2887,7 @@
     {
       "id": "regular-1779915020671-360-evu4j",
       "name": "Dishwasher tabs - C",
-      "category": "Toiletries",
+      "category": "Health, Personal & Household",
       "unit": "unit",
       "requires_scraping": false,
       "stores": {}
@@ -2895,7 +2895,7 @@
     {
       "id": "regular-1779915020671-361-q3fzd",
       "name": "Toilet Bowl Cleaner",
-      "category": "Toiletries",
+      "category": "Health, Personal & Household",
       "unit": "unit",
       "requires_scraping": false,
       "stores": {}
@@ -2903,7 +2903,7 @@
     {
       "id": "regular-1779915020671-362-5hmn1",
       "name": "Dish Soap 2/$5. Food Basics",
-      "category": "Toiletries",
+      "category": "Health, Personal & Household",
       "unit": "unit",
       "requires_scraping": false,
       "stores": {}
@@ -2911,7 +2911,7 @@
     {
       "id": "regular-1779915020671-363-ac84d",
       "name": "Garbage bags 34l clear",
-      "category": "Toiletries",
+      "category": "Health, Personal & Household",
       "unit": "unit",
       "requires_scraping": false,
       "stores": {}
@@ -2919,7 +2919,7 @@
     {
       "id": "regular-1779915020671-364-9f3gu",
       "name": "Laundry soap - Kirkland- costco",
-      "category": "Toiletries",
+      "category": "Health, Personal & Household",
       "unit": "unit",
       "requires_scraping": false,
       "stores": {}
@@ -2927,7 +2927,7 @@
     {
       "id": "regular-1779915020671-366-lk7ys",
       "name": "Salt",
-      "category": "Baking /Nuts/Spices",
+      "category": "Baking & Spices",
       "unit": "unit",
       "requires_scraping": false,
       "stores": {}
@@ -2935,7 +2935,7 @@
     {
       "id": "regular-1779915020671-367-kaoxz",
       "name": "Chili spice packages - 2",
-      "category": "Baking /Nuts/Spices",
+      "category": "Baking & Spices",
       "unit": "unit",
       "requires_scraping": false,
       "stores": {}
@@ -2943,7 +2943,7 @@
     {
       "id": "regular-1779915020671-368-3wfts",
       "name": "Doritos",
-      "category": "Baking /Nuts/Spices",
+      "category": "Snacks & Beverages",
       "unit": "unit",
       "requires_scraping": false,
       "stores": {}
@@ -2951,7 +2951,7 @@
     {
       "id": "regular-1779915020671-369-1ghdr",
       "name": "Funfetti",
-      "category": "Baking /Nuts/Spices",
+      "category": "Baking & Spices",
       "unit": "unit",
       "requires_scraping": false,
       "stores": {}
@@ -2959,7 +2959,7 @@
     {
       "id": "regular-1779915020671-370-sgtdt",
       "name": "Wholewheat Flour - Costco",
-      "category": "Baking /Nuts/Spices",
+      "category": "Baking & Spices",
       "unit": "unit",
       "requires_scraping": false,
       "stores": {}
@@ -2967,7 +2967,7 @@
     {
       "id": "regular-1779915020671-371-duuf9",
       "name": "Raisins",
-      "category": "Baking /Nuts/Spices",
+      "category": "Pantry Staples",
       "unit": "unit",
       "requires_scraping": false,
       "stores": {}
@@ -2975,7 +2975,7 @@
     {
       "id": "regular-1779915020671-372-qaykq",
       "name": "Peanuts -C",
-      "category": "Baking /Nuts/Spices",
+      "category": "Baking & Spices",
       "unit": "unit",
       "requires_scraping": false,
       "stores": {}
@@ -2983,7 +2983,7 @@
     {
       "id": "regular-1779915020671-373-1htuf",
       "name": "Pecans -C",
-      "category": "Baking /Nuts/Spices",
+      "category": "Baking & Spices",
       "unit": "unit",
       "requires_scraping": false,
       "stores": {}
@@ -2991,7 +2991,7 @@
     {
       "id": "regular-1779915020671-374-byt5m",
       "name": "Pistachios - C",
-      "category": "Baking /Nuts/Spices",
+      "category": "Baking & Spices",
       "unit": "unit",
       "requires_scraping": false,
       "stores": {}
@@ -2999,7 +2999,7 @@
     {
       "id": "regular-1779915020671-375-isig8",
       "name": "Wallnuts - C",
-      "category": "Baking /Nuts/Spices",
+      "category": "Baking & Spices",
       "unit": "unit",
       "requires_scraping": false,
       "stores": {}
@@ -3007,7 +3007,7 @@
     {
       "id": "regular-1779915020671-376-m1quh",
       "name": "Pumpkin seeds",
-      "category": "Baking /Nuts/Spices",
+      "category": "Baking & Spices",
       "unit": "unit",
       "requires_scraping": false,
       "stores": {}
@@ -3015,7 +3015,7 @@
     {
       "id": "regular-1779915020671-377-zplwc",
       "name": "Slivered almonds-C",
-      "category": "Baking /Nuts/Spices",
+      "category": "Baking & Spices",
       "unit": "unit",
       "requires_scraping": false,
       "stores": {}
@@ -3023,7 +3023,7 @@
     {
       "id": "regular-1779915020671-378-7x2xm",
       "name": "Macamadia nuts- C",
-      "category": "Baking /Nuts/Spices",
+      "category": "Baking & Spices",
       "unit": "unit",
       "requires_scraping": false,
       "stores": {}
@@ -3031,7 +3031,7 @@
     {
       "id": "regular-1779915020671-379-8c53i",
       "name": "Ground almonds -C",
-      "category": "Baking /Nuts/Spices",
+      "category": "Baking & Spices",
       "unit": "unit",
       "requires_scraping": false,
       "stores": {}
@@ -3039,7 +3039,7 @@
     {
       "id": "regular-1779915020671-380-nh6mh",
       "name": "Vanilla -C",
-      "category": "Baking /Nuts/Spices",
+      "category": "Baking & Spices",
       "unit": "unit",
       "requires_scraping": false,
       "stores": {}
@@ -3047,7 +3047,7 @@
     {
       "id": "regular-1779915020671-381-8g7i8",
       "name": "Pepper -C",
-      "category": "Baking /Nuts/Spices",
+      "category": "Fresh Produce",
       "unit": "unit",
       "requires_scraping": false,
       "stores": {}
@@ -3055,7 +3055,7 @@
     {
       "id": "regular-1779915020671-382-fkctk",
       "name": "Seasoning -C",
-      "category": "Baking /Nuts/Spices",
+      "category": "Baking & Spices",
       "unit": "unit",
       "requires_scraping": false,
       "stores": {}
@@ -3063,7 +3063,7 @@
     {
       "id": "regular-1779915020671-383-2dhbm",
       "name": "Graham crackers - 2",
-      "category": "Baking /Nuts/Spices",
+      "category": "Meat & Seafood",
       "unit": "unit",
       "requires_scraping": false,
       "stores": {}
@@ -3071,7 +3071,7 @@
     {
       "id": "regular-1779915020671-384-bas65",
       "name": "Chickpea flour",
-      "category": "Baking /Nuts/Spices",
+      "category": "Baking & Spices",
       "unit": "unit",
       "requires_scraping": false,
       "stores": {}
@@ -3079,7 +3079,7 @@
     {
       "id": "regular-1779915020671-385-fcbv1",
       "name": "Flour -C",
-      "category": "Baking /Nuts/Spices",
+      "category": "Baking & Spices",
       "unit": "unit",
       "requires_scraping": false,
       "stores": {}
@@ -3087,7 +3087,7 @@
     {
       "id": "regular-1779915020671-386-sjydp",
       "name": "Sugar -C",
-      "category": "Baking /Nuts/Spices",
+      "category": "Baking & Spices",
       "unit": "unit",
       "requires_scraping": false,
       "stores": {}
@@ -3095,7 +3095,7 @@
     {
       "id": "regular-1779915020671-387-uill5",
       "name": "Brown sugar",
-      "category": "Baking /Nuts/Spices",
+      "category": "Baking & Spices",
       "unit": "unit",
       "requires_scraping": false,
       "stores": {}
@@ -3103,7 +3103,7 @@
     {
       "id": "regular-1779915020671-388-cng9m",
       "name": "Icing Sugar -Costco",
-      "category": "Baking /Nuts/Spices",
+      "category": "Baking & Spices",
       "unit": "unit",
       "requires_scraping": false,
       "stores": {}
@@ -3111,7 +3111,7 @@
     {
       "id": "regular-1779915020671-389-se0z2",
       "name": "Baking powder",
-      "category": "Baking /Nuts/Spices",
+      "category": "Baking & Spices",
       "unit": "unit",
       "requires_scraping": false,
       "stores": {}
@@ -3119,7 +3119,7 @@
     {
       "id": "regular-1779915020671-390-0n5nh",
       "name": "Baking sofa",
-      "category": "Baking /Nuts/Spices",
+      "category": "Baking & Spices",
       "unit": "unit",
       "requires_scraping": false,
       "stores": {}
@@ -3127,7 +3127,7 @@
     {
       "id": "regular-1779915020671-391-yyuyh",
       "name": "Active dry yeast",
-      "category": "Baking /Nuts/Spices",
+      "category": "Baking & Spices",
       "unit": "unit",
       "requires_scraping": false,
       "stores": {}
@@ -3135,7 +3135,7 @@
     {
       "id": "regular-1779915020671-392-4sn24",
       "name": "Coco",
-      "category": "Baking /Nuts/Spices",
+      "category": "Baking & Spices",
       "unit": "unit",
       "requires_scraping": false,
       "stores": {}
@@ -3143,7 +3143,7 @@
     {
       "id": "regular-1779915020671-393-dppvk",
       "name": "Chocolate chips",
-      "category": "Baking /Nuts/Spices",
+      "category": "Snacks & Beverages",
       "unit": "unit",
       "requires_scraping": false,
       "stores": {}
@@ -3151,7 +3151,7 @@
     {
       "id": "regular-1779915020671-394-zyhdo",
       "name": "Cinnamon -C",
-      "category": "Baking /Nuts/Spices",
+      "category": "Baking & Spices",
       "unit": "unit",
       "requires_scraping": false,
       "stores": {}
@@ -3159,7 +3159,7 @@
     {
       "id": "regular-1779915020671-395-335uw",
       "name": "Cornmeal",
-      "category": "Baking /Nuts/Spices",
+      "category": "Baking & Spices",
       "unit": "unit",
       "requires_scraping": false,
       "stores": {}
@@ -3167,7 +3167,7 @@
     {
       "id": "regular-1779915020671-396-sj95e",
       "name": "White chocolate chips",
-      "category": "Baking /Nuts/Spices",
+      "category": "Snacks & Beverages",
       "unit": "unit",
       "requires_scraping": false,
       "stores": {}
@@ -3175,7 +3175,7 @@
     {
       "id": "regular-1779915020671-397-lmvfd",
       "name": "Tyme",
-      "category": "Baking /Nuts/Spices",
+      "category": "Baking & Spices",
       "unit": "unit",
       "requires_scraping": false,
       "stores": {}
@@ -3183,7 +3183,7 @@
     {
       "id": "regular-1779915020671-398-weq56",
       "name": "Onion Powder",
-      "category": "Baking /Nuts/Spices",
+      "category": "Fresh Produce",
       "unit": "unit",
       "requires_scraping": false,
       "stores": {}
@@ -3191,7 +3191,7 @@
     {
       "id": "regular-1779915020671-399-y9hiq",
       "name": "Rye flour",
-      "category": "Baking /Nuts/Spices",
+      "category": "Bakery & Breads",
       "unit": "unit",
       "requires_scraping": false,
       "stores": {}
@@ -3199,7 +3199,7 @@
     {
       "id": "regular-1779915020671-400-vk591",
       "name": "Corn meal",
-      "category": "Baking /Nuts/Spices",
+      "category": "Baking & Spices",
       "unit": "unit",
       "requires_scraping": false,
       "stores": {}
@@ -3207,7 +3207,7 @@
     {
       "id": "regular-1779915020671-401-gajr5",
       "name": "Scoops",
-      "category": "Baking /Nuts/Spices",
+      "category": "Snacks & Beverages",
       "unit": "unit",
       "requires_scraping": false,
       "stores": {}
@@ -3215,7 +3215,7 @@
     {
       "id": "regular-1779915020671-403-1h2y8",
       "name": "Gaviscon - Costco",
-      "category": "Meds",
+      "category": "Health, Personal & Household",
       "unit": "unit",
       "requires_scraping": false,
       "stores": {}
@@ -3223,7 +3223,7 @@
     {
       "id": "regular-1779915020671-404-h1dha",
       "name": "Niquil",
-      "category": "Meds",
+      "category": "Health, Personal & Household",
       "unit": "unit",
       "requires_scraping": false,
       "stores": {}
@@ -3231,7 +3231,7 @@
     {
       "id": "regular-1779915020671-405-pay57",
       "name": "Cepacol",
-      "category": "Meds",
+      "category": "Health, Personal & Household",
       "unit": "unit",
       "requires_scraping": false,
       "stores": {}
@@ -3239,7 +3239,7 @@
     {
       "id": "regular-1779915020671-407-pjkfe",
       "name": "Cash - $100 - loonies - $5 - $20",
-      "category": "Other",
+      "category": "Pantry Staples",
       "unit": "unit",
       "requires_scraping": false,
       "stores": {}
@@ -3247,7 +3247,7 @@
     {
       "id": "regular-1779915020671-408-dwqz8",
       "name": "Batteries - Triple AAA 9 -",
-      "category": "Other",
+      "category": "Health, Personal & Household",
       "unit": "unit",
       "requires_scraping": false,
       "stores": {}
@@ -3255,7 +3255,7 @@
     {
       "id": "regular-1779915020671-409-8oa8z",
       "name": "Sun screen",
-      "category": "Other",
+      "category": "Health, Personal & Household",
       "unit": "unit",
       "requires_scraping": false,
       "stores": {}
@@ -3263,7 +3263,7 @@
     {
       "id": "regular-1779915020671-410-at32j",
       "name": "Garbage bags - clear 34l",
-      "category": "Other",
+      "category": "Health, Personal & Household",
       "unit": "unit",
       "requires_scraping": false,
       "stores": {}
@@ -3271,7 +3271,7 @@
     {
       "id": "regular-1779915020671-411-cirzl",
       "name": "Small garbage bags for bathroom",
-      "category": "Other",
+      "category": "Health, Personal & Household",
       "unit": "unit",
       "requires_scraping": false,
       "stores": {}
@@ -3279,7 +3279,7 @@
     {
       "id": "regular-1779915020671-412-yk2am",
       "name": "Paper plates - large",
-      "category": "Other",
+      "category": "Health, Personal & Household",
       "unit": "unit",
       "requires_scraping": false,
       "stores": {}
@@ -3287,7 +3287,7 @@
     {
       "id": "regular-1779915020671-413-6yv9x",
       "name": "Paper plates - small",
-      "category": "Other",
+      "category": "Health, Personal & Household",
       "unit": "unit",
       "requires_scraping": false,
       "stores": {}
@@ -3295,7 +3295,7 @@
     {
       "id": "regular-1779915020671-414-6zxsd",
       "name": "Foil",
-      "category": "Other",
+      "category": "Health, Personal & Household",
       "unit": "unit",
       "requires_scraping": false,
       "stores": {}
@@ -3303,7 +3303,7 @@
     {
       "id": "regular-1779915020671-415-hm8if",
       "name": "Bowls",
-      "category": "Other",
+      "category": "Health, Personal & Household",
       "unit": "unit",
       "requires_scraping": false,
       "stores": {}
@@ -3311,7 +3311,7 @@
     {
       "id": "regular-1779915020671-416-44r0y",
       "name": "Napkins - personal",
-      "category": "Other",
+      "category": "Health, Personal & Household",
       "unit": "unit",
       "requires_scraping": false,
       "stores": {}
@@ -3319,7 +3319,7 @@
     {
       "id": "regular-1779915020671-417-53gdp",
       "name": "Zip lock bags",
-      "category": "Other",
+      "category": "Health, Personal & Household",
       "unit": "unit",
       "requires_scraping": false,
       "stores": {}
@@ -3327,7 +3327,7 @@
     {
       "id": "regular-1779915020671-418-njpt3",
       "name": "Tide - Metro 5.99",
-      "category": "Other",
+      "category": "Health, Personal & Household",
       "unit": "unit",
       "requires_scraping": false,
       "stores": {}
@@ -3335,7 +3335,7 @@
     {
       "id": "regular-1779915020671-419-8cvwx",
       "name": "Paper towels Bounty - Metro 5.99",
-      "category": "Other",
+      "category": "Health, Personal & Household",
       "unit": "unit",
       "requires_scraping": false,
       "stores": {}
@@ -3343,7 +3343,7 @@
     {
       "id": "regular-1779915020671-420-zwya5",
       "name": "Shaving cream",
-      "category": "Other",
+      "category": "Dairy & Eggs",
       "unit": "unit",
       "requires_scraping": false,
       "stores": {}
@@ -3351,7 +3351,7 @@
     {
       "id": "regular-1779915020671-421-a7b02",
       "name": "Hand soap",
-      "category": "Other",
+      "category": "Health, Personal & Household",
       "unit": "unit",
       "requires_scraping": false,
       "stores": {}
@@ -3359,7 +3359,7 @@
     {
       "id": "regular-1779915020671-422-jfp7o",
       "name": "Sparkling wine",
-      "category": "LCBO",
+      "category": "Beer, Wine & Spirits",
       "unit": "unit",
       "requires_scraping": false,
       "stores": {}
@@ -3367,7 +3367,7 @@
     {
       "id": "regular-1779915020671-423-gkbnn",
       "name": "Red wine",
-      "category": "LCBO",
+      "category": "Beer, Wine & Spirits",
       "unit": "unit",
       "requires_scraping": false,
       "stores": {}
@@ -3375,7 +3375,7 @@
     {
       "id": "regular-1779915020671-424-5nnwp",
       "name": "White wine",
-      "category": "LCBO",
+      "category": "Beer, Wine & Spirits",
       "unit": "unit",
       "requires_scraping": false,
       "stores": {}
@@ -3383,7 +3383,7 @@
     {
       "id": "regular-1779915020671-425-mxsm9",
       "name": "Dark rum 3/4 c",
-      "category": "LCBO",
+      "category": "Beer, Wine & Spirits",
       "unit": "unit",
       "requires_scraping": false,
       "stores": {}
@@ -3391,7 +3391,7 @@
     {
       "id": "regular-1779915020671-426-alusm",
       "name": "Beer",
-      "category": "LCBO",
+      "category": "Beer, Wine & Spirits",
       "unit": "unit",
       "requires_scraping": false,
       "stores": {}
@@ -3399,7 +3399,7 @@
     {
       "id": "regular-1779994128175-7nycq",
       "name": "2% Lactose-Free Milk",
-      "category": "Dairy",
+      "category": "Dairy & Eggs",
       "unit": "unit",
       "requires_scraping": false,
       "stores": {
@@ -3415,7 +3415,7 @@
     {
       "id": "regular-1780000227251-qjhyv",
       "name": "Milk LF 1% Natrel",
-      "category": "Dairy",
+      "category": "Dairy & Eggs",
       "unit": "unit",
       "requires_scraping": false,
       "stores": {
@@ -3432,7 +3432,7 @@
     {
       "id": "regular-1780000536215-5uz0s",
       "name": "Chicken Breasts Boneless Skinless",
-      "category": "Meats/Fish",
+      "category": "Meat & Seafood",
       "unit": "unit",
       "requires_scraping": false,
       "stores": {
@@ -3449,7 +3449,7 @@
     {
       "id": "regular-1780002091583-d1qmr",
       "name": "Milk LF 2%",
-      "category": "Dairy",
+      "category": "Dairy & Eggs",
       "unit": "unit",
       "requires_scraping": false,
       "stores": {
@@ -3466,7 +3466,7 @@
     {
       "id": "regular-1780002196782-3zrl4",
       "name": "2% lactose free cottage cheese",
-      "category": "Dairy",
+      "category": "Dairy & Eggs",
       "unit": "unit",
       "requires_scraping": false,
       "stores": {
@@ -3483,7 +3483,7 @@
     {
       "id": "regular-1780002321494-4hpz7",
       "name": "Yogurt LF 1% Natrel",
-      "category": "Dairy",
+      "category": "Dairy & Eggs",
       "unit": "unit",
       "requires_scraping": false,
       "stores": {}
@@ -3491,7 +3491,7 @@
     {
       "id": "regular-1780084916876-wqqh8",
       "name": "Water - distilled",
-      "category": "Other",
+      "category": "Snacks & Beverages",
       "unit": "unit",
       "requires_scraping": false,
       "stores": {}
@@ -3499,7 +3499,7 @@
     {
       "id": "regular-1780086655866-nkam6",
       "name": "Garbage bags 10l",
-      "category": "Other",
+      "category": "Health, Personal & Household",
       "unit": "unit",
       "requires_scraping": false,
       "stores": {}

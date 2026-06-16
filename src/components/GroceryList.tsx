@@ -7,6 +7,8 @@ import RegularItemsList from "./RegularItemsList";
 import SyncIndicator from "./SyncIndicator";
 import PullToRefresh from "./PullToRefresh";
 
+import { getCategoryOrderIndex } from "@/lib/categories";
+
 function groupByCategory(items: GroceryItem[]): [string, GroceryItem[]][] {
   const groups: Record<string, GroceryItem[]> = {};
   for (const item of items) {
@@ -16,7 +18,7 @@ function groupByCategory(items: GroceryItem[]): [string, GroceryItem[]][] {
   }
   return Object.entries(groups)
     .map(([cat, items]) => [cat, items.sort((a, b) => a.name.localeCompare(b.name))] as [string, GroceryItem[]])
-    .sort(([a], [b]) => a.localeCompare(b));
+    .sort(([a], [b]) => getCategoryOrderIndex(a) - getCategoryOrderIndex(b));
 }
 
 export default function GroceryList() {

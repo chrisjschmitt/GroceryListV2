@@ -1,6 +1,7 @@
 import React, { useRef, useState, useCallback, useEffect } from "react";
 import Link from "@/components/Link";
 import { RegularItem, PriceEntry, ScrapeConfig, PriceData } from "@/lib/types";
+import { getCategoryOrderIndex } from "@/lib/categories";
 import { 
   Search, 
   X, 
@@ -956,7 +957,7 @@ export default function RegularItemsList({
       ) : (
         <div className="space-y-5">
           {Object.entries(categories)
-            .sort(([a], [b]) => a.localeCompare(b))
+            .sort(([a], [b]) => getCategoryOrderIndex(a) - getCategoryOrderIndex(b))
             .map(([category, categoryItems]) => (
             <div key={category} className="bg-[#f9fafb] border-2 border-black p-4 shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]">
               <div className="flex items-center justify-between mb-3 pb-1 border-b-2 border-dashed border-gray-200">

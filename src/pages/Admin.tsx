@@ -4,6 +4,7 @@ import { RegularItem, ScrapeConfig, ScrapeItemConfig, ScrapeStoreConfig } from "
 import CsvUpload from "@/components/CsvUpload";
 import JsonPricesUpload from "@/components/JsonPricesUpload";
 import GoogleDriveBackup from "@/components/GoogleDriveBackup";
+import { getCategoryOrderIndex, CATEGORY_ORDER } from "@/lib/categories";
 import { getAutoSaveEnabled, setAutoSaveEnabled } from "@/lib/client/settings";
 import { 
   Edit2, 
@@ -1514,7 +1515,8 @@ export default function AdminPage() {
   });
 
   // Derive catalog categories list
-  const categoriesList = Array.from(new Set(items.map(item => item.category))).sort();
+  const categoriesList = Array.from(new Set(items.map(item => item.category)))
+    .sort((a, b) => getCategoryOrderIndex(a as string) - getCategoryOrderIndex(b as string));
 
   // Group catalog items alphabetically
   const categories = items.reduce<Record<string, RegularItem[]>>((acc, item) => {
@@ -2610,7 +2612,7 @@ export default function AdminPage() {
             ) : items.length > 0 ? (
               <div className="space-y-6">
                 {Object.entries(filteredCategories)
-                  .sort(([a], [b]) => a.localeCompare(b))
+                  .sort(([a], [b]) => getCategoryOrderIndex(a) - getCategoryOrderIndex(b))
                   .map(([category, categoryItems]) => (
                     <div key={category} className="bg-[#f9fafb] border-2 border-black p-4 shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] hover:-translate-x-[1px] hover:-translate-y-[1px] transition-all">
                       

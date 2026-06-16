@@ -21,6 +21,24 @@ interface VersionEntry {
 
 const VERSIONS: VersionEntry[] = [
   {
+    version: "1.5.0",
+    date: "June 2026",
+    type: "minor",
+    title: "Store-Walk Sequence & Core Category Standardization",
+    changes: [
+      {
+        icon: <Layout className="w-4 h-4 text-emerald-600" />,
+        category: "Logical Category Reordering",
+        description: "Reordered all grocery categories to map to a standard 'store-walk' sequence (starting with Fresh Produce, Bakery & Breads, Meat & Seafood, Dairy & Eggs) to streamline shopping paths.",
+      },
+      {
+        icon: <Database className="w-4 h-4 text-emerald-600" />,
+        category: "Taxonomy Unification",
+        description: "Mapped all catalog and active items into the 9 proposed master categories and integrated the new mapping criteria directly into the Gemini match service.",
+      },
+    ],
+  },
+  {
     version: "1.4.9",
     date: "June 2026",
     type: "patch",
