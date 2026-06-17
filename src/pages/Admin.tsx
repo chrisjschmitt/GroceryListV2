@@ -2498,7 +2498,10 @@ export default function AdminPage() {
                             className="p-1 border border-black bg-white font-extrabold text-[10px] uppercase text-black"
                           >
                             {Object.entries(dynamicStoreNames).map(([key, name]) => {
-                              const hasActiveLink = !!catalogItemForm.stores?.[key]?.url;
+                              const storeDetails = catalogItemForm.stores?.[key];
+                              const hasUrl = !!storeDetails?.url;
+                              const isVerified = !!storeDetails && (storeDetails.is_verified === true || storeDetails.is_verified === 1 || String(storeDetails.is_verified) === "true");
+                              const hasActiveLink = hasUrl || isVerified;
                               return (
                                 <option key={key} value={key}>
                                   {name} {hasActiveLink ? " (🔗 Active Link)" : " (No Link)"}
@@ -2552,20 +2555,32 @@ export default function AdminPage() {
                           />
                           
                           <div className="mt-1.5 flex items-center justify-between bg-gray-50 border border-black p-1.5">
-                            <label className="inline-flex items-center gap-1.5 cursor-pointer select-none">
-                              <input
-                                type="checkbox"
-                                checked={!!catalogItemForm.stores?.[selectedCatalogStore]?.is_verified}
-                                onChange={(e) => handleStoreFieldChange("is_verified", e.target.checked)}
-                                className="w-4 h-4 accent-indigo-600 border border-black rounded"
-                              />
-                              <span className="text-[10px] font-black uppercase text-black">Link is Verified Active</span>
-                            </label>
-                            {catalogItemForm.stores?.[selectedCatalogStore]?.is_verified ? (
-                              <span className="text-[8px] bg-blue-100 text-blue-800 border border-blue-400 font-bold uppercase px-1 py-0.5">Verified ✓</span>
-                            ) : (
-                              <span className="text-[8px] bg-amber-100 text-amber-800 border border-amber-400 font-bold uppercase px-1 py-0.5">Unverified ✕</span>
-                            )}
+                            {(() => {
+                              const storeItem = catalogItemForm.stores?.[selectedCatalogStore];
+                              const isVerified = !!storeItem && (storeItem.is_verified === true || storeItem.is_verified === 1 || String(storeItem.is_verified) === "true");
+                              return (
+                                <>
+                                  <label 
+                                    htmlFor={`catalog-is-verified-checkbox-${selectedCatalogStore}`}
+                                    className="inline-flex items-center gap-1.5 cursor-pointer select-none"
+                                  >
+                                    <input
+                                      id={`catalog-is-verified-checkbox-${selectedCatalogStore}`}
+                                      type="checkbox"
+                                      checked={isVerified}
+                                      onChange={(e) => handleStoreFieldChange("is_verified", e.target.checked)}
+                                      className="w-4 h-4 accent-indigo-600 border border-black rounded"
+                                    />
+                                    <span className="text-[10px] font-black uppercase text-black">Link is Verified Active</span>
+                                  </label>
+                                  {isVerified ? (
+                                    <span className="text-[8px] bg-blue-100 text-blue-800 border border-blue-400 font-bold uppercase px-1 py-0.5">Verified ✓</span>
+                                  ) : (
+                                    <span className="text-[8px] bg-amber-100 text-amber-800 border border-amber-400 font-bold uppercase px-1 py-0.5">Unverified ✕</span>
+                                  )}
+                                </>
+                              );
+                            })()}
                           </div>
                         </div>
 

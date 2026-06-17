@@ -21,6 +21,19 @@ interface VersionEntry {
 
 const VERSIONS: VersionEntry[] = [
   {
+    version: "1.5.6",
+    date: "June 2026",
+    type: "patch",
+    title: "Store Override Link Verification Update",
+    changes: [
+      {
+        icon: <Sparkles className="w-4 h-4 text-emerald-600" />,
+        category: "Catalog Modifications",
+        description: "Ensured the 'Link is Verified Active' option works on thorough, robust boolean logic inline to prevent string-to-boolean deserialization issues. Configured the dropdown retailer option renderer to display 'Active Link' if a store override contains either a URL or carries a true verified status, resolving user validation saving visual feedback issues.",
+      }
+    ]
+  },
+  {
     version: "1.5.5",
     date: "June 2026",
     type: "patch",
