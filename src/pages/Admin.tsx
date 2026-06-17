@@ -1379,226 +1379,6 @@ export default function AdminPage() {
             </div>
           </div>
 
-          {/* Grocery Stores Setup & Registry Section */}
-          <div className="bg-white border-2 border-black p-6 shadow-[6px_6px_0px_0px_rgba(0,0,0,1)]">
-            <div className="flex items-center justify-between mb-4 pb-1.5 border-b-2 border-black">
-              <h2 className="text-base font-black uppercase tracking-tight flex items-center gap-2">
-                <Store className="w-5 h-5 text-emerald-600" /> Manage Grocery Stores
-              </h2>
-              <button
-                type="button"
-                onClick={handleOpenAddStore}
-                className="text-xs font-black uppercase tracking-wider bg-white border-2 border-black px-4 py-2 hover:bg-emerald-50 shadow-[3px_3px_0px_0px_rgba(0,0,0,1)] hover:shadow-none hover:translate-x-[2px] hover:translate-y-[2px] transition-all inline-flex items-center gap-1"
-              >
-                <Plus className="w-4 h-4 text-emerald-600" /> Add Custom Store
-              </button>
-            </div>
-
-            <p className="text-xs text-gray-500 mb-6 font-medium leading-relaxed">
-              Configure and manage grocery store details. Defining the base search URLs and store IDs enables live verification search flow lookups and proper item configuration indexing.
-            </p>
-
-            {/* Store Form Drawer / Row */}
-            {addingStore && (
-              <form onSubmit={handleSaveStoreSubmit} className="bg-[#f0f9ff]/40 border-2 border-black p-5 mb-6 shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] animate-fade-in text-black">
-                <div className="flex items-center justify-between pb-2 mb-4 border-b border-black">
-                  <h3 className="text-xs font-black uppercase tracking-widest text-[#1e3a8a]">
-                    {editingStoreKey ? `✏ Edit Store: ${editingStoreKey}` : "🆕 Configure New Grocery Store"}
-                  </h3>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setAddingStore(false);
-                      setEditingStoreKey(null);
-                    }}
-                    className="p-1 hover:bg-sky-100 border border-transparent hover:border-black rounded text-black"
-                  >
-                    <X className="w-4 h-4 stroke-[2.5]" />
-                  </button>
-                </div>
-
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mb-4">
-                  {/* Store Key / Internal ID */}
-                  <div>
-                    <label className="text-[10px] uppercase font-black tracking-wider text-gray-500 block mb-0.5">
-                      Store Key (Lowercase, alphanumeric ID)
-                    </label>
-                    <input
-                      type="text"
-                      placeholder="e.g. sobeys"
-                      value={storeForm.key}
-                      onChange={(e) => setStoreForm({ ...storeForm, key: e.target.value })}
-                      disabled={!!editingStoreKey}
-                      className="w-full px-2.5 py-1.5 text-xs border-2 border-black bg-white focus:outline-none font-bold text-black disabled:bg-gray-100"
-                      required
-                    />
-                  </div>
-
-                  {/* Store Name / Display Name */}
-                  <div>
-                    <label className="text-[10px] uppercase font-black tracking-wider text-gray-500 block mb-0.5">
-                      Store Name
-                    </label>
-                    <input
-                      type="text"
-                      placeholder="e.g. Sobeys"
-                      value={storeForm.store_name}
-                      onChange={(e) => setStoreForm({ ...storeForm, store_name: e.target.value })}
-                      className="w-full px-2.5 py-1.5 text-xs border-2 border-black bg-white focus:outline-none font-bold text-black"
-                      required
-                    />
-                  </div>
-
-                  {/* Primary Website / Base Search URL */}
-                  <div>
-                    <label className="text-[10px] uppercase font-black tracking-wider text-gray-500 block mb-0.5">
-                      Website URL / Base Website Search
-                    </label>
-                    <input
-                      type="url"
-                      placeholder="e.g. https://www.sobeys.com"
-                      value={storeForm.base_url}
-                      onChange={(e) => setStoreForm({ ...storeForm, base_url: e.target.value })}
-                      className="w-full px-2.5 py-1.5 text-xs border-2 border-black bg-white focus:outline-none font-bold text-black"
-                      required
-                    />
-                  </div>
-
-                  {/* Internal ID Code */}
-                  <div>
-                    <label className="text-[10px] uppercase font-black tracking-wider text-gray-500 block mb-0.5">
-                      Internal Store ID Code (Optional)
-                    </label>
-                    <input
-                      type="text"
-                      placeholder="e.g. sobeys"
-                      value={storeForm.store_id}
-                      onChange={(e) => setStoreForm({ ...storeForm, store_id: e.target.value })}
-                      className="w-full px-2.5 py-1.5 text-xs border-2 border-black bg-white focus:outline-none font-bold text-black"
-                    />
-                  </div>
-
-                  {/* Postal code */}
-                  <div>
-                    <label className="text-[10px] uppercase font-black tracking-wider text-gray-500 block mb-0.5">
-                      Default Store Postal Code
-                    </label>
-                    <input
-                      type="text"
-                      placeholder="e.g. K7H3C6"
-                      value={storeForm.postal_code}
-                      onChange={(e) => setStoreForm({ ...storeForm, postal_code: e.target.value })}
-                      className="w-full px-2.5 py-1.5 text-xs border-2 border-black bg-white focus:outline-none font-bold text-black"
-                    />
-                  </div>
-
-                  {/* Enabled checkpoint */}
-                  <div className="flex items-center gap-2 mt-4">
-                    <input
-                      type="checkbox"
-                      id="storeEnabled"
-                      checked={storeForm.enabled}
-                      onChange={(e) => setStoreForm({ ...storeForm, enabled: e.target.checked })}
-                      className="accent-black w-4 h-4 cursor-pointer"
-                    />
-                    <label htmlFor="storeEnabled" className="text-xs font-black cursor-pointer uppercase select-none text-black">
-                      Active / Enabled for search
-                    </label>
-                  </div>
-                </div>
-
-                <div className="flex items-center justify-end gap-2.5 pt-2 border-t border-dashed border-gray-300">
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setAddingStore(false);
-                      setEditingStoreKey(null);
-                    }}
-                    className="px-4 py-1.5 text-xs font-black uppercase text-black hover:bg-gray-100 border border-black"
-                  >
-                    Cancel
-                  </button>
-                  <button
-                    type="submit"
-                    className="px-5 py-1.5 text-xs font-black uppercase text-white bg-black hover:bg-sky-600 border border-black"
-                  >
-                    Save Store Parameters
-                  </button>
-                </div>
-              </form>
-            )}
-
-            {/* List of configured stores */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              {Object.entries(scrapeConfig.stores || {}).map(([key, store]: [string, any]) => {
-                return (
-                  <div
-                    key={key}
-                    className="border-2 border-black p-4 bg-[#f9fafb] shadow-[3px_3px_0px_0px_rgba(0,0,0,1)] hover:translate-y-[-1px] hover:translate-x-[-1px] hover:shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] transition-all flex flex-col justify-between"
-                  >
-                    <div>
-                      <div className="flex items-center justify-between border-b border-black/10 pb-2 mb-2">
-                        <span className="font-extrabold text-sm text-black uppercase flex items-center gap-1.5">
-                          🏪 {store.store_name}
-                        </span>
-                        <div className="flex items-center gap-1.5">
-                          <span className={`text-[9px] font-black uppercase px-2 py-0.5 rounded ${
-                            store.enabled !== false ? "bg-emerald-100 text-emerald-800 border border-emerald-400" : "bg-gray-100 text-gray-500 border border-gray-300"
-                          }`}>
-                            {store.enabled !== false ? "Active" : "Disabled"}
-                          </span>
-                          <span className="text-[9px] font-mono bg-gray-200 text-gray-700 px-1.5 rounded uppercase font-bold">
-                            KEY: {key}
-                          </span>
-                        </div>
-                      </div>
-
-                      <div className="space-y-1.5 text-xs text-gray-600 mb-4 text-left font-semibold">
-                        <div className="flex justify-between">
-                          <span className="text-gray-400 text-[10px] uppercase">Base website:</span>
-                          <a
-                            href={store.base_url}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="text-emerald-700 hover:underline overflow-hidden text-ellipsis max-w-[170px]"
-                          >
-                            {store.base_url}
-                          </a>
-                        </div>
-                        <div className="flex justify-between">
-                          <span className="text-gray-400 text-[10px] uppercase">Internal ID Code:</span>
-                          <span className="text-black font-extrabold">{store.store_id || key}</span>
-                        </div>
-                        <div className="flex justify-between">
-                          <span className="text-gray-400 text-[10px] uppercase">Default Postal Code:</span>
-                          <span className="text-black font-extrabold">{store.postal_code || "N/A"}</span>
-                        </div>
-                      </div>
-                    </div>
-
-                    <div className="flex items-center justify-end gap-2 border-t border-black/10 pt-2">
-                      <button
-                        type="button"
-                        onClick={() => handleOpenEditStore(key, store)}
-                        className="px-2 py-1 text-[10px] font-black uppercase text-black bg-white hover:bg-gray-100 border border-black shadow-[1px_1px_0px_0px_rgba(0,0,0,1)] hover:shadow-none hover:translate-x-[1px] hover:translate-y-[1px] transition-all"
-                      >
-                        Edit
-                      </button>
-                      {key !== "foodbasics" && (
-                        <button
-                          type="button"
-                          onClick={() => handleRemoveStore(key)}
-                          className="px-2 py-1 text-[10px] font-black uppercase text-white bg-red-600 hover:bg-red-700 border border-black shadow-[1px_1px_0px_0px_rgba(0,0,0,1)] hover:shadow-none hover:translate-x-[1px] hover:translate-y-[1px] transition-all"
-                        >
-                          Delete
-                        </button>
-                      )}
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-          </div>
 
           {/* Price Check Scraper CRUD Configuration Section */}
           <div className="hidden bg-white border-2 border-black p-6 shadow-[6px_6px_0px_0px_rgba(0,0,0,1)]">
@@ -3040,7 +2820,226 @@ export default function AdminPage() {
             )}
           </div>
 
+          {/* Grocery Stores Setup & Registry Section */}
+          <div className="bg-white border-2 border-black p-6 shadow-[6px_6px_0px_0px_rgba(0,0,0,1)] mt-8">
+            <div className="flex items-center justify-between mb-4 pb-1.5 border-b-2 border-black">
+              <h2 className="text-base font-black uppercase tracking-tight flex items-center gap-2">
+                <Store className="w-5 h-5 text-emerald-600" /> Manage Grocery Stores
+              </h2>
+              <button
+                type="button"
+                onClick={handleOpenAddStore}
+                className="text-xs font-black uppercase tracking-wider bg-white border-2 border-black px-4 py-2 hover:bg-emerald-50 shadow-[3px_3px_0px_0px_rgba(0,0,0,1)] hover:shadow-none hover:translate-x-[2px] hover:translate-y-[2px] transition-all inline-flex items-center gap-1"
+              >
+                <Plus className="w-4 h-4 text-emerald-600" /> Add Custom Store
+              </button>
+            </div>
 
+            <p className="text-xs text-gray-500 mb-6 font-medium leading-relaxed">
+              Configure and manage grocery store details. Defining the base search URLs and store IDs enables live verification search flow lookups and proper item configuration indexing.
+            </p>
+
+            {/* Store Form Drawer / Row */}
+            {addingStore && (
+              <form onSubmit={handleSaveStoreSubmit} className="bg-[#f0f9ff]/40 border-2 border-black p-5 mb-6 shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] animate-fade-in text-black">
+                <div className="flex items-center justify-between pb-2 mb-4 border-b border-black">
+                  <h3 className="text-xs font-black uppercase tracking-widest text-[#1e3a8a]">
+                    {editingStoreKey ? `✏ Edit Store: ${editingStoreKey}` : "🆕 Configure New Grocery Store"}
+                  </h3>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setAddingStore(false);
+                      setEditingStoreKey(null);
+                    }}
+                    className="p-1 hover:bg-sky-100 border border-transparent hover:border-black rounded text-black"
+                  >
+                    <X className="w-4 h-4 stroke-[2.5]" />
+                  </button>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mb-4">
+                  {/* Store Key / Internal ID */}
+                  <div>
+                    <label className="text-[10px] uppercase font-black tracking-wider text-gray-500 block mb-0.5">
+                      Store Key (Lowercase, alphanumeric ID)
+                    </label>
+                    <input
+                      type="text"
+                      placeholder="e.g. sobeys"
+                      value={storeForm.key}
+                      onChange={(e) => setStoreForm({ ...storeForm, key: e.target.value })}
+                      disabled={!!editingStoreKey}
+                      className="w-full px-2.5 py-1.5 text-xs border-2 border-black bg-white focus:outline-none font-bold text-black disabled:bg-gray-100"
+                      required
+                    />
+                  </div>
+
+                  {/* Store Name / Display Name */}
+                  <div>
+                    <label className="text-[10px] uppercase font-black tracking-wider text-gray-500 block mb-0.5">
+                      Store Name
+                    </label>
+                    <input
+                      type="text"
+                      placeholder="e.g. Sobeys"
+                      value={storeForm.store_name}
+                      onChange={(e) => setStoreForm({ ...storeForm, store_name: e.target.value })}
+                      className="w-full px-2.5 py-1.5 text-xs border-2 border-black bg-white focus:outline-none font-bold text-black"
+                      required
+                    />
+                  </div>
+
+                  {/* Primary Website / Base Search URL */}
+                  <div>
+                    <label className="text-[10px] uppercase font-black tracking-wider text-gray-500 block mb-0.5">
+                      Website URL / Base Website Search
+                    </label>
+                    <input
+                      type="url"
+                      placeholder="e.g. https://www.sobeys.com"
+                      value={storeForm.base_url}
+                      onChange={(e) => setStoreForm({ ...storeForm, base_url: e.target.value })}
+                      className="w-full px-2.5 py-1.5 text-xs border-2 border-black bg-white focus:outline-none font-bold text-black"
+                      required
+                    />
+                  </div>
+
+                  {/* Internal ID Code */}
+                  <div>
+                    <label className="text-[10px] uppercase font-black tracking-wider text-gray-500 block mb-0.5">
+                      Internal Store ID Code (Optional)
+                    </label>
+                    <input
+                      type="text"
+                      placeholder="e.g. sobeys"
+                      value={storeForm.store_id}
+                      onChange={(e) => setStoreForm({ ...storeForm, store_id: e.target.value })}
+                      className="w-full px-2.5 py-1.5 text-xs border-2 border-black bg-white focus:outline-none font-bold text-black"
+                    />
+                  </div>
+
+                  {/* Postal code */}
+                  <div>
+                    <label className="text-[10px] uppercase font-black tracking-wider text-gray-500 block mb-0.5">
+                      Default Store Postal Code
+                    </label>
+                    <input
+                      type="text"
+                      placeholder="e.g. K7H3C6"
+                      value={storeForm.postal_code}
+                      onChange={(e) => setStoreForm({ ...storeForm, postal_code: e.target.value })}
+                      className="w-full px-2.5 py-1.5 text-xs border-2 border-black bg-white focus:outline-none font-bold text-black"
+                    />
+                  </div>
+
+                  {/* Enabled checkpoint */}
+                  <div className="flex items-center gap-2 mt-4">
+                    <input
+                      type="checkbox"
+                      id="storeEnabled"
+                      checked={storeForm.enabled}
+                      onChange={(e) => setStoreForm({ ...storeForm, enabled: e.target.checked })}
+                      className="accent-black w-4 h-4 cursor-pointer"
+                    />
+                    <label htmlFor="storeEnabled" className="text-xs font-black cursor-pointer uppercase select-none text-black">
+                      Active / Enabled for search
+                    </label>
+                  </div>
+                </div>
+
+                <div className="flex items-center justify-end gap-2.5 pt-2 border-t border-dashed border-gray-300">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setAddingStore(false);
+                      setEditingStoreKey(null);
+                    }}
+                    className="px-4 py-1.5 text-xs font-black uppercase text-black hover:bg-gray-100 border border-black"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="submit"
+                    className="px-5 py-1.5 text-xs font-black uppercase text-white bg-black hover:bg-sky-600 border border-black"
+                  >
+                    Save Store Parameters
+                  </button>
+                </div>
+              </form>
+            )}
+
+            {/* List of configured stores */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {Object.entries(scrapeConfig.stores || {}).map(([key, store]: [string, any]) => {
+                return (
+                  <div
+                    key={key}
+                    className="border-2 border-black p-4 bg-[#f9fafb] shadow-[3px_3px_0px_0px_rgba(0,0,0,1)] hover:translate-y-[-1px] hover:translate-x-[-1px] hover:shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] transition-all flex flex-col justify-between"
+                  >
+                    <div>
+                      <div className="flex items-center justify-between border-b border-black/10 pb-2 mb-2">
+                        <span className="font-extrabold text-sm text-black uppercase flex items-center gap-1.5">
+                          🏪 {store.store_name}
+                        </span>
+                        <div className="flex items-center gap-1.5">
+                          <span className={`text-[9px] font-black uppercase px-2 py-0.5 rounded ${
+                            store.enabled !== false ? "bg-emerald-100 text-emerald-800 border border-emerald-400" : "bg-gray-100 text-gray-500 border border-gray-300"
+                          }`}>
+                            {store.enabled !== false ? "Active" : "Disabled"}
+                          </span>
+                          <span className="text-[9px] font-mono bg-gray-200 text-gray-700 px-1.5 rounded uppercase font-bold">
+                            KEY: {key}
+                          </span>
+                        </div>
+                      </div>
+
+                      <div className="space-y-1.5 text-xs text-gray-600 mb-4 text-left font-semibold">
+                        <div className="flex justify-between">
+                          <span className="text-gray-400 text-[10px] uppercase">Base website:</span>
+                          <a
+                            href={store.base_url}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="text-emerald-700 hover:underline overflow-hidden text-ellipsis max-w-[170px]"
+                          >
+                            {store.base_url}
+                          </a>
+                        </div>
+                        <div className="flex justify-between">
+                          <span className="text-gray-400 text-[10px] uppercase">Internal ID Code:</span>
+                          <span className="text-black font-extrabold">{store.store_id || key}</span>
+                        </div>
+                        <div className="flex justify-between">
+                          <span className="text-gray-400 text-[10px] uppercase">Default Postal Code:</span>
+                          <span className="text-black font-extrabold">{store.postal_code || "N/A"}</span>
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="flex items-center justify-end gap-2 border-t border-black/10 pt-2">
+                      <button
+                        type="button"
+                        onClick={() => handleOpenEditStore(key, store)}
+                        className="px-2 py-1 text-[10px] font-black uppercase text-black bg-white hover:bg-gray-100 border border-black shadow-[1px_1px_0px_0px_rgba(0,0,0,1)] hover:shadow-none hover:translate-x-[1px] hover:translate-y-[1px] transition-all"
+                      >
+                        Edit
+                      </button>
+                      {key !== "foodbasics" && (
+                        <button
+                          type="button"
+                          onClick={() => handleRemoveStore(key)}
+                          className="px-2 py-1 text-[10px] font-black uppercase text-white bg-red-600 hover:bg-red-700 border border-black shadow-[1px_1px_0px_0px_rgba(0,0,0,1)] hover:shadow-none hover:translate-x-[1px] hover:translate-y-[1px] transition-all"
+                        >
+                          Delete
+                        </button>
+                      )}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
 
           {/* Catalog & Pricing Importers Grid */}
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 w-full">
