@@ -124,7 +124,8 @@ const storeNames: Record<string, string> = {
 };
 
 export default function AdminPage() {
-  const [items, setItems] = useState<RegularItem[]>([]);
+  const [catalog, setCatalog] = useState<any>(null);
+  const items = useMemo(() => (catalog ? catalog.items || [] : []), [catalog]);
   const [loading, setLoading] = useState(true);
   const [autoSave, setAutoSave] = useState(() =>
     typeof window !== "undefined" ? getAutoSaveEnabled() : false
@@ -285,7 +286,6 @@ export default function AdminPage() {
 
 
   // Combined Catalog Manager State
-  const [catalog, setCatalog] = useState<any>(null);
   const [catalogLoading, setCatalogLoading] = useState(true);
   const [catalogScrapedFilter, setCatalogScrapedFilter] = useState("all");
   const [catalogSaleFilter, setCatalogSaleFilter] = useState("all");
@@ -318,36 +318,37 @@ export default function AdminPage() {
     setAutoSaveEnabled(newValue);
   };
 
-  const fetchItems = async () => {
+  const fetchCatalog = async () => {
     try {
-      const res = await fetch("/api/regular-items");
-      const data = await res.json();
-      setItems(data.items || []);
-    } catch {
-      // silently fail
+      setCatalogLoading(true);
+      const res = await fetch("/api/catalog");
+      if (res.ok) {
+        const data = await res.json();
+        setCatalog(data || { stores: {}, items: [] });
+      }
+    } catch (err) {
+      console.error("Failed to fetch catalog:", err);
     } finally {
+      setCatalogLoading(false);
       setLoading(false);
     }
   };
 
   const handlePricesUploaded = async () => {
-    await fetchItems();
+    await fetchCatalog();
   };
 
   useEffect(() => {
     let cancelled = false;
     async function load() {
       try {
-        const [itemsRes, configRes, catalogRes] = await Promise.all([
-          fetch("/api/regular-items"),
+        const [configRes, catalogRes] = await Promise.all([
           fetch("/api/scrape-config"),
           fetch("/api/catalog"),
         ]);
-        const itemsData = await itemsRes.json();
         const configData = await configRes.json();
         const catalogData = await catalogRes.json();
         if (!cancelled) {
-          setItems(itemsData.items || []);
           const normalizedConfig = ensureDefaultStores(configData);
           setScrapeConfig(normalizedConfig);
           setCatalog(catalogData || { stores: {}, items: [] });
@@ -367,21 +368,6 @@ export default function AdminPage() {
       cancelled = true;
     };
   }, []);
-
-  const fetchCatalog = async () => {
-    try {
-      setCatalogLoading(true);
-      const res = await fetch("/api/catalog");
-      if (res.ok) {
-        const data = await res.json();
-        setCatalog(data || { stores: {}, items: [] });
-      }
-    } catch (err) {
-      console.error("Failed to fetch catalog:", err);
-    } finally {
-      setCatalogLoading(false);
-    }
-  };
 
   const saveCatalog = async (updatedCatalog: any) => {
     try {
@@ -575,30 +561,13 @@ export default function AdminPage() {
     }
   };
 
-  const saveCatalogItems = async (updatedItems: RegularItem[]) => {
-    try {
-      const res = await fetch("/api/regular-items", {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(updatedItems),
-      });
-      if (res.ok) {
-        setItems(updatedItems);
-        showVisualMessage("Grocery catalog saved successfully!");
-        return true;
-      }
-    } catch {
-      showVisualMessage("Error saving grocery catalog");
-    }
-    return false;
-  };
-
   const handleClear = async () => {
     if (confirm("Are you sure you want to completely delete all catalog items? This action is irreversible.")) {
       try {
-        await fetch("/api/regular-items", { method: "DELETE" });
-        setItems([]);
-        showVisualMessage("Catalog cleared");
+        const updatedCatalog = { ...catalog, items: [] };
+        if (await saveCatalog(updatedCatalog)) {
+          showVisualMessage("Catalog cleared");
+        }
       } catch {
         showVisualMessage("Failed to clear catalog");
       }
@@ -825,15 +794,18 @@ export default function AdminPage() {
       return;
     }
 
-    const newItem: RegularItem = {
+    const newItem: any = {
       id: `regular-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
       category: categoryName,
       name: trimmed,
       selected: false,
+      requires_scraping: false,
+      stores: {}
     };
 
-    const updated = [...items, newItem];
-    if (await saveCatalogItems(updated)) {
+    const updated = [newItem, ...(catalog?.items || [])];
+    const updatedCatalog = { ...catalog, items: updated };
+    if (await saveCatalog(updatedCatalog)) {
       setNewCatalogItemName("");
       setAddingToCategory(null);
     }
@@ -853,16 +825,19 @@ export default function AdminPage() {
       return;
     }
 
-    const newItem: RegularItem = {
+    const newItem: any = {
       id: `regular-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
       category: targetCategory,
       name: trimmedFormName,
       selected: false,
       unit: newGlobalUnit,
+      requires_scraping: false,
+      stores: {}
     };
 
-    const updated = [...items, newItem];
-    if (await saveCatalogItems(updated)) {
+    const updated = [newItem, ...(catalog?.items || [])];
+    const updatedCatalog = { ...catalog, items: updated };
+    if (await saveCatalog(updatedCatalog)) {
       setNewGlobalItemName("");
       setNewGlobalCategory("");
       setNewGlobalCustomCat("");
@@ -886,22 +861,24 @@ export default function AdminPage() {
       return;
     }
 
-    const updated = items.map(item => 
+    const updated = (catalog?.items || []).map((item: any) => 
       item.id === id ? { ...item, name: trimmed, unit: editCatalogUnit } : item
     );
 
-    if (await saveCatalogItems(updated)) {
+    const updatedCatalog = { ...catalog, items: updated };
+    if (await saveCatalog(updatedCatalog)) {
       setEditingCatalogId(null);
     }
   };
 
   const handleDeleteCatalogItem = async (id: string) => {
-    const itemToDelete = items.find(i => i.id === id);
+    const itemToDelete = (catalog?.items || []).find((i: any) => i.id === id);
     if (!itemToDelete) return;
 
     if (confirm(`Are you sure you want to delete "${itemToDelete.name}" from the catalog?`)) {
-      const updated = items.filter(item => item.id !== id);
-      await saveCatalogItems(updated);
+      const updated = (catalog?.items || []).filter((item: any) => item.id !== id);
+      const updatedCatalog = { ...catalog, items: updated };
+      await saveCatalog(updatedCatalog);
     }
   };
 
@@ -935,14 +912,17 @@ export default function AdminPage() {
         }
 
         // Add to catalog items first
-        const newCatalogItem: RegularItem = {
+        const newCatalogItem: any = {
           id: `regular-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
           category: cat,
           name: finalItemName,
           selected: false,
+          requires_scraping: true,
+          stores: {}
         };
-        const updatedCat = [...items, newCatalogItem];
-        const success = await saveCatalogItems(updatedCat);
+        const updatedCat = [newCatalogItem, ...(catalog?.items || [])];
+        const updatedCatalog = { ...catalog, items: updatedCat };
+        const success = await saveCatalog(updatedCatalog);
         if (!success) {
           alert("Failed to create the associated catalog item. Catalog update aborted.");
           return;
@@ -1081,14 +1061,17 @@ export default function AdminPage() {
           return;
         }
 
-        const newCatalogItem: RegularItem = {
+        const newCatalogItem: any = {
           id: `regular-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
           category: cat,
           name: finalItemName,
           selected: false,
+          requires_scraping: true,
+          stores: {}
         };
-        const updatedCat = [...items, newCatalogItem];
-        const success = await saveCatalogItems(updatedCat);
+        const updatedCat = [newCatalogItem, ...(catalog?.items || [])];
+        const updatedCatalog = { ...catalog, items: updatedCat };
+        const success = await saveCatalog(updatedCatalog);
         if (!success) {
           alert("Failed to auto-create catalog item.");
           return;
@@ -2985,7 +2968,7 @@ export default function AdminPage() {
               <h2 className="text-base font-black uppercase tracking-tight mb-4 pb-1.5 border-b-2 border-black">
                 CSV Catalog Uploader
               </h2>
-              <CsvUpload onUploadComplete={fetchItems} />
+              <CsvUpload onUploadComplete={fetchCatalog} />
               <p className="mt-3 text-xs text-gray-500 font-medium leading-relaxed">
                 Accepts simple CSV files containing categories in column A and product names in column B. Great for bulk loading entire shopping menus in one click.
               </p>
@@ -3003,7 +2986,7 @@ export default function AdminPage() {
             </div>
 
             {/* Google Drive Import/Export Backup Block */}
-            <GoogleDriveBackup items={items} scrapeConfig={scrapeConfig} onRestoreComplete={fetchItems} />
+            <GoogleDriveBackup items={items} scrapeConfig={scrapeConfig} onRestoreComplete={fetchCatalog} />
           </div>
 
           {/* Gemini AI Product Matching Test-Bed & Playground (Approach A) */}

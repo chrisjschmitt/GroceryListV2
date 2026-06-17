@@ -21,6 +21,19 @@ interface VersionEntry {
 
 const VERSIONS: VersionEntry[] = [
   {
+    version: "1.7.0",
+    date: "June 2026",
+    type: "minor",
+    title: "Unified Catalog Integration",
+    changes: [
+      {
+        icon: <Database className="w-4 h-4 text-indigo-600" />,
+        category: "Consolidation & Cleanup",
+        description: "Re-engineered the Quick Catalog Creator to write product entries directly to the master Combined Catalog Registry (combined-catalog.json). This unifies product definition pipelines, optimizes database structures, and completely removes the legacy, duplicate regular-items registry files and unused server endpoints."
+      }
+    ]
+  },
+  {
     version: "1.6.0",
     date: "June 2026",
     type: "minor",
