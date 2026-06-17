@@ -21,6 +21,19 @@ interface VersionEntry {
 
 const VERSIONS: VersionEntry[] = [
   {
+    version: "1.5.5",
+    date: "June 2026",
+    type: "patch",
+    title: "Admin Portal Layout Reorganization",
+    changes: [
+      {
+        icon: <Layout className="w-4 h-4 text-indigo-600" />,
+        category: "UI Hierarchy & Navigation",
+        description: "Reorganized the Admin panel layout by placing the Manage Grocery Stores settings lower in the page flow directly after the primary Combined Catalog Registry Manager sections for improved user onboarding rhythm.",
+      }
+    ]
+  },
+  {
     version: "1.5.4",
     date: "June 2026",
     type: "patch",
