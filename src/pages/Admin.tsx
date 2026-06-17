@@ -312,95 +312,6 @@ export default function AdminPage() {
     }
   });
 
-  // Scraper console states
-  const [scraperStatus, setScraperStatus] = useState<{
-    isRunning: boolean;
-    logs: string[];
-    exitCode: number | null;
-    screenshots: string[];
-  }>({
-    isRunning: false,
-    logs: [],
-    exitCode: null,
-    screenshots: [],
-  });
-  const [testUrl, setTestUrl] = useState("");
-  const [scanLimit, setScanLimit] = useState<number>(2);
-  const [activeScreenshot, setActiveScreenshot] = useState<string | null>(null);
-  const [isRefreshing, setIsRefreshing] = useState(false);
-
-  const fetchScraperStatus = async () => {
-    try {
-      const res = await fetch("/api/scraper/status");
-      if (res.ok) {
-        const data = await res.json();
-        setScraperStatus(data);
-        return data;
-      }
-    } catch (err) {
-      console.error("Failed to fetch scraper status:", err);
-    }
-    return null;
-  };
-
-  useEffect(() => {
-    fetchScraperStatus();
-  }, []);
-
-  // Polling loop when running
-  useEffect(() => {
-    let timer: any = null;
-    if (scraperStatus.isRunning) {
-      timer = setInterval(async () => {
-        const data = await fetchScraperStatus();
-        if (data && !data.isRunning) {
-          clearInterval(timer);
-        }
-      }, 1500);
-    }
-    return () => {
-      if (timer) clearInterval(timer);
-    };
-  }, [scraperStatus.isRunning]);
-
-  const handleStartScraper = async () => {
-    try {
-      setIsRefreshing(true);
-      const res = await fetch("/api/scraper/run", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          testUrl: testUrl.trim() || undefined,
-          limit: scanLimit,
-        }),
-      });
-      if (res.ok) {
-        await fetchScraperStatus();
-      } else {
-        const errData = await res.json();
-        alert(errData.error || "Failed to start scraper");
-      }
-    } catch (err) {
-      console.error(err);
-    } finally {
-      setIsRefreshing(false);
-    }
-  };
-
-  const handleStopScraper = async () => {
-    try {
-      setIsRefreshing(true);
-      const res = await fetch("/api/scraper/stop", { method: "POST" });
-      if (res.ok) {
-        await fetchScraperStatus();
-      }
-    } catch (err) {
-      console.error(err);
-    } finally {
-      setIsRefreshing(false);
-    }
-  };
-
   const handleAutoSaveToggle = () => {
     const newValue = !autoSave;
     setAutoSave(newValue);
@@ -486,7 +397,18 @@ export default function AdminPage() {
         showVisualMessage("Combined catalog saved successfully!");
         return true;
       } else {
-        showVisualMessage("Failed to save combined catalog to server");
+        let errorMsg = "Failed to save combined catalog to server";
+        try {
+          const errData = await response.json();
+          if (errData.error) {
+            errorMsg = `Failed to save combined catalog: ${errData.error}`;
+          } else if (errData.details) {
+            errorMsg = `Failed to save combined catalog: ${errData.details}`;
+          }
+        } catch (e) {
+          // ignore
+        }
+        showVisualMessage(errorMsg);
       }
     } catch (err) {
       console.error("Error saving catalog:", err);
@@ -3299,199 +3221,6 @@ export default function AdminPage() {
               </div>
             </div>
           </div>
-
-          {/* Real-time Interactive Scraper runner list & Diagnostics */}
-          <div className="bg-white border-2 border-black p-6 shadow-[6px_6px_0px_0px_rgba(0,0,0,1)]">
-            <h2 className="text-base font-black uppercase tracking-tight mb-4 pb-1.5 border-b-2 border-black flex items-center gap-2 text-rose-600">
-              <Terminal className="w-5 h-5" /> Diagnostics & Live Scraper Test Bench
-            </h2>
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-              {/* Left Column: Form / Controls */}
-              <div className="space-y-4">
-                <div className="bg-amber-50 border-2 border-amber-300 p-4 text-xs text-amber-900 space-y-2">
-                  <div className="font-extrabold flex items-center gap-1.5 uppercase text-amber-800">
-                    <CircleAlert className="w-4 h-4 flex-shrink-0 animate-pulse" /> Sandbox Proxy Environment Note
-                  </div>
-                  <p className="leading-relaxed">
-                    This preview container is hosted on Google Cloud (Cloud Run). Google Cloud IPs are heavily flagged by Cloudflare, meaning that full price crawlers requesting Food Basics will hit a <strong>Managed Challenge / Turnstile Screen</strong> (Bypass required).
-                  </p>
-                  <p className="leading-relaxed">
-                    If this occurs, you will see a <strong>"Turnstile / Perform security verification"</strong> notice in the terminal stream and screenshots. This is expected behavior for cloud sandboxes. Playwright does not re-install each run; it uses prebuilt local binary.
-                  </p>
-                </div>
-
-                <div className="space-y-3">
-                  <div>
-                    <label className="block text-xs font-black uppercase tracking-wider text-black mb-1">
-                      Test Specific Product URL (Optional)
-                    </label>
-                    <input
-                      type="text"
-                      className="w-full text-xs font-mono p-2 border-2 border-black bg-white focus:bg-amber-50 outline-none"
-                      placeholder="e.g. https://www.foodbasics.ca/..."
-                      value={testUrl}
-                      onChange={(e) => setTestUrl(e.target.value)}
-                    />
-                    <p className="text-[10px] text-gray-500 mt-1">
-                      Leave empty to run the normal scheduled load configuration items queue.
-                    </p>
-                  </div>
-
-                  <div>
-                    <label className="block text-xs font-black uppercase tracking-wider text-black mb-1">
-                      Execution Queue Limit
-                    </label>
-                    <select
-                      className="w-full text-xs p-2 border-2 border-black bg-white outline-none font-bold"
-                      value={scanLimit}
-                      onChange={(e) => setScanLimit(parseInt(e.target.value, 10))}
-                    >
-                      <option value={1}>Limit to First 1 Item (Fast Single check)</option>
-                      <option value={2}>Limit to First 2 Items (Fast Double check)</option>
-                      <option value={5}>Limit to First 5 Items (Partial sync)</option>
-                      <option value={0}>Run Entire Queue (Warning: Slow & Will deplete trial)</option>
-                    </select>
-                  </div>
-
-                  <div className="flex gap-2 pt-2">
-                    <button
-                      type="button"
-                      disabled={scraperStatus.isRunning || isRefreshing}
-                      onClick={handleStartScraper}
-                      className="flex-1 flex items-center justify-center gap-2 text-xs font-black uppercase bg-[#059669] hover:bg-[#047857] text-white border-2 border-black py-2.5 shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] hover:shadow-none hover:translate-x-[1px] hover:translate-y-[1px] transition-all disabled:opacity-50 disabled:pointer-events-none"
-                    >
-                      <Play className="w-4 h-4" /> {scraperStatus.isRunning ? "Scraper Active..." : "Start Subprocess"}
-                    </button>
-
-                    {scraperStatus.isRunning && (
-                      <button
-                        type="button"
-                        onClick={handleStopScraper}
-                        className="flex-1 flex items-center justify-center gap-2 text-xs font-black uppercase bg-rose-600 hover:bg-rose-700 text-white border-2 border-black py-2.5 shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] hover:shadow-none hover:translate-x-[1px] hover:translate-y-[1px] transition-all"
-                      >
-                        <Square className="w-4 h-4" /> Abort active check
-                      </button>
-                    )}
-
-                    <button
-                      type="button"
-                      onClick={fetchScraperStatus}
-                      className="flex items-center justify-center bg-white border-2 border-black p-2.5 hover:bg-gray-100 shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] hover:shadow-none hover:translate-x-[1px] hover:translate-y-[1px] transition-all"
-                      title="Sync Status State"
-                    >
-                      <RefreshCw className={`w-4 h-4 ${scraperStatus.isRunning ? "animate-spin" : ""}`} />
-                    </button>
-                  </div>
-                </div>
-              </div>
-
-              {/* Right Column: Terminal Logging Sandbox */}
-              <div className="flex flex-col h-full min-h-[300px]">
-                <div className="flex justify-between items-center bg-black text-rose-400 p-2 border-t-2 border-x-2 border-black font-semibold text-xs tracking-wider uppercase select-none rounded-t">
-                  <span className="flex items-center gap-1.5">
-                    <span className={`inline-block w-2.5 h-2.5 rounded-full ${scraperStatus.isRunning ? "bg-amber-400 animate-ping" : "bg-green-500"}`} />
-                    Scraper Pipeline Shell: {scraperStatus.isRunning ? "EXEC_ACTIVE" : "IDLE"}
-                  </span>
-                  <button
-                    type="button"
-                    onClick={() => setScraperStatus(prev => ({ ...prev, logs: [] }))}
-                    className="text-[10px] bg-gray-800 text-white border border-gray-600 px-1.5 py-0.5 hover:bg-gray-700"
-                  >
-                    Clear Feed
-                  </button>
-                </div>
-                <div className="bg-black text-[#10B981] font-mono text-[11px] p-4 h-64 overflow-y-auto border-2 border-black rounded-b shadow-inner leading-relaxed select-text custom-scrollbar">
-                  {scraperStatus.logs.length === 0 ? (
-                    <span className="text-gray-500">Console inactive. Trigger starting the subprocess to output log messages here.</span>
-                  ) : (
-                    scraperStatus.logs.map((log, index) => {
-                      let colorClass = "text-emerald-400";
-                      if (log.includes("[STDERR]") || log.includes("failed") || log.includes("Error") || log.includes("attempt failed") || log.includes("✗")) {
-                        colorClass = "text-rose-400 font-semibold";
-                      } else if (log.includes("⚠️") || log.includes("ALERT") || log.includes("Bot Counter-measures")) {
-                        colorClass = "text-amber-400 font-semibold";
-                      } else if (log.includes("🧪 TESTMODE") || log.includes("◀")) {
-                        colorClass = "text-cyan-400 font-bold";
-                      } else if (log.includes("Scraped:")) {
-                        colorClass = "text-blue-400 font-semibold";
-                      }
-                      return <div key={index} className={colorClass}>{log}</div>;
-                    })
-                  )}
-                </div>
-
-                {/* Screenshots Carousel block */}
-                {scraperStatus.screenshots.length > 0 && (
-                  <div className="mt-4 p-3 bg-red-50 border border-red-200">
-                    <span className="text-xs font-black uppercase text-red-800 block mb-2 flex items-center gap-1.5">
-                      <Image className="w-4 h-4" /> Captures evidence ({scraperStatus.screenshots.length} files detected):
-                    </span>
-                    <div className="flex flex-wrap gap-2">
-                      {scraperStatus.screenshots.map((s) => (
-                        <button
-                          key={s}
-                          type="button"
-                          onClick={() => setActiveScreenshot(s)}
-                          className="text-[10px] font-mono bg-white border border-red-300 px-2.5 py-1 text-red-700 hover:bg-red-100 flex items-center gap-1"
-                        >
-                          <Eye className="w-3.5 h-3.5" /> {s.replace("failed_", "")}
-                        </button>
-                      ))}
-                    </div>
-                  </div>
-                )}
-              </div>
-            </div>
-          </div>
-
-          {/* Active Evidence Screenshot Dialog Modal */}
-          {activeScreenshot && (
-            <div className="fixed inset-0 z-50 overflow-y-auto bg-black/60 backdrop-blur-xs flex items-center justify-center p-4">
-              <div className="bg-white border-2 border-black max-w-4xl w-full p-4 shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] relative flex flex-col">
-                <div className="flex justify-between items-center pb-2 mb-2 border-b-2 border-black">
-                  <span className="text-xs font-black uppercase text-rose-600 flex items-center gap-1">
-                    <CircleAlert className="w-4 h-4" /> Screenshot diagnostic: {activeScreenshot}
-                  </span>
-                  <button
-                    type="button"
-                    onClick={() => setActiveScreenshot(null)}
-                    className="p-1 border border-black hover:bg-gray-100 text-black"
-                  >
-                    <X className="w-4 h-4" />
-                  </button>
-                </div>
-                
-                <div className="max-h-[550px] overflow-y-auto border-2 border-black bg-gray-100">
-                  {activeScreenshot.endsWith(".png") ? (
-                    <img
-                      src={`/api/scraper/screenshot/${activeScreenshot}`}
-                      alt="Captured evidence of blocked crawler page"
-                      className="w-full h-auto block"
-                      referrerPolicy="no-referrer"
-                    />
-                  ) : (
-                    <iframe
-                      src={`/api/scraper/screenshot/${activeScreenshot}`}
-                      title="HTML Diagnostics frame source code"
-                      className="w-full h-[500px] border-none bg-white font-mono"
-                      sandbox=""
-                    />
-                  )}
-                </div>
-                
-                <div className="mt-4 flex justify-between items-center text-xs text-gray-500 font-medium">
-                  <span>Press close to return to the interactive console dashboard.</span>
-                  <button
-                    type="button"
-                    onClick={() => setActiveScreenshot(null)}
-                    className="bg-black hover:bg-gray-800 text-white font-black uppercase text-[10px] tracking-wider px-4 py-2 border border-black shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] hover:shadow-none hover:translate-x-[1px] hover:translate-y-[1px] transition-all"
-                  >
-                    Close Image
-                  </button>
-                </div>
-              </div>
-            </div>
-          )}
 
         </section>
       </div>

@@ -630,6 +630,9 @@ export function migrateCombinedCatalog(catalog: any): CombinedCatalog {
               sale_price: lv.sale_price !== undefined ? lv.sale_price : null,
               is_on_sale: lv.is_on_sale !== undefined ? lv.is_on_sale : 0,
               valid_until: lv.valid_until,
+              track_pricing: lv.track_pricing !== undefined ? !!lv.track_pricing : true,
+              external_name: lv.external_name || "",
+              is_verified: lv.is_verified !== undefined ? (lv.is_verified === true || lv.is_verified === 1 || String(lv.is_verified) === "true") : false,
             };
           }
         }

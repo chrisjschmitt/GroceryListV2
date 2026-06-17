@@ -21,6 +21,19 @@ interface VersionEntry {
 
 const VERSIONS: VersionEntry[] = [
   {
+    version: "1.6.0",
+    date: "June 2026",
+    type: "minor",
+    title: "Price Scraper Subsystem Decommissioning",
+    changes: [
+      {
+        icon: <Trash2 className="w-4 h-4 text-emerald-600" />,
+        category: "Engine & Subsystem Removal",
+        description: "Decommissioned and deleted the background price scraper module, including its associated Playwright scripts, background runners, GitHub workflow schedules, logs, diagnostics screenshot viewer, and server endpoints. This optimizes storage footprint and reduces background execution overhead."
+      }
+    ]
+  },
+  {
     version: "1.5.6",
     date: "June 2026",
     type: "patch",
