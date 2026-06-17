@@ -21,6 +21,19 @@ interface VersionEntry {
 
 const VERSIONS: VersionEntry[] = [
   {
+    version: "1.5.4",
+    date: "June 2026",
+    type: "patch",
+    title: "Legacy Pricing Registry Cleanup",
+    changes: [
+      {
+        icon: <Trash2 className="w-4 h-4 text-emerald-600" />,
+        category: "Registry & API Cleanup",
+        description: "Removed legacy manual prices registry CRUD actions, DB-based JSON price importers, custom price editor forms, and corresponding server integration endpoints, establishing the Scraper Configuration Link structure as the single source of truth.",
+      }
+    ]
+  },
+  {
     version: "1.5.3",
     date: "June 2026",
     type: "patch",
