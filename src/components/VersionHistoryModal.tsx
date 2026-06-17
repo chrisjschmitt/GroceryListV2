@@ -21,6 +21,19 @@ interface VersionEntry {
 
 const VERSIONS: VersionEntry[] = [
   {
+    version: "1.5.3",
+    date: "June 2026",
+    type: "patch",
+    title: "Store & Pricing Display Refinement",
+    changes: [
+      {
+        icon: <Sparkles className="w-4 h-4 text-emerald-600" />,
+        category: "Pricing & Badges",
+        description: "Implemented store and badge state rules in Item Catalog: Hide empty pricing records with URLs, display specific Green & 'SALE' / 'EXPIRED' badges for active and expired temporary flyer savings, and show a polished Yellow badge for items with direct URLs that are currently not on sale. Cleaned up trailing visual noise by removing inline expiry dates.",
+      }
+    ]
+  },
+  {
     version: "1.5.2",
     date: "June 2026",
     type: "patch",

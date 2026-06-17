@@ -442,39 +442,75 @@ export default function RegularItemsList({
                             if (price.stores && typeof price.stores === "object") {
                               const storeEntries = Object.entries(price.stores);
                               if (storeEntries.length > 0) {
+                                // Filter out entries that contain a URL but have empty/no pricing fields
+                                const validStoreEntries = storeEntries.filter(([_, storeInfo]: [string, any]) => {
+                                  const hasUrl = !!storeInfo.lookup_url;
+                                  const hasRegularPrice = storeInfo.regular_price !== null && storeInfo.regular_price !== undefined && storeInfo.regular_price > 0;
+                                  const hasSalePrice = storeInfo.sale_price !== null && storeInfo.sale_price !== undefined && storeInfo.sale_price > 0;
+                                  const hasPricing = hasRegularPrice || hasSalePrice;
+                                  if (hasUrl && !hasPricing) {
+                                    return false;
+                                  }
+                                  return true;
+                                });
+
+                                if (validStoreEntries.length === 0) {
+                                  return null;
+                                }
+
                                 return (
                                   <span className="sm:ml-auto inline-flex flex-wrap gap-1 items-center">
-                                    {storeEntries.map(([storeId, storeInfo]: [string, any]) => {
+                                    {validStoreEntries.map(([storeId, storeInfo]: [string, any]) => {
                                       const activeP = (storeInfo.is_on_sale && storeInfo.sale_price !== null && storeInfo.sale_price !== undefined) 
                                         ? storeInfo.sale_price 
                                         : (storeInfo.regular_price || 0);
                                       const isLowest = checkIfLowestPriceForEntry(price, storeId);
                                       const storeExpired = storeInfo.is_on_sale && storeInfo.valid_until && isSaleExpiredLocal(storeInfo.valid_until);
-                                      const hasActiveSale = storeInfo.is_on_sale === 1 || storeInfo.is_on_sale === true;
+                                      const hasActiveSale = storeInfo.is_on_sale === 1;
+
+                                      const hasUrl = !!storeInfo.lookup_url;
+                                      let badgeColorClass = "";
+                                      let customAppendText = "";
+
+                                      if (hasUrl) {
+                                        if (hasActiveSale) {
+                                          badgeColorClass = "bg-emerald-600 text-white border-black font-black";
+                                          if (storeExpired) {
+                                            customAppendText = " EXPIRED";
+                                          } else {
+                                            customAppendText = " SALE";
+                                          }
+                                        } else {
+                                          badgeColorClass = "bg-yellow-400 text-black border-black font-black";
+                                        }
+                                      } else {
+                                        badgeColorClass = isLowest
+                                          ? hasActiveSale 
+                                            ? storeExpired
+                                              ? "bg-amber-100 text-amber-800 border-yellow-500 animate-pulse"
+                                              : "bg-red-100 text-red-700 font-extrabold"
+                                            : "bg-emerald-100 text-emerald-800"
+                                          : "bg-gray-100 text-gray-500 font-normal";
+                                      }
+
                                       return (
                                         <span
                                           key={storeId}
-                                          className={`text-[9px] font-black uppercase border border-black px-1.5 py-0.2 shrink-0 inline-flex items-center gap-0.5 rounded-none ${
-                                            isLowest
-                                              ? hasActiveSale 
-                                                ? storeExpired
-                                                  ? "bg-amber-100 text-amber-800 border-yellow-500 animate-pulse"
-                                                  : "bg-red-100 text-red-700 font-extrabold"
-                                                : "bg-emerald-100 text-emerald-800"
-                                              : "bg-gray-100 text-gray-500 font-normal"
-                                          }`}
+                                          className={`text-[9px] font-black uppercase border border-black px-1.5 py-0.2 shrink-0 inline-flex items-center gap-0.5 rounded-none ${badgeColorClass}`}
                                           title={`${storeInfo.store_name || storeId}: $${activeP.toFixed(2)}${storeInfo.valid_until ? ` (valid until ${storeInfo.valid_until})` : ""}`}
                                         >
                                           <span>{abbreviateStoreName(storeInfo.store_name || storeId)}:</span>
-                                          <span className={storeExpired ? "text-amber-500 font-black animate-pulse" : ""}>$</span>
+                                          <span className={(storeExpired && !hasUrl) ? "text-amber-500 font-black animate-pulse" : ""}>$</span>
                                           <span>{activeP.toFixed(2)}</span>
-                                          {hasActiveSale && (
+                                          {hasUrl && customAppendText && (
+                                            <span className="font-extrabold ml-0.5 text-[7px]" style={{ color: "inherit" }}>
+                                              {customAppendText}
+                                            </span>
+                                          )}
+                                          {!hasUrl && hasActiveSale && (
                                             <span className={storeExpired ? "text-amber-600 font-extrabold ml-0.5 text-[7px]" : "text-red-600 font-extrabold ml-0.5 text-[7px]"}>
                                               {storeExpired ? "expired" : "sale"}
                                             </span>
-                                          )}
-                                          {hasActiveSale && storeInfo.valid_until && (
-                                            <span className="text-[7.5px] text-gray-400 font-medium normal-case ml-0.5 font-mono">({storeInfo.valid_until})</span>
                                           )}
                                         </span>
                                       );
@@ -485,29 +521,60 @@ export default function RegularItemsList({
                             }
 
                             // Single Store Fallback
-                            const activePrice = price.is_on_sale && price.sale_price !== null ? price.sale_price : price.regular_price;
+                            const hasUrl = !!price.lookup_url;
+                            const hasRegularPrice = price.regular_price !== null && price.regular_price !== undefined && price.regular_price > 0;
+                            const hasSalePrice = price.sale_price !== null && price.sale_price !== undefined && price.sale_price > 0;
+                            const hasPricingFields = hasRegularPrice || hasSalePrice;
+
+                            if (hasUrl && !hasPricingFields) {
+                              return null;
+                            }
+
+                            const activePrice = (price.is_on_sale && price.sale_price !== null && price.sale_price !== undefined) 
+                              ? price.sale_price 
+                              : (price.regular_price || 0);
                             const fallbackExpired = price.is_on_sale && price.valid_until && isSaleExpiredLocal(price.valid_until);
+                            const hasActiveSale = price.is_on_sale === 1;
+
+                            let badgeColorClass = "";
+                            let customAppendText = "";
+
+                            if (hasUrl) {
+                              if (hasActiveSale) {
+                                badgeColorClass = "bg-emerald-600 text-white border-black font-black";
+                                if (fallbackExpired) {
+                                  customAppendText = " EXPIRED";
+                                } else {
+                                  customAppendText = " SALE";
+                                }
+                              } else {
+                                badgeColorClass = "bg-yellow-400 text-black border-black font-black";
+                              }
+                            } else {
+                              badgeColorClass = price.is_on_sale 
+                                ? fallbackExpired
+                                  ? "text-amber-700 bg-amber-50 border-yellow-500 animate-pulse"
+                                  : "text-red-700 bg-red-100" 
+                                : "text-gray-500 bg-gray-50";
+                            }
+
                             return (
                               <span
-                                className={`sm:ml-auto flex-shrink-0 text-[10px] font-black uppercase border border-black px-1.5 py-0.2 shrink-0 inline-flex items-center gap-0.5 ${
-                                  price.is_on_sale 
-                                    ? fallbackExpired
-                                      ? "text-amber-700 bg-amber-50 border-yellow-500 animate-pulse"
-                                      : "text-red-700 bg-red-100" 
-                                    : "text-gray-500 bg-gray-50"
-                                }`}
+                                className={`sm:ml-auto flex-shrink-0 text-[10px] font-black uppercase border border-black px-1.5 py-0.2 shrink-0 inline-flex items-center gap-0.5 ${badgeColorClass}`}
                                 title={price.valid_until ? `Valid until ${price.valid_until}` : undefined}
                               >
                                 <span>{abbreviateStoreName(price.store_name || "Food Basics")}:</span>
-                                <span className={fallbackExpired ? "text-amber-500 font-black animate-pulse" : ""}>$</span>
+                                <span className={(fallbackExpired && !hasUrl) ? "text-amber-500 font-black animate-pulse" : ""}>$</span>
                                 <span>{activePrice?.toFixed(2)}</span>
-                                {price.is_on_sale === 1 && (
+                                {hasUrl && customAppendText && (
+                                  <span className="font-extrabold ml-0.5 text-[7px]" style={{ color: "inherit" }}>
+                                    {customAppendText}
+                                  </span>
+                                )}
+                                {!hasUrl && price.is_on_sale === 1 && (
                                   <span className={fallbackExpired ? "ml-0.5 text-[7px] text-amber-600 font-bold" : "ml-0.5 text-[7px] font-bold"}>
                                     {fallbackExpired ? "expired" : "sale"}
                                   </span>
-                                )}
-                                {price.is_on_sale === 1 && price.valid_until && (
-                                  <span className="text-[8px] text-gray-400 font-medium ml-0.5 normal-case font-mono">({price.valid_until})</span>
                                 )}
                               </span>
                             );
