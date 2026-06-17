@@ -1485,7 +1485,7 @@ export default function AdminPage() {
   };
 
   const handleRemoveScrapeItem = async (storeKey: string, itemName: string) => {
-    if (confirm(`Remove the ${storeKey} link for "${itemName}" from the Price Checking configuration?`)) {
+    if (confirm(`Remove the ${storeKey} link for "${itemName}" from the Combined Catalog Registry configuration?`)) {
       const config = { ...scrapeConfig };
       if (!config.items) config.items = [];
 

@@ -1,5 +1,5 @@
 import React from "react";
-import { X, Calendar, GitBranch, Sparkles, Database, Layout, Smartphone, Cloud, FileSpreadsheet } from "lucide-react";
+import { X, Calendar, GitBranch, Sparkles, Database, Layout, Smartphone, Cloud, FileSpreadsheet, Trash2 } from "lucide-react";
 
 interface VersionHistoryModalProps {
   isOpen: boolean;
@@ -20,6 +20,19 @@ interface VersionEntry {
 }
 
 const VERSIONS: VersionEntry[] = [
+  {
+    version: "1.5.2",
+    date: "June 2026",
+    type: "patch",
+    title: "Price Checking Refactoring & UI Cleanup",
+    changes: [
+      {
+        icon: <Trash2 className="w-4 h-4 text-emerald-600" />,
+        category: "Refactoring & Cleanup",
+        description: "Removed the deprecated live Price Checking dialog and reference configurations from the Item Catalog to streamline the responsive list design.",
+      },
+    ],
+  },
   {
     version: "1.5.1",
     date: "June 2026",

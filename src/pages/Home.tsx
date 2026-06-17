@@ -5,7 +5,7 @@ import VersionHistoryModal from "@/components/VersionHistoryModal";
 
 export default function Home() {
   const [isChangelogOpen, setIsChangelogOpen] = useState(false);
-  const CURRENT_VERSION = "1.5.1";
+  const CURRENT_VERSION = "1.5.2";
 
   return (
     <main className="flex-1 bg-[#f9fafb] text-[#111827] min-h-screen font-sans">
