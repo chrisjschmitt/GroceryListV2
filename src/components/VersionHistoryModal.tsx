@@ -21,6 +21,24 @@ interface VersionEntry {
 
 const VERSIONS: VersionEntry[] = [
   {
+    version: "1.5.1",
+    date: "June 2026",
+    type: "patch",
+    title: "Pricing Display Polishing & Status Synchronization",
+    changes: [
+      {
+        icon: <Sparkles className="w-4 h-4 text-emerald-600" />,
+        category: "Pricing Bug Fixes",
+        description: "Fixed pricing display formatting in the Item Catalog form by stripping out redundant trailing '00' or '%' marks and replacing them with clean 'sale' / 'expired' context pill labels.",
+      },
+      {
+        icon: <Database className="w-4 h-4 text-emerald-600" />,
+        category: "Manual Price Sync",
+        description: "Standardized boolean conversion flags for 'is_on_sale' to prevent empty sale price strings or unexpected string-to-boolean type comparison casting.",
+      },
+    ],
+  },
+  {
     version: "1.5.0",
     date: "June 2026",
     type: "minor",

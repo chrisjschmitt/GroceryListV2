@@ -179,7 +179,79 @@ async function startServer() {
   }
 
   async function getMergedPrices(): Promise<any> {
-    const prices = await blobGetPrices();
+    const catalog = await blobGetCombinedCatalog();
+    const prices: any = {};
+
+    for (const item of catalog.items || []) {
+      const stores: any = {};
+      let bestStoreId = "";
+      let lowestPrice = Infinity;
+
+      for (const [storeId, link] of Object.entries(item.stores || {})) {
+        if (!link) continue;
+
+        // Skip store configs that do not have actual price info or lookup URL config
+        const hasRegularPrice = link.regular_price !== null && link.regular_price !== undefined;
+        if (!hasRegularPrice && !link.url) continue;
+
+        const storeConfig = catalog.stores?.[storeId];
+        const storeName = storeConfig?.store_name || storeId;
+        const postalCode = storeConfig?.postal_code || "K7H3C6";
+
+        stores[storeId] = {
+          store_name: storeName,
+          postal_code: postalCode,
+          store_id: storeId,
+          regular_price: link.regular_price,
+          sale_price: link.sale_price,
+          is_on_sale: link.is_on_sale,
+          lookup_url: link.url,
+          valid_until: link.valid_until || "",
+          track_pricing: link.track_pricing ? 1 : 0,
+          external_name: link.external_name || "",
+        };
+
+        const currentPrice = (link.is_on_sale && link.sale_price !== null && link.sale_price !== undefined)
+          ? link.sale_price
+          : (link.regular_price || 0);
+
+        if (currentPrice > 0 && currentPrice < lowestPrice) {
+          lowestPrice = currentPrice;
+          bestStoreId = storeId;
+        }
+      }
+
+      // Only return a pricing record if we found at least one store with a valid price
+      if (bestStoreId) {
+        let mainUpc = "";
+        for (const link of Object.values(item.stores || {})) {
+          if (link && link.upc) {
+            mainUpc = link.upc;
+            break;
+          }
+        }
+        const itemKey = mainUpc || item.id || `catalog-${item.name.replace(/\s+/g, "-").toLowerCase()}`;
+        const bestStore = stores[bestStoreId];
+
+        prices[itemKey] = {
+          item_name: item.name,
+          config_name: item.name,
+          store_name: bestStore.store_name,
+          postal_code: bestStore.postal_code,
+          store_id: bestStore.store_id,
+          regular_price: bestStore.regular_price,
+          sale_price: bestStore.sale_price,
+          is_on_sale: bestStore.is_on_sale,
+          last_updated: item.last_updated || new Date().toISOString(),
+          lookup_url: bestStore.lookup_url || "",
+          valid_until: bestStore.valid_until || "",
+          track_pricing: bestStore.track_pricing || 0,
+          external_name: bestStore.external_name || "",
+          stores: stores,
+        };
+      }
+    }
+
     return mergeMongoPrices(prices);
   }
 
@@ -944,6 +1016,46 @@ async function startServer() {
 
       // 1. Write price entry to static combined catalog file
       await blobSetPrices(existingPrices);
+
+      // 1.5. Write/Upsert to static combined catalog file to keep both in sync
+      try {
+        const catalog = await blobGetCombinedCatalog();
+        const searchName = (item.item_name || currentEntry.item_name || "").trim().toLowerCase();
+        let catalogItem = (catalog.items || []).find(
+          (i: any) => i.name.toLowerCase() === searchName
+        );
+        if (!catalogItem) {
+          catalogItem = {
+            id: `regular-manual-${Date.now()}-${Math.random().toString(36).substring(2, 7)}`,
+            name: item.item_name || currentEntry.item_name || "Uncategorized Item",
+            category: "Pantry Staples",
+            unit: "unit",
+            requires_scraping: true,
+            stores: {}
+          };
+          catalog.items.push(catalogItem);
+        }
+
+        if (!catalogItem.stores) {
+          catalogItem.stores = {};
+        }
+
+        catalogItem.stores[targetStoreId] = {
+          url: item.lookup_url || "",
+          upc: upc,
+          regular_price: regPrice,
+          sale_price: salePrice,
+          is_on_sale: isOnSale,
+          valid_until: item.valid_until || "",
+          external_name: item.external_name || "",
+          track_pricing: item.track_pricing === 1 || item.track_pricing === true || item.track_pricing === "true",
+        };
+
+        await blobSetCombinedCatalog(catalog);
+        console.log(`Successfully synced manual price save for item "${catalogItem.name}" under store "${targetStoreId}" to combined-catalog.json`);
+      } catch (catalogErr) {
+        console.error("Failed to sync manual price save to combined-catalog.json", catalogErr);
+      }
 
       // 2. Write/Upsert to MongoDB
       try {

@@ -3708,7 +3708,9 @@ export default function AdminPage() {
                                       <span className="text-gray-400">{label}:</span>
                                       <span className="text-black">${priceVal !== null && priceVal !== undefined && typeof priceVal === 'number' ? priceVal.toFixed(2) : "N/A"}</span>
                                       {sInfo.is_on_sale === 1 && (
-                                        <span className={expiredVal ? "text-amber-600 font-extrabold ml-0.5 text-[8.5px]" : "text-red-655 font-extrabold ml-0.5 text-[8.5px]"} title={expiredVal ? "Expired Sale" : "On Sale"}>%</span>
+                                        <span className={expiredVal ? "text-amber-600 font-extrabold ml-0.5 text-[8.5px] uppercase" : "text-red-650 font-extrabold ml-0.5 text-[8.5px] uppercase"} title={expiredVal ? "Expired Sale" : "On Sale"}>
+                                          {expiredVal ? "expired" : "sale"}
+                                        </span>
                                       )}
                                       {sInfo.valid_until && (
                                         <span className={expiredVal ? "text-amber-700 font-black ml-0.5 font-mono" : "text-gray-450 font-medium ml-0.5 font-mono"}>

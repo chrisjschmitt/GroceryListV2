@@ -1101,12 +1101,13 @@ export default function RegularItemsList({
                                         : (storeInfo.regular_price || 0);
                                       const isLowest = checkIfLowestPriceForEntry(price, storeId);
                                       const storeExpired = storeInfo.is_on_sale && storeInfo.valid_until && isSaleExpiredLocal(storeInfo.valid_until);
+                                      const hasActiveSale = storeInfo.is_on_sale === 1 || storeInfo.is_on_sale === true;
                                       return (
                                         <span
                                           key={storeId}
                                           className={`text-[9px] font-black uppercase border border-black px-1.5 py-0.2 shrink-0 inline-flex items-center gap-0.5 rounded-none ${
                                             isLowest
-                                              ? storeInfo.is_on_sale 
+                                              ? hasActiveSale 
                                                 ? storeExpired
                                                   ? "bg-amber-100 text-amber-800 border-yellow-500 animate-pulse"
                                                   : "bg-red-100 text-red-700 font-extrabold"
@@ -1118,10 +1119,12 @@ export default function RegularItemsList({
                                           <span>{abbreviateStoreName(storeInfo.store_name || storeId)}:</span>
                                           <span className={storeExpired ? "text-amber-500 font-black animate-pulse" : ""}>$</span>
                                           <span>{activeP.toFixed(2)}</span>
-                                          {storeInfo.is_on_sale && (
-                                            <span className={storeExpired ? "text-amber-600 font-black text-[7px]" : "text-red-600 font-black text-[7px]"}>%</span>
+                                          {hasActiveSale && (
+                                            <span className={storeExpired ? "text-amber-600 font-extrabold ml-0.5 text-[7px]" : "text-red-600 font-extrabold ml-0.5 text-[7px]"}>
+                                              {storeExpired ? "expired" : "sale"}
+                                            </span>
                                           )}
-                                          {storeInfo.is_on_sale && storeInfo.valid_until && (
+                                          {hasActiveSale && storeInfo.valid_until && (
                                             <span className="text-[7.5px] text-gray-400 font-medium normal-case ml-0.5 font-mono">({storeInfo.valid_until})</span>
                                           )}
                                         </span>
@@ -1154,7 +1157,7 @@ export default function RegularItemsList({
                                     {fallbackExpired ? "expired" : "sale"}
                                   </span>
                                 )}
-                                {price.is_on_sale && price.valid_until && (
+                                {price.is_on_sale === 1 && price.valid_until && (
                                   <span className="text-[8px] text-gray-400 font-medium ml-0.5 normal-case font-mono">({price.valid_until})</span>
                                 )}
                               </span>
