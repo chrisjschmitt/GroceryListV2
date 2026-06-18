@@ -36,6 +36,7 @@ function normalizeStoreKey(storeId: string): string {
 export default function GroceryList() {
   const store = useOfflineStore();
   const [confirmUncheckAll, setConfirmUncheckAll] = useState(false);
+  const [selectedStoreForLowestPrices, setSelectedStoreForLowestPrices] = useState<string | null>(null);
 
   const shoppingListNames = useMemo(
     () => new Set(store.groceryItems.map((i) => i.name.toLowerCase())),
@@ -278,11 +279,19 @@ export default function GroceryList() {
     : 0;
 
   const storeMetrics = useMemo(() => {
-    const storeMap = new Map<string, { storeName: string; totalCost: number; itemsAvailableCount: number; lowestPriceCount: number; saleSavings: number; totalCheckedCount: number }>();
+    const storeMap = new Map<string, { 
+      storeName: string; 
+      totalCost: number; 
+      itemsAvailableCount: number; 
+      lowestPriceCount: number; 
+      lowestPriceItems: { name: string; price: number; onSale: boolean; regularPrice: number }[];
+      saleSavings: number; 
+      totalCheckedCount: number;
+    }>();
     
     // Seed standard store entries
-    storeMap.set("foodbasics", { storeName: "Food Basics", totalCost: 0, itemsAvailableCount: 0, lowestPriceCount: 0, saleSavings: 0, totalCheckedCount: 0 });
-    storeMap.set("metro", { storeName: "Metro", totalCost: 0, itemsAvailableCount: 0, lowestPriceCount: 0, saleSavings: 0, totalCheckedCount: 0 });
+    storeMap.set("foodbasics", { storeName: "Food Basics", totalCost: 0, itemsAvailableCount: 0, lowestPriceCount: 0, lowestPriceItems: [], saleSavings: 0, totalCheckedCount: 0 });
+    storeMap.set("metro", { storeName: "Metro", totalCost: 0, itemsAvailableCount: 0, lowestPriceCount: 0, lowestPriceItems: [], saleSavings: 0, totalCheckedCount: 0 });
 
     // Populate stores from the global store.prices map
     for (const entry of Object.values(store.prices) as PriceEntry[]) {
@@ -303,6 +312,7 @@ export default function GroceryList() {
               totalCost: 0,
               itemsAvailableCount: 0,
               lowestPriceCount: 0,
+              lowestPriceItems: [],
               saleSavings: 0,
               totalCheckedCount: 0
             });
@@ -371,6 +381,7 @@ export default function GroceryList() {
               totalCost: 0,
               itemsAvailableCount: 0,
               lowestPriceCount: 0,
+              lowestPriceItems: [],
               saleSavings: 0,
               totalCheckedCount: 0
             };
@@ -397,7 +408,15 @@ export default function GroceryList() {
           for (const key of storeKeys) {
             if (pricesByStore[key].price === minP) {
               const m = storeMap.get(key);
-              if (m) m.lowestPriceCount += 1;
+              if (m) {
+                m.lowestPriceCount += 1;
+                m.lowestPriceItems.push({
+                  name: item.name,
+                  price: minP,
+                  onSale: pricesByStore[key].onSale,
+                  regularPrice: pricesByStore[key].regular
+                });
+              }
             }
           }
         }
@@ -480,10 +499,14 @@ export default function GroceryList() {
                             </div>
                           </div>
 
-                          <div className="mt-2 text-[10px] text-gray-500 font-bold uppercase flex items-center justify-between bg-white border border-gray-150 px-2 py-0.5">
+                          <button
+                            onClick={() => setSelectedStoreForLowestPrices(storeMetric.storeId)}
+                            className="w-full mt-2 text-[10px] text-gray-500 font-bold uppercase flex items-center justify-between bg-white border border-gray-150 px-2 py-0.5 cursor-pointer hover:bg-gray-50 active:translate-x-px active:translate-y-px transition-all"
+                            title={`Click to view the ${storeMetric.lowestPriceCount} items with lowest prices at ${storeMetric.storeName}`}
+                          >
                             <span>Lowest Price Matches:</span>
-                            <span className="font-black text-emerald-700">{storeMetric.lowestPriceCount} items</span>
-                          </div>
+                            <span className="font-black text-emerald-700 hover:underline">{storeMetric.lowestPriceCount} items</span>
+                          </button>
                         </div>
                       </div>
                     );
@@ -667,6 +690,99 @@ export default function GroceryList() {
             </div>
           </section>
         </div>
+
+        {/* Lowest Price Matches Details Modal Overlay */}
+        {selectedStoreForLowestPrices && (() => {
+          const storeMetric = storeMetrics.find(m => m.storeId === selectedStoreForLowestPrices);
+          if (!storeMetric) return null;
+
+          return (
+            <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+              {/* Background Mask */}
+              <div 
+                className="absolute inset-0 bg-black/50 backdrop-blur-xs transition-opacity duration-300"
+                onClick={() => setSelectedStoreForLowestPrices(null)}
+              />
+              
+              {/* Neo-brutalist Modal Container */}
+              <div className="relative w-full max-w-lg bg-white border-4 border-black text-black p-6 shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] z-10 max-h-[85vh] overflow-y-auto animate-fade-in flex flex-col">
+                {/* Header */}
+                <div className="flex justify-between items-start border-b-2 border-black pb-4 mb-5">
+                  <div className="flex flex-col">
+                    <span className="text-[10px] font-black uppercase text-gray-500 tracking-widest flex items-center gap-1.5 mb-1">
+                      📊 Smart Choice Analytics
+                    </span>
+                    <h2 className="text-xl font-black tracking-tight">
+                      Lowest Price Matches — {storeMetric.storeName}
+                    </h2>
+                  </div>
+                  <button
+                    onClick={() => setSelectedStoreForLowestPrices(null)}
+                    className="border-2 border-black p-1 hover:bg-red-50 text-black shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] active:translate-x-0.5 active:translate-y-0.5 transition-all cursor-pointer"
+                    aria-label="Close dialog"
+                  >
+                    <span className="font-bold text-sm block px-1.5">✕</span>
+                  </button>
+                </div>
+
+                {/* Content list */}
+                <div className="space-y-3 overflow-y-auto pr-1 flex-1">
+                  {storeMetric.lowestPriceItems.length === 0 ? (
+                    <div className="text-center py-6 text-gray-400 text-xs font-bold uppercase tracking-wider">
+                      No matching items found for this store
+                    </div>
+                  ) : (
+                    <div className="space-y-2.5">
+                      {storeMetric.lowestPriceItems.map((item, index) => {
+                        return (
+                          <div 
+                            key={index} 
+                            className="flex items-center justify-between p-3 border-2 border-black bg-gray-50 shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]"
+                          >
+                            <div className="flex flex-col">
+                              <span className="text-xs font-black uppercase text-black">
+                                {item.name}
+                              </span>
+                              <span className="text-[9px] font-bold text-gray-400 uppercase">
+                                Lowest Price Match
+                              </span>
+                            </div>
+                            
+                            <div className="flex items-center gap-2">
+                              {item.onSale && (
+                                <span className="bg-red-100 text-red-700 text-[8px] font-black uppercase border border-red-300 px-1 py-0.2 rounded-none">
+                                  Sale
+                                </span>
+                              )}
+                              <span className="text-xs font-black text-black">
+                                ${item.price.toFixed(2)}
+                              </span>
+                              {item.onSale && item.regularPrice > item.price && (
+                                <span className="text-[9px] font-bold text-gray-400 line-through">
+                                  ${item.regularPrice.toFixed(2)}
+                                </span>
+                              )}
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  )}
+                </div>
+
+                {/* Footer close button */}
+                <div className="mt-6 pt-4 border-t border-gray-200 flex justify-end">
+                  <button
+                    onClick={() => setSelectedStoreForLowestPrices(null)}
+                    className="text-xs font-black uppercase tracking-wider bg-black text-white px-4 py-2 border-2 border-black hover:bg-gray-900 active:translate-x-px active:translate-y-px shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] active:shadow-none transition-all cursor-pointer"
+                  >
+                    Close
+                  </button>
+                </div>
+              </div>
+            </div>
+          );
+        })()}
       </div>
     </PullToRefresh>
   );
