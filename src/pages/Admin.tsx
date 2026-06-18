@@ -201,6 +201,7 @@ export default function AdminPage() {
 
   const [scrapeMsg, setScrapeMsg] = useState<string | null>(null);
   const [catalogSearch, setCatalogSearch] = useState("");
+  const [isCatalogCrudCollapsed, setIsCatalogCrudCollapsed] = useState(false);
 
   // Gemini AI Matching States
   const [evaluatingMatch, setEvaluatingMatch] = useState(false);
@@ -1919,25 +1920,36 @@ export default function AdminPage() {
               <h2 className="text-base font-black uppercase tracking-tight flex items-center gap-2">
                 <Database className="w-5 h-5 text-emerald-600" /> Grocery List Catalog CRUD
               </h2>
-              {items.length > 0 && (
-                <div className="flex items-center gap-2">
-                  <button
-                    onClick={handleExportCSV}
-                    className="text-xs font-black uppercase tracking-wider text-emerald-800 hover:bg-emerald-50 border-2 border-black px-3 py-1 shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] hover:shadow-none hover:translate-x-[1px] hover:translate-y-[1px] transition-all bg-white inline-flex items-center gap-1.5"
-                  >
-                    <Download className="w-3.5 h-3.5 text-emerald-600" /> Export Catalog CSV
-                  </button>
-                  <button
-                    onClick={handleClear}
-                    className="text-xs font-black uppercase tracking-wider text-red-600 hover:bg-red-50 border-2 border-black px-3 py-1 shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] hover:shadow-none hover:translate-x-[1px] hover:translate-y-[1px] transition-all bg-white"
-                  >
-                    Delete entire catalog
-                  </button>
-                </div>
-              )}
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={() => setIsCatalogCrudCollapsed(!isCatalogCrudCollapsed)}
+                  className="text-xs font-black uppercase tracking-wider text-black bg-[#f3f4f6] hover:bg-gray-200 border-2 border-black px-3 py-1 shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] hover:shadow-none hover:translate-x-[1px] hover:translate-y-[1px] transition-all"
+                >
+                  {isCatalogCrudCollapsed ? "▼ Expand" : "▲ Minimize"}
+                </button>
+                {!isCatalogCrudCollapsed && items.length > 0 && (
+                  <>
+                    <button
+                      onClick={handleExportCSV}
+                      className="text-xs font-black uppercase tracking-wider text-emerald-800 hover:bg-emerald-50 border-2 border-black px-3 py-1 shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] hover:shadow-none hover:translate-x-[1px] hover:translate-y-[1px] transition-all bg-white inline-flex items-center gap-1.5"
+                    >
+                      <Download className="w-3.5 h-3.5 text-emerald-600" /> Export Catalog CSV
+                    </button>
+                    <button
+                      onClick={handleClear}
+                      className="text-xs font-black uppercase tracking-wider text-red-600 hover:bg-red-50 border-2 border-black px-3 py-1 shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] hover:shadow-none hover:translate-x-[1px] hover:translate-y-[1px] transition-all bg-white"
+                    >
+                      Delete entire catalog
+                    </button>
+                  </>
+                )}
+              </div>
             </div>
 
-            <p className="text-xs text-gray-500 mb-6 font-medium leading-relaxed">
+            {!isCatalogCrudCollapsed && (
+              <>
+                <p className="text-xs text-gray-500 mb-6 font-medium leading-relaxed">
               Below is the comprehensive list of regular products that shopping checklist participants can select from. Modify, add new categories, rename items, or delete options from here directly.
             </p>
 
@@ -2170,6 +2182,8 @@ export default function AdminPage() {
               <div className="text-center py-10 border-2 border-dashed border-gray-300 bg-gray-50">
                 <p className="text-sm font-bold text-gray-500">No catalog items match your search filter.</p>
               </div>
+            )}
+              </>
             )}
           </div>
 

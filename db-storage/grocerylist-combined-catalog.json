@@ -34,6 +34,20 @@
       "base_url": "https://sobeys.com",
       "postal_code": "K7H3C6",
       "store_id": "Sobeys"
+    },
+    "freshco": {
+      "enabled": true,
+      "store_name": "FreshCo",
+      "base_url": "https://freshco.com",
+      "postal_code": "K7H3C6",
+      "store_id": "freshco"
+    },
+    "yourindependentgrocer": {
+      "enabled": true,
+      "store_name": "Your Independent Grocer",
+      "base_url": "https://www.yourindependentgrocer.ca",
+      "postal_code": "K7H3C6",
+      "store_id": "yourindependentgrocer"
     }
   },
   "items": [
@@ -114,7 +128,10 @@
           "regular_price": 2.99,
           "sale_price": null,
           "is_on_sale": 0,
-          "valid_until": ""
+          "valid_until": "",
+          "track_pricing": true,
+          "external_name": "",
+          "is_verified": false
         }
       }
     },
@@ -219,7 +236,10 @@
           "regular_price": 5.99,
           "sale_price": null,
           "is_on_sale": 0,
-          "valid_until": ""
+          "valid_until": "",
+          "track_pricing": true,
+          "external_name": "",
+          "is_verified": false
         }
       }
     },
@@ -468,7 +488,10 @@
           "regular_price": 7.49,
           "sale_price": null,
           "is_on_sale": 0,
-          "valid_until": ""
+          "valid_until": "",
+          "track_pricing": true,
+          "external_name": "",
+          "is_verified": false
         }
       }
     },
@@ -573,7 +596,10 @@
           "regular_price": 7,
           "sale_price": null,
           "is_on_sale": 0,
-          "valid_until": ""
+          "valid_until": "",
+          "track_pricing": true,
+          "external_name": "",
+          "is_verified": false
         }
       }
     },
@@ -678,7 +704,10 @@
           "regular_price": 7.99,
           "sale_price": 6.99,
           "is_on_sale": 1,
-          "valid_until": ""
+          "valid_until": "",
+          "track_pricing": true,
+          "external_name": "",
+          "is_verified": false
         }
       }
     },
@@ -695,7 +724,10 @@
           "regular_price": 4.99,
           "sale_price": 3.99,
           "is_on_sale": 1,
-          "valid_until": ""
+          "valid_until": "",
+          "track_pricing": true,
+          "external_name": "",
+          "is_verified": false
         }
       }
     },
@@ -1560,7 +1592,10 @@
           "regular_price": 4.99,
           "sale_price": null,
           "is_on_sale": 0,
-          "valid_until": ""
+          "valid_until": "",
+          "track_pricing": true,
+          "external_name": "",
+          "is_verified": false
         }
       }
     },
@@ -3408,7 +3443,10 @@
           "upc": "068200148434",
           "regular_price": 6.69,
           "sale_price": 4.99,
-          "is_on_sale": 1
+          "is_on_sale": 1,
+          "track_pricing": true,
+          "external_name": "",
+          "is_verified": false
         }
       }
     },
@@ -3425,7 +3463,10 @@
           "regular_price": 6.99,
           "sale_price": null,
           "is_on_sale": 0,
-          "valid_until": ""
+          "valid_until": "",
+          "track_pricing": true,
+          "external_name": "",
+          "is_verified": false
         }
       }
     },
@@ -3442,7 +3483,10 @@
           "regular_price": 17.61,
           "sale_price": 10.74,
           "is_on_sale": 1,
-          "valid_until": ""
+          "valid_until": "",
+          "track_pricing": true,
+          "external_name": "",
+          "is_verified": false
         }
       }
     },
@@ -3459,7 +3503,10 @@
           "regular_price": 6.69,
           "sale_price": 4.99,
           "is_on_sale": 1,
-          "valid_until": ""
+          "valid_until": "",
+          "track_pricing": true,
+          "external_name": "",
+          "is_verified": false
         }
       }
     },
@@ -3476,7 +3523,10 @@
           "regular_price": 5.49,
           "sale_price": null,
           "is_on_sale": 0,
-          "valid_until": ""
+          "valid_until": "",
+          "track_pricing": true,
+          "external_name": "",
+          "is_verified": false
         }
       }
     },
