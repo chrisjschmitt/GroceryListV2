@@ -21,6 +21,24 @@ interface VersionEntry {
 
 const VERSIONS: VersionEntry[] = [
   {
+    version: "1.7.1",
+    date: "June 2026",
+    type: "patch",
+    title: "Catalog Minimization & Verification Filtering",
+    changes: [
+      {
+        icon: <Layout className="w-4 h-4 text-emerald-600" />,
+        category: "UI Minimization & Flow",
+        description: "Implemented a Minimize/Expand toggle for the Grocery List Catalog CRUD card, allowing users to collapse the long category item badges to reclaim page space."
+      },
+      {
+        icon: <Database className="w-4 h-4 text-indigo-600" />,
+        category: "Verification Filter Addition",
+        description: "Added a 'Verification' dropdown filter to the Combined Catalog search bar to allow filtering items by whether their store overrides are marked verified active."
+      }
+    ]
+  },
+  {
     version: "1.7.0",
     date: "June 2026",
     type: "minor",

@@ -131,7 +131,7 @@
           "valid_until": "",
           "track_pricing": true,
           "external_name": "",
-          "is_verified": false
+          "is_verified": true
         }
       }
     },

@@ -291,6 +291,7 @@ export default function AdminPage() {
   const [catalogScrapedFilter, setCatalogScrapedFilter] = useState("all");
   const [catalogSaleFilter, setCatalogSaleFilter] = useState("all");
   const [catalogTrackedFilter, setCatalogTrackedFilter] = useState("all");
+  const [catalogVerifiedFilter, setCatalogVerifiedFilter] = useState("all");
 
   const [editingCatalogItem, setEditingCatalogItem] = useState<any>(null);
   const [selectedCatalogStore, setSelectedCatalogStore] = useState<string>("foodbasics");
@@ -1221,6 +1222,10 @@ export default function AdminPage() {
     const anyTracked = Object.values(item.stores || {}).some((s: any) => s.track_pricing === true || s.track_pricing === 1);
     if (catalogTrackedFilter === "tracked" && !anyTracked) return false;
     if (catalogTrackedFilter === "not-tracked" && anyTracked) return false;
+
+    const anyVerified = Object.values(item.stores || {}).some((s: any) => s.is_verified === true || s.is_verified === 1 || String(s.is_verified) === "true");
+    if (catalogVerifiedFilter === "verified" && !anyVerified) return false;
+    if (catalogVerifiedFilter === "not-verified" && anyVerified) return false;
 
     return true;
   });
@@ -2262,7 +2267,7 @@ export default function AdminPage() {
                   )}
                 </div>
 
-                <div className="grid grid-cols-3 gap-2 w-full md:w-auto">
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 w-full md:w-auto">
                   <div>
                     <label className="block text-[9px] font-black uppercase text-gray-400 mb-0.5">Scraping</label>
                     <select
@@ -2308,6 +2313,22 @@ export default function AdminPage() {
                       <option value="all">All Tracking</option>
                       <option value="tracked">Tracked</option>
                       <option value="not-tracked">Not Tracked</option>
+                    </select>
+                  </div>
+
+                  <div>
+                    <label className="block text-[9px] font-black uppercase text-gray-400 mb-0.5">Verification</label>
+                    <select
+                      value={catalogVerifiedFilter}
+                      onChange={(e) => {
+                        setCatalogVerifiedFilter(e.target.value);
+                        setVisibleCatalogCount(30);
+                      }}
+                      className="py-1.5 px-2 border-2 border-black bg-white font-black text-[11px] uppercase tracking-wider leading-relaxed text-black w-full text-xs"
+                    >
+                      <option value="all">All Verification</option>
+                      <option value="verified">Verified Links</option>
+                      <option value="not-verified">Unverified Links</option>
                     </select>
                   </div>
                 </div>
