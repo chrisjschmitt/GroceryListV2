@@ -1,0 +1,458 @@
+[
+  {
+    "itemId": "regular-1779915020670-109-kbcuy",
+    "itemName": "Eggs - 18",
+    "storeKey": "foodbasics",
+    "regular_price": 9.59,
+    "sale_price": null,
+    "is_on_sale": 0,
+    "valid_until": "",
+    "status": "MISMATCH",
+    "discrepancies": [
+      "Regular Price mismatch: Catalog has $5.92, Live has $9.59"
+    ]
+  },
+  {
+    "itemId": "regular-1779915020670-118-o1289",
+    "itemName": "Butter unsalted",
+    "storeKey": "foodbasics",
+    "regular_price": 5.99,
+    "sale_price": null,
+    "is_on_sale": 0,
+    "valid_until": "",
+    "status": "MATCH",
+    "discrepancies": []
+  },
+  {
+    "itemId": "regular-1779915020670-141-i9zvd",
+    "itemName": "Lactose Free cheese",
+    "storeKey": "foodbasics",
+    "regular_price": 5.99,
+    "sale_price": null,
+    "is_on_sale": 0,
+    "valid_until": "",
+    "status": "MISMATCH",
+    "discrepancies": [
+      "Regular Price mismatch: Catalog has $4.98, Live has $5.99",
+      "Sale Price mismatch: Catalog has $3.98, Live has $--"
+    ]
+  },
+  {
+    "itemId": "regular-1779915020670-146-nz7l8",
+    "itemName": "Lactose free Greek yogurt",
+    "storeKey": "foodbasics",
+    "regular_price": 7.49,
+    "sale_price": null,
+    "is_on_sale": 0,
+    "valid_until": "",
+    "status": "MATCH",
+    "discrepancies": []
+  },
+  {
+    "itemId": "regular-1779915020670-146-nz7l8",
+    "itemName": "Lactose free Greek yogurt",
+    "storeKey": "freshco",
+    "regular_price": 7.49,
+    "sale_price": 6.49,
+    "is_on_sale": 1,
+    "valid_until": "2024-08-12",
+    "status": "MISMATCH",
+    "discrepancies": [
+      "Sale Price mismatch: Catalog has $--, Live has $6.49",
+      "Validity Date mismatch: Catalog has \"--\", Live has \"2024-08-12\""
+    ]
+  },
+  {
+    "itemId": "regular-1779915020670-149-d9f5m",
+    "itemName": "LF Ice cream",
+    "storeKey": "foodbasics",
+    "regular_price": 7.99,
+    "sale_price": 5.88,
+    "is_on_sale": 1,
+    "valid_until": "2026-06-24",
+    "status": "MISMATCH",
+    "discrepancies": [
+      "Sale Price mismatch: Catalog has $--, Live has $5.88",
+      "Validity Date mismatch: Catalog has \"--\", Live has \"2026-06-24\""
+    ]
+  },
+  {
+    "itemId": "regular-1779915020670-149-d9f5m",
+    "itemName": "LF Ice cream",
+    "storeKey": "metro",
+    "regular_price": 7.99,
+    "sale_price": null,
+    "is_on_sale": 0,
+    "valid_until": "",
+    "status": "MATCH",
+    "discrepancies": []
+  },
+  {
+    "itemId": "regular-1779915020670-158-15694",
+    "itemName": "Ground beef Lean 450g",
+    "storeKey": "foodbasics",
+    "regular_price": 7,
+    "sale_price": null,
+    "is_on_sale": 0,
+    "valid_until": "",
+    "status": "MISMATCH",
+    "discrepancies": [
+      "Regular Price mismatch: Catalog has $20, Live has $7",
+      "Sale Price mismatch: Catalog has $6.94, Live has $--",
+      "Validity Date mismatch: Catalog has \"2026-06-10\", Live has \"--\""
+    ]
+  },
+  {
+    "itemId": "regular-1779915020670-158-15694",
+    "itemName": "Ground beef Lean 450g",
+    "storeKey": "freshco",
+    "regular_price": 9.5,
+    "sale_price": null,
+    "is_on_sale": 0,
+    "valid_until": "",
+    "status": "MATCH",
+    "discrepancies": []
+  },
+  {
+    "itemId": "regular-1779915020670-169-92x0f",
+    "itemName": "Ground Chicken Lean 450g",
+    "storeKey": "foodbasics",
+    "regular_price": 7.99,
+    "sale_price": 6.99,
+    "is_on_sale": 1,
+    "valid_until": "2026-06-24",
+    "status": "MISMATCH",
+    "discrepancies": [
+      "Sale Price mismatch: Catalog has $--, Live has $6.99",
+      "Validity Date mismatch: Catalog has \"--\", Live has \"2026-06-24\""
+    ]
+  },
+  {
+    "itemId": "regular-1779915020670-17-zsjkh",
+    "itemName": "Strawberries 454g",
+    "storeKey": "foodbasics",
+    "regular_price": 4.99,
+    "sale_price": null,
+    "is_on_sale": 0,
+    "valid_until": "",
+    "status": "MATCH",
+    "discrepancies": []
+  },
+  {
+    "itemId": "regular-1779915020670-235-a1glt",
+    "itemName": "Olives",
+    "storeKey": "foodbasics",
+    "regular_price": 1.99,
+    "sale_price": null,
+    "is_on_sale": 0,
+    "valid_until": "",
+    "status": "MATCH",
+    "discrepancies": []
+  },
+  {
+    "itemId": "regular-1779915020670-27-nqius",
+    "itemName": "Broccoli",
+    "storeKey": "foodbasics",
+    "regular_price": 4.99,
+    "sale_price": null,
+    "is_on_sale": 0,
+    "valid_until": "",
+    "status": "MATCH",
+    "discrepancies": []
+  },
+  {
+    "itemId": "regular-1779915020670-27-nqius",
+    "itemName": "Broccoli",
+    "storeKey": "metro",
+    "regular_price": 4.99,
+    "sale_price": null,
+    "is_on_sale": 0,
+    "valid_until": "",
+    "status": "MATCH",
+    "discrepancies": []
+  },
+  {
+    "itemId": "regular-1779915020670-33-ra1bk",
+    "itemName": "Celery",
+    "storeKey": "foodbasics",
+    "regular_price": 3.99,
+    "sale_price": 2.99,
+    "is_on_sale": 1,
+    "valid_until": "2026-06-24",
+    "status": "MISMATCH",
+    "discrepancies": [
+      "Validity Date mismatch: Catalog has \"2026-06-17\", Live has \"2026-06-24\""
+    ]
+  },
+  {
+    "itemId": "regular-1779915020670-4-luoje",
+    "itemName": "Blackberries",
+    "storeKey": "foodbasics",
+    "regular_price": 4.99,
+    "sale_price": 3.99,
+    "is_on_sale": 1,
+    "valid_until": "2026-06-24",
+    "status": "MISMATCH",
+    "discrepancies": [
+      "Sale Price mismatch: Catalog has $1.98, Live has $3.99",
+      "Validity Date mismatch: Catalog has \"2026-06-17\", Live has \"2026-06-24\""
+    ]
+  },
+  {
+    "itemId": "regular-1779915020670-46-3agqu",
+    "itemName": "Lettuce",
+    "storeKey": "freshco",
+    "regular_price": 2.97,
+    "sale_price": null,
+    "is_on_sale": 0,
+    "valid_until": "",
+    "status": "MISMATCH",
+    "discrepancies": [
+      "Regular Price mismatch: Catalog has $3.49, Live has $2.97"
+    ]
+  },
+  {
+    "itemId": "regular-1779915020670-5-w4ac6",
+    "itemName": "Blueberries",
+    "storeKey": "foodbasics",
+    "regular_price": 4.99,
+    "sale_price": null,
+    "is_on_sale": 0,
+    "valid_until": "",
+    "status": "MISMATCH",
+    "discrepancies": [
+      "Sale Price mismatch: Catalog has $3.99, Live has $--",
+      "Validity Date mismatch: Catalog has \"2026-06-17\", Live has \"--\""
+    ]
+  },
+  {
+    "itemId": "regular-1779915020670-6-nmszl",
+    "itemName": "Raspberries",
+    "storeKey": "foodbasics",
+    "regular_price": 4.99,
+    "sale_price": 3.99,
+    "is_on_sale": 1,
+    "valid_until": "2026-06-24",
+    "status": "MISMATCH",
+    "discrepancies": [
+      "Validity Date mismatch: Catalog has \"--\", Live has \"2026-06-24\""
+    ]
+  },
+  {
+    "itemId": "regular-1779915020670-6-nmszl",
+    "itemName": "Raspberries",
+    "storeKey": "metro",
+    "regular_price": 8.99,
+    "sale_price": 5.99,
+    "is_on_sale": 1,
+    "valid_until": "2023-08-30",
+    "status": "MISMATCH",
+    "discrepancies": [
+      "Regular Price mismatch: Catalog has $4.99, Live has $8.99",
+      "Sale Price mismatch: Catalog has $3.99, Live has $5.99",
+      "Validity Date mismatch: Catalog has \"2026-06-17\", Live has \"2023-08-30\""
+    ]
+  },
+  {
+    "itemId": "regular-1779915020670-62-qjz4m",
+    "itemName": "Green Onions",
+    "storeKey": "metro",
+    "regular_price": 1.99,
+    "sale_price": null,
+    "is_on_sale": 0,
+    "valid_until": "",
+    "status": "MATCH",
+    "discrepancies": []
+  },
+  {
+    "itemId": "regular-1779915020671-339-dpygq",
+    "itemName": "Decaf coffee - Nescafé",
+    "storeKey": "metro",
+    "regular_price": 10.79,
+    "sale_price": null,
+    "is_on_sale": 0,
+    "valid_until": "",
+    "status": "MATCH",
+    "discrepancies": []
+  },
+  {
+    "itemId": "regular-1779915020671-346-tzb0w",
+    "itemName": "Toothpaste",
+    "storeKey": "metro",
+    "regular_price": 6.99,
+    "sale_price": 5.49,
+    "is_on_sale": 1,
+    "valid_until": "2026-07-01",
+    "status": "MATCH",
+    "discrepancies": []
+  },
+  {
+    "itemId": "regular-1779915020671-346-tzb0w",
+    "itemName": "Toothpaste",
+    "storeKey": "foodbasics",
+    "regular_price": 2.49,
+    "sale_price": null,
+    "is_on_sale": 0,
+    "valid_until": "",
+    "status": "MATCH",
+    "discrepancies": []
+  },
+  {
+    "itemId": "regular-1779915020671-419-8cvwx",
+    "itemName": "Paper towels - 6-pack",
+    "storeKey": "walmart",
+    "regular_price": 7.46,
+    "sale_price": 6.96,
+    "is_on_sale": 1,
+    "valid_until": "",
+    "status": "MISMATCH",
+    "discrepancies": [
+      "Validity Date mismatch: Catalog has \"2026-06-10\", Live has \"--\""
+    ]
+  },
+  {
+    "itemId": "regular-1780000227251-qjhyv",
+    "itemName": "Milk LF 1%",
+    "storeKey": "freshco",
+    "regular_price": 5.78,
+    "sale_price": null,
+    "is_on_sale": 0,
+    "valid_until": "",
+    "status": "MISMATCH",
+    "discrepancies": [
+      "Regular Price mismatch: Catalog has $5.99, Live has $5.78",
+      "Sale Price mismatch: Catalog has $4.99, Live has $--",
+      "Validity Date mismatch: Catalog has \"2026-06-17\", Live has \"--\""
+    ]
+  },
+  {
+    "itemId": "regular-1780000227251-qjhyv",
+    "itemName": "Milk LF 1%",
+    "storeKey": "yourindependentgrocer",
+    "regular_price": null,
+    "sale_price": null,
+    "is_on_sale": 0,
+    "valid_until": "",
+    "status": "ERROR",
+    "discrepancies": [
+      "Error: Access Denied / blocked by bot manager"
+    ]
+  },
+  {
+    "itemId": "regular-1780000227251-qjhyv",
+    "itemName": "Milk LF 1%",
+    "storeKey": "foodbasics",
+    "regular_price": 6.69,
+    "sale_price": null,
+    "is_on_sale": 0,
+    "valid_until": "",
+    "status": "MISMATCH",
+    "discrepancies": [
+      "Sale Price mismatch: Catalog has $5.49, Live has $--"
+    ]
+  },
+  {
+    "itemId": "regular-1780000536215-5uz0s",
+    "itemName": "Chicken Breasts Boneless Skinless",
+    "storeKey": "foodbasics",
+    "regular_price": 10.74,
+    "sale_price": null,
+    "is_on_sale": 0,
+    "valid_until": "",
+    "status": "MATCH",
+    "discrepancies": []
+  },
+  {
+    "itemId": "regular-1780002091583-d1qmr",
+    "itemName": "Milk LF 2%",
+    "storeKey": "foodbasics",
+    "regular_price": 6.69,
+    "sale_price": null,
+    "is_on_sale": 0,
+    "valid_until": "",
+    "status": "MISMATCH",
+    "discrepancies": [
+      "Sale Price mismatch: Catalog has $4.99, Live has $--",
+      "Validity Date mismatch: Catalog has \"2026-06-17\", Live has \"--\""
+    ]
+  },
+  {
+    "itemId": "regular-1780002196782-3zrl4",
+    "itemName": "2% lactose free cottage cheese",
+    "storeKey": "foodbasics",
+    "regular_price": 5.49,
+    "sale_price": null,
+    "is_on_sale": 0,
+    "valid_until": "",
+    "status": "MATCH",
+    "discrepancies": []
+  },
+  {
+    "itemId": "regular-1781704393494-krtzp",
+    "itemName": "Whole wheat english muffins",
+    "storeKey": "metro",
+    "regular_price": 3.49,
+    "sale_price": null,
+    "is_on_sale": 0,
+    "valid_until": "",
+    "status": "MATCH",
+    "discrepancies": []
+  },
+  {
+    "itemId": "regular-1781704393494-krtzp",
+    "itemName": "Whole wheat english muffins",
+    "storeKey": "freshco",
+    "regular_price": 2.29,
+    "sale_price": null,
+    "is_on_sale": 0,
+    "valid_until": "",
+    "status": "MATCH",
+    "discrepancies": []
+  },
+  {
+    "itemId": "regular-1781705596347-hx8pp",
+    "itemName": "Beer - Corona Alcohol free",
+    "storeKey": "foodbasics",
+    "regular_price": 23.99,
+    "sale_price": 21.49,
+    "is_on_sale": 1,
+    "valid_until": "2026-06-24",
+    "status": "MATCH",
+    "discrepancies": []
+  },
+  {
+    "itemId": "regular-1781705596347-hx8pp",
+    "itemName": "Beer - Corona Alcohol free",
+    "storeKey": "freshco",
+    "regular_price": 21.99,
+    "sale_price": null,
+    "is_on_sale": 0,
+    "valid_until": "",
+    "status": "MATCH",
+    "discrepancies": []
+  },
+  {
+    "itemId": "regular-1781706572768-1mfdt",
+    "itemName": "Lactose free plain yogurt",
+    "storeKey": "foodbasics",
+    "regular_price": 3.27,
+    "sale_price": null,
+    "is_on_sale": 0,
+    "valid_until": "",
+    "status": "MATCH",
+    "discrepancies": []
+  },
+  {
+    "itemId": "regular-unmatched-1781603797827-g89x2",
+    "itemName": "English Cucumber",
+    "storeKey": "foodbasics",
+    "regular_price": 1.99,
+    "sale_price": 0.99,
+    "is_on_sale": 1,
+    "valid_until": "2026-06-24",
+    "status": "MISMATCH",
+    "discrepancies": [
+      "Validity Date mismatch: Catalog has \"2026-06-17\", Live has \"2026-06-24\""
+    ]
+  }
+]

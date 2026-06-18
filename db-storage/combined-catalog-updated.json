@@ -1,0 +1,3941 @@
+{
+  "stores": {
+    "foodbasics": {
+      "enabled": true,
+      "store_name": "Food Basics",
+      "base_url": "https://www.foodbasics.ca",
+      "postal_code": "K7H3C6",
+      "store_id": "Food Basics"
+    },
+    "metro": {
+      "enabled": true,
+      "store_name": "Metro",
+      "base_url": "https://www.metro.ca",
+      "postal_code": "K7H3C6",
+      "store_id": "metro"
+    },
+    "loblaws": {
+      "enabled": true,
+      "store_name": "Independent Grocers",
+      "base_url": "https://www.yourindependentgrocer.ca/en/",
+      "postal_code": "K7H3A7",
+      "store_id": "loblaws"
+    },
+    "nofrills": {
+      "enabled": false,
+      "store_name": "No Frills",
+      "base_url": "https://www.nofrills.ca",
+      "postal_code": "K7H3C6",
+      "store_id": "nofrills"
+    },
+    "freshco": {
+      "enabled": true,
+      "store_name": "freschco - Carleton Place",
+      "base_url": "https://www.freshco.com/",
+      "postal_code": "K7H3C6",
+      "store_id": "freshco"
+    },
+    "walmart": {
+      "enabled": true,
+      "store_name": "Walmart - Carleton Place",
+      "base_url": "https://www.walmart.ca/en",
+      "postal_code": "K7H3C6",
+      "store_id": "walmart"
+    },
+    "costco": {
+      "enabled": true,
+      "store_name": "Costco Kanata",
+      "base_url": "https://www.costco.ca/",
+      "postal_code": "K7H3C6",
+      "store_id": "costco"
+    },
+    "yourindependentgrocer": {
+      "enabled": true,
+      "store_name": "Your Independent Grocer",
+      "base_url": "https://www.yourindependentgrocer.ca",
+      "postal_code": "K7H3C6",
+      "store_id": "yourindependentgrocer"
+    }
+  },
+  "items": [
+    {
+      "id": "regular-1781783583813-7ad0o",
+      "category": "Dairy & Eggs",
+      "name": "Lactose free Greek yogurt",
+      "selected": false,
+      "unit": "ml",
+      "requires_scraping": false,
+      "stores": {}
+    },
+    {
+      "id": "regular-1779915020670-1-ygtcc",
+      "name": "Apples - honey crisp",
+      "category": "Fresh Produce",
+      "unit": "lb",
+      "requires_scraping": false,
+      "stores": {}
+    },
+    {
+      "id": "regular-1779915020670-10-n2h71",
+      "name": "Limes",
+      "category": "Fresh Produce",
+      "unit": "unit",
+      "requires_scraping": false,
+      "stores": {}
+    },
+    {
+      "id": "regular-1779915020670-100-q166f",
+      "name": "Croissants",
+      "category": "Bakery & Breads",
+      "unit": "unit",
+      "requires_scraping": false,
+      "stores": {}
+    },
+    {
+      "id": "regular-1779915020670-101-bgj1m",
+      "name": "Slider buns",
+      "category": "Bakery & Breads",
+      "unit": "unit",
+      "requires_scraping": false,
+      "stores": {}
+    },
+    {
+      "id": "regular-1779915020670-102-1kaba",
+      "name": "Bread - Carbonaut",
+      "category": "Bakery & Breads",
+      "unit": "unit",
+      "requires_scraping": false,
+      "stores": {}
+    },
+    {
+      "id": "regular-1779915020670-104-4jvqh",
+      "name": "High fibre tortilla wraps - Costo",
+      "category": "Bakery & Breads",
+      "unit": "unit",
+      "requires_scraping": false,
+      "stores": {}
+    },
+    {
+      "id": "regular-1779915020670-105-nhpfg",
+      "name": "Naans",
+      "category": "Bakery & Breads",
+      "unit": "unit",
+      "requires_scraping": false,
+      "stores": {}
+    },
+    {
+      "id": "regular-1779915020670-106-gs5bd",
+      "name": "Tortillas - small corn",
+      "category": "Bakery & Breads",
+      "unit": "unit",
+      "requires_scraping": false,
+      "stores": {}
+    },
+    {
+      "id": "regular-1779915020670-107-8amre",
+      "name": "Refried beans",
+      "category": "Bakery & Breads",
+      "unit": "unit",
+      "requires_scraping": false,
+      "stores": {}
+    },
+    {
+      "id": "regular-1779915020670-109-kbcuy",
+      "name": "Eggs - 18",
+      "category": "Dairy & Eggs",
+      "unit": "pack",
+      "requires_scraping": true,
+      "stores": {
+        "foodbasics": {
+          "url": "https://foodbasics.ca/aisles/dairy-eggs/eggs/whole-eggs/large-eggs/p/059749976879",
+          "upc": "059749976879",
+          "regular_price": 9.59,
+          "sale_price": null,
+          "is_on_sale": 0,
+          "valid_until": "",
+          "track_pricing": true,
+          "external_name": "Eggs - 18",
+          "is_verified": true
+        }
+      }
+    },
+    {
+      "id": "regular-1779915020670-11-5recl",
+      "name": "Oranges",
+      "category": "Fresh Produce",
+      "unit": "unit",
+      "requires_scraping": false,
+      "stores": {}
+    },
+    {
+      "id": "regular-1779915020670-110-f9voo",
+      "name": "Egg whites - Costco",
+      "category": "Dairy & Eggs",
+      "unit": "unit",
+      "requires_scraping": false,
+      "stores": {}
+    },
+    {
+      "id": "regular-1779915020670-112-piec4",
+      "name": "Milk 2%lf - Costco",
+      "category": "Dairy & Eggs",
+      "unit": "unit",
+      "requires_scraping": false,
+      "stores": {}
+    },
+    {
+      "id": "regular-1779915020670-113-tc2wh",
+      "name": "Whole milk 4% lf",
+      "category": "Dairy & Eggs",
+      "unit": "unit",
+      "requires_scraping": false,
+      "stores": {}
+    },
+    {
+      "id": "regular-1779915020670-114-t01ri",
+      "name": "Coffee cream - C",
+      "category": "Dairy & Eggs",
+      "unit": "unit",
+      "requires_scraping": false,
+      "stores": {}
+    },
+    {
+      "id": "regular-1779915020670-115-cmbhj",
+      "name": "Oat milk",
+      "category": "Dairy & Eggs",
+      "unit": "unit",
+      "requires_scraping": false,
+      "stores": {}
+    },
+    {
+      "id": "regular-1779915020670-116-v38g3",
+      "name": "Whipping Cream - LF",
+      "category": "Dairy & Eggs",
+      "unit": "unit",
+      "requires_scraping": false,
+      "stores": {}
+    },
+    {
+      "id": "regular-1779915020670-117-xcgi0",
+      "name": "A Sour Cream LF",
+      "category": "Dairy & Eggs",
+      "unit": "unit",
+      "requires_scraping": false,
+      "stores": {}
+    },
+    {
+      "id": "regular-1779915020670-118-o1289",
+      "name": "Butter unsalted",
+      "category": "Dairy & Eggs",
+      "unit": "lb",
+      "requires_scraping": true,
+      "stores": {
+        "foodbasics": {
+          "url": "https://www.foodbasics.ca/aisles/dairy-eggs/milk-cream-butter/cream-creamers/unsalted-butter/p/059749894777",
+          "upc": "059749894777",
+          "regular_price": 5.99,
+          "sale_price": null,
+          "is_on_sale": 0,
+          "valid_until": "",
+          "track_pricing": true,
+          "external_name": "",
+          "is_verified": true
+        },
+        "costco": {
+          "url": "https://www.costco.ca/s?langId=-24&keyword=butter",
+          "upc": "manual-1781210559659",
+          "regular_price": 5.79,
+          "sale_price": null,
+          "is_on_sale": 0,
+          "valid_until": "",
+          "track_pricing": true,
+          "external_name": "",
+          "is_verified": false
+        },
+        "freshco": {
+          "url": "https://freshco.com/products/compliments-salted-butter-454-g",
+          "upc": "manual-1781706296673",
+          "regular_price": 5.99,
+          "sale_price": null,
+          "is_on_sale": 0,
+          "valid_until": "",
+          "track_pricing": true,
+          "external_name": "Butter unsalted",
+          "is_verified": false
+        }
+      }
+    },
+    {
+      "id": "regular-1779915020670-119-gf3lc",
+      "name": "Ice cream - caramel and chocolate.",
+      "category": "Dairy & Eggs",
+      "unit": "unit",
+      "requires_scraping": false,
+      "stores": {}
+    },
+    {
+      "id": "regular-1779915020670-12-tbht3",
+      "name": "Papaya",
+      "category": "Fresh Produce",
+      "unit": "unit",
+      "requires_scraping": false,
+      "stores": {}
+    },
+    {
+      "id": "regular-1779915020670-121-e9g9e",
+      "name": "Cheese",
+      "category": "Dairy & Eggs",
+      "unit": "unit",
+      "requires_scraping": false,
+      "stores": {}
+    },
+    {
+      "id": "regular-1779915020670-122-jd315",
+      "name": "Baby bells",
+      "category": "Dairy & Eggs",
+      "unit": "unit",
+      "requires_scraping": false,
+      "stores": {}
+    },
+    {
+      "id": "regular-1779915020670-123-p5zeu",
+      "name": "Black Diamond cheddar slices",
+      "category": "Dairy & Eggs",
+      "unit": "unit",
+      "requires_scraping": false,
+      "stores": {}
+    },
+    {
+      "id": "regular-1779915020670-124-t156t",
+      "name": "Boccino",
+      "category": "Dairy & Eggs",
+      "unit": "unit",
+      "requires_scraping": false,
+      "stores": {}
+    },
+    {
+      "id": "regular-1779915020670-125-lu0vd",
+      "name": "Bri",
+      "category": "Dairy & Eggs",
+      "unit": "unit",
+      "requires_scraping": false,
+      "stores": {}
+    },
+    {
+      "id": "regular-1779915020670-126-9bk6o",
+      "name": "Cottage Cheese lf",
+      "category": "Dairy & Eggs",
+      "unit": "unit",
+      "requires_scraping": false,
+      "stores": {}
+    },
+    {
+      "id": "regular-1779915020670-127-f90ub",
+      "name": "Cream cheese l/f",
+      "category": "Dairy & Eggs",
+      "unit": "unit",
+      "requires_scraping": false,
+      "stores": {}
+    },
+    {
+      "id": "regular-1779915020670-128-8upl5",
+      "name": "Feta l/f",
+      "category": "Dairy & Eggs",
+      "unit": "unit",
+      "requires_scraping": false,
+      "stores": {}
+    },
+    {
+      "id": "regular-1779915020670-129-u7ofq",
+      "name": "Goat cheese",
+      "category": "Dairy & Eggs",
+      "unit": "unit",
+      "requires_scraping": false,
+      "stores": {}
+    },
+    {
+      "id": "regular-1779915020670-13-ks4g9",
+      "name": "Peaches",
+      "category": "Fresh Produce",
+      "unit": "unit",
+      "requires_scraping": false,
+      "stores": {}
+    },
+    {
+      "id": "regular-1779915020670-130-62myz",
+      "name": "Havarti",
+      "category": "Dairy & Eggs",
+      "unit": "unit",
+      "requires_scraping": false,
+      "stores": {}
+    },
+    {
+      "id": "regular-1779915020670-131-3xe6t",
+      "name": "Imperial",
+      "category": "Dairy & Eggs",
+      "unit": "unit",
+      "requires_scraping": false,
+      "stores": {}
+    },
+    {
+      "id": "regular-1779915020670-132-18q99",
+      "name": "Jarlsburg",
+      "category": "Dairy & Eggs",
+      "unit": "unit",
+      "requires_scraping": false,
+      "stores": {}
+    },
+    {
+      "id": "regular-1779915020670-133-ws1xt",
+      "name": "Lactose free - GS",
+      "category": "Dairy & Eggs",
+      "unit": "unit",
+      "requires_scraping": false,
+      "stores": {}
+    },
+    {
+      "id": "regular-1779915020670-134-dzwhn",
+      "name": "Mild cheddar for Kait",
+      "category": "Dairy & Eggs",
+      "unit": "unit",
+      "requires_scraping": false,
+      "stores": {}
+    },
+    {
+      "id": "regular-1779915020670-135-t06tg",
+      "name": "Mozarella - fresh",
+      "category": "Dairy & Eggs",
+      "unit": "unit",
+      "requires_scraping": false,
+      "stores": {}
+    },
+    {
+      "id": "regular-1779915020670-136-wkbu5",
+      "name": "Mozarella l/f",
+      "category": "Dairy & Eggs",
+      "unit": "unit",
+      "requires_scraping": false,
+      "stores": {}
+    },
+    {
+      "id": "regular-1779915020670-137-o86sk",
+      "name": "Old cheddar -Costco",
+      "category": "Dairy & Eggs",
+      "unit": "unit",
+      "requires_scraping": false,
+      "stores": {}
+    },
+    {
+      "id": "regular-1779915020670-138-v89xj",
+      "name": "Parmesan - Costco",
+      "category": "Dairy & Eggs",
+      "unit": "unit",
+      "requires_scraping": false,
+      "stores": {}
+    },
+    {
+      "id": "regular-1779915020670-139-rx9ia",
+      "name": "Raclette cheese - C",
+      "category": "Dairy & Eggs",
+      "unit": "unit",
+      "requires_scraping": false,
+      "stores": {}
+    },
+    {
+      "id": "regular-1779915020670-14-3urdk",
+      "name": "Pears",
+      "category": "Fresh Produce",
+      "unit": "unit",
+      "requires_scraping": false,
+      "stores": {}
+    },
+    {
+      "id": "regular-1779915020670-140-r5k8z",
+      "name": "Swiss - Costco",
+      "category": "Dairy & Eggs",
+      "unit": "unit",
+      "requires_scraping": false,
+      "stores": {}
+    },
+    {
+      "id": "regular-1779915020670-141-i9zvd",
+      "name": "Lactose Free cheese",
+      "category": "Dairy & Eggs",
+      "unit": "unit",
+      "requires_scraping": true,
+      "stores": {
+        "foodbasics": {
+          "url": "https://foodbasics.ca/aisles/dairy-eggs/packaged-cheese/cheese-blocks/lactose-free-old-marbled-cheddar-cheese/p/059749989602",
+          "upc": "059749989602",
+          "regular_price": 5.99,
+          "sale_price": null,
+          "is_on_sale": 0,
+          "valid_until": "",
+          "track_pricing": true,
+          "external_name": "",
+          "is_verified": true
+        }
+      }
+    },
+    {
+      "id": "regular-1779915020670-142-0b2wb",
+      "name": "Grated lactose free cheese",
+      "category": "Dairy & Eggs",
+      "unit": "unit",
+      "requires_scraping": false,
+      "stores": {}
+    },
+    {
+      "id": "regular-1779915020670-144-u3lla",
+      "name": "OKIOS Vanilla",
+      "category": "Dairy & Eggs",
+      "unit": "unit",
+      "requires_scraping": false,
+      "stores": {}
+    },
+    {
+      "id": "regular-1779915020670-145-qjb33",
+      "name": "Flavoured Yogurt",
+      "category": "Dairy & Eggs",
+      "unit": "unit",
+      "requires_scraping": false,
+      "stores": {}
+    },
+    {
+      "id": "regular-1779915020670-146-nz7l8",
+      "name": "Lactose free Greek yogurt",
+      "category": "Dairy & Eggs",
+      "unit": "unit",
+      "requires_scraping": true,
+      "stores": {
+        "foodbasics": {
+          "url": "https://www.foodbasics.ca/aisles/dairy-eggs/yogurt/greek-yogurts/0-plain-lactose-free-yogurt/p/065684004751",
+          "upc": "065684004751",
+          "regular_price": 7.49,
+          "sale_price": null,
+          "is_on_sale": 0,
+          "valid_until": "",
+          "track_pricing": true,
+          "external_name": "",
+          "is_verified": true
+        },
+        "freshco": {
+          "url": "https://freshco.com/products/oikos-lactose-free-0--greek-yogurt-plain-750-g",
+          "upc": "manual-1781697081324",
+          "regular_price": 7.49,
+          "sale_price": 6.49,
+          "is_on_sale": 1,
+          "valid_until": "2024-08-12",
+          "track_pricing": true,
+          "external_name": "",
+          "is_verified": true
+        }
+      }
+    },
+    {
+      "id": "regular-1779915020670-147-zunbr",
+      "name": "LF Coconut yogurt - GS",
+      "category": "Dairy & Eggs",
+      "unit": "unit",
+      "requires_scraping": false,
+      "stores": {}
+    },
+    {
+      "id": "regular-1779915020670-148-zl5qg",
+      "name": "Ice cream -",
+      "category": "Dairy & Eggs",
+      "unit": "unit",
+      "requires_scraping": false,
+      "stores": {}
+    },
+    {
+      "id": "regular-1779915020670-149-d9f5m",
+      "name": "LF Ice cream",
+      "category": "Dairy & Eggs",
+      "unit": "l",
+      "requires_scraping": true,
+      "stores": {
+        "foodbasics": {
+          "url": "https://www.foodbasics.ca/aisles/frozen/ice-cream-treats/sorbet-non-dairy/lactose-free-dutch-chocolate-ice-cream/p/062942000883",
+          "upc": "062942000883",
+          "regular_price": 7.99,
+          "sale_price": 5.88,
+          "is_on_sale": 1,
+          "valid_until": "2026-06-24",
+          "track_pricing": true,
+          "external_name": "",
+          "is_verified": true
+        },
+        "metro": {
+          "url": "https://www.metro.ca/en/online-grocery/aisles/frozen/ice-cream-treats/ice-cream/lactose-free-dutch-chocolate-ice-cream/p/062942000883",
+          "upc": "062942000883",
+          "regular_price": 7.99,
+          "sale_price": null,
+          "is_on_sale": 0,
+          "valid_until": "",
+          "track_pricing": true,
+          "external_name": "",
+          "is_verified": true
+        }
+      }
+    },
+    {
+      "id": "regular-1779915020670-15-4v0lv",
+      "name": "Pomegranate",
+      "category": "Fresh Produce",
+      "unit": "unit",
+      "requires_scraping": false,
+      "stores": {}
+    },
+    {
+      "id": "regular-1779915020670-150-pgft7",
+      "name": "Creto",
+      "category": "Dairy & Eggs",
+      "unit": "unit",
+      "requires_scraping": false,
+      "stores": {}
+    },
+    {
+      "id": "regular-1779915020670-151-xklan",
+      "name": "Orange juice - C",
+      "category": "Dairy & Eggs",
+      "unit": "unit",
+      "requires_scraping": false,
+      "stores": {}
+    },
+    {
+      "id": "regular-1779915020670-152-731ww",
+      "name": "Baked beans",
+      "category": "Dairy & Eggs",
+      "unit": "unit",
+      "requires_scraping": false,
+      "stores": {}
+    },
+    {
+      "id": "regular-1779915020670-154-q64km",
+      "name": "Beef",
+      "category": "Meat & Seafood",
+      "unit": "unit",
+      "requires_scraping": false,
+      "stores": {}
+    },
+    {
+      "id": "regular-1779915020670-155-y1074",
+      "name": "Fondue meats",
+      "category": "Meat & Seafood",
+      "unit": "unit",
+      "requires_scraping": false,
+      "stores": {}
+    },
+    {
+      "id": "regular-1779915020670-156-aw5ez",
+      "name": "Beef strips",
+      "category": "Meat & Seafood",
+      "unit": "unit",
+      "requires_scraping": false,
+      "stores": {}
+    },
+    {
+      "id": "regular-1779915020670-157-qfeo2",
+      "name": "Eye of the round",
+      "category": "Meat & Seafood",
+      "unit": "unit",
+      "requires_scraping": false,
+      "stores": {}
+    },
+    {
+      "id": "regular-1779915020670-158-15694",
+      "name": "Ground beef Lean 450g",
+      "category": "Meat & Seafood",
+      "unit": "lb",
+      "requires_scraping": true,
+      "stores": {
+        "foodbasics": {
+          "url": "https://www.foodbasics.ca/aisles/meat-poultry/beef-veal/ground/lean-ground-beef/p/201020",
+          "upc": "201020",
+          "regular_price": 7,
+          "sale_price": null,
+          "is_on_sale": 0,
+          "valid_until": "",
+          "track_pricing": true,
+          "external_name": "",
+          "is_verified": true
+        },
+        "freshco": {
+          "url": "https://www.freshco.com/products/our-promise-extra-lean-ground-beef-single-450-g",
+          "upc": "manual-1780527473687",
+          "regular_price": 9.5,
+          "sale_price": null,
+          "is_on_sale": 0,
+          "valid_until": "",
+          "track_pricing": true,
+          "external_name": "",
+          "is_verified": true
+        }
+      }
+    },
+    {
+      "id": "regular-1779915020670-159-xv54n",
+      "name": "Roast beef",
+      "category": "Meat & Seafood",
+      "unit": "unit",
+      "requires_scraping": false,
+      "stores": {}
+    },
+    {
+      "id": "regular-1779915020670-160-oegcy",
+      "name": "Sirloin Tip",
+      "category": "Meat & Seafood",
+      "unit": "unit",
+      "requires_scraping": false,
+      "stores": {}
+    },
+    {
+      "id": "regular-1779915020670-161-qr11z",
+      "name": "Stewing beef",
+      "category": "Meat & Seafood",
+      "unit": "unit",
+      "requires_scraping": false,
+      "stores": {}
+    },
+    {
+      "id": "regular-1779915020670-162-l6boq",
+      "name": "Tenderloin - C",
+      "category": "Meat & Seafood",
+      "unit": "unit",
+      "requires_scraping": false,
+      "stores": {}
+    },
+    {
+      "id": "regular-1779915020670-163-dwunt",
+      "name": "Top sirloin",
+      "category": "Meat & Seafood",
+      "unit": "unit",
+      "requires_scraping": false,
+      "stores": {}
+    },
+    {
+      "id": "regular-1779915020670-164-s94p2",
+      "name": "Chicken",
+      "category": "Meat & Seafood",
+      "unit": "unit",
+      "requires_scraping": false,
+      "stores": {}
+    },
+    {
+      "id": "regular-1779915020670-165-v9f56",
+      "name": "BBQ Chicken - Costco",
+      "category": "Meat & Seafood",
+      "unit": "unit",
+      "requires_scraping": false,
+      "stores": {}
+    },
+    {
+      "id": "regular-1779915020670-166-n8xoo",
+      "name": "Chicken Breast - Metro 4.99",
+      "category": "Meat & Seafood",
+      "unit": "unit",
+      "requires_scraping": false,
+      "stores": {}
+    },
+    {
+      "id": "regular-1779915020670-167-95isq",
+      "name": "Chicken drumsticks",
+      "category": "Meat & Seafood",
+      "unit": "unit",
+      "requires_scraping": false,
+      "stores": {}
+    },
+    {
+      "id": "regular-1779915020670-168-55vr1",
+      "name": "Chicken thighs",
+      "category": "Meat & Seafood",
+      "unit": "unit",
+      "requires_scraping": false,
+      "stores": {}
+    },
+    {
+      "id": "regular-1779915020670-169-92x0f",
+      "name": "Ground Chicken Lean 450g",
+      "category": "Meat & Seafood",
+      "unit": "lb",
+      "requires_scraping": true,
+      "stores": {
+        "foodbasics": {
+          "url": "https://www.foodbasics.ca/aisles/meat-poultry/chicken-turkey/ground-strips-fondue/extra-lean-ground-chicken/p/063100814137",
+          "upc": "063100814137",
+          "regular_price": 7.99,
+          "sale_price": 6.99,
+          "is_on_sale": 1,
+          "valid_until": "2026-06-24",
+          "track_pricing": true,
+          "external_name": "",
+          "is_verified": true
+        }
+      }
+    },
+    {
+      "id": "regular-1779915020670-17-zsjkh",
+      "name": "Strawberries 454g",
+      "category": "Fresh Produce",
+      "unit": "g",
+      "requires_scraping": true,
+      "stores": {
+        "foodbasics": {
+          "url": "https://www.foodbasics.ca/aisles/fruits-vegetables/fruits/berries-cherries/strawberries/p/665290001184",
+          "upc": "665290001184",
+          "regular_price": 4.99,
+          "sale_price": null,
+          "is_on_sale": 0,
+          "valid_until": "",
+          "track_pricing": true,
+          "external_name": "",
+          "is_verified": true
+        }
+      }
+    },
+    {
+      "id": "regular-1779915020670-170-xwll8",
+      "name": "Whole chicken - Food B - 4.99/lb",
+      "category": "Meat & Seafood",
+      "unit": "unit",
+      "requires_scraping": false,
+      "stores": {}
+    },
+    {
+      "id": "regular-1779915020670-171-unt0x",
+      "name": "Lamb",
+      "category": "Meat & Seafood",
+      "unit": "unit",
+      "requires_scraping": false,
+      "stores": {}
+    },
+    {
+      "id": "regular-1779915020670-172-mvlkv",
+      "name": "Pork",
+      "category": "Meat & Seafood",
+      "unit": "unit",
+      "requires_scraping": false,
+      "stores": {}
+    },
+    {
+      "id": "regular-1779915020670-173-e19af",
+      "name": "Bacon - Mapleleaf Natural",
+      "category": "Meat & Seafood",
+      "unit": "unit",
+      "requires_scraping": false,
+      "stores": {}
+    },
+    {
+      "id": "regular-1779915020670-174-na283",
+      "name": "Ground pork",
+      "category": "Meat & Seafood",
+      "unit": "unit",
+      "requires_scraping": false,
+      "stores": {}
+    },
+    {
+      "id": "regular-1779915020670-175-6oikr",
+      "name": "ham - spiral",
+      "category": "Meat & Seafood",
+      "unit": "unit",
+      "requires_scraping": false,
+      "stores": {}
+    },
+    {
+      "id": "regular-1779915020670-176-bu6ac",
+      "name": "Marinated pork chops",
+      "category": "Meat & Seafood",
+      "unit": "unit",
+      "requires_scraping": false,
+      "stores": {}
+    },
+    {
+      "id": "regular-1779915020670-177-4ap0e",
+      "name": "Peameal bacon",
+      "category": "Meat & Seafood",
+      "unit": "unit",
+      "requires_scraping": false,
+      "stores": {}
+    },
+    {
+      "id": "regular-1779915020670-178-59mf2",
+      "name": "Pork chops -Food B 2.98",
+      "category": "Meat & Seafood",
+      "unit": "unit",
+      "requires_scraping": false,
+      "stores": {}
+    },
+    {
+      "id": "regular-1779915020670-179-vbfyn",
+      "name": "Tenderloin",
+      "category": "Meat & Seafood",
+      "unit": "unit",
+      "requires_scraping": false,
+      "stores": {}
+    },
+    {
+      "id": "regular-1779915020670-18-vr7oa",
+      "name": "Mandarin Oranges",
+      "category": "Fresh Produce",
+      "unit": "unit",
+      "requires_scraping": false,
+      "stores": {}
+    },
+    {
+      "id": "regular-1779915020670-180-7cjti",
+      "name": "Sausages - Chicken",
+      "category": "Meat & Seafood",
+      "unit": "pack",
+      "requires_scraping": true,
+      "stores": {
+        "costco": {
+          "url": "https://sameday.costco.ca/store/costco-canada/s?k=1035921",
+          "upc": "manual-1780921123681",
+          "regular_price": 16.99,
+          "sale_price": 13.49,
+          "is_on_sale": 1,
+          "valid_until": "2026-06-21",
+          "track_pricing": true,
+          "external_name": "",
+          "is_verified": false
+        }
+      }
+    },
+    {
+      "id": "regular-1779915020670-181-u978v",
+      "name": "Seafood",
+      "category": "Meat & Seafood",
+      "unit": "unit",
+      "requires_scraping": false,
+      "stores": {}
+    },
+    {
+      "id": "regular-1779915020670-182-1j214",
+      "name": "Basa Loins -Costco",
+      "category": "Meat & Seafood",
+      "unit": "unit",
+      "requires_scraping": false,
+      "stores": {}
+    },
+    {
+      "id": "regular-1779915020670-183-gawgd",
+      "name": "Mahi-Mahi",
+      "category": "Meat & Seafood",
+      "unit": "unit",
+      "requires_scraping": false,
+      "stores": {}
+    },
+    {
+      "id": "regular-1779915020670-184-fhzio",
+      "name": "Salmon - Costco",
+      "category": "Meat & Seafood",
+      "unit": "unit",
+      "requires_scraping": false,
+      "stores": {}
+    },
+    {
+      "id": "regular-1779915020670-185-whm48",
+      "name": "Shrimp - Costco",
+      "category": "Meat & Seafood",
+      "unit": "unit",
+      "requires_scraping": false,
+      "stores": {}
+    },
+    {
+      "id": "regular-1779915020670-186-8e0pv",
+      "name": "Smoked Salmon - Costco",
+      "category": "Meat & Seafood",
+      "unit": "unit",
+      "requires_scraping": false,
+      "stores": {}
+    },
+    {
+      "id": "regular-1779915020670-187-gw742",
+      "name": "Talapia",
+      "category": "Meat & Seafood",
+      "unit": "unit",
+      "requires_scraping": false,
+      "stores": {}
+    },
+    {
+      "id": "regular-1779915020670-188-aclwl",
+      "name": "Trout - Costco",
+      "category": "Meat & Seafood",
+      "unit": "unit",
+      "requires_scraping": false,
+      "stores": {}
+    },
+    {
+      "id": "regular-1779915020670-189-i00ml",
+      "name": "Tuna -Costco",
+      "category": "Meat & Seafood",
+      "unit": "unit",
+      "requires_scraping": false,
+      "stores": {}
+    },
+    {
+      "id": "regular-1779915020670-190-ya58i",
+      "name": "Turkey",
+      "category": "Meat & Seafood",
+      "unit": "unit",
+      "requires_scraping": false,
+      "stores": {}
+    },
+    {
+      "id": "regular-1779915020670-191-usgbj",
+      "name": "Turkey breast",
+      "category": "Meat & Seafood",
+      "unit": "unit",
+      "requires_scraping": false,
+      "stores": {}
+    },
+    {
+      "id": "regular-1779915020670-192-symyw",
+      "name": "Ground turkey - Costco",
+      "category": "Meat & Seafood",
+      "unit": "unit",
+      "requires_scraping": false,
+      "stores": {}
+    },
+    {
+      "id": "regular-1779915020670-194-gkb7s",
+      "name": "Beans and Lentils",
+      "category": "Pantry Staples",
+      "unit": "unit",
+      "requires_scraping": false,
+      "stores": {}
+    },
+    {
+      "id": "regular-1779915020670-195-g1fz3",
+      "name": "Baked beans",
+      "category": "Pantry Staples",
+      "unit": "unit",
+      "requires_scraping": false,
+      "stores": {}
+    },
+    {
+      "id": "regular-1779915020670-196-dlamj",
+      "name": "Black beans",
+      "category": "Pantry Staples",
+      "unit": "unit",
+      "requires_scraping": false,
+      "stores": {}
+    },
+    {
+      "id": "regular-1779915020670-197-cswdt",
+      "name": "Chickpeas",
+      "category": "Pantry Staples",
+      "unit": "unit",
+      "requires_scraping": false,
+      "stores": {}
+    },
+    {
+      "id": "regular-1779915020670-198-5u102",
+      "name": "Kidney beans",
+      "category": "Pantry Staples",
+      "unit": "unit",
+      "requires_scraping": false,
+      "stores": {}
+    },
+    {
+      "id": "regular-1779915020670-199-hoi62",
+      "name": "Mixed beans",
+      "category": "Pantry Staples",
+      "unit": "unit",
+      "requires_scraping": false,
+      "stores": {}
+    },
+    {
+      "id": "regular-1779915020670-2-06cqa",
+      "name": "Apricots - FB",
+      "category": "Fresh Produce",
+      "unit": "unit",
+      "requires_scraping": false,
+      "stores": {}
+    },
+    {
+      "id": "regular-1779915020670-20-ptbs1",
+      "name": "Arugula",
+      "category": "Fresh Produce",
+      "unit": "unit",
+      "requires_scraping": false,
+      "stores": {}
+    },
+    {
+      "id": "regular-1779915020670-200-n96xg",
+      "name": "Pinto beans 15 oz",
+      "category": "Pantry Staples",
+      "unit": "unit",
+      "requires_scraping": false,
+      "stores": {}
+    },
+    {
+      "id": "regular-1779915020670-201-cx7mc",
+      "name": "Split peas",
+      "category": "Pantry Staples",
+      "unit": "unit",
+      "requires_scraping": false,
+      "stores": {}
+    },
+    {
+      "id": "regular-1779915020670-202-4s3xi",
+      "name": "White beans",
+      "category": "Pantry Staples",
+      "unit": "unit",
+      "requires_scraping": false,
+      "stores": {}
+    },
+    {
+      "id": "regular-1779915020670-203-1bgzf",
+      "name": "Green lentils - GSI",
+      "category": "Pantry Staples",
+      "unit": "unit",
+      "requires_scraping": false,
+      "stores": {}
+    },
+    {
+      "id": "regular-1779915020670-204-3klw2",
+      "name": "Red lentils",
+      "category": "Pantry Staples",
+      "unit": "unit",
+      "requires_scraping": false,
+      "stores": {}
+    },
+    {
+      "id": "regular-1779915020670-206-svlqv",
+      "name": "Cereal and Grains",
+      "category": "Pantry Staples",
+      "unit": "unit",
+      "requires_scraping": false,
+      "stores": {}
+    },
+    {
+      "id": "regular-1779915020670-207-u2q40",
+      "name": "All Bran",
+      "category": "Pantry Staples",
+      "unit": "unit",
+      "requires_scraping": false,
+      "stores": {}
+    },
+    {
+      "id": "regular-1779915020670-208-u64xt",
+      "name": "Oatmeal",
+      "category": "Pantry Staples",
+      "unit": "unit",
+      "requires_scraping": false,
+      "stores": {}
+    },
+    {
+      "id": "regular-1779915020670-209-rdj46",
+      "name": "Quinoa - Costco",
+      "category": "Pantry Staples",
+      "unit": "unit",
+      "requires_scraping": false,
+      "stores": {}
+    },
+    {
+      "id": "regular-1779915020670-21-wmj7w",
+      "name": "Asparagus",
+      "category": "Fresh Produce",
+      "unit": "unit",
+      "requires_scraping": false,
+      "stores": {}
+    },
+    {
+      "id": "regular-1779915020670-210-5sg75",
+      "name": "Rice - Brown",
+      "category": "Pantry Staples",
+      "unit": "unit",
+      "requires_scraping": false,
+      "stores": {}
+    },
+    {
+      "id": "regular-1779915020670-211-yt2u8",
+      "name": "Rice - White",
+      "category": "Pantry Staples",
+      "unit": "unit",
+      "requires_scraping": false,
+      "stores": {}
+    },
+    {
+      "id": "regular-1779915020670-212-k4c0x",
+      "name": "Wild rice mix",
+      "category": "Pantry Staples",
+      "unit": "unit",
+      "requires_scraping": false,
+      "stores": {}
+    },
+    {
+      "id": "regular-1779915020670-213-jbslw",
+      "name": "Steel Cut Oats",
+      "category": "Pantry Staples",
+      "unit": "unit",
+      "requires_scraping": false,
+      "stores": {}
+    },
+    {
+      "id": "regular-1779915020670-215-4vhiw",
+      "name": "Nuts and Seeds",
+      "category": "Pantry Staples",
+      "unit": "unit",
+      "requires_scraping": false,
+      "stores": {}
+    },
+    {
+      "id": "regular-1779915020670-216-71h7d",
+      "name": "Almonds ground -Costco",
+      "category": "Pantry Staples",
+      "unit": "unit",
+      "requires_scraping": false,
+      "stores": {}
+    },
+    {
+      "id": "regular-1779915020670-217-ijwgf",
+      "name": "Almonds whole",
+      "category": "Pantry Staples",
+      "unit": "unit",
+      "requires_scraping": false,
+      "stores": {}
+    },
+    {
+      "id": "regular-1779915020670-218-oj5op",
+      "name": "Almonds slivered - Costco",
+      "category": "Pantry Staples",
+      "unit": "unit",
+      "requires_scraping": false,
+      "stores": {}
+    },
+    {
+      "id": "regular-1779915020670-219-1couy",
+      "name": "Cashews",
+      "category": "Pantry Staples",
+      "unit": "unit",
+      "requires_scraping": false,
+      "stores": {}
+    },
+    {
+      "id": "regular-1779915020670-22-kzaec",
+      "name": "Avocados",
+      "category": "Fresh Produce",
+      "unit": "unit",
+      "requires_scraping": false,
+      "stores": {}
+    },
+    {
+      "id": "regular-1779915020670-220-nxdq6",
+      "name": "Chia -Costco",
+      "category": "Pantry Staples",
+      "unit": "unit",
+      "requires_scraping": false,
+      "stores": {}
+    },
+    {
+      "id": "regular-1779915020670-221-gqr6e",
+      "name": "Hemp hearts",
+      "category": "Pantry Staples",
+      "unit": "unit",
+      "requires_scraping": false,
+      "stores": {}
+    },
+    {
+      "id": "regular-1779915020670-222-4psro",
+      "name": "Peanuts - Costco",
+      "category": "Pantry Staples",
+      "unit": "unit",
+      "requires_scraping": false,
+      "stores": {}
+    },
+    {
+      "id": "regular-1779915020670-223-7zmn6",
+      "name": "Peanut butter -Food B - 4.44",
+      "category": "Pantry Staples",
+      "unit": "unit",
+      "requires_scraping": false,
+      "stores": {}
+    },
+    {
+      "id": "regular-1779915020670-224-h9kcb",
+      "name": "Peanut butter dried",
+      "category": "Pantry Staples",
+      "unit": "unit",
+      "requires_scraping": false,
+      "stores": {}
+    },
+    {
+      "id": "regular-1779915020670-225-3d84o",
+      "name": "Pecans - Costco",
+      "category": "Pantry Staples",
+      "unit": "unit",
+      "requires_scraping": false,
+      "stores": {}
+    },
+    {
+      "id": "regular-1779915020670-226-dcsax",
+      "name": "Popcorn",
+      "category": "Pantry Staples",
+      "unit": "unit",
+      "requires_scraping": false,
+      "stores": {}
+    },
+    {
+      "id": "regular-1779915020670-227-xc5xy",
+      "name": "Pumpkin seeds",
+      "category": "Pantry Staples",
+      "unit": "unit",
+      "requires_scraping": false,
+      "stores": {}
+    },
+    {
+      "id": "regular-1779915020670-228-ggy9w",
+      "name": "Sunflower seeds",
+      "category": "Pantry Staples",
+      "unit": "unit",
+      "requires_scraping": false,
+      "stores": {}
+    },
+    {
+      "id": "regular-1779915020670-229-vby9v",
+      "name": "Walnuts -Costco",
+      "category": "Pantry Staples",
+      "unit": "unit",
+      "requires_scraping": false,
+      "stores": {}
+    },
+    {
+      "id": "regular-1779915020670-23-wkcvp",
+      "name": "Bean Sprouts",
+      "category": "Fresh Produce",
+      "unit": "unit",
+      "requires_scraping": false,
+      "stores": {}
+    },
+    {
+      "id": "regular-1779915020670-230-csh2k",
+      "name": "Tofu spread - C",
+      "category": "Pantry Staples",
+      "unit": "unit",
+      "requires_scraping": false,
+      "stores": {}
+    },
+    {
+      "id": "regular-1779915020670-231-pfah2",
+      "name": "Pickles",
+      "category": "Pantry Staples",
+      "unit": "unit",
+      "requires_scraping": false,
+      "stores": {}
+    },
+    {
+      "id": "regular-1779915020670-232-temye",
+      "name": "Tahini",
+      "category": "Pantry Staples",
+      "unit": "unit",
+      "requires_scraping": false,
+      "stores": {}
+    },
+    {
+      "id": "regular-1779915020670-233-v2ym8",
+      "name": "Beef bullion - Costco",
+      "category": "Pantry Staples",
+      "unit": "unit",
+      "requires_scraping": false,
+      "stores": {}
+    },
+    {
+      "id": "regular-1779915020670-234-q48oi",
+      "name": "Sauer kraut",
+      "category": "Pantry Staples",
+      "unit": "unit",
+      "requires_scraping": false,
+      "stores": {}
+    },
+    {
+      "id": "regular-1779915020670-235-a1glt",
+      "name": "Olives",
+      "category": "Pantry Staples",
+      "unit": "can",
+      "requires_scraping": true,
+      "stores": {
+        "foodbasics": {
+          "url": "https://www.foodbasics.ca/aisles/pantry/condiments-toppings/pickles-antipasto/pitted-black-olives/p/059749897921",
+          "upc": "059749897921",
+          "regular_price": 1.99,
+          "sale_price": null,
+          "is_on_sale": 0,
+          "valid_until": "",
+          "track_pricing": true,
+          "external_name": "",
+          "is_verified": true
+        }
+      }
+    },
+    {
+      "id": "regular-1779915020670-236-crzgk",
+      "name": "Vinegar",
+      "category": "Pantry Staples",
+      "unit": "unit",
+      "requires_scraping": false,
+      "stores": {}
+    },
+    {
+      "id": "regular-1779915020670-237-aq7p3",
+      "name": "Cream style corn",
+      "category": "Pantry Staples",
+      "unit": "unit",
+      "requires_scraping": false,
+      "stores": {}
+    },
+    {
+      "id": "regular-1779915020670-238-ttlyk",
+      "name": "Soya Sauce - low sodium",
+      "category": "Pantry Staples",
+      "unit": "unit",
+      "requires_scraping": false,
+      "stores": {}
+    },
+    {
+      "id": "regular-1779915020670-239-sqxna",
+      "name": "Apple Sauce",
+      "category": "Pantry Staples",
+      "unit": "unit",
+      "requires_scraping": false,
+      "stores": {}
+    },
+    {
+      "id": "regular-1779915020670-24-lybrk",
+      "name": "Beans",
+      "category": "Fresh Produce",
+      "unit": "unit",
+      "requires_scraping": false,
+      "stores": {}
+    },
+    {
+      "id": "regular-1779915020670-240-7aj14",
+      "name": "Mayonnaise - Food B - 5.48",
+      "category": "Pantry Staples",
+      "unit": "unit",
+      "requires_scraping": false,
+      "stores": {}
+    },
+    {
+      "id": "regular-1779915020670-241-qvg85",
+      "name": "Olive Oil - costco",
+      "category": "Pantry Staples",
+      "unit": "unit",
+      "requires_scraping": false,
+      "stores": {}
+    },
+    {
+      "id": "regular-1779915020670-242-ymkpr",
+      "name": "Maple syrup - costco",
+      "category": "Pantry Staples",
+      "unit": "unit",
+      "requires_scraping": false,
+      "stores": {}
+    },
+    {
+      "id": "regular-1779915020670-243-ujyse",
+      "name": "Canola oil - metro",
+      "category": "Pantry Staples",
+      "unit": "unit",
+      "requires_scraping": false,
+      "stores": {}
+    },
+    {
+      "id": "regular-1779915020670-244-s6vn1",
+      "name": "Biscoff cookies or coconut cookies if I find them",
+      "category": "Pantry Staples",
+      "unit": "unit",
+      "requires_scraping": false,
+      "stores": {}
+    },
+    {
+      "id": "regular-1779915020670-245-nkzm1",
+      "name": "Tamarind paste",
+      "category": "Pantry Staples",
+      "unit": "unit",
+      "requires_scraping": false,
+      "stores": {}
+    },
+    {
+      "id": "regular-1779915020670-246-r52hq",
+      "name": "Rice noodles",
+      "category": "Pantry Staples",
+      "unit": "unit",
+      "requires_scraping": false,
+      "stores": {}
+    },
+    {
+      "id": "regular-1779915020670-247-serqz",
+      "name": "Egg Noodles",
+      "category": "Pantry Staples",
+      "unit": "unit",
+      "requires_scraping": false,
+      "stores": {}
+    },
+    {
+      "id": "regular-1779915020670-248-rr491",
+      "name": "Ramen - Costco",
+      "category": "Pantry Staples",
+      "unit": "unit",
+      "requires_scraping": false,
+      "stores": {}
+    },
+    {
+      "id": "regular-1779915020670-249-of8kr",
+      "name": "Kraft Dinner",
+      "category": "Pantry Staples",
+      "unit": "unit",
+      "requires_scraping": false,
+      "stores": {}
+    },
+    {
+      "id": "regular-1779915020670-25-cnlsj",
+      "name": "Basil",
+      "category": "Fresh Produce",
+      "unit": "unit",
+      "requires_scraping": false,
+      "stores": {}
+    },
+    {
+      "id": "regular-1779915020670-250-zt8x6",
+      "name": "Dried shrimp",
+      "category": "Pantry Staples",
+      "unit": "unit",
+      "requires_scraping": false,
+      "stores": {}
+    },
+    {
+      "id": "regular-1779915020670-251-4fnti",
+      "name": "Saharachi sauce",
+      "category": "Pantry Staples",
+      "unit": "unit",
+      "requires_scraping": false,
+      "stores": {}
+    },
+    {
+      "id": "regular-1779915020670-252-vh5ft",
+      "name": "Tofu-Firm - organic",
+      "category": "Pantry Staples",
+      "unit": "unit",
+      "requires_scraping": false,
+      "stores": {}
+    },
+    {
+      "id": "regular-1779915020670-253-0zdv6",
+      "name": "Salted turnip packaged",
+      "category": "Pantry Staples",
+      "unit": "unit",
+      "requires_scraping": false,
+      "stores": {}
+    },
+    {
+      "id": "regular-1779915020670-254-1ezsn",
+      "name": "Coffee - pods - GS",
+      "category": "Pantry Staples",
+      "unit": "unit",
+      "requires_scraping": false,
+      "stores": {}
+    },
+    {
+      "id": "regular-1779915020670-255-8nvki",
+      "name": "Instant coffee - Costco",
+      "category": "Pantry Staples",
+      "unit": "unit",
+      "requires_scraping": false,
+      "stores": {}
+    },
+    {
+      "id": "regular-1779915020670-256-ki8pa",
+      "name": "Decaf instant expresso",
+      "category": "Pantry Staples",
+      "unit": "unit",
+      "requires_scraping": false,
+      "stores": {}
+    },
+    {
+      "id": "regular-1779915020670-257-1at8k",
+      "name": "Decaf Tasters Choice - Food Basics. 4.98",
+      "category": "Pantry Staples",
+      "unit": "unit",
+      "requires_scraping": false,
+      "stores": {}
+    },
+    {
+      "id": "regular-1779915020670-258-m3rp2",
+      "name": "Decaf Tea",
+      "category": "Pantry Staples",
+      "unit": "unit",
+      "requires_scraping": false,
+      "stores": {}
+    },
+    {
+      "id": "regular-1779915020670-259-85sxd",
+      "name": "Tea",
+      "category": "Pantry Staples",
+      "unit": "unit",
+      "requires_scraping": false,
+      "stores": {}
+    },
+    {
+      "id": "regular-1779915020670-26-xw8hx",
+      "name": "Beets",
+      "category": "Fresh Produce",
+      "unit": "bag",
+      "requires_scraping": false,
+      "stores": {}
+    },
+    {
+      "id": "regular-1779915020670-260-p7f8g",
+      "name": "Honey -  Costco",
+      "category": "Pantry Staples",
+      "unit": "unit",
+      "requires_scraping": false,
+      "stores": {}
+    },
+    {
+      "id": "regular-1779915020670-261-v6774",
+      "name": "Hummus - FreshCo - 3.49",
+      "category": "Pantry Staples",
+      "unit": "unit",
+      "requires_scraping": false,
+      "stores": {}
+    },
+    {
+      "id": "regular-1779915020670-262-nj7h1",
+      "name": "Salsa - mild - Food B - 2.99",
+      "category": "Pantry Staples",
+      "unit": "unit",
+      "requires_scraping": false,
+      "stores": {}
+    },
+    {
+      "id": "regular-1779915020670-263-y2pc5",
+      "name": "Tostadas - M",
+      "category": "Pantry Staples",
+      "unit": "unit",
+      "requires_scraping": false,
+      "stores": {}
+    },
+    {
+      "id": "regular-1779915020670-264-wtmpy",
+      "name": "Corn chips - C",
+      "category": "Pantry Staples",
+      "unit": "unit",
+      "requires_scraping": false,
+      "stores": {}
+    },
+    {
+      "id": "regular-1779915020670-265-9qdlk",
+      "name": "Cesar salad dressing - Costco",
+      "category": "Pantry Staples",
+      "unit": "unit",
+      "requires_scraping": false,
+      "stores": {}
+    },
+    {
+      "id": "regular-1779915020670-266-0svjw",
+      "name": "Greek salad dressing",
+      "category": "Pantry Staples",
+      "unit": "unit",
+      "requires_scraping": false,
+      "stores": {}
+    },
+    {
+      "id": "regular-1779915020670-267-qu98b",
+      "name": "Asian salad dressing - Costco",
+      "category": "Pantry Staples",
+      "unit": "unit",
+      "requires_scraping": false,
+      "stores": {}
+    },
+    {
+      "id": "regular-1779915020670-268-9c8ri",
+      "name": "Sliced Pickles - bread and butter preferably",
+      "category": "Pantry Staples",
+      "unit": "unit",
+      "requires_scraping": false,
+      "stores": {}
+    },
+    {
+      "id": "regular-1779915020670-269-5mvq1",
+      "name": "Dill pickles -CLa",
+      "category": "Pantry Staples",
+      "unit": "unit",
+      "requires_scraping": false,
+      "stores": {}
+    },
+    {
+      "id": "regular-1779915020670-27-nqius",
+      "name": "Broccoli",
+      "category": "Fresh Produce",
+      "unit": "unit",
+      "requires_scraping": true,
+      "stores": {
+        "foodbasics": {
+          "url": "https://www.foodbasics.ca/aisles/fruits-vegetables/vegetables/broccoli-cauliflower-cabbage/broccoli/p/4060",
+          "upc": "4060",
+          "regular_price": 4.99,
+          "sale_price": null,
+          "is_on_sale": 0,
+          "valid_until": "",
+          "track_pricing": true,
+          "external_name": "",
+          "is_verified": true
+        },
+        "metro": {
+          "url": "https://www.metro.ca/en/online-grocery/aisles/fruits-vegetables/vegetables/broccoli-cauliflower-cabbage/broccoli/p/4060",
+          "upc": "4060",
+          "regular_price": 4.99,
+          "sale_price": null,
+          "is_on_sale": 0,
+          "valid_until": "",
+          "track_pricing": true,
+          "external_name": "",
+          "is_verified": true
+        }
+      }
+    },
+    {
+      "id": "regular-1779915020670-270-pbs7f",
+      "name": "Ketchup - FreshCo - 2,49",
+      "category": "Pantry Staples",
+      "unit": "unit",
+      "requires_scraping": false,
+      "stores": {}
+    },
+    {
+      "id": "regular-1779915020670-271-5ux0d",
+      "name": "Flavoured Mayo -2.49",
+      "category": "Pantry Staples",
+      "unit": "unit",
+      "requires_scraping": false,
+      "stores": {}
+    },
+    {
+      "id": "regular-1779915020670-272-7rv5m",
+      "name": "Yellow mustard",
+      "category": "Pantry Staples",
+      "unit": "unit",
+      "requires_scraping": false,
+      "stores": {}
+    },
+    {
+      "id": "regular-1779915020670-273-nag9v",
+      "name": "Apple cider",
+      "category": "Pantry Staples",
+      "unit": "unit",
+      "requires_scraping": false,
+      "stores": {}
+    },
+    {
+      "id": "regular-1779915020670-274-pdehj",
+      "name": "Taini",
+      "category": "Pantry Staples",
+      "unit": "unit",
+      "requires_scraping": false,
+      "stores": {}
+    },
+    {
+      "id": "regular-1779915020670-275-w8yjk",
+      "name": "Marmalade jam",
+      "category": "Pantry Staples",
+      "unit": "unit",
+      "requires_scraping": false,
+      "stores": {}
+    },
+    {
+      "id": "regular-1779915020670-276-gn06a",
+      "name": "Masks",
+      "category": "Pantry Staples",
+      "unit": "unit",
+      "requires_scraping": false,
+      "stores": {}
+    },
+    {
+      "id": "regular-1779915020670-277-pzx9s",
+      "name": "Chicken broth - Costco",
+      "category": "Pantry Staples",
+      "unit": "unit",
+      "requires_scraping": false,
+      "stores": {}
+    },
+    {
+      "id": "regular-1779915020670-278-sw9w7",
+      "name": "Beef Broth - 2 boxes no frills no name 1.29",
+      "category": "Pantry Staples",
+      "unit": "unit",
+      "requires_scraping": false,
+      "stores": {}
+    },
+    {
+      "id": "regular-1779915020670-279-z6bt9",
+      "name": "Coconut milk - 15 oz",
+      "category": "Pantry Staples",
+      "unit": "unit",
+      "requires_scraping": false,
+      "stores": {}
+    },
+    {
+      "id": "regular-1779915020670-28-3ebwg",
+      "name": "Brussels sprouts",
+      "category": "Fresh Produce",
+      "unit": "unit",
+      "requires_scraping": false,
+      "stores": {}
+    },
+    {
+      "id": "regular-1779915020670-280-94xij",
+      "name": "Coconut cream slab - FreshCo",
+      "category": "Pantry Staples",
+      "unit": "unit",
+      "requires_scraping": false,
+      "stores": {}
+    },
+    {
+      "id": "regular-1779915020670-281-29ral",
+      "name": "Macaroni",
+      "category": "Pantry Staples",
+      "unit": "unit",
+      "requires_scraping": false,
+      "stores": {}
+    },
+    {
+      "id": "regular-1779915020670-282-gng4j",
+      "name": "Rice cakes",
+      "category": "Pantry Staples",
+      "unit": "unit",
+      "requires_scraping": false,
+      "stores": {}
+    },
+    {
+      "id": "regular-1779915020670-283-vvx0f",
+      "name": "High fibre crackers",
+      "category": "Pantry Staples",
+      "unit": "unit",
+      "requires_scraping": false,
+      "stores": {}
+    },
+    {
+      "id": "regular-1779915020670-284-yddri",
+      "name": "Lemon Ginger Tea",
+      "category": "Pantry Staples",
+      "unit": "unit",
+      "requires_scraping": false,
+      "stores": {}
+    },
+    {
+      "id": "regular-1779915020670-285-nmg2l",
+      "name": "Bubbly soft drinks",
+      "category": "Pantry Staples",
+      "unit": "unit",
+      "requires_scraping": false,
+      "stores": {}
+    },
+    {
+      "id": "regular-1779915020670-286-jcqxs",
+      "name": "Table salt",
+      "category": "Pantry Staples",
+      "unit": "unit",
+      "requires_scraping": false,
+      "stores": {}
+    },
+    {
+      "id": "regular-1779915020670-287-ivow7",
+      "name": "Ice cream cones",
+      "category": "Pantry Staples",
+      "unit": "unit",
+      "requires_scraping": false,
+      "stores": {}
+    },
+    {
+      "id": "regular-1779915020670-288-tlxfi",
+      "name": "Ice cream",
+      "category": "Pantry Staples",
+      "unit": "unit",
+      "requires_scraping": false,
+      "stores": {}
+    },
+    {
+      "id": "regular-1779915020670-289-8ujpj",
+      "name": "GF ice cream cones",
+      "category": "Pantry Staples",
+      "unit": "unit",
+      "requires_scraping": false,
+      "stores": {}
+    },
+    {
+      "id": "regular-1779915020670-29-xi3ms",
+      "name": "Cabbage",
+      "category": "Fresh Produce",
+      "unit": "unit",
+      "requires_scraping": false,
+      "stores": {}
+    },
+    {
+      "id": "regular-1779915020670-290-nr1nm",
+      "name": "Chicago Mix",
+      "category": "Pantry Staples",
+      "unit": "unit",
+      "requires_scraping": false,
+      "stores": {}
+    },
+    {
+      "id": "regular-1779915020670-291-5ultz",
+      "name": "Snack to share all weekend - Costco",
+      "category": "Pantry Staples",
+      "unit": "unit",
+      "requires_scraping": false,
+      "stores": {}
+    },
+    {
+      "id": "regular-1779915020670-292-4cocy",
+      "name": "Other campfire snack- C",
+      "category": "Pantry Staples",
+      "unit": "unit",
+      "requires_scraping": false,
+      "stores": {}
+    },
+    {
+      "id": "regular-1779915020670-293-i8am7",
+      "name": "Gluten free crackers - C",
+      "category": "Pantry Staples",
+      "unit": "unit",
+      "requires_scraping": false,
+      "stores": {}
+    },
+    {
+      "id": "regular-1779915020670-294-2bpux",
+      "name": "Peanut butter pretzels - C",
+      "category": "Pantry Staples",
+      "unit": "unit",
+      "requires_scraping": false,
+      "stores": {}
+    },
+    {
+      "id": "regular-1779915020670-295-3ou9c",
+      "name": "Soba noodles -C",
+      "category": "Pantry Staples",
+      "unit": "unit",
+      "requires_scraping": false,
+      "stores": {}
+    },
+    {
+      "id": "regular-1779915020670-296-ridxl",
+      "name": "Dried chickpeas",
+      "category": "Pantry Staples",
+      "unit": "unit",
+      "requires_scraping": false,
+      "stores": {}
+    },
+    {
+      "id": "regular-1779915020670-297-291xf",
+      "name": "Dried edamame",
+      "category": "Pantry Staples",
+      "unit": "unit",
+      "requires_scraping": false,
+      "stores": {}
+    },
+    {
+      "id": "regular-1779915020670-298-la0v6",
+      "name": "Cranberries - Costco",
+      "category": "Pantry Staples",
+      "unit": "unit",
+      "requires_scraping": false,
+      "stores": {}
+    },
+    {
+      "id": "regular-1779915020670-3-5fdno",
+      "name": "Bananas",
+      "category": "Fresh Produce",
+      "unit": "bunch",
+      "requires_scraping": true,
+      "stores": {
+        "costco": {
+          "url": "http://costco.ca",
+          "upc": "manual-1781211685437",
+          "regular_price": 1.69,
+          "sale_price": null,
+          "is_on_sale": 0,
+          "valid_until": "",
+          "track_pricing": true,
+          "external_name": "",
+          "is_verified": false
+        }
+      },
+      "last_updated": "2026-06-15T07:51:30.164Z"
+    },
+    {
+      "id": "regular-1779915020670-30-26ht1",
+      "name": "Carrots",
+      "category": "Fresh Produce",
+      "unit": "unit",
+      "requires_scraping": false,
+      "stores": {}
+    },
+    {
+      "id": "regular-1779915020670-300-utfuq",
+      "name": "French Fries - C",
+      "category": "Snacks & Beverages",
+      "unit": "unit",
+      "requires_scraping": false,
+      "stores": {}
+    },
+    {
+      "id": "regular-1779915020670-301-f1wdu",
+      "name": "Blueberries",
+      "category": "Snacks & Beverages",
+      "unit": "unit",
+      "requires_scraping": false,
+      "stores": {}
+    },
+    {
+      "id": "regular-1779915020670-302-f1pr3",
+      "name": "Mixed Berries - GS",
+      "category": "Snacks & Beverages",
+      "unit": "unit",
+      "requires_scraping": false,
+      "stores": {}
+    },
+    {
+      "id": "regular-1779915020670-303-52h1g",
+      "name": "Sliced Strawberries-C",
+      "category": "Snacks & Beverages",
+      "unit": "unit",
+      "requires_scraping": false,
+      "stores": {}
+    },
+    {
+      "id": "regular-1779915020670-304-0af1h",
+      "name": "Spring rolls - C",
+      "category": "Snacks & Beverages",
+      "unit": "unit",
+      "requires_scraping": false,
+      "stores": {}
+    },
+    {
+      "id": "regular-1779915020670-305-81ev1",
+      "name": "Frozen corn",
+      "category": "Snacks & Beverages",
+      "unit": "unit",
+      "requires_scraping": false,
+      "stores": {}
+    },
+    {
+      "id": "regular-1779915020670-306-6qex4",
+      "name": "Frozen peas",
+      "category": "Snacks & Beverages",
+      "unit": "unit",
+      "requires_scraping": false,
+      "stores": {}
+    },
+    {
+      "id": "regular-1779915020670-307-0eqx5",
+      "name": "Okra",
+      "category": "Snacks & Beverages",
+      "unit": "unit",
+      "requires_scraping": false,
+      "stores": {}
+    },
+    {
+      "id": "regular-1779915020670-308-n5d5u",
+      "name": "Egg roll wrappers",
+      "category": "Snacks & Beverages",
+      "unit": "unit",
+      "requires_scraping": false,
+      "stores": {}
+    },
+    {
+      "id": "regular-1779915020670-309-orzkq",
+      "name": "Pizza - Metro -",
+      "category": "Snacks & Beverages",
+      "unit": "unit",
+      "requires_scraping": false,
+      "stores": {}
+    },
+    {
+      "id": "regular-1779915020670-31-2ipo6",
+      "name": "Baby carrots",
+      "category": "Fresh Produce",
+      "unit": "bag",
+      "requires_scraping": false,
+      "stores": {}
+    },
+    {
+      "id": "regular-1779915020670-310-vs8hz",
+      "name": "Peaches frozen",
+      "category": "Snacks & Beverages",
+      "unit": "unit",
+      "requires_scraping": false,
+      "stores": {}
+    },
+    {
+      "id": "regular-1779915020670-311-p469r",
+      "name": "Orange Juice",
+      "category": "Snacks & Beverages",
+      "unit": "unit",
+      "requires_scraping": false,
+      "stores": {}
+    },
+    {
+      "id": "regular-1779915020670-312-xixux",
+      "name": "Green beans",
+      "category": "Snacks & Beverages",
+      "unit": "unit",
+      "requires_scraping": false,
+      "stores": {}
+    },
+    {
+      "id": "regular-1779915020670-313-ozry7",
+      "name": "Edamame",
+      "category": "Snacks & Beverages",
+      "unit": "unit",
+      "requires_scraping": false,
+      "stores": {}
+    },
+    {
+      "id": "regular-1779915020670-314-7h5tl",
+      "name": "Pepperoni",
+      "category": "Snacks & Beverages",
+      "unit": "unit",
+      "requires_scraping": false,
+      "stores": {}
+    },
+    {
+      "id": "regular-1779915020670-315-xnzxi",
+      "name": "Yogurt tubes",
+      "category": "Snacks & Beverages",
+      "unit": "unit",
+      "requires_scraping": false,
+      "stores": {}
+    },
+    {
+      "id": "regular-1779915020670-317-7ytdj",
+      "name": "Vol en vont - frozen pastry",
+      "category": "Pantry Staples",
+      "unit": "unit",
+      "requires_scraping": false,
+      "stores": {}
+    },
+    {
+      "id": "regular-1779915020670-318-t3doq",
+      "name": "Salsa ( mild)",
+      "category": "Pantry Staples",
+      "unit": "unit",
+      "requires_scraping": false,
+      "stores": {}
+    },
+    {
+      "id": "regular-1779915020670-319-x9g0n",
+      "name": "Pineapple",
+      "category": "Pantry Staples",
+      "unit": "unit",
+      "requires_scraping": false,
+      "stores": {}
+    },
+    {
+      "id": "regular-1779915020670-32-il1ni",
+      "name": "Carrots Japanese",
+      "category": "Fresh Produce",
+      "unit": "unit",
+      "requires_scraping": false,
+      "stores": {}
+    },
+    {
+      "id": "regular-1779915020670-320-tas8q",
+      "name": "Condensed milk",
+      "category": "Pantry Staples",
+      "unit": "unit",
+      "requires_scraping": false,
+      "stores": {}
+    },
+    {
+      "id": "regular-1779915020670-321-ek4np",
+      "name": "Evaporated milk 1.5 cups",
+      "category": "Pantry Staples",
+      "unit": "unit",
+      "requires_scraping": false,
+      "stores": {}
+    },
+    {
+      "id": "regular-1779915020670-33-ra1bk",
+      "name": "Celery",
+      "category": "Fresh Produce",
+      "unit": "unit",
+      "requires_scraping": true,
+      "stores": {
+        "foodbasics": {
+          "url": "https://foodbasics.ca/aisles/fruits-vegetables/vegetables/potatoes-carrots-celery/celery/p/4070",
+          "upc": "4070",
+          "regular_price": 3.99,
+          "sale_price": 2.99,
+          "is_on_sale": 1,
+          "valid_until": "2026-06-24",
+          "track_pricing": true,
+          "external_name": "",
+          "is_verified": true
+        }
+      }
+    },
+    {
+      "id": "regular-1779915020670-34-06fdf",
+      "name": "Cauliflower",
+      "category": "Fresh Produce",
+      "unit": "unit",
+      "requires_scraping": false,
+      "stores": {}
+    },
+    {
+      "id": "regular-1779915020670-35-qq278",
+      "name": "Coriander",
+      "category": "Fresh Produce",
+      "unit": "bunch",
+      "requires_scraping": false,
+      "stores": {}
+    },
+    {
+      "id": "regular-1779915020670-36-w7l8z",
+      "name": "Cucumbers - mini",
+      "category": "Fresh Produce",
+      "unit": "unit",
+      "requires_scraping": false,
+      "stores": {}
+    },
+    {
+      "id": "regular-1779915020670-37-c08gm",
+      "name": "Corn on the cob",
+      "category": "Fresh Produce",
+      "unit": "unit",
+      "requires_scraping": false,
+      "stores": {}
+    },
+    {
+      "id": "regular-1779915020670-38-5kupe",
+      "name": "Dill",
+      "category": "Fresh Produce",
+      "unit": "unit",
+      "requires_scraping": false,
+      "stores": {}
+    },
+    {
+      "id": "regular-1779915020670-39-cjghz",
+      "name": "Eggplant",
+      "category": "Fresh Produce",
+      "unit": "unit",
+      "requires_scraping": false,
+      "stores": {}
+    },
+    {
+      "id": "regular-1779915020670-4-luoje",
+      "name": "Blackberries",
+      "category": "Fresh Produce",
+      "unit": "g",
+      "requires_scraping": true,
+      "stores": {
+        "foodbasics": {
+          "url": "https://www.foodbasics.ca/aisles/fruits-vegetables/fruits/berries-cherries/blackberries/p/033383240008",
+          "upc": "manual-1781203440136",
+          "regular_price": 4.99,
+          "sale_price": 3.99,
+          "is_on_sale": 1,
+          "valid_until": "2026-06-24",
+          "track_pricing": true,
+          "external_name": "",
+          "is_verified": true
+        }
+      }
+    },
+    {
+      "id": "regular-1779915020670-40-5yftb",
+      "name": "Fennel bulb",
+      "category": "Fresh Produce",
+      "unit": "unit",
+      "requires_scraping": false,
+      "stores": {}
+    },
+    {
+      "id": "regular-1779915020670-41-dbmpm",
+      "name": "Garlic",
+      "category": "Fresh Produce",
+      "unit": "unit",
+      "requires_scraping": false,
+      "stores": {}
+    },
+    {
+      "id": "regular-1779915020670-42-blomq",
+      "name": "Ginger",
+      "category": "Fresh Produce",
+      "unit": "unit",
+      "requires_scraping": false,
+      "stores": {}
+    },
+    {
+      "id": "regular-1779915020670-43-axrtx",
+      "name": "Jicama",
+      "category": "Fresh Produce",
+      "unit": "unit",
+      "requires_scraping": false,
+      "stores": {}
+    },
+    {
+      "id": "regular-1779915020670-44-k5wfh",
+      "name": "Kalep",
+      "category": "Fresh Produce",
+      "unit": "unit",
+      "requires_scraping": false,
+      "stores": {}
+    },
+    {
+      "id": "regular-1779915020670-45-104sf",
+      "name": "Leek",
+      "category": "Fresh Produce",
+      "unit": "unit",
+      "requires_scraping": false,
+      "stores": {}
+    },
+    {
+      "id": "regular-1779915020670-46-3agqu",
+      "name": "Lettuce",
+      "category": "Fresh Produce",
+      "unit": "unit",
+      "requires_scraping": true,
+      "stores": {
+        "freshco": {
+          "url": "https://freshco.com/products/iceberg-lettuce-1-count",
+          "upc": "manual-1781706100559",
+          "regular_price": 2.97,
+          "sale_price": null,
+          "is_on_sale": 0,
+          "valid_until": "",
+          "track_pricing": true,
+          "external_name": "Lettuce",
+          "is_verified": true
+        }
+      }
+    },
+    {
+      "id": "regular-1779915020670-47-pr6tr",
+      "name": "romaine - for salad",
+      "category": "Fresh Produce",
+      "unit": "unit",
+      "requires_scraping": false,
+      "stores": {}
+    },
+    {
+      "id": "regular-1779915020670-48-0z2hu",
+      "name": "Iceburg",
+      "category": "Fresh Produce",
+      "unit": "unit",
+      "requires_scraping": false,
+      "stores": {}
+    },
+    {
+      "id": "regular-1779915020670-49-xrkyg",
+      "name": "Spring mix lettuce",
+      "category": "Fresh Produce",
+      "unit": "unit",
+      "requires_scraping": false,
+      "stores": {}
+    },
+    {
+      "id": "regular-1779915020670-5-w4ac6",
+      "name": "Blueberries",
+      "category": "Fresh Produce",
+      "unit": "g",
+      "requires_scraping": true,
+      "stores": {
+        "foodbasics": {
+          "url": "https://www.foodbasics.ca/aisles/fruits-vegetables/fruits/berries-cherries/pint-of-blueberries/p/033383200170",
+          "upc": "033383200170",
+          "regular_price": 4.99,
+          "sale_price": null,
+          "is_on_sale": 0,
+          "valid_until": "",
+          "track_pricing": true,
+          "external_name": "",
+          "is_verified": true
+        }
+      }
+    },
+    {
+      "id": "regular-1779915020670-50-xxdyn",
+      "name": "Arugula",
+      "category": "Fresh Produce",
+      "unit": "unit",
+      "requires_scraping": false,
+      "stores": {}
+    },
+    {
+      "id": "regular-1779915020670-51-1ikfm",
+      "name": "Spring Mix - Costco",
+      "category": "Fresh Produce",
+      "unit": "unit",
+      "requires_scraping": false,
+      "stores": {}
+    },
+    {
+      "id": "regular-1779915020670-52-6lpwd",
+      "name": "Mint",
+      "category": "Fresh Produce",
+      "unit": "unit",
+      "requires_scraping": false,
+      "stores": {}
+    },
+    {
+      "id": "regular-1779915020670-53-uzc7p",
+      "name": "Mushrooms - Costco",
+      "category": "Fresh Produce",
+      "unit": "unit",
+      "requires_scraping": false,
+      "stores": {}
+    },
+    {
+      "id": "regular-1779915020670-54-vl4hq",
+      "name": "White potatoes",
+      "category": "Fresh Produce",
+      "unit": "unit",
+      "requires_scraping": false,
+      "stores": {}
+    },
+    {
+      "id": "regular-1779915020670-55-zixvc",
+      "name": "Mini Bella’s",
+      "category": "Fresh Produce",
+      "unit": "unit",
+      "requires_scraping": false,
+      "stores": {}
+    },
+    {
+      "id": "regular-1779915020670-56-yw14e",
+      "name": "Portabellos",
+      "category": "Fresh Produce",
+      "unit": "unit",
+      "requires_scraping": false,
+      "stores": {}
+    },
+    {
+      "id": "regular-1779915020670-57-ch9qc",
+      "name": "Oyster mushrooms",
+      "category": "Fresh Produce",
+      "unit": "unit",
+      "requires_scraping": false,
+      "stores": {}
+    },
+    {
+      "id": "regular-1779915020670-58-bozjx",
+      "name": "Cremini",
+      "category": "Fresh Produce",
+      "unit": "unit",
+      "requires_scraping": false,
+      "stores": {}
+    },
+    {
+      "id": "regular-1779915020670-59-1fra4",
+      "name": "Onions",
+      "category": "Fresh Produce",
+      "unit": "unit",
+      "requires_scraping": false,
+      "stores": {}
+    },
+    {
+      "id": "regular-1779915020670-6-nmszl",
+      "name": "Raspberries",
+      "category": "Fresh Produce",
+      "unit": "g",
+      "requires_scraping": true,
+      "stores": {
+        "foodbasics": {
+          "url": "https://www.foodbasics.ca/aisles/fruits-vegetables/fruits/berries-cherries/raspberries/p/715756100019",
+          "upc": "715756100019",
+          "regular_price": 4.99,
+          "sale_price": 3.99,
+          "is_on_sale": 1,
+          "valid_until": "2026-06-24",
+          "track_pricing": true,
+          "external_name": "",
+          "is_verified": true
+        },
+        "metro": {
+          "url": "https://www.metro.ca/en/online-grocery/aisles/fruits-vegetables/fruits/berries-cherries/raspberries/p/715756100019",
+          "upc": "715756100019-metro",
+          "regular_price": 8.99,
+          "sale_price": 5.99,
+          "is_on_sale": 1,
+          "valid_until": "2023-08-30",
+          "track_pricing": true,
+          "external_name": "",
+          "is_verified": true
+        }
+      }
+    },
+    {
+      "id": "regular-1779915020670-60-ggnhb",
+      "name": "Red onion",
+      "category": "Fresh Produce",
+      "unit": "unit",
+      "requires_scraping": false,
+      "stores": {}
+    },
+    {
+      "id": "regular-1779915020670-61-6ne9f",
+      "name": "White Onion",
+      "category": "Fresh Produce",
+      "unit": "unit",
+      "requires_scraping": false,
+      "stores": {}
+    },
+    {
+      "id": "regular-1779915020670-62-qjz4m",
+      "name": "Green Onions",
+      "category": "Fresh Produce",
+      "unit": "unit",
+      "requires_scraping": true,
+      "stores": {
+        "metro": {
+          "url": "Http://metro.ca/en/online-grocery/aisles/fruits-vegetables/vegetables/onions-leeks/green-onions/p/4068",
+          "upc": "4068",
+          "regular_price": 1.99,
+          "sale_price": null,
+          "is_on_sale": 0,
+          "valid_until": "",
+          "track_pricing": true,
+          "external_name": "",
+          "is_verified": true
+        }
+      }
+    },
+    {
+      "id": "regular-1779915020670-63-0slj8",
+      "name": "Yellow onions",
+      "category": "Fresh Produce",
+      "unit": "bag",
+      "requires_scraping": false,
+      "stores": {}
+    },
+    {
+      "id": "regular-1779915020670-64-xv72i",
+      "name": "Parsley",
+      "category": "Fresh Produce",
+      "unit": "unit",
+      "requires_scraping": false,
+      "stores": {}
+    },
+    {
+      "id": "regular-1779915020670-65-dp07w",
+      "name": "Parsnips",
+      "category": "Fresh Produce",
+      "unit": "unit",
+      "requires_scraping": false,
+      "stores": {}
+    },
+    {
+      "id": "regular-1779915020670-66-4owt2",
+      "name": "Peppers",
+      "category": "Fresh Produce",
+      "unit": "unit",
+      "requires_scraping": false,
+      "stores": {}
+    },
+    {
+      "id": "regular-1779915020670-68-9zorn",
+      "name": "Potatoes",
+      "category": "Fresh Produce",
+      "unit": "unit",
+      "requires_scraping": false,
+      "stores": {}
+    },
+    {
+      "id": "regular-1779915020670-7-06ckd",
+      "name": "Grapes - green",
+      "category": "Fresh Produce",
+      "unit": "unit",
+      "requires_scraping": false,
+      "stores": {}
+    },
+    {
+      "id": "regular-1779915020670-70-1xse8",
+      "name": "Sweet potatoes",
+      "category": "Fresh Produce",
+      "unit": "unit",
+      "requires_scraping": false,
+      "stores": {}
+    },
+    {
+      "id": "regular-1779915020670-71-ttfq9",
+      "name": "Russet potatoes",
+      "category": "Fresh Produce",
+      "unit": "unit",
+      "requires_scraping": false,
+      "stores": {}
+    },
+    {
+      "id": "regular-1779915020670-72-k5sjn",
+      "name": "Yukon gold potatoes",
+      "category": "Fresh Produce",
+      "unit": "unit",
+      "requires_scraping": false,
+      "stores": {}
+    },
+    {
+      "id": "regular-1779915020670-73-quszu",
+      "name": "New",
+      "category": "Fresh Produce",
+      "unit": "unit",
+      "requires_scraping": false,
+      "stores": {}
+    },
+    {
+      "id": "regular-1779915020670-74-8lcr6",
+      "name": "Radishes",
+      "category": "Fresh Produce",
+      "unit": "unit",
+      "requires_scraping": false,
+      "stores": {}
+    },
+    {
+      "id": "regular-1779915020670-75-q50n8",
+      "name": "Red cabbage",
+      "category": "Fresh Produce",
+      "unit": "unit",
+      "requires_scraping": false,
+      "stores": {}
+    },
+    {
+      "id": "regular-1779915020670-76-1s12l",
+      "name": "Red peppers",
+      "category": "Fresh Produce",
+      "unit": "unit",
+      "requires_scraping": false,
+      "stores": {}
+    },
+    {
+      "id": "regular-1779915020670-77-m5xv4",
+      "name": "Tri coloured peppers",
+      "category": "Fresh Produce",
+      "unit": "unit",
+      "requires_scraping": false,
+      "stores": {}
+    },
+    {
+      "id": "regular-1779915020670-78-jn5ul",
+      "name": "Turnip",
+      "category": "Fresh Produce",
+      "unit": "unit",
+      "requires_scraping": false,
+      "stores": {}
+    },
+    {
+      "id": "regular-1779915020670-79-wk31y",
+      "name": "Spinach -Costco",
+      "category": "Fresh Produce",
+      "unit": "unit",
+      "requires_scraping": false,
+      "stores": {}
+    },
+    {
+      "id": "regular-1779915020670-8-fqe2j",
+      "name": "Kiwi",
+      "category": "Fresh Produce",
+      "unit": "unit",
+      "requires_scraping": false,
+      "stores": {}
+    },
+    {
+      "id": "regular-1779915020670-80-jdz7u",
+      "name": "Squash",
+      "category": "Fresh Produce",
+      "unit": "unit",
+      "requires_scraping": false,
+      "stores": {}
+    },
+    {
+      "id": "regular-1779915020670-81-yrgnh",
+      "name": "Spaghetti pasta",
+      "category": "Fresh Produce",
+      "unit": "unit",
+      "requires_scraping": false,
+      "stores": {}
+    },
+    {
+      "id": "regular-1779915020670-82-xgdej",
+      "name": "Butternut",
+      "category": "Fresh Produce",
+      "unit": "unit",
+      "requires_scraping": false,
+      "stores": {}
+    },
+    {
+      "id": "regular-1779915020670-83-z7y7i",
+      "name": "Acorn",
+      "category": "Fresh Produce",
+      "unit": "unit",
+      "requires_scraping": false,
+      "stores": {}
+    },
+    {
+      "id": "regular-1779915020670-84-gga65",
+      "name": "Sweet pea pods",
+      "category": "Fresh Produce",
+      "unit": "unit",
+      "requires_scraping": false,
+      "stores": {}
+    },
+    {
+      "id": "regular-1779915020670-85-oejkx",
+      "name": "Tomatoes",
+      "category": "Fresh Produce",
+      "unit": "unit",
+      "requires_scraping": false,
+      "stores": {}
+    },
+    {
+      "id": "regular-1779915020670-86-917gz",
+      "name": "Baby Tomatoes",
+      "category": "Fresh Produce",
+      "unit": "unit",
+      "requires_scraping": false,
+      "stores": {}
+    },
+    {
+      "id": "regular-1779915020670-87-pzmaw",
+      "name": "Plum tomatoes",
+      "category": "Fresh Produce",
+      "unit": "unit",
+      "requires_scraping": false,
+      "stores": {}
+    },
+    {
+      "id": "regular-1779915020670-88-4zfvw",
+      "name": "Large tomatoes",
+      "category": "Fresh Produce",
+      "unit": "unit",
+      "requires_scraping": false,
+      "stores": {}
+    },
+    {
+      "id": "regular-1779915020670-89-xkj21",
+      "name": "Small vine tomatoes",
+      "category": "Fresh Produce",
+      "unit": "unit",
+      "requires_scraping": false,
+      "stores": {}
+    },
+    {
+      "id": "regular-1779915020670-9-yq931",
+      "name": "Lemons",
+      "category": "Fresh Produce",
+      "unit": "unit",
+      "requires_scraping": false,
+      "stores": {}
+    },
+    {
+      "id": "regular-1779915020670-90-o8cpz",
+      "name": "Zucchini",
+      "category": "Fresh Produce",
+      "unit": "unit",
+      "requires_scraping": false,
+      "stores": {}
+    },
+    {
+      "id": "regular-1779915020670-92-76exu",
+      "name": "Bagels",
+      "category": "Bakery & Breads",
+      "unit": "unit",
+      "requires_scraping": false,
+      "stores": {}
+    },
+    {
+      "id": "regular-1779915020670-93-4rcv7",
+      "name": "Baguette",
+      "category": "Bakery & Breads",
+      "unit": "unit",
+      "requires_scraping": false,
+      "stores": {}
+    },
+    {
+      "id": "regular-1779915020670-94-t2v3c",
+      "name": "Cheese bread",
+      "category": "Bakery & Breads",
+      "unit": "unit",
+      "requires_scraping": false,
+      "stores": {}
+    },
+    {
+      "id": "regular-1779915020670-95-vjr4e",
+      "name": "Pita bread-whole wheat",
+      "category": "Bakery & Breads",
+      "unit": "unit",
+      "requires_scraping": false,
+      "stores": {}
+    },
+    {
+      "id": "regular-1779915020670-96-h1t5r",
+      "name": "Rye bread",
+      "category": "Bakery & Breads",
+      "unit": "unit",
+      "requires_scraping": false,
+      "stores": {}
+    },
+    {
+      "id": "regular-1779915020670-97-ly903",
+      "name": "Burger buns",
+      "category": "Bakery & Breads",
+      "unit": "unit",
+      "requires_scraping": false,
+      "stores": {}
+    },
+    {
+      "id": "regular-1779915020670-98-h1ppf",
+      "name": "Sausage buns cut on top",
+      "category": "Bakery & Breads",
+      "unit": "unit",
+      "requires_scraping": false,
+      "stores": {}
+    },
+    {
+      "id": "regular-1779915020670-99-z0j41",
+      "name": "Sandwich rolls",
+      "category": "Bakery & Breads",
+      "unit": "unit",
+      "requires_scraping": false,
+      "stores": {}
+    },
+    {
+      "id": "regular-1779915020671-322-13htl",
+      "name": "Cookies - C",
+      "category": "Pantry Staples",
+      "unit": "unit",
+      "requires_scraping": false,
+      "stores": {}
+    },
+    {
+      "id": "regular-1779915020671-323-9fldp",
+      "name": "Lemon jam",
+      "category": "Pantry Staples",
+      "unit": "unit",
+      "requires_scraping": false,
+      "stores": {}
+    },
+    {
+      "id": "regular-1779915020671-324-dcxhv",
+      "name": "Pizza sauce - GS",
+      "category": "Pantry Staples",
+      "unit": "unit",
+      "requires_scraping": false,
+      "stores": {}
+    },
+    {
+      "id": "regular-1779915020671-325-qhmfz",
+      "name": "Sun dried tomatoes",
+      "category": "Pantry Staples",
+      "unit": "unit",
+      "requires_scraping": false,
+      "stores": {}
+    },
+    {
+      "id": "regular-1779915020671-326-5gr7u",
+      "name": "Diced tomatoes - 2 cans - Wait till Thursday",
+      "category": "Pantry Staples",
+      "unit": "unit",
+      "requires_scraping": false,
+      "stores": {}
+    },
+    {
+      "id": "regular-1779915020671-327-fc8cw",
+      "name": "Crushed tomatoes  28oz - Wait till Thursday",
+      "category": "Pantry Staples",
+      "unit": "unit",
+      "requires_scraping": false,
+      "stores": {}
+    },
+    {
+      "id": "regular-1779915020671-328-cdpv2",
+      "name": "Tomato paste 3",
+      "category": "Pantry Staples",
+      "unit": "unit",
+      "requires_scraping": false,
+      "stores": {}
+    },
+    {
+      "id": "regular-1779915020671-329-j66gj",
+      "name": "Tomato Sauce - 2 GS",
+      "category": "Pantry Staples",
+      "unit": "unit",
+      "requires_scraping": false,
+      "stores": {}
+    },
+    {
+      "id": "regular-1779915020671-330-z6htk",
+      "name": "Pasta - curly",
+      "category": "Pantry Staples",
+      "unit": "unit",
+      "requires_scraping": false,
+      "stores": {}
+    },
+    {
+      "id": "regular-1779915020671-331-2m49q",
+      "name": "Orzo",
+      "category": "Pantry Staples",
+      "unit": "unit",
+      "requires_scraping": false,
+      "stores": {}
+    },
+    {
+      "id": "regular-1779915020671-332-ninil",
+      "name": "Wraps",
+      "category": "Pantry Staples",
+      "unit": "unit",
+      "requires_scraping": false,
+      "stores": {}
+    },
+    {
+      "id": "regular-1779915020671-333-m5x0x",
+      "name": "Barley",
+      "category": "Pantry Staples",
+      "unit": "unit",
+      "requires_scraping": false,
+      "stores": {}
+    },
+    {
+      "id": "regular-1779915020671-334-rspeg",
+      "name": "Green lentils - GS",
+      "category": "Pantry Staples",
+      "unit": "unit",
+      "requires_scraping": false,
+      "stores": {}
+    },
+    {
+      "id": "regular-1779915020671-335-86wbp",
+      "name": "Oyster sauce",
+      "category": "Pantry Staples",
+      "unit": "unit",
+      "requires_scraping": false,
+      "stores": {}
+    },
+    {
+      "id": "regular-1779915020671-336-hxmln",
+      "name": "Fish Sauce",
+      "category": "Pantry Staples",
+      "unit": "unit",
+      "requires_scraping": false,
+      "stores": {}
+    },
+    {
+      "id": "regular-1779915020671-337-l1ozz",
+      "name": "Tamarind paste",
+      "category": "Pantry Staples",
+      "unit": "unit",
+      "requires_scraping": false,
+      "stores": {}
+    },
+    {
+      "id": "regular-1779915020671-338-quuox",
+      "name": "Pomegranate-cranberry juice",
+      "category": "Pantry Staples",
+      "unit": "unit",
+      "requires_scraping": false,
+      "stores": {}
+    },
+    {
+      "id": "regular-1779915020671-339-dpygq",
+      "name": "Decaf coffee - Nescafé",
+      "category": "Pantry Staples",
+      "unit": "unit",
+      "requires_scraping": true,
+      "stores": {
+        "metro": {
+          "url": "https://www.metro.ca/en/online-grocery/aisles/beverages/coffee/instant-coffee/decaffeinated-espresso-instant-coffee/p/055000407137",
+          "upc": "1780449478791",
+          "regular_price": 10.79,
+          "sale_price": null,
+          "is_on_sale": 0,
+          "valid_until": "",
+          "track_pricing": true,
+          "external_name": "",
+          "is_verified": true
+        }
+      }
+    },
+    {
+      "id": "regular-1779915020671-340-2fv5j",
+      "name": "Corn - Freshco .79",
+      "category": "Pantry Staples",
+      "unit": "unit",
+      "requires_scraping": false,
+      "stores": {}
+    },
+    {
+      "id": "regular-1779915020671-341-p4fv2",
+      "name": "Tea - Twinigs 3.99 Feshco",
+      "category": "Pantry Staples",
+      "unit": "unit",
+      "requires_scraping": false,
+      "stores": {}
+    },
+    {
+      "id": "regular-1779915020671-343-2cdi1",
+      "name": "Wet ones",
+      "category": "Health, Personal & Household",
+      "unit": "unit",
+      "requires_scraping": false,
+      "stores": {}
+    },
+    {
+      "id": "regular-1779915020671-344-lionb",
+      "name": "Deodorant",
+      "category": "Health, Personal & Household",
+      "unit": "unit",
+      "requires_scraping": false,
+      "stores": {}
+    },
+    {
+      "id": "regular-1779915020671-345-q6h9m",
+      "name": "Razors -C",
+      "category": "Health, Personal & Household",
+      "unit": "unit",
+      "requires_scraping": false,
+      "stores": {}
+    },
+    {
+      "id": "regular-1779915020671-346-tzb0w",
+      "name": "Toothpaste",
+      "category": "Health, Personal & Household",
+      "unit": "ml",
+      "requires_scraping": true,
+      "stores": {
+        "metro": {
+          "url": "https://www.metro.ca/en/online-grocery/aisles/health-beauty/oral-care/toothpaste/professional-clean-advanced-toothpaste/p/058000142138",
+          "upc": "058000142138",
+          "regular_price": 6.99,
+          "sale_price": 5.49,
+          "is_on_sale": 1,
+          "valid_until": "2026-07-01",
+          "track_pricing": true,
+          "external_name": "",
+          "is_verified": true
+        },
+        "foodbasics": {
+          "url": "https://foodbasics.ca/aisles/health-beauty/oral-care/toothpaste/whitening-toothpaste/p/058000142039",
+          "upc": "058000142039",
+          "regular_price": 2.49,
+          "sale_price": null,
+          "is_on_sale": 0,
+          "valid_until": "",
+          "track_pricing": true,
+          "external_name": "",
+          "is_verified": true
+        }
+      }
+    },
+    {
+      "id": "regular-1779915020671-347-shr8a",
+      "name": "Tooth brush heads",
+      "category": "Health, Personal & Household",
+      "unit": "unit",
+      "requires_scraping": false,
+      "stores": {}
+    },
+    {
+      "id": "regular-1779915020671-348-g3rha",
+      "name": "Dental Toothpicks -C",
+      "category": "Health, Personal & Household",
+      "unit": "unit",
+      "requires_scraping": false,
+      "stores": {}
+    },
+    {
+      "id": "regular-1779915020671-349-mslli",
+      "name": "Toilet paper. - GS",
+      "category": "Health, Personal & Household",
+      "unit": "unit",
+      "requires_scraping": false,
+      "stores": {}
+    },
+    {
+      "id": "regular-1779915020671-351-ovkm7",
+      "name": "Kleenex",
+      "category": "Health, Personal & Household",
+      "unit": "unit",
+      "requires_scraping": false,
+      "stores": {}
+    },
+    {
+      "id": "regular-1779915020671-352-nw80p",
+      "name": "Dish soap - GS",
+      "category": "Health, Personal & Household",
+      "unit": "unit",
+      "requires_scraping": false,
+      "stores": {}
+    },
+    {
+      "id": "regular-1779915020671-353-3q877",
+      "name": "Shaving cream",
+      "category": "Health, Personal & Household",
+      "unit": "unit",
+      "requires_scraping": false,
+      "stores": {}
+    },
+    {
+      "id": "regular-1779915020671-354-ri5hq",
+      "name": "Make up remover",
+      "category": "Health, Personal & Household",
+      "unit": "unit",
+      "requires_scraping": false,
+      "stores": {}
+    },
+    {
+      "id": "regular-1779915020671-355-p8ebk",
+      "name": "Tylenol",
+      "category": "Health, Personal & Household",
+      "unit": "unit",
+      "requires_scraping": false,
+      "stores": {}
+    },
+    {
+      "id": "regular-1779915020671-356-mwc26",
+      "name": "Benedryl",
+      "category": "Health, Personal & Household",
+      "unit": "unit",
+      "requires_scraping": false,
+      "stores": {}
+    },
+    {
+      "id": "regular-1779915020671-357-bzqpe",
+      "name": "Shampoo",
+      "category": "Health, Personal & Household",
+      "unit": "unit",
+      "requires_scraping": false,
+      "stores": {}
+    },
+    {
+      "id": "regular-1779915020671-358-osxls",
+      "name": "Conditioner",
+      "category": "Health, Personal & Household",
+      "unit": "unit",
+      "requires_scraping": false,
+      "stores": {}
+    },
+    {
+      "id": "regular-1779915020671-359-tf5z8",
+      "name": "Body Wash",
+      "category": "Health, Personal & Household",
+      "unit": "unit",
+      "requires_scraping": false,
+      "stores": {}
+    },
+    {
+      "id": "regular-1779915020671-360-evu4j",
+      "name": "Dishwasher tabs - C",
+      "category": "Health, Personal & Household",
+      "unit": "unit",
+      "requires_scraping": false,
+      "stores": {}
+    },
+    {
+      "id": "regular-1779915020671-361-q3fzd",
+      "name": "Toilet Bowl Cleaner",
+      "category": "Health, Personal & Household",
+      "unit": "unit",
+      "requires_scraping": false,
+      "stores": {}
+    },
+    {
+      "id": "regular-1779915020671-362-5hmn1",
+      "name": "Dish Soap 2/$5. Food Basics",
+      "category": "Health, Personal & Household",
+      "unit": "unit",
+      "requires_scraping": false,
+      "stores": {}
+    },
+    {
+      "id": "regular-1779915020671-363-ac84d",
+      "name": "Garbage bags 34l clear",
+      "category": "Health, Personal & Household",
+      "unit": "unit",
+      "requires_scraping": false,
+      "stores": {}
+    },
+    {
+      "id": "regular-1779915020671-364-9f3gu",
+      "name": "Laundry soap - Kirkland- costco",
+      "category": "Health, Personal & Household",
+      "unit": "unit",
+      "requires_scraping": false,
+      "stores": {}
+    },
+    {
+      "id": "regular-1779915020671-366-lk7ys",
+      "name": "Salt",
+      "category": "Baking & Spices",
+      "unit": "unit",
+      "requires_scraping": false,
+      "stores": {}
+    },
+    {
+      "id": "regular-1779915020671-367-kaoxz",
+      "name": "Chili spice packages",
+      "category": "Baking & Spices",
+      "unit": "unit",
+      "requires_scraping": false,
+      "stores": {}
+    },
+    {
+      "id": "regular-1779915020671-368-3wfts",
+      "name": "Doritos",
+      "category": "Baking & Spices",
+      "unit": "unit",
+      "requires_scraping": false,
+      "stores": {}
+    },
+    {
+      "id": "regular-1779915020671-369-1ghdr",
+      "name": "Funfetti",
+      "category": "Baking & Spices",
+      "unit": "unit",
+      "requires_scraping": false,
+      "stores": {}
+    },
+    {
+      "id": "regular-1779915020671-370-sgtdt",
+      "name": "Wholewheat Flour - Costco",
+      "category": "Baking & Spices",
+      "unit": "unit",
+      "requires_scraping": false,
+      "stores": {}
+    },
+    {
+      "id": "regular-1779915020671-371-duuf9",
+      "name": "Raisins",
+      "category": "Baking & Spices",
+      "unit": "unit",
+      "requires_scraping": false,
+      "stores": {}
+    },
+    {
+      "id": "regular-1779915020671-372-qaykq",
+      "name": "Peanuts",
+      "category": "Baking & Spices",
+      "unit": "unit",
+      "requires_scraping": false,
+      "stores": {}
+    },
+    {
+      "id": "regular-1779915020671-373-1htuf",
+      "name": "Pecans",
+      "category": "Baking & Spices",
+      "unit": "unit",
+      "requires_scraping": false,
+      "stores": {}
+    },
+    {
+      "id": "regular-1779915020671-374-byt5m",
+      "name": "Pistachios",
+      "category": "Baking & Spices",
+      "unit": "unit",
+      "requires_scraping": false,
+      "stores": {}
+    },
+    {
+      "id": "regular-1779915020671-375-isig8",
+      "name": "Wallnuts - C",
+      "category": "Baking & Spices",
+      "unit": "unit",
+      "requires_scraping": false,
+      "stores": {}
+    },
+    {
+      "id": "regular-1779915020671-376-m1quh",
+      "name": "Pumpkin seeds",
+      "category": "Baking & Spices",
+      "unit": "unit",
+      "requires_scraping": false,
+      "stores": {}
+    },
+    {
+      "id": "regular-1779915020671-377-zplwc",
+      "name": "Slivered almonds-C",
+      "category": "Baking & Spices",
+      "unit": "unit",
+      "requires_scraping": false,
+      "stores": {}
+    },
+    {
+      "id": "regular-1779915020671-378-7x2xm",
+      "name": "Macadamia nuts",
+      "category": "Baking & Spices",
+      "unit": "unit",
+      "requires_scraping": false,
+      "stores": {}
+    },
+    {
+      "id": "regular-1779915020671-379-8c53i",
+      "name": "Ground almonds",
+      "category": "Baking & Spices",
+      "unit": "unit",
+      "requires_scraping": false,
+      "stores": {}
+    },
+    {
+      "id": "regular-1779915020671-380-nh6mh",
+      "name": "Vanilla -C",
+      "category": "Baking & Spices",
+      "unit": "unit",
+      "requires_scraping": false,
+      "stores": {}
+    },
+    {
+      "id": "regular-1779915020671-381-8g7i8",
+      "name": "Pepper",
+      "category": "Baking & Spices",
+      "unit": "unit",
+      "requires_scraping": false,
+      "stores": {}
+    },
+    {
+      "id": "regular-1779915020671-382-fkctk",
+      "name": "Seasoning -C",
+      "category": "Baking & Spices",
+      "unit": "unit",
+      "requires_scraping": false,
+      "stores": {}
+    },
+    {
+      "id": "regular-1779915020671-383-2dhbm",
+      "name": "Graham crackers",
+      "category": "Baking & Spices",
+      "unit": "unit",
+      "requires_scraping": false,
+      "stores": {}
+    },
+    {
+      "id": "regular-1779915020671-384-bas65",
+      "name": "Chickpea flour",
+      "category": "Baking & Spices",
+      "unit": "unit",
+      "requires_scraping": false,
+      "stores": {}
+    },
+    {
+      "id": "regular-1779915020671-385-fcbv1",
+      "name": "Flour",
+      "category": "Baking & Spices",
+      "unit": "unit",
+      "requires_scraping": false,
+      "stores": {}
+    },
+    {
+      "id": "regular-1779915020671-386-sjydp",
+      "name": "Sugar -C",
+      "category": "Baking & Spices",
+      "unit": "unit",
+      "requires_scraping": false,
+      "stores": {}
+    },
+    {
+      "id": "regular-1779915020671-387-uill5",
+      "name": "Brown sugar",
+      "category": "Baking & Spices",
+      "unit": "unit",
+      "requires_scraping": false,
+      "stores": {}
+    },
+    {
+      "id": "regular-1779915020671-388-cng9m",
+      "name": "Icing Sugar",
+      "category": "Baking & Spices",
+      "unit": "unit",
+      "requires_scraping": false,
+      "stores": {}
+    },
+    {
+      "id": "regular-1779915020671-389-se0z2",
+      "name": "Baking powder",
+      "category": "Baking & Spices",
+      "unit": "unit",
+      "requires_scraping": false,
+      "stores": {}
+    },
+    {
+      "id": "regular-1779915020671-390-0n5nh",
+      "name": "Baking soda",
+      "category": "Baking & Spices",
+      "unit": "unit",
+      "requires_scraping": false,
+      "stores": {}
+    },
+    {
+      "id": "regular-1779915020671-391-yyuyh",
+      "name": "Active dry yeast",
+      "category": "Baking & Spices",
+      "unit": "unit",
+      "requires_scraping": false,
+      "stores": {}
+    },
+    {
+      "id": "regular-1779915020671-392-4sn24",
+      "name": "Cocoa",
+      "category": "Baking & Spices",
+      "unit": "unit",
+      "requires_scraping": false,
+      "stores": {}
+    },
+    {
+      "id": "regular-1779915020671-393-dppvk",
+      "name": "Chocolate chips",
+      "category": "Baking & Spices",
+      "unit": "unit",
+      "requires_scraping": false,
+      "stores": {}
+    },
+    {
+      "id": "regular-1779915020671-394-zyhdo",
+      "name": "Cinnamon",
+      "category": "Baking & Spices",
+      "unit": "unit",
+      "requires_scraping": false,
+      "stores": {}
+    },
+    {
+      "id": "regular-1779915020671-395-335uw",
+      "name": "Cornmeal",
+      "category": "Baking & Spices",
+      "unit": "unit",
+      "requires_scraping": false,
+      "stores": {}
+    },
+    {
+      "id": "regular-1779915020671-396-sj95e",
+      "name": "White chocolate chips",
+      "category": "Baking & Spices",
+      "unit": "unit",
+      "requires_scraping": false,
+      "stores": {}
+    },
+    {
+      "id": "regular-1779915020671-397-lmvfd",
+      "name": "Tyme",
+      "category": "Baking & Spices",
+      "unit": "unit",
+      "requires_scraping": false,
+      "stores": {}
+    },
+    {
+      "id": "regular-1779915020671-398-weq56",
+      "name": "Onion Powder",
+      "category": "Baking & Spices",
+      "unit": "unit",
+      "requires_scraping": false,
+      "stores": {}
+    },
+    {
+      "id": "regular-1779915020671-399-y9hiq",
+      "name": "Rye flour",
+      "category": "Baking & Spices",
+      "unit": "unit",
+      "requires_scraping": false,
+      "stores": {}
+    },
+    {
+      "id": "regular-1779915020671-401-gajr5",
+      "name": "Scoops",
+      "category": "Baking & Spices",
+      "unit": "unit",
+      "requires_scraping": false,
+      "stores": {}
+    },
+    {
+      "id": "regular-1779915020671-403-1h2y8",
+      "name": "Gaviscon - Costco",
+      "category": "Pantry Staples",
+      "unit": "unit",
+      "requires_scraping": false,
+      "stores": {}
+    },
+    {
+      "id": "regular-1779915020671-404-h1dha",
+      "name": "Niquil",
+      "category": "Pantry Staples",
+      "unit": "unit",
+      "requires_scraping": false,
+      "stores": {}
+    },
+    {
+      "id": "regular-1779915020671-405-pay57",
+      "name": "Cepacol",
+      "category": "Pantry Staples",
+      "unit": "unit",
+      "requires_scraping": false,
+      "stores": {}
+    },
+    {
+      "id": "regular-1779915020671-407-pjkfe",
+      "name": "Cash - $100 - loonies - $5 - $20",
+      "category": "Pantry Staples",
+      "unit": "unit",
+      "requires_scraping": false,
+      "stores": {}
+    },
+    {
+      "id": "regular-1779915020671-408-dwqz8",
+      "name": "Batteries - Triple AAA 9 -",
+      "category": "Pantry Staples",
+      "unit": "unit",
+      "requires_scraping": false,
+      "stores": {}
+    },
+    {
+      "id": "regular-1779915020671-409-8oa8z",
+      "name": "Sun screen",
+      "category": "Pantry Staples",
+      "unit": "unit",
+      "requires_scraping": false,
+      "stores": {}
+    },
+    {
+      "id": "regular-1779915020671-410-at32j",
+      "name": "Garbage bags - clear 34l",
+      "category": "Pantry Staples",
+      "unit": "unit",
+      "requires_scraping": false,
+      "stores": {}
+    },
+    {
+      "id": "regular-1779915020671-411-cirzl",
+      "name": "Small garbage bags for bathroom",
+      "category": "Pantry Staples",
+      "unit": "unit",
+      "requires_scraping": false,
+      "stores": {}
+    },
+    {
+      "id": "regular-1779915020671-412-yk2am",
+      "name": "Paper plates - large",
+      "category": "Pantry Staples",
+      "unit": "unit",
+      "requires_scraping": false,
+      "stores": {}
+    },
+    {
+      "id": "regular-1779915020671-413-6yv9x",
+      "name": "Paper plates - small",
+      "category": "Pantry Staples",
+      "unit": "unit",
+      "requires_scraping": false,
+      "stores": {}
+    },
+    {
+      "id": "regular-1779915020671-414-6zxsd",
+      "name": "Foil",
+      "category": "Pantry Staples",
+      "unit": "unit",
+      "requires_scraping": false,
+      "stores": {}
+    },
+    {
+      "id": "regular-1779915020671-415-hm8if",
+      "name": "Bowls",
+      "category": "Pantry Staples",
+      "unit": "unit",
+      "requires_scraping": false,
+      "stores": {}
+    },
+    {
+      "id": "regular-1779915020671-416-44r0y",
+      "name": "Napkins - personal",
+      "category": "Pantry Staples",
+      "unit": "unit",
+      "requires_scraping": false,
+      "stores": {}
+    },
+    {
+      "id": "regular-1779915020671-417-53gdp",
+      "name": "Zip lock bags",
+      "category": "Pantry Staples",
+      "unit": "unit",
+      "requires_scraping": false,
+      "stores": {}
+    },
+    {
+      "id": "regular-1779915020671-418-njpt3",
+      "name": "Tide - Metro 5.99",
+      "category": "Pantry Staples",
+      "unit": "unit",
+      "requires_scraping": false,
+      "stores": {}
+    },
+    {
+      "id": "regular-1779915020671-419-8cvwx",
+      "name": "Paper towels - 6-pack",
+      "category": "Pantry Staples",
+      "unit": "pack",
+      "requires_scraping": true,
+      "stores": {
+        "walmart": {
+          "url": "https://www.walmart.ca/en/ip/SpongeTowels-Ultra-Paper-Towel-Choose-A-Size-Sheets-3-6-Regular-Rolls/3GS8P4A65ABC",
+          "upc": "3GS8P4A65ABC",
+          "regular_price": 7.46,
+          "sale_price": 6.96,
+          "is_on_sale": 1,
+          "valid_until": "",
+          "track_pricing": true,
+          "external_name": "",
+          "is_verified": true
+        }
+      }
+    },
+    {
+      "id": "regular-1779915020671-420-zwya5",
+      "name": "Shaving cream",
+      "category": "Pantry Staples",
+      "unit": "unit",
+      "requires_scraping": false,
+      "stores": {}
+    },
+    {
+      "id": "regular-1779915020671-421-a7b02",
+      "name": "Hand soap",
+      "category": "Pantry Staples",
+      "unit": "unit",
+      "requires_scraping": false,
+      "stores": {}
+    },
+    {
+      "id": "regular-1779915020671-422-jfp7o",
+      "name": "Sparkling wine",
+      "category": "Pantry Staples",
+      "unit": "unit",
+      "requires_scraping": false,
+      "stores": {}
+    },
+    {
+      "id": "regular-1779915020671-423-gkbnn",
+      "name": "Red wine",
+      "category": "Pantry Staples",
+      "unit": "unit",
+      "requires_scraping": false,
+      "stores": {}
+    },
+    {
+      "id": "regular-1779915020671-424-5nnwp",
+      "name": "White wine",
+      "category": "Pantry Staples",
+      "unit": "unit",
+      "requires_scraping": false,
+      "stores": {}
+    },
+    {
+      "id": "regular-1779915020671-425-mxsm9",
+      "name": "Dark rum 3/4 c",
+      "category": "Pantry Staples",
+      "unit": "unit",
+      "requires_scraping": false,
+      "stores": {}
+    },
+    {
+      "id": "regular-1779994128175-7nycq",
+      "name": "2% Lactose-Free Milk",
+      "category": "Dairy & Eggs",
+      "unit": "unit",
+      "requires_scraping": false,
+      "stores": {}
+    },
+    {
+      "id": "regular-1780000227251-qjhyv",
+      "name": "Milk LF 1%",
+      "category": "Dairy & Eggs",
+      "unit": "unit",
+      "requires_scraping": true,
+      "stores": {
+        "freshco": {
+          "url": "https://freshco.com/products/natrel-1--milk-partly-skimmed-2-l",
+          "upc": "manual-1781619242547",
+          "regular_price": 5.78,
+          "sale_price": null,
+          "is_on_sale": 0,
+          "valid_until": "",
+          "track_pricing": true,
+          "external_name": "",
+          "is_verified": true
+        },
+        "yourindependentgrocer": {
+          "url": "https://www.yourindependentgrocer.ca/en/lactose-free-1-dairy-product/p/20077874003_EA",
+          "upc": "20077874003_EA",
+          "regular_price": 7.14,
+          "sale_price": 6.5,
+          "is_on_sale": 1,
+          "valid_until": "2026-06-17",
+          "track_pricing": true,
+          "external_name": "",
+          "is_verified": false
+        },
+        "foodbasics": {
+          "url": "https://www.foodbasics.ca/aisles/dairy-eggs/milk-cream-butter/lactose-free-non-dairy-milk/1-lactose-free-milk/p/068200148441",
+          "upc": "",
+          "regular_price": 6.69,
+          "sale_price": null,
+          "is_on_sale": 0,
+          "valid_until": "",
+          "track_pricing": true,
+          "external_name": "",
+          "is_verified": true
+        }
+      }
+    },
+    {
+      "id": "regular-1780000536215-5uz0s",
+      "name": "Chicken Breasts Boneless Skinless",
+      "category": "Meat & Seafood",
+      "unit": "lb",
+      "requires_scraping": true,
+      "stores": {
+        "foodbasics": {
+          "url": "https://www.foodbasics.ca/aisles/meat-poultry/chicken-turkey/breasts/boneless-skinless-chicken-breasts/p/215064",
+          "upc": "215064",
+          "regular_price": 10.74,
+          "sale_price": null,
+          "is_on_sale": 0,
+          "valid_until": "",
+          "track_pricing": true,
+          "external_name": "",
+          "is_verified": true
+        }
+      }
+    },
+    {
+      "id": "regular-1780002091583-d1qmr",
+      "name": "Milk LF 2%",
+      "category": "Dairy & Eggs",
+      "unit": "l",
+      "requires_scraping": true,
+      "stores": {
+        "foodbasics": {
+          "url": "https://www.foodbasics.ca/aisles/dairy-eggs/milk-cream-butter/lactose-free-non-dairy-milk/2-lactose-free-milk/p/068200148434",
+          "upc": "068200148434",
+          "regular_price": 6.69,
+          "sale_price": null,
+          "is_on_sale": 0,
+          "valid_until": "",
+          "track_pricing": true,
+          "external_name": "",
+          "is_verified": true
+        }
+      }
+    },
+    {
+      "id": "regular-1780002196782-3zrl4",
+      "name": "2% lactose free cottage cheese",
+      "category": "Dairy & Eggs",
+      "unit": "g",
+      "requires_scraping": true,
+      "stores": {
+        "foodbasics": {
+          "url": "https://www.foodbasics.ca/aisles/dairy-eggs/packaged-cheese/cottage-cheese-ricotta/2-lactose-free-cottage-cheese/p/066013153737",
+          "upc": "066013153737",
+          "regular_price": 5.49,
+          "sale_price": null,
+          "is_on_sale": 0,
+          "valid_until": "",
+          "track_pricing": true,
+          "external_name": "",
+          "is_verified": true
+        }
+      }
+    },
+    {
+      "id": "regular-1780002321494-4hpz7",
+      "name": "Yogurt LF 1% Natrel",
+      "category": "Dairy & Eggs",
+      "unit": "unit",
+      "requires_scraping": false,
+      "stores": {}
+    },
+    {
+      "id": "regular-1780084916876-wqqh8",
+      "name": "Water - distilled",
+      "category": "Pantry Staples",
+      "unit": "unit",
+      "requires_scraping": false,
+      "stores": {}
+    },
+    {
+      "id": "regular-1780086655866-nkam6",
+      "name": "Garbage bags 10l",
+      "category": "Pantry Staples",
+      "unit": "unit",
+      "requires_scraping": false,
+      "stores": {}
+    },
+    {
+      "id": "regular-1780326893984-oazej",
+      "name": "Decaf coffee",
+      "category": "Baking & Spices",
+      "unit": "g",
+      "requires_scraping": false,
+      "stores": {}
+    },
+    {
+      "id": "regular-1781010423401-4v4e9",
+      "name": "Coke Zer",
+      "category": "Pantry Staples",
+      "unit": "unit",
+      "requires_scraping": false,
+      "stores": {}
+    },
+    {
+      "id": "regular-1781010449185-iyjxh",
+      "name": "Ginger ale",
+      "category": "Pantry Staples",
+      "unit": "unit",
+      "requires_scraping": false,
+      "stores": {}
+    },
+    {
+      "id": "regular-1781212343140-nmmgn",
+      "name": "Eggs - 24",
+      "category": "Dairy & Eggs",
+      "unit": "pack",
+      "requires_scraping": true,
+      "stores": {
+        "costco": {
+          "url": "",
+          "upc": "manual-1781212392909",
+          "regular_price": 8.99,
+          "sale_price": null,
+          "is_on_sale": 0,
+          "valid_until": "",
+          "track_pricing": true,
+          "external_name": "",
+          "is_verified": false
+        }
+      },
+      "last_updated": "2026-06-15T07:51:30.164Z"
+    },
+    {
+      "id": "regular-1781704393494-krtzp",
+      "name": "Whole wheat english muffins",
+      "category": "Fresh Produce",
+      "unit": "unit",
+      "requires_scraping": true,
+      "stores": {
+        "metro": {
+          "url": "https://metro.ca/en/online-grocery/aisles/bread-bakery-products/muffins-bagels-baked-goods/croissants-chocolatines/whole-wheat-english-muffins/p/059749955324",
+          "upc": "059749955324",
+          "regular_price": 3.49,
+          "sale_price": null,
+          "is_on_sale": 0,
+          "valid_until": "",
+          "track_pricing": true,
+          "external_name": "Whole wheat english muffins",
+          "is_verified": true
+        },
+        "freshco": {
+          "url": "https://freshco.com/products/compliments-english-muffins-whole-wheat-342-g",
+          "upc": "manual-1781704786603",
+          "regular_price": 2.29,
+          "sale_price": null,
+          "is_on_sale": 0,
+          "valid_until": "",
+          "track_pricing": true,
+          "external_name": "Whole wheat english muffins",
+          "is_verified": true
+        }
+      }
+    },
+    {
+      "id": "regular-1781705596347-hx8pp",
+      "name": "Beer - Corona Alcohol free",
+      "category": "Snacks & Beverages",
+      "unit": "box",
+      "requires_scraping": true,
+      "stores": {
+        "foodbasics": {
+          "url": "https://foodbasics.ca/aisles/beverages/non-alcoholic-beverages/non-alcoholic-beer/non-alcoholic-mexican-beer/p/062067425103",
+          "upc": "062067425103",
+          "regular_price": 23.99,
+          "sale_price": 21.49,
+          "is_on_sale": 1,
+          "valid_until": "2026-06-24",
+          "track_pricing": true,
+          "external_name": "Beer - Corona Alcohol free",
+          "is_verified": true
+        },
+        "freshco": {
+          "url": "https://freshco.com/products/corona-cero-non-alcoholic-beer-12-x-355-ml-(cans)",
+          "upc": "manual-1781707796429",
+          "regular_price": 21.99,
+          "sale_price": null,
+          "is_on_sale": 0,
+          "valid_until": "",
+          "track_pricing": true,
+          "external_name": "Beer - Corona Alcohol free",
+          "is_verified": true
+        }
+      }
+    },
+    {
+      "id": "regular-1781705733803-8ag2k",
+      "name": "Vegan hotdogs",
+      "category": "Meat & Seafood",
+      "unit": "pack",
+      "requires_scraping": false,
+      "stores": {}
+    },
+    {
+      "id": "regular-1781706572768-1mfdt",
+      "name": "Lactose free plain yogurt",
+      "category": "Dairy & Eggs",
+      "unit": "g",
+      "requires_scraping": true,
+      "stores": {
+        "foodbasics": {
+          "url": "https://foodbasics.ca/aisles/dairy-eggs/yogurt/probiotic-yogurts/1-lactose-free-probiotic-plain-yogurt/p/068200347448",
+          "upc": "068200347448",
+          "regular_price": 3.27,
+          "sale_price": null,
+          "is_on_sale": 0,
+          "valid_until": "",
+          "track_pricing": true,
+          "external_name": "Lactose free plain yogurt",
+          "is_verified": true
+        }
+      }
+    },
+    {
+      "id": "regular-1781713270385-9qh3d",
+      "name": "Plain yogurt - not lactose free",
+      "category": "Dairy & Eggs",
+      "unit": "ml",
+      "requires_scraping": false,
+      "stores": {}
+    },
+    {
+      "id": "regular-1781713917663-ztu4z",
+      "name": "Glass cleaner (Windex)",
+      "category": "Health, Personal & Household",
+      "unit": "ml",
+      "requires_scraping": false,
+      "stores": {}
+    },
+    {
+      "id": "regular-unmatched-1781603797827-g89x2",
+      "name": "English Cucumber",
+      "category": "Fresh Produce",
+      "unit": "each",
+      "requires_scraping": true,
+      "stores": {
+        "foodbasics": {
+          "url": "https://foodbasics.ca/aisles/fruits-vegetables/vegetables/tomatoes-cucumber/english-cucumber/p/4593",
+          "upc": "4593",
+          "regular_price": 1.99,
+          "sale_price": 0.99,
+          "is_on_sale": 1,
+          "valid_until": "2026-06-24",
+          "track_pricing": true,
+          "external_name": "",
+          "is_verified": true
+        }
+      }
+    }
+  ]
+}
