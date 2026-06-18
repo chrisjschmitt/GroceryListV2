@@ -1917,10 +1917,10 @@ export default function AdminPage() {
           {/* Catalog Item Manager Section (Dedicated CRUD on Admin page only) */}
           <div className="bg-white border-2 border-black p-6 shadow-[6px_6px_0px_0px_rgba(0,0,0,1)]">
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-4 pb-1.5 border-b-2 border-black">
-              <h2 className="text-base font-black uppercase tracking-tight flex items-center gap-2">
-                <Database className="w-5 h-5 text-emerald-600" /> Grocery List Catalog CRUD
-              </h2>
-              <div className="flex items-center gap-2">
+              <div className="flex items-center gap-3">
+                <h2 className="text-base font-black uppercase tracking-tight flex items-center gap-2">
+                  <Database className="w-5 h-5 text-emerald-600" /> Grocery List Catalog CRUD
+                </h2>
                 <button
                   type="button"
                   onClick={() => setIsCatalogCrudCollapsed(!isCatalogCrudCollapsed)}
@@ -1928,23 +1928,23 @@ export default function AdminPage() {
                 >
                   {isCatalogCrudCollapsed ? "▼ Expand" : "▲ Minimize"}
                 </button>
-                {!isCatalogCrudCollapsed && items.length > 0 && (
-                  <>
-                    <button
-                      onClick={handleExportCSV}
-                      className="text-xs font-black uppercase tracking-wider text-emerald-800 hover:bg-emerald-50 border-2 border-black px-3 py-1 shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] hover:shadow-none hover:translate-x-[1px] hover:translate-y-[1px] transition-all bg-white inline-flex items-center gap-1.5"
-                    >
-                      <Download className="w-3.5 h-3.5 text-emerald-600" /> Export Catalog CSV
-                    </button>
-                    <button
-                      onClick={handleClear}
-                      className="text-xs font-black uppercase tracking-wider text-red-600 hover:bg-red-50 border-2 border-black px-3 py-1 shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] hover:shadow-none hover:translate-x-[1px] hover:translate-y-[1px] transition-all bg-white"
-                    >
-                      Delete entire catalog
-                    </button>
-                  </>
-                )}
               </div>
+              {!isCatalogCrudCollapsed && items.length > 0 && (
+                <div className="flex items-center gap-2">
+                  <button
+                    onClick={handleExportCSV}
+                    className="text-xs font-black uppercase tracking-wider text-emerald-800 hover:bg-emerald-50 border-2 border-black px-3 py-1 shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] hover:shadow-none hover:translate-x-[1px] hover:translate-y-[1px] transition-all bg-white inline-flex items-center gap-1.5"
+                  >
+                    <Download className="w-3.5 h-3.5 text-emerald-600" /> Export Catalog CSV
+                  </button>
+                  <button
+                    onClick={handleClear}
+                    className="text-xs font-black uppercase tracking-wider text-red-600 hover:bg-red-50 border-2 border-black px-3 py-1 shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] hover:shadow-none hover:translate-x-[1px] hover:translate-y-[1px] transition-all bg-white"
+                  >
+                    Delete entire catalog
+                  </button>
+                </div>
+              )}
             </div>
 
             {!isCatalogCrudCollapsed && (
