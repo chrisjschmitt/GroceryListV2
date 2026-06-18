@@ -33,6 +33,18 @@ function normalizeStoreKey(storeId: string): string {
   return lower;
 }
 
+function getStoreActivePrice(storeInfo: any): number | null {
+  if (!storeInfo) return null;
+  const hasReg = storeInfo.regular_price !== null && storeInfo.regular_price !== undefined && storeInfo.regular_price > 0;
+  const hasSale = storeInfo.is_on_sale && storeInfo.sale_price !== null && storeInfo.sale_price !== undefined && storeInfo.sale_price > 0;
+  if (!hasReg && !hasSale) return null;
+  
+  if (storeInfo.is_on_sale && storeInfo.sale_price !== null && storeInfo.sale_price !== undefined && storeInfo.sale_price > 0) {
+    return typeof storeInfo.sale_price === "number" ? storeInfo.sale_price : parseFloat(storeInfo.sale_price) || null;
+  }
+  return typeof storeInfo.regular_price === "number" ? storeInfo.regular_price : parseFloat(storeInfo.regular_price) || null;
+}
+
 export default function GroceryList() {
   const store = useOfflineStore();
   const [confirmUncheckAll, setConfirmUncheckAll] = useState(false);
@@ -63,15 +75,12 @@ export default function GroceryList() {
 
           const addOrMergeStore = (sId: string, sInfo: any) => {
             const normId = normalizeStoreKey(sId);
-            const currentStorePrice = (sInfo.is_on_sale && sInfo.sale_price !== null && sInfo.sale_price !== undefined) 
-              ? sInfo.sale_price 
-              : (sInfo.regular_price || 0);
+            const currentStorePrice = getStoreActivePrice(sInfo);
+            if (currentStorePrice === null) return; // Skip stores without active price
               
             const existingStorePriceInfo = mergedStores[normId];
             const existingStorePrice = existingStorePriceInfo
-              ? ((existingStorePriceInfo.is_on_sale && existingStorePriceInfo.sale_price !== null && existingStorePriceInfo.sale_price !== undefined) 
-                  ? existingStorePriceInfo.sale_price 
-                  : (existingStorePriceInfo.regular_price || 0))
+              ? (getStoreActivePrice(existingStorePriceInfo) ?? Infinity)
               : Infinity;
 
             if (!existingStorePriceInfo || currentStorePrice < existingStorePrice) {
@@ -124,8 +133,8 @@ export default function GroceryList() {
           let bestStoreId = "";
           let bestPriceVal = Infinity;
           for (const [sId, sInfo] of Object.entries(mergedStores) as [string, any]) {
-            const pVal = (sInfo.is_on_sale && sInfo.sale_price !== null && sInfo.sale_price !== undefined) ? sInfo.sale_price : (sInfo.regular_price || 0);
-            if (pVal < bestPriceVal) {
+            const pVal = getStoreActivePrice(sInfo);
+            if (pVal !== null && pVal < bestPriceVal) {
               bestPriceVal = pVal;
               bestStoreId = sId;
             }
@@ -135,7 +144,7 @@ export default function GroceryList() {
             store_name: "Food Basics",
             postal_code: "",
             store_id: "foodbasics",
-            regular_price: 0,
+            regular_price: null,
             sale_price: null,
             is_on_sale: 0,
             lookup_url: "",
@@ -160,15 +169,12 @@ export default function GroceryList() {
           
           const addOrMergeStore = (sId: string, sInfo: any) => {
             const normId = normalizeStoreKey(sId);
-            const currentStorePrice = (sInfo.is_on_sale && sInfo.sale_price !== null && sInfo.sale_price !== undefined) 
-              ? sInfo.sale_price 
-              : (sInfo.regular_price || 0);
+            const currentStorePrice = getStoreActivePrice(sInfo);
+            if (currentStorePrice === null) return; // Skip stores without active price
               
             const existingStorePriceInfo = baseStores[normId];
             const existingStorePrice = existingStorePriceInfo
-              ? ((existingStorePriceInfo.is_on_sale && existingStorePriceInfo.sale_price !== null && existingStorePriceInfo.sale_price !== undefined) 
-                  ? existingStorePriceInfo.sale_price 
-                  : (existingStorePriceInfo.regular_price || 0))
+              ? (getStoreActivePrice(existingStorePriceInfo) ?? Infinity)
               : Infinity;
 
             if (!existingStorePriceInfo || currentStorePrice < existingStorePrice) {
@@ -201,8 +207,8 @@ export default function GroceryList() {
           let bestStoreId = "";
           let bestPriceVal = Infinity;
           for (const [sId, sInfo] of Object.entries(baseStores) as [string, any]) {
-            const pVal = (sInfo.is_on_sale && sInfo.sale_price !== null && sInfo.sale_price !== undefined) ? sInfo.sale_price : (sInfo.regular_price || 0);
-            if (pVal < bestPriceVal) {
+            const pVal = getStoreActivePrice(sInfo);
+            if (pVal !== null && pVal < bestPriceVal) {
               bestPriceVal = pVal;
               bestStoreId = sId;
             }
@@ -331,10 +337,10 @@ export default function GroceryList() {
         if (matchingEntry.stores && typeof matchingEntry.stores === "object") {
           for (const [storeId, storeInfo] of Object.entries(matchingEntry.stores) as [string, any]) {
             const normId = normalizeStoreKey(storeId);
-            const regular = typeof storeInfo.regular_price === "number" ? storeInfo.regular_price : parseFloat(storeInfo.regular_price) || 0;
-            const priceVal = (storeInfo.is_on_sale && storeInfo.sale_price !== null && storeInfo.sale_price !== undefined) 
-              ? storeInfo.sale_price 
-              : regular;
+            const priceVal = getStoreActivePrice(storeInfo);
+            if (priceVal === null) continue; // Skip stores without active price
+            
+            const regular = typeof storeInfo.regular_price === "number" ? storeInfo.regular_price : parseFloat(storeInfo.regular_price) || priceVal;
             
             if (pricesByStore[normId]) {
               if (priceVal < pricesByStore[normId].price) {
@@ -353,16 +359,16 @@ export default function GroceryList() {
             }
           }
         } else {
-          const regular = typeof matchingEntry.regular_price === "number" ? matchingEntry.regular_price : parseFloat(matchingEntry.regular_price) || 0;
-          const priceVal = (matchingEntry.is_on_sale && matchingEntry.sale_price !== null && matchingEntry.sale_price !== undefined)
-            ? matchingEntry.sale_price
-            : regular;
-          const normId = normalizeStoreKey(matchingEntry.store_id || "foodbasics");
-          pricesByStore[normId] = {
-            price: priceVal,
-            onSale: matchingEntry.is_on_sale === 1 || !!matchingEntry.is_on_sale,
-            regular: regular,
-          };
+          const priceVal = getStoreActivePrice(matchingEntry);
+          if (priceVal !== null) {
+            const regular = typeof matchingEntry.regular_price === "number" ? matchingEntry.regular_price : parseFloat(matchingEntry.regular_price) || priceVal;
+            const normId = normalizeStoreKey(matchingEntry.store_id || "foodbasics");
+            pricesByStore[normId] = {
+              price: priceVal,
+              onSale: matchingEntry.is_on_sale === 1 || !!matchingEntry.is_on_sale,
+              regular: regular,
+            };
+          }
         }
 
         for (const [storeId, info] of Object.entries(pricesByStore)) {

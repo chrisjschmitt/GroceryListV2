@@ -34,6 +34,18 @@ function isSaleExpiredLocal(validUntil?: string | null): boolean {
   return now > expiryDate;
 }
 
+function getStoreActivePrice(storeInfo: any): number | null {
+  if (!storeInfo) return null;
+  const hasReg = storeInfo.regular_price !== null && storeInfo.regular_price !== undefined && storeInfo.regular_price > 0;
+  const hasSale = storeInfo.is_on_sale && storeInfo.sale_price !== null && storeInfo.sale_price !== undefined && storeInfo.sale_price > 0;
+  if (!hasReg && !hasSale) return null;
+  
+  if (storeInfo.is_on_sale && storeInfo.sale_price !== null && storeInfo.sale_price !== undefined && storeInfo.sale_price > 0) {
+    return typeof storeInfo.sale_price === "number" ? storeInfo.sale_price : parseFloat(storeInfo.sale_price) || null;
+  }
+  return typeof storeInfo.regular_price === "number" ? storeInfo.regular_price : parseFloat(storeInfo.regular_price) || null;
+}
+
 interface RegularItemsListProps {
   items: RegularItem[];
   onAddToGroceryList: (items: RegularItem[]) => Promise<void>;
@@ -76,20 +88,20 @@ function abbreviateStoreName(name: string): string {
 
 function checkIfLowestPriceForEntry(price: any, storeId: string): boolean {
   if (!price.stores || typeof price.stores !== "object") return true;
-  const storeKeys = Object.keys(price.stores);
-  if (storeKeys.length <= 1) return true;
 
   let lowestPrice = Infinity;
-  for (const key of storeKeys) {
+  for (const key of Object.keys(price.stores)) {
     const s = price.stores[key];
-    const p = (s.is_on_sale && s.sale_price !== null && s.sale_price !== undefined) ? s.sale_price : (s.regular_price || 0);
-    if (p < lowestPrice) {
+    const p = getStoreActivePrice(s);
+    if (p !== null && p < lowestPrice) {
       lowestPrice = p;
     }
   }
 
   const currentStore = price.stores[storeId];
-  const currentPrice = currentStore ? ((currentStore.is_on_sale && currentStore.sale_price !== null && currentStore.sale_price !== undefined) ? currentStore.sale_price : (currentStore.regular_price || 0)) : Infinity;
+  if (!currentStore) return false;
+  const currentPrice = getStoreActivePrice(currentStore);
+  if (currentPrice === null) return false;
   return currentPrice <= lowestPrice;
 }
 
@@ -442,16 +454,8 @@ export default function RegularItemsList({
                             if (price.stores && typeof price.stores === "object") {
                               const storeEntries = Object.entries(price.stores);
                               if (storeEntries.length > 0) {
-                                // Filter out entries that contain a URL but have empty/no pricing fields
                                 const validStoreEntries = storeEntries.filter(([_, storeInfo]: [string, any]) => {
-                                  const hasUrl = !!storeInfo.lookup_url;
-                                  const hasRegularPrice = storeInfo.regular_price !== null && storeInfo.regular_price !== undefined && storeInfo.regular_price > 0;
-                                  const hasSalePrice = storeInfo.sale_price !== null && storeInfo.sale_price !== undefined && storeInfo.sale_price > 0;
-                                  const hasPricing = hasRegularPrice || hasSalePrice;
-                                  if (hasUrl && !hasPricing) {
-                                    return false;
-                                  }
-                                  return true;
+                                  return getStoreActivePrice(storeInfo) !== null;
                                 });
 
                                 if (validStoreEntries.length === 0) {
@@ -461,9 +465,8 @@ export default function RegularItemsList({
                                 return (
                                   <span className="sm:ml-auto inline-flex flex-wrap gap-1 items-center">
                                     {validStoreEntries.map(([storeId, storeInfo]: [string, any]) => {
-                                      const activeP = (storeInfo.is_on_sale && storeInfo.sale_price !== null && storeInfo.sale_price !== undefined) 
-                                        ? storeInfo.sale_price 
-                                        : (storeInfo.regular_price || 0);
+                                      const activeP = getStoreActivePrice(storeInfo);
+                                      if (activeP === null) return null;
                                       const isLowest = checkIfLowestPriceForEntry(price, storeId);
                                       const storeExpired = storeInfo.is_on_sale && storeInfo.valid_until && isSaleExpiredLocal(storeInfo.valid_until);
                                       const hasActiveSale = storeInfo.is_on_sale === 1;
@@ -521,6 +524,9 @@ export default function RegularItemsList({
                             }
 
                             // Single Store Fallback
+                            const activePrice = getStoreActivePrice(price);
+                            if (activePrice === null) return null;
+                            
                             const hasUrl = !!price.lookup_url;
                             const hasRegularPrice = price.regular_price !== null && price.regular_price !== undefined && price.regular_price > 0;
                             const hasSalePrice = price.sale_price !== null && price.sale_price !== undefined && price.sale_price > 0;
@@ -530,9 +536,6 @@ export default function RegularItemsList({
                               return null;
                             }
 
-                            const activePrice = (price.is_on_sale && price.sale_price !== null && price.sale_price !== undefined) 
-                              ? price.sale_price 
-                              : (price.regular_price || 0);
                             const fallbackExpired = price.is_on_sale && price.valid_until && isSaleExpiredLocal(price.valid_until);
                             const hasActiveSale = price.is_on_sale === 1;
 
