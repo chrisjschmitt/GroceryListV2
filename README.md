@@ -64,6 +64,50 @@ Open your browser and navigate to **[http://localhost:3000](http://localhost:300
 
 ---
 
+## Price Audit Scraper
+
+The project includes an automated pricing auditor located in `scripts/audit-prices.ts`. This tool launches a headful browser to capture screenshots of target grocery product pages, analyzes them with **Gemini 3.5 Flash**, and compares live prices/promotional dates against your database catalog to generate discrepancy reports.
+
+### Operations Workflow
+
+Follow these steps to run pricing audits:
+
+#### 1. Configure Local Store Profiles (`--setup`)
+Configure your store postal code/locations (e.g. Perth, Ontario) and dismiss cookie banners:
+```bash
+npx tsx scripts/audit-prices.ts --setup
+```
+This opens all major store homepages in tabs. Set your local store/zip code in the browser window, then return to your terminal and press `[ENTER]`. Playwright will store your cookies and configuration under `db-storage/playwright-profile/` for all subsequent runs.
+
+#### 2. Capture Screenshots (Default Mode)
+Capture screenshots of all target items:
+```bash
+npx tsx scripts/audit-prices.ts
+```
+* **Performance Caching:** The script automatically skips navigation for items that already have a screenshot saved under `screenshots/`. If you want to force-capture a specific item, simply delete its screenshot file from the `screenshots/` directory and rerun this command.
+
+#### 3. Analyze and Audit (`--analyze`)
+Process the screenshots and run Gemini vision auditing:
+```bash
+npx tsx scripts/audit-prices.ts --analyze
+```
+This runs the Gemini 3.5 Flash multimodal API to extract regular prices, sale prices, flyer validity dates, and sale status. It outputs:
+* **`price_audit_report.md`**: A detailed comparison markdown dashboard.
+* **`db-storage/audit-pricing-updates.json`**: A delta cache containing only the price updates/unverified flags.
+* **`db-storage/combined-catalog-updated.json`**: A full backup copy of the updated catalog.
+
+#### 4. Deploy Updates to Production (`--apply`)
+Push the delta updates back into the live production catalog on Vercel Blob:
+```bash
+npx tsx scripts/audit-prices.ts --apply
+```
+The merge process downloads the latest live production catalog, applies only the delta modifications (to prevent stomping on concurrent production changes), and uploads the merged catalog.
+
+#### 5. Scraper Error & Block Handling
+If a URL fails to load or triggers a bot manager screen (e.g. Akamai blocking Your Independent Grocer deep-links), the script logs the status as `"ERROR"`. In this case, **no pricing updates** are written, and the link's `is_verified` state is automatically set to `false` (unchecked) so that it is excluded from future scrape cycles until manually re-evaluated.
+
+---
+
 ## Scripts & Operations
 
 Inside [package.json](file:///Users/christopherschmitt/Library/Mobile%20Documents/com~apple~CloudDocs/GroceryHub/Code/GroceryListV2/package.json), you will find the following commands:
