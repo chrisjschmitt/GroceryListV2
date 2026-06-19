@@ -21,6 +21,19 @@ interface VersionEntry {
 
 const VERSIONS: VersionEntry[] = [
   {
+    version: "1.7.9",
+    date: "June 2026",
+    type: "patch",
+    title: "Manual Scraper Input & Direct Sync Pipeline",
+    changes: [
+      {
+        icon: <Cloud className="w-4 h-4 text-indigo-600" />,
+        category: "Developer Tooling",
+        description: "Added a Neo-Brutalist overlay form to the Tampermonkey exporter script to allow manual input of regular price, sale price, and expiry date. Configured API endpoints to parse and synchronize these values directly to combined-catalog.json and prices.json."
+      }
+    ]
+  },
+  {
     version: "1.7.8",
     date: "June 2026",
     type: "patch",
