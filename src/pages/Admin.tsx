@@ -127,6 +127,41 @@ export default function AdminPage() {
   const [catalog, setCatalog] = useState<any>(null);
   const items = useMemo(() => (catalog ? catalog.items || [] : []), [catalog]);
   const [loading, setLoading] = useState(true);
+
+  // MongoDB prices collection state
+  const [pricesData, setPricesData] = useState<any>(null);
+  const [pricesLoading, setPricesLoading] = useState(true);
+  const [pricesSearch, setPricesSearch] = useState("");
+
+  const fetchPrices = async () => {
+    setPricesLoading(true);
+    try {
+      const res = await fetch("/api/prices");
+      if (res.ok) {
+        const data = await res.json();
+        setPricesData(data.prices || {});
+      }
+    } catch (err) {
+      console.error("Failed to fetch MongoDB prices:", err);
+    } finally {
+      setPricesLoading(false);
+    }
+  };
+
+  const pricesFilteredEntries = useMemo(() => {
+    if (!pricesData) return [];
+    return Object.entries(pricesData).filter(([key, item]: [string, any]) => {
+      const query = pricesSearch.toLowerCase().trim();
+      if (!query) return true;
+      const name = (item.item_name || "").toLowerCase();
+      const config = (item.config_name || "").toLowerCase();
+      const ext = (item.external_name || "").toLowerCase();
+      const store = (item.store_name || "").toLowerCase();
+      const storeId = (item.store_id || "").toLowerCase();
+      const upc = (item.upc || key || "").toLowerCase();
+      return name.includes(query) || config.includes(query) || ext.includes(query) || store.includes(query) || storeId.includes(query) || upc.includes(query);
+    });
+  }, [pricesData, pricesSearch]);
   const [autoSave, setAutoSave] = useState(() =>
     typeof window !== "undefined" ? getAutoSaveEnabled() : false
   );
@@ -344,16 +379,19 @@ export default function AdminPage() {
     let cancelled = false;
     async function load() {
       try {
-        const [configRes, catalogRes] = await Promise.all([
+        const [configRes, catalogRes, pricesRes] = await Promise.all([
           fetch("/api/scrape-config"),
           fetch("/api/catalog"),
+          fetch("/api/prices"),
         ]);
         const configData = await configRes.json();
         const catalogData = await catalogRes.json();
+        const pricesJson = await pricesRes.json();
         if (!cancelled) {
           const normalizedConfig = ensureDefaultStores(configData);
           setScrapeConfig(normalizedConfig);
           setCatalog(catalogData || { stores: {}, items: [] });
+          setPricesData(pricesJson.prices || {});
         }
       } catch (err) {
         console.error("Error loading admin system datasets:", err);
@@ -362,6 +400,7 @@ export default function AdminPage() {
           setLoading(false);
           setScrapeLoading(false);
           setCatalogLoading(false);
+          setPricesLoading(false);
         }
       }
     }
@@ -3022,6 +3061,124 @@ export default function AdminPage() {
 
             {/* Google Drive Import/Export Backup Block */}
             <GoogleDriveBackup items={items} scrapeConfig={scrapeConfig} onRestoreComplete={fetchCatalog} />
+          </div>
+
+          {/* MongoDB Price Ingestion Logs (Prices Collection) */}
+          <div className="bg-white border-2 border-black p-6 shadow-[6px_6px_0px_0px_rgba(0,0,0,1)] text-black">
+            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-4 pb-1.5 border-b-2 border-black">
+              <h2 className="text-base font-black uppercase tracking-tight flex items-center gap-1.5 text-black">
+                <Database className="w-5 h-5 text-emerald-600" />
+                📋 MongoDB Price Ingestion Logs (API Records)
+              </h2>
+              <div className="flex items-center gap-2">
+                <input
+                  type="text"
+                  placeholder="Search logs by name, UPC, or store..."
+                  value={pricesSearch}
+                  onChange={(e) => setPricesSearch(e.target.value)}
+                  className="px-2.5 py-1.5 text-xs border-2 border-black bg-white focus:outline-none font-bold text-black w-60"
+                />
+                <button
+                  type="button"
+                  onClick={fetchPrices}
+                  disabled={pricesLoading}
+                  className="text-xs font-black uppercase tracking-wider bg-black hover:bg-emerald-600 disabled:bg-gray-400 text-white px-3 py-1.5 border border-black shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] hover:shadow-none hover:translate-x-[1px] hover:translate-y-[1px] transition-all inline-flex items-center gap-1 cursor-pointer"
+                >
+                  <RefreshCw className={`w-3.5 h-3.5 ${pricesLoading ? 'animate-spin' : ''}`} />
+                  Refresh Logs
+                </button>
+              </div>
+            </div>
+
+            <p className="text-xs text-gray-500 mb-6 font-medium leading-relaxed">
+              This log lists all price records stored inside your MongoDB Atlas <code>prices</code> collection. This serves as the audit log for pricing ingested via the <code>/api/append-grocery</code> endpoint.
+            </p>
+
+            {pricesLoading && !pricesData ? (
+              <div className="text-center py-8">
+                <RefreshCw className="w-6 h-6 animate-spin mx-auto text-emerald-600" />
+                <p className="text-xs font-bold text-gray-400 mt-2">Loading ingestion logs from MongoDB...</p>
+              </div>
+            ) : pricesData && Object.keys(pricesData).length > 0 ? (
+              <div className="border-2 border-black overflow-hidden animate-fade-in">
+                <div className="max-h-[400px] overflow-y-auto">
+                  <table className="w-full text-left text-xs border-collapse">
+                    <thead>
+                      <tr className="bg-black text-white uppercase font-black tracking-wider text-[10px] select-none sticky top-0 z-10">
+                        <th className="p-2 border-r border-white/20">UPC / ID</th>
+                        <th className="p-2 border-r border-white/20">Product Details</th>
+                        <th className="p-2 border-r border-white/20">Store</th>
+                        <th className="p-2 border-r border-white/20">Prices</th>
+                        <th className="p-2 border-r border-white/20">Matching Metadata</th>
+                        <th className="p-2">Timestamp</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {pricesFilteredEntries.length > 0 ? (
+                        pricesFilteredEntries.map(([key, item]: [string, any]) => {
+                          const upc = item.upc || key;
+                          return (
+                            <tr key={key} className="border-b border-black hover:bg-gray-50/80 transition-colors font-medium">
+                              <td className="p-2 border-r border-black/10 font-mono text-[10px] font-black text-emerald-800 break-all select-all">
+                                {upc}
+                              </td>
+                              <td className="p-2 border-r border-black/10">
+                                <span className="font-black text-black block">{item.item_name || item.config_name}</span>
+                                {item.external_name && (
+                                  <span className="text-[9px] text-gray-400 block mt-0.5 leading-none">
+                                    Scraped: "{item.external_name}"
+                                  </span>
+                                )}
+                              </td>
+                              <td className="p-2 border-r border-black/10">
+                                <span className="font-extrabold uppercase text-[9px] px-1.5 py-0.5 bg-gray-100 border border-black/10 rounded text-gray-700">
+                                  {item.store_name || item.store_id}
+                                </span>
+                              </td>
+                              <td className="p-2 border-r border-black/10">
+                                <div className="space-y-0.5">
+                                  <p className="font-bold text-gray-700">Reg: <span className="font-extrabold text-black">{item.regular_price !== null && item.regular_price !== undefined ? `$${Number(item.regular_price).toFixed(2)}` : '--'}</span></p>
+                                  <p className="font-bold text-gray-700">
+                                    Sale: <span className={item.is_on_sale ? "font-black text-rose-600" : "font-extrabold text-black"}>
+                                      {item.sale_price !== null && item.sale_price !== undefined ? `$${Number(item.sale_price).toFixed(2)}` : '--'}
+                                    </span>
+                                    {item.is_on_sale === 1 && <span className="ml-1 text-[8px] bg-rose-100 border border-rose-500 text-rose-700 px-1 uppercase font-black tracking-wider rounded font-mono">On Sale</span>}
+                                  </p>
+                                </div>
+                              </td>
+                              <td className="p-2 border-r border-black/10 text-[10px] max-w-[280px]">
+                                {item.matched_catalog_id ? (
+                                  <div className="space-y-0.5">
+                                    <p className="font-bold text-emerald-800">Matched ID: <span className="font-black font-mono text-[9px] select-all">{item.matched_catalog_id}</span></p>
+                                    <p className="font-bold text-gray-600">Confidence: <span className="font-black text-black">{item.match_confidence}%</span></p>
+                                    {item.match_reason && <p className="text-[9px] text-gray-400 font-semibold italic mt-0.5 leading-normal">"{item.match_reason}"</p>}
+                                  </div>
+                                ) : (
+                                  <span className="text-[10px] font-bold text-rose-600">Unmatched / Custom</span>
+                                )}
+                              </td>
+                              <td className="p-2 text-[10px] font-bold text-gray-500 whitespace-nowrap">
+                                {item.last_updated ? new Date(item.last_updated).toLocaleString() : '--'}
+                              </td>
+                            </tr>
+                          );
+                        })
+                      ) : (
+                        <tr>
+                          <td colSpan={6} className="p-6 text-center text-xs font-bold text-gray-400">
+                            No log documents matching "{pricesSearch}" found in prices collection.
+                          </td>
+                        </tr>
+                      )}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            ) : (
+              <div className="text-center py-8 bg-gray-50 border-2 border-dashed border-gray-300">
+                <p className="text-xs font-bold text-gray-400">No log documents found in prices collection.</p>
+              </div>
+            )}
           </div>
 
           {/* Gemini AI Product Matching Test-Bed & Playground (Approach A) */}
