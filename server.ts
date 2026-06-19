@@ -5,6 +5,16 @@ import { spawn } from "child_process";
 import fs from "fs";
 import { MongoClient } from "mongodb";
 import { createServer as createViteServer } from "vite";
+import dotenv from "dotenv";
+
+// Load Environment Variables from .env.local
+const envPath = path.join(process.cwd(), ".env.local");
+if (fs.existsSync(envPath)) {
+  dotenv.config({ path: envPath });
+} else {
+  dotenv.config();
+}
+
 import { parseCsv } from "./src/lib/csv-parser";
 import { evaluateGeminiMatch, runAllMatchingTests } from "./src/lib/gemini-match-service";
 import {

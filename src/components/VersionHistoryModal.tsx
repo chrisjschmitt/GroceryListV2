@@ -21,6 +21,19 @@ interface VersionEntry {
 
 const VERSIONS: VersionEntry[] = [
   {
+    version: "1.7.8",
+    date: "June 2026",
+    type: "patch",
+    title: "Developer Server Environment Variables Configuration",
+    changes: [
+      {
+        icon: <Cloud className="w-4 h-4 text-indigo-600" />,
+        category: "Developer Tooling",
+        description: "Configured dotenv at the entry point of server.ts to load environment variables from .env.local on development server startup, resolving authentication issues on the append-grocery API."
+      }
+    ]
+  },
+  {
     version: "1.7.7",
     date: "June 2026",
     type: "patch",
