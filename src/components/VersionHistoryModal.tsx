@@ -21,6 +21,37 @@ interface VersionEntry {
 
 const VERSIONS: VersionEntry[] = [
   {
+    version: "1.8.1",
+    date: "June 2026",
+    type: "minor",
+    title: "MongoDB Live Price logs Audit panel",
+    changes: [
+      {
+        icon: <Database className="w-4 h-4 text-emerald-600" />,
+        category: "Admin Portal",
+        description: "Added a live MongoDB prices collection auditor table in the Admin panel that queries, filters, and searches live API ingestion price logs directly from MongoDB Atlas."
+      }
+    ]
+  },
+  {
+    version: "1.8.0",
+    date: "June 2026",
+    type: "minor",
+    title: "Gemini Schema Hardening & Scraper Ingestion Fix",
+    changes: [
+      {
+        icon: <Sparkles className="w-4 h-4 text-purple-600" />,
+        category: "AI matching engine",
+        description: "Hardened Gemini prompts, response schemas, and added post-processing regex parser sanitization to prevent conversational text leaks. Fixed duplicate unmatched writes that reset the scraper ingestion toggle."
+      },
+      {
+        icon: <Trash2 className="w-4 h-4 text-rose-600" />,
+        category: "API optimization",
+        description: "Removed direct writing to Vercel Blob prices.json inside the append-grocery API. The pipeline now writes exclusively to MongoDB Atlas."
+      }
+    ]
+  },
+  {
     version: "1.7.9",
     date: "June 2026",
     type: "patch",

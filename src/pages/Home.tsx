@@ -2,10 +2,11 @@ import { useState } from "react";
 import Link from "@/components/Link";
 import GroceryList from "@/components/GroceryList";
 import VersionHistoryModal from "@/components/VersionHistoryModal";
+import packageJson from "../../package.json";
 
 export default function Home() {
   const [isChangelogOpen, setIsChangelogOpen] = useState(false);
-  const CURRENT_VERSION = "1.7.9";
+  const CURRENT_VERSION = packageJson.version;
 
   return (
     <main className="flex-1 bg-[#f9fafb] text-[#111827] min-h-screen font-sans">
