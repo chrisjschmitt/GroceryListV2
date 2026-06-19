@@ -16,7 +16,7 @@
 | Butter unsalted | foodbasics | ✅ MATCH | Reg: $5.99 | Reg: $5.99 | Yes | None |
 | Lactose Free cheese | foodbasics | ⚠️ MISMATCH | Sale: $3.98 (Reg: $4.98) | Reg: $5.99 | Yes | Regular Price mismatch: Catalog has $4.98, Live has $5.99; Sale Price mismatch: Catalog has $3.98, Live has $-- |
 | Lactose free Greek yogurt | foodbasics | ✅ MATCH | Reg: $7.49 | Reg: $7.49 | Yes | None |
-| Lactose free Greek yogurt | freshco | ⚠️ MISMATCH | Reg: $7.49 | Sale: $6.49 (Reg: $7.49) | No | Sale Price mismatch: Catalog has $--, Live has $6.49; Validity Date mismatch: Catalog has "--", Live has "2024-08-12" |
+| Lactose free Greek yogurt | freshco | ⚠️ MISMATCH | Reg: $7.49 | Sale: $6.49 (Reg: $7.49) | No | Sale Price mismatch: Catalog has $--, Live has $6.49; Validity Date mismatch: Catalog has "--", Live has "2026-08-12" |
 | LF Ice cream | foodbasics | ⚠️ MISMATCH | Reg: $7.99 | Sale: $5.88 (Reg: $7.99) | No | Sale Price mismatch: Catalog has $--, Live has $5.88; Validity Date mismatch: Catalog has "--", Live has "2026-06-24" |
 | LF Ice cream | metro | ✅ MATCH | Reg: $7.99 | Reg: $7.99 | Yes | None |
 | Ground beef Lean 450g | foodbasics | ⚠️ MISMATCH | Sale: $6.94 (Reg: $20) | Reg: $7 | No | Regular Price mismatch: Catalog has $20, Live has $7; Sale Price mismatch: Catalog has $6.94, Live has $--; Validity Date mismatch: Catalog has "2026-06-10", Live has "--" |

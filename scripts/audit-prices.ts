@@ -533,14 +533,17 @@ async function runAudit() {
   // 4. Inspect captured images using Gemini 3.5 Flash
   console.log("\n4. Analyzing images with Gemini 3.5 Flash API...");
   
+  const currentYear = new Date().getFullYear();
+  const currentDateStr = new Date().toLocaleDateString("en-US", { year: "numeric", month: "long", day: "numeric" });
   const systemInstruction = `
 You are a precision grocery price auditing bot. Your task is to analyze the screenshot of a grocery item product page and extract the exact pricing details.
+The current date is ${currentDateStr} (Year ${currentYear}). If the flyer/screenshot displays a date without a year (e.g. "August 12" or "valid until Aug 12"), assume the current year is ${currentYear} and construct the YYYY-MM-DD date.
 
 Please extract the following fields:
 1. "regular_price": The standard regular retail price of the item. It must be a number (e.g. 5.49). Set to null if not found.
 2. "sale_price": The active promotional sale price of the item. It must be a number (e.g. 3.99). Set to null if no active sale/discount is visible.
 3. "is_on_sale": A boolean indicating if the item is currently on sale/discount.
-4. "valid_until": The expiration or end date of the active flyer/promotional sale in format "YYYY-MM-DD" (e.g. "2026-06-24"). Set to null if no expiry date or no active sale is found.
+4. "valid_until": The expiration or end date of the active flyer/promotional sale in format "YYYY-MM-DD" (e.g. "${currentYear}-06-24"). Set to null if no expiry date or no active sale is found.
 
 Look for currency symbols ($, ¢). Be precise and double check your numbers.
 `;
@@ -627,6 +630,14 @@ Extract regular price, sale price, sale status, and flyer validity date.
         const dateRegex = /^\d{4}-\d{2}-\d{2}$/;
         if (!dateRegex.test(valDate) || valDate.startsWith("0000") || valDate.startsWith("1970")) {
           valDate = null;
+        } else {
+          // If the year extracted is less than the current year, correct it to the current year
+          const parts = valDate.split("-");
+          const year = parseInt(parts[0], 10);
+          const currentYear = new Date().getFullYear();
+          if (year < currentYear) {
+            valDate = `${currentYear}-${parts[1]}-${parts[2]}`;
+          }
         }
       }
       result.geminiValidUntil = valDate;

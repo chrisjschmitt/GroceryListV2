@@ -55,11 +55,11 @@
     "regular_price": 7.49,
     "sale_price": 6.49,
     "is_on_sale": 1,
-    "valid_until": "2024-08-12",
+    "valid_until": "2026-08-12",
     "status": "MISMATCH",
     "discrepancies": [
       "Sale Price mismatch: Catalog has $--, Live has $6.49",
-      "Validity Date mismatch: Catalog has \"--\", Live has \"2024-08-12\""
+      "Validity Date mismatch: Catalog has \"--\", Live has \"2026-08-12\""
     ]
   },
   {
