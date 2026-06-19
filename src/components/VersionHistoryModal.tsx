@@ -21,6 +21,71 @@ interface VersionEntry {
 
 const VERSIONS: VersionEntry[] = [
   {
+    version: "1.7.7",
+    date: "June 2026",
+    type: "patch",
+    title: "Production Database Synchronizer",
+    changes: [
+      {
+        icon: <Cloud className="w-4 h-4 text-indigo-600" />,
+        category: "Developer Tooling",
+        description: "Created a database sync utility script allowing developers to pull fresh combined catalog databases, prices, and scraper configurations directly from production Vercel Blob stores into local dev environments."
+      }
+    ]
+  },
+  {
+    version: "1.7.5",
+    date: "June 2026",
+    type: "patch",
+    title: "Flyer Date Parsing & Expiry Mismatch Fix",
+    changes: [
+      {
+        icon: <Calendar className="w-4 h-4 text-emerald-600" />,
+        category: "AI Pricing Scraper",
+        description: "Injected current year context dynamically to Gemini instructions and built date fallback year-handling post-validation to correct year-parsing cutoff anomalies (e.g. resolving 2024 to 2026)."
+      }
+    ]
+  },
+  {
+    version: "1.7.4",
+    date: "June 2026",
+    type: "patch",
+    title: "Unconfigured Store Pricing Filter",
+    changes: [
+      {
+        icon: <Database className="w-4 h-4 text-indigo-600" />,
+        category: "Smart Basket Calculations",
+        description: "Ignored store pricing records lacking valid regular or sale price values, avoiding incorrect $0.00 pricing calculations in lowest-price card matches and metrics."
+      }
+    ]
+  },
+  {
+    version: "1.7.3",
+    date: "June 2026",
+    type: "patch",
+    title: "Interactive Lowest Price Details Modal",
+    changes: [
+      {
+        icon: <Layout className="w-4 h-4 text-emerald-600" />,
+        category: "UI Dashboard Enhancements",
+        description: "Added a Neo-Brutalist overlay modal detailing all items matching the lowest price for any clicked grocery store card inside the Smart Basket Indices panel."
+      }
+    ]
+  },
+  {
+    version: "1.7.2",
+    date: "June 2026",
+    type: "patch",
+    title: "Failed Scrapes Link De-verification Fix",
+    changes: [
+      {
+        icon: <Trash2 className="w-4 h-4 text-emerald-600" />,
+        category: "Price Audit Scraper",
+        description: "Modified the catalog price auditor to automatically toggle off store link verification status on failed scrapes instead of updating prices to a placeholder $1.00."
+      }
+    ]
+  },
+  {
     version: "1.7.1",
     date: "June 2026",
     type: "patch",
