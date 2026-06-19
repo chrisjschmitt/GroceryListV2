@@ -642,38 +642,7 @@ async function startServer() {
             await blobSetCombinedCatalog(catalog);
             console.log(`Successfully synced matched item "${catalogItem.name}" to combined-catalog under store "${fStoreKey}" from MongoDB prices log entry.`);
 
-            // Update prices.json cache for instant UI updates
-            try {
-              const prices = await blobGetPrices();
-              prices[priceDoc._id || finalKey] = {
-                _id: priceDoc._id || finalKey,
-                config_name: priceDoc.config_name || priceDoc.item_name || "",
-                item_name: priceDoc.item_name || priceDoc.config_name || "",
-                store_id: priceDoc.store_id || fStoreKey,
-                store_name: priceDoc.store_name || "",
-                regular_price: regVal,
-                sale_price: saleVal,
-                is_on_sale: isOnSaleVal,
-                lookup_url: dbUrl,
-                valid_until: priceDoc.valid_until || "",
-                stores: {
-                  ...(prices[priceDoc._id || finalKey]?.stores || {}),
-                  [fStoreKey]: {
-                    store_id: fStoreKey,
-                    store_name: priceDoc.store_name || "",
-                    regular_price: regVal,
-                    sale_price: saleVal,
-                    is_on_sale: isOnSaleVal,
-                    lookup_url: dbUrl,
-                    valid_until: priceDoc.valid_until || ""
-                  } as any
-                }
-              } as any;
-              await blobSetPrices(prices);
-              console.log(`Successfully synced prices.json for item "${catalogItem.name}" under store "${fStoreKey}".`);
-            } catch (pricesErr) {
-              console.error("Error updating prices.json in /api/append-grocery:", pricesErr);
-            }
+            // Vercel prices.json cache update eliminated for the append/grocery API pipeline.
           }
         } catch (catalogErr) {
           console.error("Error updating combined-catalog in /api/append-grocery:", catalogErr);

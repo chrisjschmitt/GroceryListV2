@@ -1,8 +1,8 @@
 // ==UserScript==
-// @name         GroceryScout - 2.5 Normalized Canonical Exporter
+// @name         GroceryScout - 2.7 Normalized Canonical Exporter
 // @namespace    http://tampermonkey.net/
-// @version      2.6
-// @description  Updated token
+// @version      2.7
+// @description  Added pricing fields to submission form
 // @author       You
 // @match        https://www.foodbasics.ca/*
 // @match        https://www.metro.ca/*

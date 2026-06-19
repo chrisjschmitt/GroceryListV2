@@ -225,6 +225,82 @@ export function runProgrammaticFallbackMatch(scrapedName: string, catalogItems: 
   };
 }
 
+// Post-processes and sanitizes proposed unmatched items to safeguard database/catalog entries
+export function sanitizeProposedItem(proposed: { name?: string; category?: string } | undefined): { name: string; category: string } | undefined {
+  if (!proposed) return undefined;
+  let name = proposed.name || "";
+  let category = proposed.category || "";
+
+  // 1. Clean the name
+  if (name) {
+    // If the model output a whole conversational block, we clean it up.
+    // Try to locate quoted strings (single or double quotes) first, which often enclose the clean name
+    const quoteMatches = name.match(/['"“‘]([^'"“”‘’.]{3,40})['"”’]/);
+    if (quoteMatches && quoteMatches[1] && !/\b(json|correct|block|comment|valid|format|structure|category|staples|below|standard)\b/i.test(quoteMatches[1])) {
+      name = quoteMatches[1];
+    } else {
+      // If it contains sentences or format/meta keywords, let's parse it
+      if (name.includes(".") || name.includes(":") || name.length > 45) {
+        // Match label patterns like "Name: Canned Diced Tomatoes" or "structure is: Name: No Salt Added Canned Diced Tomatoes"
+        const nameLabelMatch = name.match(/(?:Name|Product|structure is: Name):\s*['"“‘]?([^'",.!\n]+)/i);
+        if (nameLabelMatch && nameLabelMatch[1]) {
+          name = nameLabelMatch[1];
+        } else {
+          // Take the first short clause that isn't full of formatting meta-words
+          const clauses = name.split(/[.,:;!?\n]+/);
+          const candidate = clauses.map(c => c.trim()).find(c => c.length > 2 && c.length < 35 && !/\b(json|correct|block|comment|valid|format|structure|category|staples|below|standard|output|comply|requirement|parseable)\b/i.test(c));
+          if (candidate) {
+            name = candidate;
+          }
+        }
+      }
+    }
+
+    // Strip out quotes, backslashes, and other noise
+    name = name
+      .replace(/["\\']/g, "")
+      .replace(/\s+/g, " ")
+      .trim();
+    
+    // Capitalize first letter
+    if (name.length > 0) {
+      name = name.charAt(0).toUpperCase() + name.slice(1);
+    }
+  }
+
+  // Fallback if name is empty, too long, or still contains formatting terms
+  if (!name || name.length > 50 || /\b(json|parseable|comments|structure|valid|comply|requirement)\b/i.test(name)) {
+    name = "Unmatched Item";
+  }
+
+  // 2. Normalize and check category
+  const allowedCategories = [
+    "Fresh Produce",
+    "Bakery & Breads",
+    "Meat & Seafood",
+    "Dairy & Eggs",
+    "Pantry Staples",
+    "Baking & Spices",
+    "Snacks & Beverages",
+    "Health, Personal & Household",
+    "Beer, Wine & Spirits"
+  ];
+
+  let matchedCategory = allowedCategories.find(
+    c => c.toLowerCase() === category.trim().toLowerCase()
+  );
+
+  if (!matchedCategory) {
+    const trimmedCat = category.trim().toLowerCase();
+    matchedCategory = allowedCategories.find(c => c.toLowerCase().includes(trimmedCat) || trimmedCat.includes(c.toLowerCase()));
+  }
+
+  return {
+    name: name,
+    category: matchedCategory || "Pantry Staples"
+  };
+}
+
 // Evaluate match using Gemini 3.5 Flash
 export async function evaluateGeminiMatch(scrapedName: string, catalogItems: RegularItem[]): Promise<MatchResult> {
   const cleanScraped = scrapedName.trim().toLowerCase();
@@ -339,9 +415,9 @@ For your match output, determine:
 3. "unit_match": True if measurement modes (weight vs unit) are compatible, false if one is weight and the other is single unit/piece.
 4. "brand_match": True if the brands match or are both generic/unspecified, false if different brands.
 5. "reason": A brief 1-sentence analytical explanation of your choice.
-6. "proposed_new_item": If confidence is below 70% (no high-quality match), populate this object with:
-   - "name": A simplified, reader-friendly canonical item name derived from the scraped name (remove store codes, brand noise, and packaging size, e.g. "Dempster's Whole Wheat sliced bread 675g" becomes "Whole Wheat Bread").
-   - "category": The best food category match. Choose from standard sections: "Fresh Produce", "Bakery & Breads", "Meat & Seafood", "Dairy & Eggs", "Pantry Staples", "Baking & Spices", "Snacks & Beverages", "Health, Personal & Household", "Beer, Wine & Spirits".
+6. "proposed_new_item": If confidence is below 70% (no high-quality match), populate this object. Crucially, the "name" and "category" fields must NEVER contain conversational commentary, code block tags, markdown formatting, explanations, or JSON formatting instructions.
+   - "name": A simplified, reader-friendly canonical item name derived from the scraped name (remove store codes, brand noise, and packaging size, e.g. "Dempster's Whole Wheat sliced bread 675g" becomes "Whole Wheat Bread"). It must be a short clean product name only (e.g., "No Salt Added Canned Diced Tomatoes").
+   - "category": The best food category match. Choose ONLY from standard sections: "Fresh Produce", "Bakery & Breads", "Meat & Seafood", "Dairy & Eggs", "Pantry Staples", "Baking & Spices", "Snacks & Beverages", "Health, Personal & Household", "Beer, Wine & Spirits".
 
 Return strict JSON conforming to the response schema.
 `;
@@ -385,9 +461,16 @@ ${JSON.stringify(candidatesList, null, 2)}
             },
             proposed_new_item: {
               type: Type.OBJECT,
+              required: ["name", "category"],
               properties: {
-                name: { type: Type.STRING, description: "Streamlined canonical item name proposed." },
-                category: { type: Type.STRING, description: "Suggested grocery category." }
+                name: {
+                  type: Type.STRING,
+                  description: "Streamlined canonical item name proposed (e.g., 'No Salt Added Canned Diced Tomatoes'). MUST be a simple short product name only, with absolutely NO comments, explanations, formatting notes, or conversational text."
+                },
+                category: {
+                  type: Type.STRING,
+                  description: "Suggested grocery category. Choose ONLY from: 'Fresh Produce', 'Bakery & Breads', 'Meat & Seafood', 'Dairy & Eggs', 'Pantry Staples', 'Baking & Spices', 'Snacks & Beverages', 'Health, Personal & Household', 'Beer, Wine & Spirits'."
+                }
               }
             }
           }
@@ -404,7 +487,9 @@ ${JSON.stringify(candidatesList, null, 2)}
       unit_match: !!parsed.unit_match,
       brand_match: !!parsed.brand_match,
       reason: parsed.reason || "",
-      proposed_new_item: parsed.proposed_new_item || undefined,
+      proposed_new_item: parsed.proposed_new_item 
+        ? sanitizeProposedItem(parsed.proposed_new_item) 
+        : undefined,
       isFallback: false
     };
 

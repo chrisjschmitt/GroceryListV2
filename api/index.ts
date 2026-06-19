@@ -300,18 +300,7 @@ app.post("/api/append-grocery", async (req, res) => {
 
             const newId = `regular-unmatched-${Date.now()}-${Math.random().toString(36).substring(2, 7)}`;
             
-            // 1. Create and save new regular item
-            const newRegularItem = {
-              id: newId,
-              name: proposedName,
-              category: proposedCategory,
-              selected: false
-            };
-            const updatedRegularItems = [...catalogItems, newRegularItem];
-            await blobSetRegularItems(updatedRegularItems);
-            console.log(`[Auto-Create] Auto-created new catalog regular item "${proposedName}" with ID ${newId}`);
-
-            // 2. Create and save new combined-catalog item
+            // Create and save new combined-catalog item directly
             const catalog = await blobGetCombinedCatalog();
             const newCombinedItem = {
               id: newId,
@@ -323,7 +312,7 @@ app.post("/api/append-grocery", async (req, res) => {
             };
             catalog.items.push(newCombinedItem);
             await blobSetCombinedCatalog(catalog);
-            console.log(`[Auto-Create] Added "${proposedName}" (ID ${newId}) to combined catalog`);
+            console.log(`[Auto-Create] Auto-created catalog item "${proposedName}" (ID ${newId}) under combined-catalog registry`);
 
             // Link pricing record to this newly-spawned item
             correctedData.config_name = proposedName;
@@ -572,38 +561,7 @@ app.post("/api/append-grocery", async (req, res) => {
           await blobSetCombinedCatalog(catalog);
           console.log(`Successfully synced matched item "${catalogItem.name}" to combined-catalog under store "${fStoreKey}" from MongoDB prices log entry.`);
 
-          // Update prices.json cache for instant UI updates
-          try {
-            const prices = await blobGetPrices();
-            prices[priceDoc._id || finalKey] = {
-              _id: priceDoc._id || finalKey,
-              config_name: priceDoc.config_name || priceDoc.item_name || "",
-              item_name: priceDoc.item_name || priceDoc.config_name || "",
-              store_id: priceDoc.store_id || fStoreKey,
-              store_name: priceDoc.store_name || "",
-              regular_price: regVal,
-              sale_price: saleVal,
-              is_on_sale: isOnSaleVal,
-              lookup_url: dbUrl,
-              valid_until: priceDoc.valid_until || "",
-              stores: {
-                ...(prices[priceDoc._id || finalKey]?.stores || {}),
-                [fStoreKey]: {
-                  store_id: fStoreKey,
-                  store_name: priceDoc.store_name || "",
-                  regular_price: regVal,
-                  sale_price: saleVal,
-                  is_on_sale: isOnSaleVal,
-                  lookup_url: dbUrl,
-                  valid_until: priceDoc.valid_until || ""
-                } as any
-              }
-            } as any;
-            await blobSetPrices(prices);
-            console.log(`Successfully synced prices.json for item "${catalogItem.name}" under store "${fStoreKey}".`);
-          } catch (pricesErr) {
-            console.error("Error updating prices.json in /api/append-grocery:", pricesErr);
-          }
+          // Vercel prices.json cache update eliminated for the append/grocery API pipeline.
         }
       } catch (catalogErr) {
         console.error("Error updating combined-catalog in /api/append-grocery:", catalogErr);
