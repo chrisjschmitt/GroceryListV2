@@ -1,8 +1,8 @@
 // ==UserScript==
-// @name         GroceryScout - 2.7 Normalized Canonical Exporter
+// @name         GroceryScout - 2.8 Normalized Canonical Exporter
 // @namespace    http://tampermonkey.net/
-// @version      2.7
-// @description  Added pricing fields to submission form
+// @version      2.8
+// @description  Added searchable catalog dropdown and dynamically loaded item lists
 // @author       You
 // @match        https://www.foodbasics.ca/*
 // @match        https://www.metro.ca/*
@@ -10,7 +10,7 @@
 // @match        https://www.walmart.ca/*
 // @match        https://www.loblaws.ca/*
 // @match        https://www.nofrills.ca/*
-// @match		 https://www.yourindependentgrocer.ca/*
+// @match        https://www.yourindependentgrocer.ca/*
 // @connect      ais-dev-kynlhucnvvzplwokihj56s-569102779948.us-west2.run.app
 // @connect      grocery-list-v2-navy.vercel.app
 // @connect      *
@@ -20,8 +20,8 @@
 (function () {
     'use strict';
 
-    // 1. Strict Mapping Dictionary matching regular-items.json EXACTLY
-    const CANONICAL_NAMES = [
+    // 1. Strict Mapping Dictionary matching regular-items.json EXACTLY (as fallback)
+    let CANONICAL_NAMES = [
         "2% lactose free cottage cheese",
         "Yogurt LF 1% Natrel",
         "Chicken Breasts Boneless Skinless",
@@ -38,6 +38,76 @@
         "Decaf coffee",
         "LF Ice cream"
     ];
+
+    let catalogItems = CANONICAL_NAMES.map(name => ({ name, id: null }));
+
+    // Inject Custom Autocomplete CSS
+    const style = document.createElement('style');
+    style.innerHTML = `
+        .gs-dropdown-item {
+            padding: 8px 12px;
+            cursor: pointer;
+            font-weight: bold;
+            font-family: system-ui, -apple-system, sans-serif;
+            font-size: 13px;
+            border-bottom: 1px solid #e5e7eb;
+            background: white;
+            color: black;
+            transition: background 0.15s ease, color 0.15s ease;
+        }
+        .gs-dropdown-item:hover {
+            background: #f3f4f6;
+            color: #111827;
+        }
+        .gs-dropdown-item.gs-active {
+            background: #0284c7;
+            color: white;
+        }
+        /* custom scrollbar */
+        #gs-item-dropdown::-webkit-scrollbar {
+            width: 6px;
+        }
+        #gs-item-dropdown::-webkit-scrollbar-track {
+            background: #f1f1f1;
+        }
+        #gs-item-dropdown::-webkit-scrollbar-thumb {
+            background: #cbd5e1;
+            border-radius: 3px;
+        }
+        #gs-item-dropdown::-webkit-scrollbar-thumb:hover {
+            background: #94a3b8;
+        }
+    `;
+    document.head.appendChild(style);
+
+    function fetchCatalog() {
+        GM_xmlhttpRequest({
+            method: "GET",
+            url: "https://grocery-list-v2-navy.vercel.app/api/regular-items",
+            onload: function (response) {
+                if (response.status === 200) {
+                    try {
+                        const parsed = JSON.parse(response.responseText);
+                        if (parsed && Array.isArray(parsed.items) && parsed.items.length > 0) {
+                            catalogItems = parsed.items;
+                            CANONICAL_NAMES = parsed.items.map(item => item.name);
+                            console.log("GroceryScout: Successfully loaded " + catalogItems.length + " catalog items from API.");
+                        }
+                    } catch (e) {
+                        console.error("GroceryScout: Failed to parse catalog response", e);
+                    }
+                } else {
+                    console.warn("GroceryScout: Non-200 response from API: " + response.status);
+                }
+            },
+            onerror: function (err) {
+                console.error("GroceryScout: API catalog fetch error", err);
+            }
+        });
+    }
+
+    // Call on startup
+    fetchCatalog();
 
     // Helper to find closest lookup string based on product page content
     function determineConfigName(pageTitle) {
@@ -63,6 +133,66 @@
         return pageTitle;
     }
 
+    function findClosestCatalogMatch(pageTitle) {
+        if (!catalogItems || catalogItems.length === 0) {
+            return determineConfigName(pageTitle);
+        }
+
+        const ruleMatch = determineConfigName(pageTitle);
+        const matchByRule = catalogItems.find(item => item.name.toLowerCase() === ruleMatch.toLowerCase());
+        if (matchByRule) {
+            return matchByRule.name;
+        }
+
+        // Perform programmatic client-side token matching
+        const cleanTitle = pageTitle.toLowerCase()
+            .replace(/\blactose[- ]free\b/g, "lf")
+            .replace(/\bdecaffeinated\b/g, "decaf")
+            .replace(/[\s,()\-]+/g, " ");
+        const titleWords = cleanTitle.split(" ").filter(w => w.length > 2 || w === "lf" || /^\d+%?$/.test(w));
+
+        let bestMatchName = null;
+        let maxScore = 0;
+
+        for (const item of catalogItems) {
+            const cleanCatalog = item.name.toLowerCase()
+                .replace(/\blactose[- ]free\b/g, "lf")
+                .replace(/\bdecaffeinated\b/g, "decaf")
+                .replace(/[\s,()\-]+/g, " ");
+            const catalogWords = cleanCatalog.split(" ").filter(w => w.length > 2 || w === "lf" || /^\d+%?$/.test(w));
+            
+            if (catalogWords.length === 0) continue;
+
+            const intersection = catalogWords.filter(w => titleWords.some(tw => {
+                const cleanW = w.endsWith("s") ? w.slice(0, -1) : w;
+                const cleanTw = tw.endsWith("s") ? tw.slice(0, -1) : tw;
+                return cleanW === cleanTw;
+            }));
+
+            let score = intersection.length * 10;
+            if (score > 0) {
+                if (intersection.length === catalogWords.length) {
+                    score += 25;
+                }
+                
+                const isLfScraped = cleanTitle.includes("lf");
+                const isLfCatalog = cleanCatalog.includes("lf");
+                if (isLfScraped !== isLfCatalog) score -= 30;
+
+                const isCrunchyScraped = cleanTitle.includes("crunchy") || cleanTitle.includes("chunky");
+                const isCrunchyCatalog = cleanCatalog.includes("crunchy") || cleanCatalog.includes("chunky");
+                if (isCrunchyScraped !== isCrunchyCatalog) score -= 25;
+
+                if (score > maxScore) {
+                    maxScore = score;
+                    bestMatchName = item.name;
+                }
+            }
+        }
+
+        return maxScore >= 20 ? bestMatchName : ruleMatch;
+    }
+
     function getCanonicalKey(rawUrl) {
         try {
             const urlObj = new URL(rawUrl);
@@ -78,7 +208,7 @@
     function extractItemData() {
         const canonicalKey = getCanonicalKey(window.location.href);
         const rawTitle = document.title.split('|')[0].trim();
-        const verifiedConfigName = determineConfigName(rawTitle); // <-- Converts string variables here
+        const verifiedConfigName = findClosestCatalogMatch(rawTitle);
 
         const domain = window.location.hostname;
         let storeId = "unknown";
@@ -124,6 +254,14 @@
     modal.innerHTML = `
         <h3 style="margin-top:0; margin-bottom:16px; font-size:18px; font-weight:900; text-transform:uppercase; border-bottom:3px solid black; padding-bottom:8px; font-family:system-ui;">📥 Pricing Details</h3>
         
+        <div style="margin-bottom:12px; position:relative;">
+            <label style="display:block; font-weight:bold; font-size:12px; text-transform:uppercase; margin-bottom:4px; font-family:system-ui;">Catalog Item Match *</label>
+            <input type="text" id="gs-item-search" placeholder="Type to search catalog..." autocomplete="off" style="width:100%; border:2px solid black; padding:6px 8px; font-weight:bold; box-sizing:border-box; outline:none; font-family:system-ui;" required />
+            <div id="gs-item-dropdown" style="display:none; position:absolute; top:100%; left:0; right:0; max-height:180px; overflow-y:auto; border:2px solid black; background:white; z-index:1000010; box-shadow:4px 4px 0px rgba(0,0,0,1);">
+                <!-- populated dynamically -->
+            </div>
+        </div>
+
         <div style="margin-bottom:12px;">
             <label style="display:block; font-weight:bold; font-size:12px; text-transform:uppercase; margin-bottom:4px; font-family:system-ui;">Regular Price ($) *</label>
             <input type="number" id="gs-reg-price" step="0.01" min="0" placeholder="e.g. 5.99" style="width:100%; border:2px solid black; padding:6px 8px; font-weight:bold; box-sizing:border-box; outline:none; font-family:system-ui;" required />
@@ -187,16 +325,109 @@
         document.getElementById('gs-reg-price').value = '';
         document.getElementById('gs-sale-price').value = '';
         document.getElementById('gs-valid-until').value = '';
+        
+        const itemSearchInput = document.getElementById('gs-item-search');
+        const itemDropdown = document.getElementById('gs-item-dropdown');
+        
+        itemSearchInput.value = payload.data.config_name;
         document.getElementById('gs-reg-price').focus();
 
-        document.getElementById('gs-btn-cancel').onclick = function() {
+        let activeIndex = -1;
+        let filteredItems = [];
+
+        function renderDropdown() {
+            const query = itemSearchInput.value.trim().toLowerCase();
+            filteredItems = catalogItems.filter(item => item.name.toLowerCase().includes(query));
+            
+            const itemsToShow = filteredItems.slice(0, 10);
+            
+            if (itemsToShow.length === 0) {
+                itemDropdown.style.display = 'none';
+                return;
+            }
+
+            itemDropdown.innerHTML = itemsToShow.map((item, idx) => {
+                const isActive = idx === activeIndex ? ' gs-active' : '';
+                return `<div class="gs-dropdown-item${isActive}" data-name="${item.name}">${item.name}</div>`;
+            }).join('');
+
+            itemDropdown.style.display = 'block';
+
+            const items = itemDropdown.querySelectorAll('.gs-dropdown-item');
+            items.forEach((el, idx) => {
+                el.onclick = function () {
+                    itemSearchInput.value = el.getAttribute('data-name');
+                    itemDropdown.style.display = 'none';
+                    activeIndex = -1;
+                };
+            });
+        }
+
+        itemSearchInput.onfocus = function () {
+            activeIndex = -1;
+            renderDropdown();
+        };
+
+        itemSearchInput.oninput = function () {
+            activeIndex = -1;
+            renderDropdown();
+        };
+
+        itemSearchInput.onkeydown = function (e) {
+            const items = itemDropdown.querySelectorAll('.gs-dropdown-item');
+            if (itemDropdown.style.display === 'block' && items.length > 0) {
+                if (e.key === 'ArrowDown') {
+                    e.preventDefault();
+                    activeIndex = (activeIndex + 1) % items.length;
+                    renderDropdown();
+                    const activeEl = itemDropdown.querySelector('.gs-dropdown-item.gs-active');
+                    if (activeEl) activeEl.scrollIntoView({ block: 'nearest' });
+                } else if (e.key === 'ArrowUp') {
+                    e.preventDefault();
+                    activeIndex = (activeIndex - 1 + items.length) % items.length;
+                    renderDropdown();
+                    const activeEl = itemDropdown.querySelector('.gs-dropdown-item.gs-active');
+                    if (activeEl) activeEl.scrollIntoView({ block: 'nearest' });
+                } else if (e.key === 'Enter') {
+                    if (activeIndex >= 0 && activeIndex < items.length) {
+                        e.preventDefault();
+                        itemSearchInput.value = items[activeIndex].getAttribute('data-name');
+                        itemDropdown.style.display = 'none';
+                        activeIndex = -1;
+                    }
+                } else if (e.key === 'Escape') {
+                    itemDropdown.style.display = 'none';
+                    activeIndex = -1;
+                }
+            }
+        };
+
+        const clickOutsideHandler = function (e) {
+            if (e.target !== itemSearchInput && !itemDropdown.contains(e.target)) {
+                itemDropdown.style.display = 'none';
+            }
+        };
+        document.addEventListener('click', clickOutsideHandler);
+
+        function cleanupModal() {
             modal.style.display = 'none';
+            document.removeEventListener('click', clickOutsideHandler);
+        }
+
+        document.getElementById('gs-btn-cancel').onclick = function() {
+            cleanupModal();
         };
 
         document.getElementById('gs-btn-submit').onclick = function() {
             const regPriceInput = document.getElementById('gs-reg-price').value.trim();
             const salePriceInput = document.getElementById('gs-sale-price').value.trim();
             const validUntilInput = document.getElementById('gs-valid-until').value.trim();
+            const selectedItemSearch = itemSearchInput.value.trim();
+
+            if (!selectedItemSearch) {
+                alert("Please select or specify a Catalog Item");
+                return;
+            }
 
             if (!regPriceInput) {
                 alert("Please fill in the Regular Price");
@@ -209,6 +440,7 @@
                 return;
             }
 
+            payload.data.config_name = selectedItemSearch;
             payload.data.regular_price = regPrice;
             if (salePriceInput) {
                 const salePrice = parseFloat(salePriceInput);
@@ -227,7 +459,7 @@
                 payload.data.valid_until = null;
             }
 
-            modal.style.display = 'none';
+            cleanupModal();
             sendPayload(payload);
         };
     };

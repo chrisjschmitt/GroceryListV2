@@ -98,7 +98,7 @@ async function startServer() {
     return now > expiryDate;
   }
 
-  async function mergeMongoPrices(prices: any): Promise<any> {
+  async function mergeMongoPrices(prices: any, catalogIdToKey?: Record<string, string>, catalogIdToName?: Record<string, string>): Promise<any> {
     try {
       const { db } = await getMongoDatabase();
       const pricesCollection = db.collection("prices");
@@ -108,18 +108,8 @@ async function startServer() {
         const upc = doc._id || doc.upc;
         if (!upc) continue;
         
-        const existingEntry = prices[upc] || { stores: {} };
-        
         const storeId = doc.store_id || "foodbasics";
         const storeName = doc.store_name || "Food Basics";
-        
-        // Build updated stores mapping
-        const updatedStores = { ...(existingEntry.stores || {}) };
-        
-        // Extract specific pricing properties safely
-        const regPrice = typeof doc.regular_price === "number" ? doc.regular_price : (doc.regular_price ? parseFloat(doc.regular_price) : null);
-        const salePrice = typeof doc.sale_price === "number" ? doc.sale_price : (doc.sale_price ? parseFloat(doc.sale_price) : null);
-        const isOnSale = doc.is_on_sale !== undefined ? (doc.is_on_sale ? 1 : 0) : (salePrice !== null ? 1 : 0);
         
         // Map store normalized key (e.g. foodbasics, metro, loblaws, nofrills)
         let storeKey = "foodbasics";
@@ -129,6 +119,27 @@ async function startServer() {
         else if (lowerStoreId.includes("nofrills")) storeKey = "nofrills";
         else if (lowerStoreId === "7923194" || lowerStoreId.includes("foodbasics")) storeKey = "foodbasics";
         else storeKey = storeId;
+        
+        // Resolve the target key in the prices object (defaulting to the item's UPC)
+        let targetKey = upc;
+        let isCatalogItem = false;
+        let canonicalName = "";
+        
+        if (doc.matched_catalog_id && catalogIdToKey && catalogIdToKey[doc.matched_catalog_id]) {
+          targetKey = catalogIdToKey[doc.matched_catalog_id];
+          isCatalogItem = true;
+          canonicalName = catalogIdToName?.[doc.matched_catalog_id] || "";
+        }
+        
+        const existingEntry = prices[targetKey] || { stores: {} };
+        
+        // Build updated stores mapping
+        const updatedStores = { ...(existingEntry.stores || {}) };
+        
+        // Extract specific pricing properties safely
+        const regPrice = typeof doc.regular_price === "number" ? doc.regular_price : (doc.regular_price ? parseFloat(doc.regular_price) : null);
+        const salePrice = typeof doc.sale_price === "number" ? doc.sale_price : (doc.sale_price ? parseFloat(doc.sale_price) : null);
+        const isOnSale = doc.is_on_sale !== undefined ? (doc.is_on_sale ? 1 : 0) : (salePrice !== null ? 1 : 0);
         
         updatedStores[storeKey] = {
           store_name: storeName,
@@ -159,9 +170,9 @@ async function startServer() {
         
         const bestStore = updatedStores[lowestStoreKey];
         
-        prices[upc] = {
-          item_name: doc.item_name || existingEntry.item_name || "",
-          config_name: doc.config_name || existingEntry.config_name || doc.item_name || "",
+        prices[targetKey] = {
+          item_name: isCatalogItem ? (canonicalName || existingEntry.item_name || "") : (doc.item_name || existingEntry.item_name || ""),
+          config_name: isCatalogItem ? (canonicalName || existingEntry.config_name || "") : (doc.config_name || existingEntry.config_name || ""),
           store_name: bestStore.store_name,
           postal_code: bestStore.postal_code,
           store_id: bestStore.store_id,
@@ -185,6 +196,23 @@ async function startServer() {
   async function getMergedPrices(): Promise<any> {
     const catalog = await blobGetCombinedCatalog();
     const prices: any = {};
+    
+    // Create maps from catalog item ID to their primary price key and canonical name
+    const catalogIdToKey: Record<string, string> = {};
+    const catalogIdToName: Record<string, string> = {};
+
+    function localEnsureHttps(url: string): string {
+      if (!url) return "";
+      let target = url.trim();
+      if (target.startsWith("//")) {
+        target = "https:" + target;
+      } else if (target.startsWith("http://")) {
+        target = "https://" + target.substring(7);
+      } else if (!target.startsWith("https://")) {
+        target = "https://" + target;
+      }
+      return target;
+    }
 
     for (const item of catalog.items || []) {
       const stores: any = {};
@@ -225,16 +253,19 @@ async function startServer() {
         }
       }
 
+      let mainUpc = "";
+      for (const link of Object.values(item.stores || {})) {
+        if (link && link.upc) {
+          mainUpc = link.upc;
+          break;
+        }
+      }
+      const itemKey = mainUpc || item.id || `catalog-${item.name.replace(/\s+/g, "-").toLowerCase()}`;
+      catalogIdToKey[item.id] = itemKey;
+      catalogIdToName[item.id] = item.name;
+
       // Only return a pricing record if we found at least one store with a valid price
       if (bestStoreId) {
-        let mainUpc = "";
-        for (const link of Object.values(item.stores || {})) {
-          if (link && link.upc) {
-            mainUpc = link.upc;
-            break;
-          }
-        }
-        const itemKey = mainUpc || item.id || `catalog-${item.name.replace(/\s+/g, "-").toLowerCase()}`;
         const bestStore = stores[bestStoreId];
 
         prices[itemKey] = {
@@ -256,7 +287,7 @@ async function startServer() {
       }
     }
 
-    return mergeMongoPrices(prices);
+    return mergeMongoPrices(prices, catalogIdToKey, catalogIdToName);
   }
 
   function extractUpcFromUrl(url: string): string | null {

@@ -39,7 +39,10 @@ export function checkMeasurementTypeMismatch(nameA: string, nameB: string): bool
 }
 
 export function cleanString(s: string): string {
-  return s.trim().toLowerCase().replace(/[\s,()\-]+/g, " ");
+  return s.trim().toLowerCase()
+    .replace(/\blactose[- ]free\b/g, "lf")
+    .replace(/\bdecaffeinated\b/g, "decaf")
+    .replace(/[\s,()\-]+/g, " ");
 }
 
 export function isWordMatch(w1: string, w2: string): boolean {
@@ -79,10 +82,10 @@ export function isPluralOrSimpleSpacingMatch(nameA: string, nameB: string): bool
 
 // Programmatic fallback matcher (used when GEMINI_API_KEY is not defined or on network failures)
 export function runProgrammaticFallbackMatch(scrapedName: string, catalogItems: RegularItem[]): MatchResult {
-  const cleanScraped = scrapedName.trim().toLowerCase();
+  const cleanScraped = cleanString(scrapedName);
   
   // 1. Check exact match
-  const exact = catalogItems.find(item => item.name.trim().toLowerCase() === cleanScraped);
+  const exact = catalogItems.find(item => cleanString(item.name) === cleanScraped);
   if (exact) {
     return {
       matched_id: exact.id,
@@ -111,21 +114,38 @@ export function runProgrammaticFallbackMatch(scrapedName: string, catalogItems: 
   let bestUnitMatch = true;
   let bestBrandMatch = true;
 
-  const scrapedWords = cleanScraped.split(/[\s,()\-]+/);
+  const scrapedWords = cleanScraped.split(" ").filter(w => w.length > 0);
+  const isWordOfInterest = (w: string) => w.length > 2 || /^\d+%?$/.test(w) || w === "lf";
+  const scrapedWordsOfInterest = scrapedWords.filter(isWordOfInterest);
 
   for (const item of catalogItems) {
-    const catalogWords = item.name.trim().toLowerCase().split(/[\s,()\-]+/);
+    const cleanCatalog = cleanString(item.name);
+    const catalogWords = cleanCatalog.split(" ").filter(w => w.length > 0);
+    const catalogWordsOfInterest = catalogWords.filter(isWordOfInterest);
     
-    // Calculate intersection
-    const intersection = scrapedWords.filter(w => {
-      if (w.length <= 2) return false;
-      return catalogWords.some(cw => isWordMatch(w, cw));
-    });
+    if (catalogWordsOfInterest.length === 0) continue;
+
+    // Calculate intersection of words of interest
+    const intersection = scrapedWordsOfInterest.filter(w => 
+      catalogWordsOfInterest.some(cw => isWordMatch(w, cw))
+    );
     
-    // Penalize if some critical product specifics mismatch
     let score = intersection.length * 10;
 
     if (score > 0) {
+      // Calculate match ratio of catalog words found in scraped name
+      const matchedCatalogWords = catalogWordsOfInterest.filter(cw => 
+        scrapedWordsOfInterest.some(sw => isWordMatch(cw, sw))
+      );
+      const matchRatio = matchedCatalogWords.length / catalogWordsOfInterest.length;
+
+      // Apply bonuses for match ratios
+      if (matchRatio === 1.0) {
+        score += 25; // Boost score when all catalog words are present in scraped name
+      } else if (matchRatio >= 0.75) {
+        score += 15; // Boost score when most catalog words are present
+      }
+
       // Check weight vs unit mismatch
       const hasUnitMismatch = checkMeasurementTypeMismatch(scrapedName, item.name);
       if (hasUnitMismatch) {
@@ -134,13 +154,19 @@ export function runProgrammaticFallbackMatch(scrapedName: string, catalogItems: 
 
       // Check product specificity keywords mismatch (e.g. crunchy vs smooth, lactose-free vs regular)
       const isCrunchyScraped = cleanScraped.includes("crunchy") || cleanScraped.includes("chunky");
-      const isCrunchyCatalog = item.name.toLowerCase().includes("crunchy") || item.name.toLowerCase().includes("chunky");
+      const isCrunchyCatalog = cleanCatalog.includes("crunchy") || cleanCatalog.includes("chunky");
       if (isCrunchyScraped !== isCrunchyCatalog) {
         score -= 25; // severe penalty
       }
 
-      const isLfScraped = cleanScraped.includes("lactose free") || cleanScraped.includes("lf") || cleanScraped.includes("lactose-free");
-      const isLfCatalog = item.name.toLowerCase().includes("lactose free") || item.name.toLowerCase().includes("lf") || item.name.toLowerCase().includes("lactose-free");
+      const isSmoothScraped = cleanScraped.includes("smooth") || cleanScraped.includes("creamy");
+      const isSmoothCatalog = cleanCatalog.includes("smooth") || cleanCatalog.includes("creamy");
+      if (isSmoothScraped !== isSmoothCatalog) {
+        score -= 25; // severe penalty
+      }
+
+      const isLfScraped = cleanScraped.includes("lf");
+      const isLfCatalog = cleanCatalog.includes("lf");
       if (isLfScraped !== isLfCatalog) {
         score -= 30; // severe penalty
       }
@@ -152,7 +178,7 @@ export function runProgrammaticFallbackMatch(scrapedName: string, catalogItems: 
         // Mock brand match check — if scraped has a common brand not in catalog
         const brands = ["kraft", "dempster", "quaker", "heinz", "mcintosh", "natrel"];
         const scrapedHasBrand = brands.some(b => cleanScraped.includes(b));
-        const catalogHasBrand = brands.some(b => item.name.toLowerCase().includes(b));
+        const catalogHasBrand = brands.some(b => cleanCatalog.includes(b));
         bestBrandMatch = !(scrapedHasBrand && !catalogHasBrand);
       }
     }
@@ -338,6 +364,15 @@ export async function evaluateGeminiMatch(scrapedName: string, catalogItems: Reg
     };
     matchCache.set(cacheKey, { result, timestamp: Date.now() });
     return result;
+  }
+
+  // Fast Path 3.5: Run programmatic fallback matching check. If it yields high confidence (>= 85%), bypass Gemini!
+  const progMatch = runProgrammaticFallbackMatch(scrapedName, catalogItems);
+  if (progMatch && progMatch.matched_id && progMatch.confidence >= 85) {
+    progMatch.isFallback = true;
+    progMatch.fallbackReason = `High-confidence programmatic match (${progMatch.confidence}%) bypassing Gemini API call.`;
+    matchCache.set(cacheKey, { result: progMatch, timestamp: Date.now() });
+    return progMatch;
   }
 
   // Fast Path 4: Programmatic fuzzy heuristic matching to prune unrelated candidates

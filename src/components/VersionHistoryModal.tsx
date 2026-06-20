@@ -21,6 +21,50 @@ interface VersionEntry {
 
 const VERSIONS: VersionEntry[] = [
   {
+    version: "1.8.4",
+    date: "June 2026",
+    type: "patch",
+    title: "Store Price Consolidation via Matched Catalog IDs",
+    changes: [
+      {
+        icon: <Database className="w-4 h-4 text-emerald-600" />,
+        category: "Backend merging",
+        description: "Updated mergeMongoPrices to map scraped MongoDB store records using matched_catalog_id, consolidating all matching store prices under a single catalog entry in prices.json instead of registering them as separate items."
+      }
+    ]
+  },
+  {
+    version: "1.8.3",
+    date: "June 2026",
+    type: "minor",
+    title: "Searchable Catalog Autocomplete & Gemini Bypass Heuristics",
+    changes: [
+      {
+        icon: <Layout className="w-4 h-4 text-blue-600" />,
+        category: "Userscript UI",
+        description: "Implemented a custom searchable dropdown in the Tampermonkey Userscript that dynamically loads catalog items from the API and provides autocomplete suggestions, keyboard navigation, and custom fallbacks."
+      },
+      {
+        icon: <Sparkles className="w-4 h-4 text-purple-600" />,
+        category: "AI matching engine",
+        description: "Added a programmatic bypass fast-path in evaluateGeminiMatch. Programmatic matches scoring >= 85% now bypass the Gemini model API completely, reducing operational costs."
+      }
+    ]
+  },
+  {
+    version: "1.8.2",
+    date: "June 2026",
+    type: "patch",
+    title: "Isolated API Ingestion Cache Cleanups",
+    changes: [
+      {
+        icon: <Database className="w-4 h-4 text-emerald-600" />,
+        category: "API design",
+        description: "Removed Vercel Blob prices.json writes from the append-grocery API. The endpoint now writes exclusively to MongoDB Atlas."
+      }
+    ]
+  },
+  {
     version: "1.8.1",
     date: "June 2026",
     type: "minor",
