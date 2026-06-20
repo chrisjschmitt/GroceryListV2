@@ -1,5 +1,5 @@
 import React from "react";
-import { X, Calendar, GitBranch, Sparkles, Database, Layout, Smartphone, Cloud, FileSpreadsheet, Trash2 } from "lucide-react";
+import { X, Calendar, GitBranch, Sparkles, Database, Layout, Smartphone, Cloud, FileSpreadsheet, Trash2, Clock, Zap } from "lucide-react";
 
 interface VersionHistoryModalProps {
   isOpen: boolean;
@@ -20,6 +20,24 @@ interface VersionEntry {
 }
 
 const VERSIONS: VersionEntry[] = [
+  {
+    version: "1.8.5",
+    date: "June 2026",
+    type: "patch",
+    title: "Ingestion Logs Sorting & Vercel Blob Caching Heuristics",
+    changes: [
+      {
+        icon: <Clock className="w-4 h-4 text-amber-600" />,
+        category: "Admin panel UI",
+        description: "Sorted MongoDB Price Ingestion Logs by last_updated in descending order (newest first). Connected 'Refresh Logs' button to reload both prices and catalog datasets concurrently."
+      },
+      {
+        icon: <Zap className="w-4 h-4 text-yellow-500" />,
+        category: "Blob Storage performance",
+        description: "Implemented high-performance list() promise-deduplication caching to resolve concurrent/parallel API queries and prevent redundant Vercel Blob roundtrips, making syncs instantly fast."
+      }
+    ]
+  },
   {
     version: "1.8.4",
     date: "June 2026",

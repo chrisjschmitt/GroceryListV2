@@ -135,32 +135,47 @@ export default function AdminPage() {
 
   const fetchPrices = async () => {
     setPricesLoading(true);
+    setCatalogLoading(true);
     try {
-      const res = await fetch("/api/prices");
-      if (res.ok) {
-        const data = await res.json();
+      const [resPrices, resCatalog] = await Promise.all([
+        fetch("/api/prices"),
+        fetch("/api/catalog")
+      ]);
+      if (resPrices.ok) {
+        const data = await resPrices.json();
         setPricesData(data.prices || {});
       }
+      if (resCatalog.ok) {
+        const data = await resCatalog.json();
+        setCatalog(data || { stores: {}, items: [] });
+      }
     } catch (err) {
-      console.error("Failed to fetch MongoDB prices:", err);
+      console.error("Failed to refresh admin datasets:", err);
     } finally {
       setPricesLoading(false);
+      setCatalogLoading(false);
     }
   };
 
   const pricesFilteredEntries = useMemo(() => {
     if (!pricesData) return [];
-    return Object.entries(pricesData).filter(([key, item]: [string, any]) => {
-      const query = pricesSearch.toLowerCase().trim();
-      if (!query) return true;
-      const name = (item.item_name || "").toLowerCase();
-      const config = (item.config_name || "").toLowerCase();
-      const ext = (item.external_name || "").toLowerCase();
-      const store = (item.store_name || "").toLowerCase();
-      const storeId = (item.store_id || "").toLowerCase();
-      const upc = (item.upc || key || "").toLowerCase();
-      return name.includes(query) || config.includes(query) || ext.includes(query) || store.includes(query) || storeId.includes(query) || upc.includes(query);
-    });
+    return Object.entries(pricesData)
+      .filter(([key, item]: [string, any]) => {
+        const query = pricesSearch.toLowerCase().trim();
+        if (!query) return true;
+        const name = (item.item_name || "").toLowerCase();
+        const config = (item.config_name || "").toLowerCase();
+        const ext = (item.external_name || "").toLowerCase();
+        const store = (item.store_name || "").toLowerCase();
+        const storeId = (item.store_id || "").toLowerCase();
+        const upc = (item.upc || key || "").toLowerCase();
+        return name.includes(query) || config.includes(query) || ext.includes(query) || store.includes(query) || storeId.includes(query) || upc.includes(query);
+      })
+      .sort((a: any, b: any) => {
+        const dateA = new Date(a[1].last_updated || 0).getTime();
+        const dateB = new Date(b[1].last_updated || 0).getTime();
+        return dateB - dateA;
+      });
   }, [pricesData, pricesSearch]);
   const [autoSave, setAutoSave] = useState(() =>
     typeof window !== "undefined" ? getAutoSaveEnabled() : false

@@ -42,10 +42,47 @@ function getLocalPath(pathname: string): string {
 
 const hasVercelBlob = () => !!process.env.BLOB_READ_WRITE_TOKEN;
 
+// In-memory caching for list() calls to prevent multiple Vercel Blob network roundtrips,
+// and promise deduplication to prevent concurrent calls from launching duplicate requests.
+let cachedBlobs: any[] | null = null;
+let lastBlobsFetchTime = 0;
+let activeListPromise: Promise<any[]> | null = null;
+const CACHE_TTL_MS = 10000; // Cache blobs list for 10 seconds
+
+async function getBlobsList(): Promise<any[]> {
+  const now = Date.now();
+  if (cachedBlobs && (now - lastBlobsFetchTime < CACHE_TTL_MS)) {
+    return cachedBlobs;
+  }
+  if (activeListPromise) {
+    return activeListPromise;
+  }
+
+  activeListPromise = list()
+    .then((res) => {
+      cachedBlobs = res.blobs || [];
+      lastBlobsFetchTime = Date.now();
+      activeListPromise = null;
+      return cachedBlobs;
+    })
+    .catch((err) => {
+      activeListPromise = null;
+      throw err;
+    });
+
+  return activeListPromise;
+}
+
+function invalidateBlobsCache(): void {
+  cachedBlobs = null;
+  lastBlobsFetchTime = 0;
+  activeListPromise = null;
+}
+
 async function readBlob<T>(pathname: string, fallback: T): Promise<T> {
   if (hasVercelBlob()) {
     try {
-      const { blobs } = await list();
+      const blobs = await getBlobsList();
       const normalize = (p: string) => p.replace(/^\//, "").toLowerCase();
       const targetPath = normalize(pathname);
       const blob = blobs.find((b) => normalize(b.pathname) === targetPath);
@@ -91,6 +128,7 @@ async function writeBlob<T>(pathname: string, data: T): Promise<void> {
           allowOverwrite: true,
           contentType: "application/json",
         });
+        invalidateBlobsCache();
         return;
       } catch (err: any) {
         const errMsg = String(err?.message || err || "").toLowerCase();
@@ -101,6 +139,7 @@ async function writeBlob<T>(pathname: string, data: T): Promise<void> {
             allowOverwrite: true,
             contentType: "application/json",
           });
+          invalidateBlobsCache();
           return;
         }
         throw err;
