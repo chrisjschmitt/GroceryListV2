@@ -157,6 +157,29 @@ export default function AdminPage() {
     }
   };
 
+  const handleClearPrices = async () => {
+    const confirmed = window.confirm(
+      "⚠️ WARNING: Are you sure you want to permanently delete all price documents from your MongoDB database?\n\nThis will purge all scraper log history."
+    );
+    if (!confirmed) return;
+
+    setPricesLoading(true);
+    try {
+      const res = await fetch("/api/prices", { method: "DELETE" });
+      if (res.ok) {
+        showVisualMessage("MongoDB ingestion logs cleared successfully!");
+        await fetchPrices();
+      } else {
+        showVisualMessage("Failed to clear MongoDB ingestion logs.");
+      }
+    } catch (err) {
+      console.error("Error clearing logs:", err);
+      showVisualMessage("Error clearing logs. Check server console.");
+    } finally {
+      setPricesLoading(false);
+    }
+  };
+
   const pricesFilteredEntries = useMemo(() => {
     if (!pricesData) return [];
     return Object.entries(pricesData)
@@ -3101,6 +3124,15 @@ export default function AdminPage() {
                 >
                   <RefreshCw className={`w-3.5 h-3.5 ${pricesLoading ? 'animate-spin' : ''}`} />
                   Refresh Logs
+                </button>
+                <button
+                  type="button"
+                  onClick={handleClearPrices}
+                  disabled={pricesLoading}
+                  className="text-xs font-black uppercase tracking-wider bg-rose-500 hover:bg-rose-600 disabled:bg-gray-400 text-white px-3 py-1.5 border border-black shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] hover:shadow-none hover:translate-x-[1px] hover:translate-y-[1px] transition-all inline-flex items-center gap-1 cursor-pointer"
+                >
+                  <Trash2 className="w-3.5 h-3.5" />
+                  Clear Ingestion Logs
                 </button>
               </div>
             </div>

@@ -762,6 +762,19 @@ app.put("/api/prices", async (req, res) => {
   }
 });
 
+// 3.6. DELETE /api/prices (Clear MongoDB Ingestion Logs)
+app.delete("/api/prices", async (req, res) => {
+  try {
+    const { db } = await getMongoDatabase();
+    const pricesCollection = db.collection("prices");
+    await pricesCollection.deleteMany({});
+    res.json({ success: true, message: "MongoDB prices ingestion logs cleared successfully" });
+  } catch (error: any) {
+    console.error("DELETE /api/prices error:", error);
+    res.status(500).json({ error: "Failed to clear prices ingestion logs", details: String(error) });
+  }
+});
+
 // Telemetry GET /api/ScapeLogging
 app.get(["/api/ScapeLogging", "/api/scrape-logging"], async (req, res) => {
   try {

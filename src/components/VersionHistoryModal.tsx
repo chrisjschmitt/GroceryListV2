@@ -21,6 +21,19 @@ interface VersionEntry {
 
 const VERSIONS: VersionEntry[] = [
   {
+    version: "1.8.8",
+    date: "June 2026",
+    type: "patch",
+    title: "Clear MongoDB Ingestion Logs",
+    changes: [
+      {
+        icon: <Trash2 className="w-4 h-4 text-rose-500" />,
+        category: "Admin panel UI",
+        description: "Added a 'Clear Ingestion Logs' button to the MongoDB Price Ingestion Logs section. Purges all price log records from the Atlas collection safely with a warning dialog."
+      }
+    ]
+  },
+  {
     version: "1.8.7",
     date: "June 2026",
     type: "patch",
