@@ -138,7 +138,7 @@ export default function AdminPage() {
     setCatalogLoading(true);
     try {
       const [resPrices, resCatalog] = await Promise.all([
-        fetch("/api/prices"),
+        fetch("/api/prices?mongodbOnly=true"),
         fetch("/api/catalog")
       ]);
       if (resPrices.ok) {
@@ -420,7 +420,7 @@ export default function AdminPage() {
         const [configRes, catalogRes, pricesRes] = await Promise.all([
           fetch("/api/scrape-config"),
           fetch("/api/catalog"),
-          fetch("/api/prices"),
+          fetch("/api/prices?mongodbOnly=true"),
         ]);
         const configData = await configRes.json();
         const catalogData = await catalogRes.json();

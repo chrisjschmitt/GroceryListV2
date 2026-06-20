@@ -727,6 +727,42 @@ app.put("/api/sync", async (req, res) => {
 // 3. GET /api/prices
 app.get("/api/prices", async (req, res) => {
   try {
+    const mongodbOnly = req.query.mongodbOnly === "true";
+    if (mongodbOnly) {
+      const { db } = await getMongoDatabase();
+      const pricesCollection = db.collection("prices");
+      const docs = await pricesCollection.find().toArray();
+      const prices: any = {};
+      for (const doc of docs) {
+        const upc = doc._id || doc.upc;
+        if (!upc) continue;
+        
+        const lastUpdated = doc.synchronized_at 
+          ? (doc.synchronized_at instanceof Date ? doc.synchronized_at.toISOString() : String(doc.synchronized_at)) 
+          : (doc.last_updated || new Date().toISOString());
+
+        prices[upc] = {
+          item_name: doc.item_name,
+          config_name: doc.config_name,
+          store_name: doc.store_name,
+          postal_code: doc.postal_code,
+          store_id: doc.store_id,
+          regular_price: doc.regular_price,
+          sale_price: doc.sale_price,
+          is_on_sale: doc.is_on_sale ? 1 : 0,
+          last_updated: lastUpdated,
+          lookup_url: doc.lookup_url || doc.url || "",
+          valid_until: doc.valid_until || "",
+          track_pricing: doc.track_pricing ? 1 : 0,
+          external_name: doc.external_name || "",
+          match_confidence: doc.match_confidence,
+          match_reason: doc.match_reason,
+          matched_catalog_id: doc.matched_catalog_id
+        };
+      }
+      res.json({ prices });
+      return;
+    }
     const prices = await getMergedPrices();
     res.json({ prices });
   } catch (error) {

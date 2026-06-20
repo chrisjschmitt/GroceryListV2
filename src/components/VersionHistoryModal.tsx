@@ -21,6 +21,19 @@ interface VersionEntry {
 
 const VERSIONS: VersionEntry[] = [
   {
+    version: "1.8.9",
+    date: "June 2026",
+    type: "patch",
+    title: "Dedicated MongoDB Log Isolation",
+    changes: [
+      {
+        icon: <Database className="w-4 h-4 text-emerald-600" />,
+        category: "Admin panel UI",
+        description: "Isolated the Price Ingestion Logs table to display only actual MongoDB scraper logs (using new ?mongodbOnly=true endpoint filter), resolving issue where logs appeared uncleared due to baseline catalog items."
+      }
+    ]
+  },
+  {
     version: "1.8.8",
     date: "June 2026",
     type: "patch",
