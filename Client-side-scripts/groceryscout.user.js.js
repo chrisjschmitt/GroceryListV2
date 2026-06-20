@@ -1,7 +1,7 @@
 // ==UserScript==
-// @name         GroceryScout - 2.8 Normalized Canonical Exporter
+// @name         GroceryScout - 2.9 Normalized Canonical Exporter
 // @namespace    http://tampermonkey.net/
-// @version      2.8
+// @version      2.9
 // @description  Added searchable catalog dropdown and dynamically loaded item lists
 // @author       You
 // @match        https://www.foodbasics.ca/*
@@ -240,8 +240,9 @@
     const modal = document.createElement('div');
     modal.style.position = 'fixed';
     modal.style.top = '50%';
-    modal.style.left = '50%';
-    modal.style.transform = 'translate(-50%, -50%)';
+    modal.style.right = '30px';
+    modal.style.left = 'auto';
+    modal.style.transform = 'translateY(-50%)';
     modal.style.zIndex = '1000000';
     modal.style.background = 'white';
     modal.style.border = '4px solid black';

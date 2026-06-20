@@ -251,7 +251,7 @@ export default function AdminPage() {
 
   const [scrapeMsg, setScrapeMsg] = useState<string | null>(null);
   const [catalogSearch, setCatalogSearch] = useState("");
-  const [isCatalogCrudCollapsed, setIsCatalogCrudCollapsed] = useState(false);
+  const [isCatalogCrudCollapsed, setIsCatalogCrudCollapsed] = useState(true);
 
   // Gemini AI Matching States
   const [evaluatingMatch, setEvaluatingMatch] = useState(false);

@@ -21,6 +21,32 @@ interface VersionEntry {
 
 const VERSIONS: VersionEntry[] = [
   {
+    version: "1.8.7",
+    date: "June 2026",
+    type: "patch",
+    title: "Catalog CRUD Collapsed by Default",
+    changes: [
+      {
+        icon: <Layout className="w-4 h-4 text-emerald-600" />,
+        category: "Admin panel UI",
+        description: "Configured the Grocery List Catalog CRUD manager panel to be collapsed/minimized by default on Admin portal load, keeping the page layout clean and focused."
+      }
+    ]
+  },
+  {
+    version: "1.8.6",
+    date: "June 2026",
+    type: "patch",
+    title: "Userscript UI Alignment Optimization",
+    changes: [
+      {
+        icon: <Layout className="w-4 h-4 text-indigo-600" />,
+        category: "Userscript UI",
+        description: "Re-aligned the Tampermonkey popup window modal to the right hand side of the viewable window (30px offset, vertically centered) so that it no longer covers critical pricing information on the host store page."
+      }
+    ]
+  },
+  {
     version: "1.8.5",
     date: "June 2026",
     type: "patch",
