@@ -21,6 +21,19 @@ interface VersionEntry {
 
 const VERSIONS: VersionEntry[] = [
   {
+    version: "1.9.1",
+    date: "June 2026",
+    type: "patch",
+    title: "Vercel Blob Cache Busting & Instant Sync",
+    changes: [
+      {
+        icon: <Zap className="w-4 h-4 text-yellow-500" />,
+        category: "Blob Storage performance",
+        description: "Disabled default Vercel Blob URL edge caching by passing cacheControlMaxAge: 0 on writes, and appended cache-busting timestamp parameters on fetches. Changes ingested via scraper/append API are now visible instantly."
+      }
+    ]
+  },
+  {
     version: "1.9.0",
     date: "June 2026",
     type: "minor",

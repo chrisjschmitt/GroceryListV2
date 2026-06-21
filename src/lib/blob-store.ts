@@ -88,9 +88,14 @@ async function readBlob<T>(pathname: string, fallback: T): Promise<T> {
       const blob = blobs.find((b) => normalize(b.pathname) === targetPath);
       if (!blob) return fallback;
 
-      let response = await fetch(blob.url);
+      // Append cache-buster query parameter to bypass CDN/edge caching on the static URL
+      const url = blob.url.includes("?") 
+        ? `${blob.url}&t=${Date.now()}` 
+        : `${blob.url}?t=${Date.now()}`;
+
+      let response = await fetch(url);
       if (!response.ok && process.env.BLOB_READ_WRITE_TOKEN) {
-        response = await fetch(blob.url, {
+        response = await fetch(url, {
           headers: {
             Authorization: `Bearer ${process.env.BLOB_READ_WRITE_TOKEN}`,
           },
@@ -127,6 +132,7 @@ async function writeBlob<T>(pathname: string, data: T): Promise<void> {
           addRandomSuffix: false,
           allowOverwrite: true,
           contentType: "application/json",
+          cacheControlMaxAge: 0, // Force cache expiration immediately (bypass edge cache)
         });
         invalidateBlobsCache();
         return;
@@ -138,6 +144,7 @@ async function writeBlob<T>(pathname: string, data: T): Promise<void> {
             addRandomSuffix: false,
             allowOverwrite: true,
             contentType: "application/json",
+            cacheControlMaxAge: 0, // Force cache expiration immediately (bypass edge cache)
           });
           invalidateBlobsCache();
           return;
