@@ -133,6 +133,35 @@
         return pageTitle;
     }
 
+    function determineCategory(pageTitle) {
+        const lowerTitle = pageTitle.toLowerCase();
+        if (lowerTitle.includes("produce") || lowerTitle.includes("fruit") || lowerTitle.includes("veg") || lowerTitle.includes("salad") || lowerTitle.includes("apple") || lowerTitle.includes("banana") || lowerTitle.includes("broccoli")) return "Fresh Produce";
+        if (lowerTitle.includes("bakery") || lowerTitle.includes("bread") || lowerTitle.includes("bun") || lowerTitle.includes("muffin") || lowerTitle.includes("croissant")) return "Bakery & Breads";
+        if (lowerTitle.includes("meat") || lowerTitle.includes("seafood") || lowerTitle.includes("fish") || lowerTitle.includes("chicken") || lowerTitle.includes("beef") || lowerTitle.includes("pork") || lowerTitle.includes("turkey") || lowerTitle.includes("salmon")) return "Meat & Seafood";
+        if (lowerTitle.includes("dairy") || lowerTitle.includes("egg") || lowerTitle.includes("milk") || lowerTitle.includes("cheese") || lowerTitle.includes("butter") || lowerTitle.includes("yogurt")) return "Dairy & Eggs";
+        if (lowerTitle.includes("baking") || lowerTitle.includes("spice") || lowerTitle.includes("flour") || lowerTitle.includes("sugar")) return "Baking & Spices";
+        if (lowerTitle.includes("beverage") || lowerTitle.includes("drink") || lowerTitle.includes("snack") || lowerTitle.includes("candy") || lowerTitle.includes("frozen") || lowerTitle.includes("chip") || lowerTitle.includes("soda") || lowerTitle.includes("juice") || lowerTitle.includes("coffee") || lowerTitle.includes("ice cream")) return "Snacks & Beverages";
+        if (lowerTitle.includes("household") || lowerTitle.includes("clean") || lowerTitle.includes("personal") || lowerTitle.includes("health") || lowerTitle.includes("pharmacy") || lowerTitle.includes("soap") || lowerTitle.includes("detergent") || lowerTitle.includes("toilet")) return "Health, Personal & Household";
+        if (lowerTitle.includes("beer") || lowerTitle.includes("wine") || lowerTitle.includes("liquor") || lowerTitle.includes("alcohol") || lowerTitle.includes("spirit")) return "Beer, Wine & Spirits";
+        return "Pantry Staples";
+    }
+
+    function determineUnitAndSize(pageTitle) {
+        const lowerTitle = pageTitle.toLowerCase();
+        const regex = /(\d+(?:\.\d+)?)\s*(g|kg|ml|l|lb|oz|gal|dozen|pack|bag|can|box|bunch|unit)s?\b/;
+        const match = lowerTitle.match(regex);
+        if (match) {
+            return {
+                units: parseFloat(match[1]),
+                unitOfMeasurement: match[2]
+            };
+        }
+        return {
+            units: 1,
+            unitOfMeasurement: "unit"
+        };
+    }
+
     function findClosestCatalogMatch(pageTitle) {
         if (!catalogItems || catalogItems.length === 0) {
             return determineConfigName(pageTitle);
@@ -278,6 +307,47 @@
             <input type="date" id="gs-valid-until" style="width:100%; border:2px solid black; padding:6px 8px; font-weight:bold; box-sizing:border-box; outline:none; font-family:system-ui;" />
         </div>
 
+        <div style="margin-bottom:12px;">
+            <label style="display:block; font-weight:bold; font-size:12px; text-transform:uppercase; margin-bottom:4px; font-family:system-ui;">Item Category *</label>
+            <select id="gs-category" style="width:100%; border:2px solid black; padding:6px 8px; font-weight:bold; box-sizing:border-box; outline:none; font-family:system-ui; background:white; cursor:pointer;" required>
+                <option value="Dairy & Eggs">Dairy & Eggs</option>
+                <option value="Fresh Produce">Fresh Produce</option>
+                <option value="Bakery & Breads">Bakery & Breads</option>
+                <option value="Meat & Seafood">Meat & Seafood</option>
+                <option value="Pantry Staples">Pantry Staples</option>
+                <option value="Baking & Spices">Baking & Spices</option>
+                <option value="Snacks & Beverages">Snacks & Beverages</option>
+                <option value="Health, Personal & Household">Health, Personal & Household</option>
+                <option value="Beer, Wine & Spirits">Beer, Wine & Spirits</option>
+            </select>
+        </div>
+
+        <div style="margin-bottom:20px; display:flex; gap:8px;">
+            <div style="flex:1;">
+                <label style="display:block; font-weight:bold; font-size:12px; text-transform:uppercase; margin-bottom:4px; font-family:system-ui;">Units (Size Value) *</label>
+                <input type="number" id="gs-units" step="any" min="0" placeholder="e.g. 450" style="width:100%; border:2px solid black; padding:6px 8px; font-weight:bold; box-sizing:border-box; outline:none; font-family:system-ui;" required />
+            </div>
+            <div style="flex:1;">
+                <label style="display:block; font-weight:bold; font-size:12px; text-transform:uppercase; margin-bottom:4px; font-family:system-ui;">Unit of Measure *</label>
+                <select id="gs-unit" style="width:100%; border:2px solid black; padding:6px 8px; font-weight:bold; box-sizing:border-box; outline:none; font-family:system-ui; background:white; cursor:pointer;" required>
+                    <option value="unit">unit</option>
+                    <option value="g">g</option>
+                    <option value="kg">kg</option>
+                    <option value="ml">ml</option>
+                    <option value="l">l</option>
+                    <option value="lb">lb</option>
+                    <option value="oz">oz</option>
+                    <option value="gal">gal</option>
+                    <option value="dozen">dozen</option>
+                    <option value="bunch">bunch</option>
+                    <option value="bag">bag</option>
+                    <option value="can">can</option>
+                    <option value="box">box</option>
+                    <option value="pack">pack</option>
+                </select>
+            </div>
+        </div>
+
         <div style="display:flex; gap:12px;">
             <button id="gs-btn-cancel" style="flex:1; background:#ef4444; color:white; border:2px solid black; padding:10px; font-weight:bold; cursor:pointer; text-transform:uppercase; box-shadow:2px 2px 0px black; font-size:12px; font-family:system-ui;">Cancel</button>
             <button id="gs-btn-submit" style="flex:1; background:#22c55e; color:white; border:2px solid black; padding:10px; font-weight:bold; cursor:pointer; text-transform:uppercase; box-shadow:2px 2px 0px black; font-size:12px; font-family:system-ui;">Submit</button>
@@ -329,6 +399,15 @@
         
         const itemSearchInput = document.getElementById('gs-item-search');
         const itemDropdown = document.getElementById('gs-item-dropdown');
+        const categorySelect = document.getElementById('gs-category');
+        const unitsInput = document.getElementById('gs-units');
+        const unitSelect = document.getElementById('gs-unit');
+
+        const rawTitle = document.title.split('|')[0].trim();
+        categorySelect.value = determineCategory(rawTitle);
+        const parsedSize = determineUnitAndSize(rawTitle);
+        unitsInput.value = parsedSize.units;
+        unitSelect.value = parsedSize.unitOfMeasurement;
         
         itemSearchInput.value = payload.data.config_name;
         document.getElementById('gs-reg-price').focus();
@@ -424,6 +503,9 @@
             const salePriceInput = document.getElementById('gs-sale-price').value.trim();
             const validUntilInput = document.getElementById('gs-valid-until').value.trim();
             const selectedItemSearch = itemSearchInput.value.trim();
+            const selectedCategory = categorySelect.value;
+            const selectedUnitsInput = unitsInput.value.trim();
+            const selectedUnit = unitSelect.value;
 
             if (!selectedItemSearch) {
                 alert("Please select or specify a Catalog Item");
@@ -438,6 +520,16 @@
             const regPrice = parseFloat(regPriceInput);
             if (isNaN(regPrice) || regPrice <= 0) {
                 alert("Invalid Regular Price");
+                return;
+            }
+
+            if (!selectedUnitsInput) {
+                alert("Please specify the Units count/size");
+                return;
+            }
+            const selectedUnits = parseFloat(selectedUnitsInput);
+            if (isNaN(selectedUnits) || selectedUnits <= 0) {
+                alert("Invalid Units count/size");
                 return;
             }
 
@@ -459,6 +551,10 @@
             } else {
                 payload.data.valid_until = null;
             }
+
+            payload.data.category = selectedCategory;
+            payload.data.unit = selectedUnit;
+            payload.data.units = selectedUnits;
 
             cleanupModal();
             sendPayload(payload);

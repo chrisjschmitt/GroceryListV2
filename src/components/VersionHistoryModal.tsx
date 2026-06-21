@@ -21,6 +21,24 @@ interface VersionEntry {
 
 const VERSIONS: VersionEntry[] = [
   {
+    version: "1.9.3",
+    date: "June 2026",
+    type: "patch",
+    title: "Userscript Metadata Expansion & Real-Time Syncing",
+    changes: [
+      {
+        icon: <Layout className="w-4 h-4 text-indigo-600" />,
+        category: "Userscript Exporter",
+        description: "Added Category selector, Unit of Measurement dropdown, and Units size value input to the Tampermonkey exporter modal. Integrated category title matching and automatic unit size regex parsing from document titles."
+      },
+      {
+        icon: <Database className="w-4 h-4 text-emerald-600" />,
+        category: "Ingestion API Pipeline",
+        description: "Upgraded the append-grocery API endpoint to receive these fields and instantly update the combined-catalog items with these metrics on matches or auto-creations."
+      }
+    ]
+  },
+  {
     version: "1.9.2",
     date: "June 2026",
     type: "patch",

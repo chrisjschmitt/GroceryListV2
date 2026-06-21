@@ -35,6 +35,7 @@ export interface RegularItem {
   name: string;
   selected: boolean;
   unit?: string;
+  units?: number;
 }
 
 export interface StoreInfo {
@@ -111,6 +112,7 @@ export interface CombinedCatalogItem {
   name: string;
   category: string;
   unit: string;
+  units?: number;
   requires_scraping: boolean;
   stores: Record<string, CombinedStoreLink>;
   last_updated?: string;

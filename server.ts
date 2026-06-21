@@ -351,7 +351,8 @@ async function startServer() {
         name: item.name,
         category: item.category,
         selected: false,
-        unit: item.unit
+        unit: item.unit,
+        units: item.units
       }));
       let correctedData = { ...data };
 
@@ -391,6 +392,15 @@ async function startServer() {
             correctedData.match_confidence = 100;
             correctedData.match_reason = "Programmatic exact string match on ingestion";
             correctedData.original_config_name = configName;
+
+            // Update catalog item attributes if passed
+            const catalogItem = catalog.items.find(i => i.id === exactMatch.id);
+            if (catalogItem) {
+              if (data.category) catalogItem.category = data.category;
+              if (data.unit) catalogItem.unit = data.unit;
+              if (data.units !== undefined) catalogItem.units = data.units !== null ? Number(data.units) : undefined;
+            }
+            await blobSetCombinedCatalog(catalog);
           } else {
             // Apply highly optimized Gemini matcher
             const matchResult = await evaluateGeminiMatch(configName, catalogItems);
@@ -404,12 +414,23 @@ async function startServer() {
                 correctedData.match_reason = matchResult.reason;
                 correctedData.original_config_name = configName;
                 console.log(`Matched incoming "${configName}" -> corrected to catalog name "${matchedItem.name}" (${matchResult.confidence}% confidence)`);
+
+                // Update catalog item attributes if passed
+                const catalogItem = catalog.items.find(i => i.id === matchedItem.id);
+                if (catalogItem) {
+                  if (data.category) catalogItem.category = data.category;
+                  if (data.unit) catalogItem.unit = data.unit;
+                  if (data.units !== undefined) catalogItem.units = data.units !== null ? Number(data.units) : undefined;
+                }
+                await blobSetCombinedCatalog(catalog);
               }
             } else {
               // Unmatched ingestion fallback: Automatically create a new catalog item as requested
               // to ensure pricing actually appears in the UI instead of silently disappearing
               const proposedName = matchResult.proposed_new_item?.name || configName;
-              const proposedCategory = matchResult.proposed_new_item?.category || "Bakery";
+              const proposedCategory = data.category || matchResult.proposed_new_item?.category || "Bakery";
+              const proposedUnit = data.unit || "unit";
+              const proposedUnits = data.units !== undefined && data.units !== null ? Number(data.units) : undefined;
 
               const newId = `regular-unmatched-${Date.now()}-${Math.random().toString(36).substring(2, 7)}`;
               
@@ -418,7 +439,8 @@ async function startServer() {
                 id: newId,
                 name: proposedName,
                 category: proposedCategory,
-                unit: "unit",
+                unit: proposedUnit,
+                units: proposedUnits,
                 requires_scraping: true,
                 stores: {}
               };

@@ -341,8 +341,16 @@ app.post("/api/append-grocery", async (req, res) => {
       return;
     }
 
-    // Read catalog items from regular_items.json
-    const catalogItems = await blobGetRegularItems();
+    // Read catalog registry directly from combined-catalog.json
+    const catalog = await blobGetCombinedCatalog();
+    const catalogItems: RegularItem[] = (catalog.items || []).map((item) => ({
+      id: item.id,
+      name: item.name,
+      category: item.category,
+      selected: false,
+      unit: item.unit,
+      units: item.units
+    }));
     let correctedData = { ...data };
 
     // Clean and parse pricing fields if present
@@ -367,7 +375,7 @@ app.post("/api/append-grocery", async (req, res) => {
 
     const configName = data.config_name || data.item_name || "";
 
-    if (configName && catalogItems.length > 0) {
+    if (configName) {
       try {
         // Programmatic fast path for exact match
         const exactMatch = catalogItems.find(
@@ -381,6 +389,15 @@ app.post("/api/append-grocery", async (req, res) => {
           correctedData.match_confidence = 100;
           correctedData.match_reason = "Programmatic exact string match on ingestion";
           correctedData.original_config_name = configName;
+
+          // Update catalog item attributes if passed
+          const catalogItem = catalog.items.find(i => i.id === exactMatch.id);
+          if (catalogItem) {
+            if (data.category) catalogItem.category = data.category;
+            if (data.unit) catalogItem.unit = data.unit;
+            if (data.units !== undefined) catalogItem.units = data.units !== null ? Number(data.units) : undefined;
+          }
+          await blobSetCombinedCatalog(catalog);
         } else {
           // Apply highly optimized Gemini matcher
           const matchResult = await evaluateGeminiMatch(configName, catalogItems);
@@ -394,22 +411,33 @@ app.post("/api/append-grocery", async (req, res) => {
               correctedData.match_reason = matchResult.reason;
               correctedData.original_config_name = configName;
               console.log(`Matched incoming "${configName}" -> corrected to catalog name "${matchedItem.name}" (${matchResult.confidence}% confidence)`);
+
+              // Update catalog item attributes if passed
+              const catalogItem = catalog.items.find(i => i.id === matchedItem.id);
+              if (catalogItem) {
+                if (data.category) catalogItem.category = data.category;
+                if (data.unit) catalogItem.unit = data.unit;
+                if (data.units !== undefined) catalogItem.units = data.units !== null ? Number(data.units) : undefined;
+              }
+              await blobSetCombinedCatalog(catalog);
             }
           } else {
             // Unmatched ingestion fallback: Automatically create a new catalog item as requested
             // to ensure pricing actually appears in the UI instead of silently disappearing
             const proposedName = matchResult.proposed_new_item?.name || configName;
-            const proposedCategory = matchResult.proposed_new_item?.category || "Bakery";
+            const proposedCategory = data.category || matchResult.proposed_new_item?.category || "Bakery";
+            const proposedUnit = data.unit || "unit";
+            const proposedUnits = data.units !== undefined && data.units !== null ? Number(data.units) : undefined;
 
             const newId = `regular-unmatched-${Date.now()}-${Math.random().toString(36).substring(2, 7)}`;
             
             // Create and save new combined-catalog item directly
-            const catalog = await blobGetCombinedCatalog();
             const newCombinedItem = {
               id: newId,
               name: proposedName,
               category: proposedCategory,
-              unit: "each",
+              unit: proposedUnit,
+              units: proposedUnits,
               requires_scraping: true,
               stores: {}
             };

@@ -689,6 +689,7 @@ export function migrateCombinedCatalog(catalog: any): CombinedCatalog {
         name: item.name,
         category: standardizeCategory(item.category || "Pantry Staples"),
         unit: item.unit || "unit",
+        units: typeof item.units === "number" ? item.units : undefined,
         requires_scraping: typeof item.requires_scraping === "boolean" ? item.requires_scraping : false,
         stores: storesRecord,
         last_updated: item.last_updated,
