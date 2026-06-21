@@ -1,16 +1,23 @@
 // ==UserScript==
-// @name         GroceryScout - 2.9 Normalized Canonical Exporter
+// @name         GroceryScout - 2.9.1 Normalized Canonical Exporter
 // @namespace    http://tampermonkey.net/
-// @version      2.9
+// @version      2.9.1
 // @description  Added searchable catalog dropdown and dynamically loaded item lists
 // @author       You
-// @match        https://www.foodbasics.ca/*
-// @match        https://www.metro.ca/*
-// @match        https://www.freshco.com/*
-// @match        https://www.walmart.ca/*
-// @match        https://www.loblaws.ca/*
-// @match        https://www.nofrills.ca/*
-// @match        https://www.yourindependentgrocer.ca/*
+// @match        https://*.foodbasics.ca/*
+// @match        https://foodbasics.ca/*
+// @match        https://*.metro.ca/*
+// @match        https://metro.ca/*
+// @match        https://*.freshco.com/*
+// @match        https://freshco.com/*
+// @match        https://*.walmart.ca/*
+// @match        https://walmart.ca/*
+// @match        https://*.loblaws.ca/*
+// @match        https://loblaws.ca/*
+// @match        https://*.nofrills.ca/*
+// @match        https://nofrills.ca/*
+// @match        https://*.yourindependentgrocer.ca/*
+// @match        https://yourindependentgrocer.ca/*
 // @connect      ais-dev-kynlhucnvvzplwokihj56s-569102779948.us-west2.run.app
 // @connect      grocery-list-v2-navy.vercel.app
 // @connect      *

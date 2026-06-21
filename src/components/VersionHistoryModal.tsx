@@ -21,6 +21,19 @@ interface VersionEntry {
 
 const VERSIONS: VersionEntry[] = [
   {
+    version: "1.9.4",
+    date: "June 2026",
+    type: "patch",
+    title: "Tampermonkey Wildcard Subdomain & Domain Matches",
+    changes: [
+      {
+        icon: <Zap className="w-4 h-4 text-amber-500" />,
+        category: "Userscript Exporter",
+        description: "Expanded the match patterns to support base domains and wildcard subdomains for all grocery chain portals, solving script load and activation issues on pages resolved without www."
+      }
+    ]
+  },
+  {
     version: "1.9.3",
     date: "June 2026",
     type: "patch",
