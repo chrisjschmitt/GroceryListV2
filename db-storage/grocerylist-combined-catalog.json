@@ -144,7 +144,7 @@
           "sale_price": null,
           "is_on_sale": 0,
           "valid_until": "",
-          "track_pricing": false,
+          "track_pricing": true,
           "external_name": "Eggs - 18",
           "is_verified": true
         },
@@ -155,7 +155,7 @@
           "sale_price": null,
           "is_on_sale": 0,
           "valid_until": "",
-          "track_pricing": false,
+          "track_pricing": true,
           "external_name": "",
           "is_verified": true
         }
@@ -240,7 +240,7 @@
           "sale_price": null,
           "is_on_sale": 0,
           "valid_until": "",
-          "track_pricing": false,
+          "track_pricing": true,
           "external_name": "",
           "is_verified": true
         },
@@ -475,7 +475,7 @@
           "sale_price": null,
           "is_on_sale": 0,
           "valid_until": "",
-          "track_pricing": false,
+          "track_pricing": true,
           "external_name": "",
           "is_verified": true
         },
@@ -486,7 +486,7 @@
           "sale_price": null,
           "is_on_sale": 0,
           "valid_until": "",
-          "track_pricing": false,
+          "track_pricing": true,
           "external_name": "",
           "is_verified": true
         }
@@ -531,7 +531,7 @@
           "sale_price": null,
           "is_on_sale": 0,
           "valid_until": "",
-          "track_pricing": false,
+          "track_pricing": true,
           "external_name": "",
           "is_verified": true
         },
@@ -542,7 +542,7 @@
           "sale_price": 6.49,
           "is_on_sale": 1,
           "valid_until": "2024-08-12",
-          "track_pricing": false,
+          "track_pricing": true,
           "external_name": "",
           "is_verified": true
         }
@@ -579,7 +579,7 @@
           "sale_price": 5.88,
           "is_on_sale": 1,
           "valid_until": "2026-06-24",
-          "track_pricing": false,
+          "track_pricing": true,
           "external_name": "",
           "is_verified": true
         },
@@ -590,7 +590,7 @@
           "sale_price": null,
           "is_on_sale": 0,
           "valid_until": "",
-          "track_pricing": false,
+          "track_pricing": true,
           "external_name": "",
           "is_verified": true
         },
@@ -601,7 +601,7 @@
           "sale_price": null,
           "is_on_sale": 0,
           "valid_until": "",
-          "track_pricing": false,
+          "track_pricing": true,
           "external_name": "",
           "is_verified": true
         }
@@ -686,7 +686,7 @@
           "sale_price": null,
           "is_on_sale": 0,
           "valid_until": "",
-          "track_pricing": false,
+          "track_pricing": true,
           "external_name": "",
           "is_verified": true
         },
@@ -697,7 +697,7 @@
           "sale_price": null,
           "is_on_sale": 0,
           "valid_until": "",
-          "track_pricing": false,
+          "track_pricing": true,
           "external_name": "",
           "is_verified": true
         }
@@ -798,7 +798,7 @@
           "sale_price": 6.99,
           "is_on_sale": 1,
           "valid_until": "2026-06-24",
-          "track_pricing": false,
+          "track_pricing": true,
           "external_name": "",
           "is_verified": true
         },
@@ -809,7 +809,7 @@
           "sale_price": null,
           "is_on_sale": 0,
           "valid_until": "",
-          "track_pricing": false,
+          "track_pricing": true,
           "external_name": "",
           "is_verified": true
         }
@@ -830,7 +830,7 @@
           "sale_price": null,
           "is_on_sale": 0,
           "valid_until": "",
-          "track_pricing": false,
+          "track_pricing": true,
           "external_name": "",
           "is_verified": true
         },
@@ -841,7 +841,7 @@
           "sale_price": null,
           "is_on_sale": 0,
           "valid_until": "",
-          "track_pricing": false,
+          "track_pricing": true,
           "external_name": "",
           "is_verified": true
         }
@@ -1431,7 +1431,7 @@
           "sale_price": null,
           "is_on_sale": 0,
           "valid_until": "",
-          "track_pricing": false,
+          "track_pricing": true,
           "external_name": "",
           "is_verified": true
         }
@@ -1748,7 +1748,7 @@
           "sale_price": null,
           "is_on_sale": 0,
           "valid_until": "",
-          "track_pricing": false,
+          "track_pricing": true,
           "external_name": "",
           "is_verified": true
         },
@@ -1759,7 +1759,7 @@
           "sale_price": null,
           "is_on_sale": 0,
           "valid_until": "",
-          "track_pricing": false,
+          "track_pricing": true,
           "external_name": "",
           "is_verified": true
         },
@@ -1770,7 +1770,7 @@
           "sale_price": null,
           "is_on_sale": 0,
           "valid_until": "",
-          "track_pricing": false,
+          "track_pricing": true,
           "external_name": "",
           "is_verified": true
         }
@@ -2050,7 +2050,7 @@
           "sale_price": null,
           "is_on_sale": 0,
           "valid_until": "",
-          "track_pricing": false,
+          "track_pricing": true,
           "external_name": "",
           "is_verified": true
         },
@@ -2061,7 +2061,7 @@
           "sale_price": null,
           "is_on_sale": 0,
           "valid_until": "",
-          "track_pricing": false,
+          "track_pricing": true,
           "external_name": "",
           "is_verified": true
         }
@@ -2274,7 +2274,7 @@
           "sale_price": 2.99,
           "is_on_sale": 1,
           "valid_until": "2026-06-24",
-          "track_pricing": false,
+          "track_pricing": true,
           "external_name": "",
           "is_verified": true
         },
@@ -2285,7 +2285,7 @@
           "sale_price": null,
           "is_on_sale": 0,
           "valid_until": "",
-          "track_pricing": false,
+          "track_pricing": true,
           "external_name": "Celery",
           "is_verified": true
         }
@@ -2354,7 +2354,7 @@
           "sale_price": 3.99,
           "is_on_sale": 1,
           "valid_until": "2026-06-24",
-          "track_pricing": false,
+          "track_pricing": true,
           "external_name": "",
           "is_verified": true
         },
@@ -2365,7 +2365,7 @@
           "sale_price": 1.99,
           "is_on_sale": 1,
           "valid_until": "2026-06-24",
-          "track_pricing": false,
+          "track_pricing": true,
           "external_name": "",
           "is_verified": true
         }
@@ -2434,7 +2434,7 @@
           "sale_price": null,
           "is_on_sale": 0,
           "valid_until": "",
-          "track_pricing": false,
+          "track_pricing": true,
           "external_name": "Lettuce",
           "is_verified": true
         }
@@ -2479,7 +2479,7 @@
           "sale_price": null,
           "is_on_sale": 0,
           "valid_until": "",
-          "track_pricing": false,
+          "track_pricing": true,
           "external_name": "",
           "is_verified": true
         }
@@ -2580,7 +2580,7 @@
           "sale_price": 3.99,
           "is_on_sale": 1,
           "valid_until": "2026-06-24",
-          "track_pricing": false,
+          "track_pricing": true,
           "external_name": "",
           "is_verified": true
         },
@@ -2591,7 +2591,7 @@
           "sale_price": 5.99,
           "is_on_sale": 1,
           "valid_until": "2023-08-30",
-          "track_pricing": false,
+          "track_pricing": true,
           "external_name": "",
           "is_verified": true
         }
@@ -2628,7 +2628,7 @@
           "sale_price": null,
           "is_on_sale": 0,
           "valid_until": "",
-          "track_pricing": false,
+          "track_pricing": true,
           "external_name": "",
           "is_verified": true
         }
@@ -3081,7 +3081,7 @@
           "sale_price": null,
           "is_on_sale": 0,
           "valid_until": "",
-          "track_pricing": false,
+          "track_pricing": true,
           "external_name": "",
           "is_verified": true
         }
@@ -3142,7 +3142,7 @@
           "sale_price": 5.49,
           "is_on_sale": 1,
           "valid_until": "2026-07-01",
-          "track_pricing": false,
+          "track_pricing": true,
           "external_name": "",
           "is_verified": true
         },
@@ -3153,7 +3153,7 @@
           "sale_price": null,
           "is_on_sale": 0,
           "valid_until": "",
-          "track_pricing": false,
+          "track_pricing": true,
           "external_name": "",
           "is_verified": true
         }
@@ -3710,7 +3710,7 @@
           "sale_price": 6.96,
           "is_on_sale": 1,
           "valid_until": "",
-          "track_pricing": false,
+          "track_pricing": true,
           "external_name": "",
           "is_verified": true
         }
@@ -3787,7 +3787,7 @@
           "sale_price": null,
           "is_on_sale": 0,
           "valid_until": "",
-          "track_pricing": false,
+          "track_pricing": true,
           "external_name": "",
           "is_verified": true
         },
@@ -3798,7 +3798,7 @@
           "sale_price": null,
           "is_on_sale": 0,
           "valid_until": "",
-          "track_pricing": false,
+          "track_pricing": true,
           "external_name": "",
           "is_verified": true
         },
@@ -3809,7 +3809,7 @@
           "sale_price": null,
           "is_on_sale": 0,
           "valid_until": "",
-          "track_pricing": false,
+          "track_pricing": true,
           "external_name": "",
           "is_verified": true
         }
@@ -3829,7 +3829,7 @@
           "sale_price": null,
           "is_on_sale": 0,
           "valid_until": "",
-          "track_pricing": false,
+          "track_pricing": true,
           "external_name": "",
           "is_verified": true
         }
@@ -3850,7 +3850,7 @@
           "sale_price": null,
           "is_on_sale": 0,
           "valid_until": "",
-          "track_pricing": false,
+          "track_pricing": true,
           "external_name": "",
           "is_verified": true
         }
@@ -3871,7 +3871,7 @@
           "sale_price": null,
           "is_on_sale": 0,
           "valid_until": "",
-          "track_pricing": false,
+          "track_pricing": true,
           "external_name": "",
           "is_verified": true
         }
@@ -3961,7 +3961,7 @@
           "sale_price": null,
           "is_on_sale": 0,
           "valid_until": "",
-          "track_pricing": false,
+          "track_pricing": true,
           "external_name": "Whole wheat english muffins",
           "is_verified": true
         },
@@ -3972,7 +3972,7 @@
           "sale_price": null,
           "is_on_sale": 0,
           "valid_until": "",
-          "track_pricing": false,
+          "track_pricing": true,
           "external_name": "Whole wheat english muffins",
           "is_verified": true
         }
@@ -3993,7 +3993,7 @@
           "sale_price": 21.49,
           "is_on_sale": 1,
           "valid_until": "2026-06-24",
-          "track_pricing": false,
+          "track_pricing": true,
           "external_name": "Beer - Corona Alcohol free",
           "is_verified": true
         },
@@ -4004,7 +4004,7 @@
           "sale_price": null,
           "is_on_sale": 0,
           "valid_until": "",
-          "track_pricing": false,
+          "track_pricing": true,
           "external_name": "Beer - Corona Alcohol free",
           "is_verified": true
         }
@@ -4033,7 +4033,7 @@
           "sale_price": null,
           "is_on_sale": 0,
           "valid_until": "",
-          "track_pricing": false,
+          "track_pricing": true,
           "external_name": "Lactose free plain yogurt",
           "is_verified": true
         }
@@ -4078,7 +4078,7 @@
           "sale_price": 0.99,
           "is_on_sale": 1,
           "valid_until": "2026-06-24",
-          "track_pricing": false,
+          "track_pricing": true,
           "external_name": "",
           "is_verified": true
         }

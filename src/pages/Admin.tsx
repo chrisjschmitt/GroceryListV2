@@ -365,6 +365,7 @@ export default function AdminPage() {
   const [catalogSaleFilter, setCatalogSaleFilter] = useState("all");
   const [catalogTrackedFilter, setCatalogTrackedFilter] = useState("all");
   const [catalogVerifiedFilter, setCatalogVerifiedFilter] = useState("all");
+  const [catalogStoreFilter, setCatalogStoreFilter] = useState("all");
 
   const [editingCatalogItem, setEditingCatalogItem] = useState<any>(null);
   const [selectedCatalogStore, setSelectedCatalogStore] = useState<string>("foodbasics");
@@ -1270,6 +1271,20 @@ export default function AdminPage() {
     return acc;
   }, {} as Record<string, RegularItem[]>);
 
+  // Derive all unique store keys present in the catalog or defaults
+  const allStoreKeys = useMemo(() => {
+    const keys = new Set<string>();
+    if (catalog?.items) {
+      for (const item of catalog.items) {
+        if (item.stores) {
+          Object.keys(item.stores).forEach(k => keys.add(k));
+        }
+      }
+    }
+    Object.keys(dynamicStoreNames).forEach(k => keys.add(k));
+    return Array.from(keys).sort();
+  }, [catalog, dynamicStoreNames]);
+
   // Derive filtered combined-catalog entries
   const filteredCatalogItems = (catalog?.items || []).filter((item: any) => {
     if (catalogSearch.trim() !== "") {
@@ -1285,6 +1300,8 @@ export default function AdminPage() {
       });
       if (!matchName && !matchId && !matchStores) return false;
     }
+
+    if (catalogStoreFilter !== "all" && (!item.stores || !item.stores[catalogStoreFilter])) return false;
 
     if (catalogScrapedFilter === "scraped" && !item.requires_scraping) return false;
     if (catalogScrapedFilter === "not-scraped" && item.requires_scraping) return false;
@@ -2344,7 +2361,26 @@ export default function AdminPage() {
                   )}
                 </div>
 
-                <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 w-full md:w-auto">
+                <div className="grid grid-cols-2 sm:grid-cols-5 gap-2 w-full md:w-auto">
+                  <div>
+                    <label className="block text-[9px] font-black uppercase text-gray-400 mb-0.5">Store</label>
+                    <select
+                      value={catalogStoreFilter}
+                      onChange={(e) => {
+                        setCatalogStoreFilter(e.target.value);
+                        setVisibleCatalogCount(30);
+                      }}
+                      className="py-1.5 px-2 border-2 border-black bg-white font-black text-[11px] uppercase tracking-wider leading-relaxed text-black w-full text-xs"
+                    >
+                      <option value="all">All Stores</option>
+                      {allStoreKeys.map((key) => (
+                        <option key={key} value={key}>
+                          {dynamicStoreNames[key] || key}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+
                   <div>
                     <label className="block text-[9px] font-black uppercase text-gray-400 mb-0.5">Scraping</label>
                     <select

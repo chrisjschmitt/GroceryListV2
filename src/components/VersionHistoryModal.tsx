@@ -21,6 +21,24 @@ interface VersionEntry {
 
 const VERSIONS: VersionEntry[] = [
   {
+    version: "1.9.0",
+    date: "June 2026",
+    type: "minor",
+    title: "Store Lookup Selector & Verified Price Tracking Migration",
+    changes: [
+      {
+        icon: <Layout className="w-4 h-4 text-indigo-600" />,
+        category: "Admin panel UI",
+        description: "Implemented a Store selection dropdown filter in the Combined Catalog Registry Manager, enabling instant lookup of products mapped to specific store URLs."
+      },
+      {
+        icon: <Database className="w-4 h-4 text-emerald-600" />,
+        category: "Database migration",
+        description: "Developed and ran an automated migration script to enable price tracking (track_pricing: true) for all verified links, excluding Costco, across local fallbacks, Vercel Blob catalog, and MongoDB prices log."
+      }
+    ]
+  },
+  {
     version: "1.8.9",
     date: "June 2026",
     type: "patch",
