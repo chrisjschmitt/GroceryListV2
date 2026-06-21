@@ -21,6 +21,19 @@ interface VersionEntry {
 
 const VERSIONS: VersionEntry[] = [
   {
+    version: "1.9.2",
+    date: "June 2026",
+    type: "patch",
+    title: "Collapsible Admin Registry Panels & Search Bar Stacking",
+    changes: [
+      {
+        icon: <Layout className="w-4 h-4 text-indigo-600" />,
+        category: "Admin panel UI",
+        description: "Repositioned the Combined Catalog Registry Manager search input vertically above the dropdown filters. Integrated Expand/Minimize toggle button controls (minimized by default) to the Catalog Registry Manager and Grocery Stores Setup forms for improved page layout focus."
+      }
+    ]
+  },
+  {
     version: "1.9.1",
     date: "June 2026",
     type: "patch",

@@ -29,7 +29,9 @@ import {
   Eye,
   RefreshCw,
   Store,
-  Download
+  Download,
+  ChevronDown,
+  ChevronUp
 } from "lucide-react";
 
 const getSearchUrlForStore = (storeKey: string, itemName: string, scrapeConfig?: any) => {
@@ -127,6 +129,10 @@ export default function AdminPage() {
   const [catalog, setCatalog] = useState<any>(null);
   const items = useMemo(() => (catalog ? catalog.items || [] : []), [catalog]);
   const [loading, setLoading] = useState(true);
+
+  // Collapsible sections state (minimized by default)
+  const [catalogMinimized, setCatalogMinimized] = useState(true);
+  const [storesMinimized, setStoresMinimized] = useState(true);
 
   // MongoDB prices collection state
   const [pricesData, setPricesData] = useState<any>(null);
@@ -489,6 +495,7 @@ export default function AdminPage() {
   const [visibleCatalogCount, setVisibleCatalogCount] = useState(30);
 
   const handleOpenEditCatalog = (item: any) => {
+    setCatalogMinimized(false);
     setIsAddingCatalogItem(false);
     setEditingCatalogItem(item);
     
@@ -515,6 +522,7 @@ export default function AdminPage() {
   };
 
   const handleOpenAddCatalog = () => {
+    setCatalogMinimized(false);
     setIsAddingCatalogItem(true);
     setEditingCatalogItem(null);
     setSelectedCatalogStore("foodbasics");
@@ -781,6 +789,7 @@ export default function AdminPage() {
 
   // --- Store setup CRUD handlers ---
   const handleOpenAddStore = () => {
+    setStoresMinimized(false);
     setEditingStoreKey(null);
     setStoreForm({
       key: "",
@@ -794,6 +803,7 @@ export default function AdminPage() {
   };
 
   const handleOpenEditStore = (key: string, store: any) => {
+    setStoresMinimized(false);
     setEditingStoreKey(key);
     setStoreForm({
       key: key,
@@ -2292,14 +2302,27 @@ export default function AdminPage() {
               <h2 className="text-base font-black uppercase tracking-tight flex items-center gap-2">
                 <Database className="w-5 h-5 text-indigo-600" /> Combined Catalog Registry Manager (combined-catalog.json)
               </h2>
-              <button
-                type="button"
-                onClick={handleOpenAddCatalog}
-                className="text-xs font-black uppercase tracking-wider text-black bg-indigo-400 hover:bg-indigo-300 border-2 border-black px-3 py-1 shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] hover:shadow-none hover:translate-x-[1px] hover:translate-y-[1px] transition-all"
-              >
-                + Add Catalog Product
-              </button>
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={handleOpenAddCatalog}
+                  className="text-xs font-black uppercase tracking-wider text-black bg-indigo-400 hover:bg-indigo-300 border-2 border-black px-3 py-1 shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] hover:shadow-none hover:translate-x-[1px] hover:translate-y-[1px] transition-all"
+                >
+                  + Add Catalog Product
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setCatalogMinimized(!catalogMinimized)}
+                  className="text-xs font-black uppercase tracking-wider text-black bg-gray-100 hover:bg-gray-200 border-2 border-black px-3 py-1 shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] hover:shadow-none hover:translate-x-[1px] hover:translate-y-[1px] transition-all flex items-center gap-1"
+                >
+                  {catalogMinimized ? <ChevronDown className="w-3.5 h-3.5" /> : <ChevronUp className="w-3.5 h-3.5" />}
+                  {catalogMinimized ? "Expand" : "Minimize"}
+                </button>
+              </div>
             </div>
+
+            {!catalogMinimized && (
+              <>
 
             <p className="text-xs text-gray-500 mb-6 font-medium leading-relaxed">
               This panel provides complete CRUD controls over your master catalog (<code>combined-catalog.json</code>). You can fine-tune global metrics (Name, category, and scraping required) and store-specific scrape triggers, pricing definitions, and validation dates in one consolidated view.
@@ -2337,113 +2360,111 @@ export default function AdminPage() {
 
             {/* Catalog Search & Filters */}
             <div className="bg-gray-50 border-2 border-black p-4 mb-6 space-y-3">
-              <div className="flex flex-col md:flex-row gap-3">
-                <div className="flex-1 relative">
-                  <Search className="absolute left-3 top-2.5 h-4 w-4 text-gray-400" />
-                  <input
-                    type="text"
-                    placeholder="Search by product name, ID, store key or store UPC..."
-                    value={catalogSearch}
+              <div className="relative w-full">
+                <Search className="absolute left-3 top-2.5 h-4 w-4 text-gray-400" />
+                <input
+                  type="text"
+                  placeholder="Search by product name, ID, store key or store UPC..."
+                  value={catalogSearch}
+                  onChange={(e) => {
+                    setCatalogSearch(e.target.value);
+                    setVisibleCatalogCount(30);
+                  }}
+                  className="w-full pl-9 pr-4 py-2 border-2 border-black bg-white font-medium text-xs placeholder-gray-400 focus:outline-none focus:ring-0 text-black leading-tight"
+                />
+                {catalogSearch && (
+                  <button
+                    type="button"
+                    onClick={() => setCatalogSearch("")}
+                    className="absolute right-3 top-2 text-xs font-bold text-black border border-black bg-white px-1 hover:bg-gray-100"
+                  >
+                    Clear
+                  </button>
+                )}
+              </div>
+
+              <div className="grid grid-cols-2 sm:grid-cols-5 gap-2 w-full">
+                <div>
+                  <label className="block text-[9px] font-black uppercase text-gray-400 mb-0.5">Store</label>
+                  <select
+                    value={catalogStoreFilter}
                     onChange={(e) => {
-                      setCatalogSearch(e.target.value);
+                      setCatalogStoreFilter(e.target.value);
                       setVisibleCatalogCount(30);
                     }}
-                    className="w-full pl-9 pr-4 py-2 border-2 border-black bg-white font-medium text-xs placeholder-gray-400 focus:outline-none focus:ring-0 text-black leading-tight"
-                  />
-                  {catalogSearch && (
-                    <button
-                      type="button"
-                      onClick={() => setCatalogSearch("")}
-                      className="absolute right-3 top-2 text-xs font-bold text-black border border-black bg-white px-1 hover:bg-gray-100"
-                    >
-                      Clear
-                    </button>
-                  )}
+                    className="py-1.5 px-2 border-2 border-black bg-white font-black text-[11px] uppercase tracking-wider leading-relaxed text-black w-full text-xs"
+                  >
+                    <option value="all">All Stores</option>
+                    {allStoreKeys.map((key) => (
+                      <option key={key} value={key}>
+                        {dynamicStoreNames[key] || key}
+                      </option>
+                    ))}
+                  </select>
                 </div>
 
-                <div className="grid grid-cols-2 sm:grid-cols-5 gap-2 w-full md:w-auto">
-                  <div>
-                    <label className="block text-[9px] font-black uppercase text-gray-400 mb-0.5">Store</label>
-                    <select
-                      value={catalogStoreFilter}
-                      onChange={(e) => {
-                        setCatalogStoreFilter(e.target.value);
-                        setVisibleCatalogCount(30);
-                      }}
-                      className="py-1.5 px-2 border-2 border-black bg-white font-black text-[11px] uppercase tracking-wider leading-relaxed text-black w-full text-xs"
-                    >
-                      <option value="all">All Stores</option>
-                      {allStoreKeys.map((key) => (
-                        <option key={key} value={key}>
-                          {dynamicStoreNames[key] || key}
-                        </option>
-                      ))}
-                    </select>
-                  </div>
+                <div>
+                  <label className="block text-[9px] font-black uppercase text-gray-400 mb-0.5">Scraping</label>
+                  <select
+                    value={catalogScrapedFilter}
+                    onChange={(e) => {
+                      setCatalogScrapedFilter(e.target.value);
+                      setVisibleCatalogCount(30);
+                    }}
+                    className="py-1.5 px-2 border-2 border-black bg-white font-black text-[11px] uppercase tracking-wider leading-relaxed text-black w-full text-xs"
+                  >
+                    <option value="all">All Items</option>
+                    <option value="scraped">Scraped</option>
+                    <option value="not-scraped">Not Scraped</option>
+                  </select>
+                </div>
 
-                  <div>
-                    <label className="block text-[9px] font-black uppercase text-gray-400 mb-0.5">Scraping</label>
-                    <select
-                      value={catalogScrapedFilter}
-                      onChange={(e) => {
-                        setCatalogScrapedFilter(e.target.value);
-                        setVisibleCatalogCount(30);
-                      }}
-                      className="py-1.5 px-2 border-2 border-black bg-white font-black text-[11px] uppercase tracking-wider leading-relaxed text-black w-full text-xs"
-                    >
-                      <option value="all">All Items</option>
-                      <option value="scraped">Scraped</option>
-                      <option value="not-scraped">Not Scraped</option>
-                    </select>
-                  </div>
+                <div>
+                  <label className="block text-[9px] font-black uppercase text-gray-400 mb-0.5">Sale Status</label>
+                  <select
+                    value={catalogSaleFilter}
+                    onChange={(e) => {
+                      setCatalogSaleFilter(e.target.value);
+                      setVisibleCatalogCount(30);
+                    }}
+                    className="py-1.5 px-2 border-2 border-black bg-white font-black text-[11px] uppercase tracking-wider leading-relaxed text-black w-full text-xs"
+                  >
+                    <option value="all">All Promo</option>
+                    <option value="sale">On Sale</option>
+                    <option value="not-sale">Not On Sale</option>
+                  </select>
+                </div>
 
-                  <div>
-                    <label className="block text-[9px] font-black uppercase text-gray-400 mb-0.5">Sale Status</label>
-                    <select
-                      value={catalogSaleFilter}
-                      onChange={(e) => {
-                        setCatalogSaleFilter(e.target.value);
-                        setVisibleCatalogCount(30);
-                      }}
-                      className="py-1.5 px-2 border-2 border-black bg-white font-black text-[11px] uppercase tracking-wider leading-relaxed text-black w-full text-xs"
-                    >
-                      <option value="all">All Promo</option>
-                      <option value="sale">On Sale</option>
-                      <option value="not-sale">Not On Sale</option>
-                    </select>
-                  </div>
+                <div>
+                  <label className="block text-[9px] font-black uppercase text-gray-400 mb-0.5">Price Tracking</label>
+                  <select
+                    value={catalogTrackedFilter}
+                    onChange={(e) => {
+                      setCatalogTrackedFilter(e.target.value);
+                      setVisibleCatalogCount(30);
+                    }}
+                    className="py-1.5 px-2 border-2 border-black bg-white font-black text-[11px] uppercase tracking-wider leading-relaxed text-black w-full text-xs"
+                  >
+                    <option value="all">All Tracking</option>
+                    <option value="tracked">Tracked</option>
+                    <option value="not-tracked">Not Tracked</option>
+                  </select>
+                </div>
 
-                  <div>
-                    <label className="block text-[9px] font-black uppercase text-gray-400 mb-0.5">Price Tracking</label>
-                    <select
-                      value={catalogTrackedFilter}
-                      onChange={(e) => {
-                        setCatalogTrackedFilter(e.target.value);
-                        setVisibleCatalogCount(30);
-                      }}
-                      className="py-1.5 px-2 border-2 border-black bg-white font-black text-[11px] uppercase tracking-wider leading-relaxed text-black w-full text-xs"
-                    >
-                      <option value="all">All Tracking</option>
-                      <option value="tracked">Tracked</option>
-                      <option value="not-tracked">Not Tracked</option>
-                    </select>
-                  </div>
-
-                  <div>
-                    <label className="block text-[9px] font-black uppercase text-gray-400 mb-0.5">Verification</label>
-                    <select
-                      value={catalogVerifiedFilter}
-                      onChange={(e) => {
-                        setCatalogVerifiedFilter(e.target.value);
-                        setVisibleCatalogCount(30);
-                      }}
-                      className="py-1.5 px-2 border-2 border-black bg-white font-black text-[11px] uppercase tracking-wider leading-relaxed text-black w-full text-xs"
-                    >
-                      <option value="all">All Verification</option>
-                      <option value="verified">Verified Links</option>
-                      <option value="not-verified">Unverified Links</option>
-                    </select>
-                  </div>
+                <div>
+                  <label className="block text-[9px] font-black uppercase text-gray-400 mb-0.5">Verification</label>
+                  <select
+                    value={catalogVerifiedFilter}
+                    onChange={(e) => {
+                      setCatalogVerifiedFilter(e.target.value);
+                      setVisibleCatalogCount(30);
+                    }}
+                    className="py-1.5 px-2 border-2 border-black bg-white font-black text-[11px] uppercase tracking-wider leading-relaxed text-black w-full text-xs"
+                  >
+                    <option value="all">All Verification</option>
+                    <option value="verified">Verified Links</option>
+                    <option value="not-verified">Unverified Links</option>
+                  </select>
                 </div>
               </div>
             </div>
@@ -2886,6 +2907,8 @@ export default function AdminPage() {
                 <p className="text-sm font-bold text-gray-500">No catalog items found matching filters.</p>
               </div>
             )}
+              </>
+            )}
           </div>
 
           {/* Grocery Stores Setup & Registry Section */}
@@ -2894,14 +2917,27 @@ export default function AdminPage() {
               <h2 className="text-base font-black uppercase tracking-tight flex items-center gap-2">
                 <Store className="w-5 h-5 text-emerald-600" /> Manage Grocery Stores
               </h2>
-              <button
-                type="button"
-                onClick={handleOpenAddStore}
-                className="text-xs font-black uppercase tracking-wider bg-white border-2 border-black px-4 py-2 hover:bg-emerald-50 shadow-[3px_3px_0px_0px_rgba(0,0,0,1)] hover:shadow-none hover:translate-x-[2px] hover:translate-y-[2px] transition-all inline-flex items-center gap-1"
-              >
-                <Plus className="w-4 h-4 text-emerald-600" /> Add Custom Store
-              </button>
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={handleOpenAddStore}
+                  className="text-xs font-black uppercase tracking-wider bg-white border-2 border-black px-3 py-1.5 hover:bg-emerald-50 shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] hover:shadow-none hover:translate-x-[1px] hover:translate-y-[1px] transition-all inline-flex items-center gap-1"
+                >
+                  <Plus className="w-3.5 h-3.5 text-emerald-600" /> Add Custom Store
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setStoresMinimized(!storesMinimized)}
+                  className="text-xs font-black uppercase tracking-wider text-black bg-gray-100 hover:bg-gray-200 border-2 border-black px-3 py-1.5 shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] hover:shadow-none hover:translate-x-[1px] hover:translate-y-[1px] transition-all flex items-center gap-1"
+                >
+                  {storesMinimized ? <ChevronDown className="w-3.5 h-3.5" /> : <ChevronUp className="w-3.5 h-3.5" />}
+                  {storesMinimized ? "Expand" : "Minimize"}
+                </button>
+              </div>
             </div>
+
+            {!storesMinimized && (
+              <>
 
             <p className="text-xs text-gray-500 mb-6 font-medium leading-relaxed">
               Configure and manage grocery store details. Defining the base search URLs and store IDs enables live verification search flow lookups and proper item configuration indexing.
@@ -3107,6 +3143,8 @@ export default function AdminPage() {
                 );
               })}
             </div>
+              </>
+            )}
           </div>
 
           {/* Catalog & Pricing Importers Grid */}
