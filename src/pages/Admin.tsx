@@ -265,6 +265,9 @@ export default function AdminPage() {
   const [editNewCatalogCategory, setEditNewCatalogCategory] = useState("");
   const [editCustomCategory, setEditCustomCategory] = useState("");
   const [editIsCreatingCustomCategory, setEditIsCreatingCustomCategory] = useState(false);
+  const [editNewCatalogUnit, setEditNewCatalogUnit] = useState("unit");
+  const [editNewCatalogUnits, setEditNewCatalogUnits] = useState<number | "">("");
+  const [newGlobalUnits, setNewGlobalUnits] = useState<number | "">("");
 
   // Catalog Item Editor states
   const [editingCatalogId, setEditingCatalogId] = useState<string | null>(null);
@@ -277,6 +280,7 @@ export default function AdminPage() {
   const [globalCatIsCustom, setGlobalCatIsCustom] = useState(false);
   const [newGlobalUnit, setNewGlobalUnit] = useState("unit");
   const [editCatalogUnit, setEditCatalogUnit] = useState("unit");
+  const [editCatalogUnits, setEditCatalogUnits] = useState<number | "">("");
 
   const [scrapeMsg, setScrapeMsg] = useState<string | null>(null);
   const [catalogSearch, setCatalogSearch] = useState("");
@@ -516,6 +520,7 @@ export default function AdminPage() {
       name: item.name || "",
       category: item.category || "grocery",
       unit: item.unit || "unit",
+      units: item.units !== undefined && item.units !== null ? item.units : "",
       requires_scraping: item.requires_scraping === true,
       stores: sanitizedStores
     });
@@ -531,6 +536,7 @@ export default function AdminPage() {
       name: "",
       category: "grocery",
       unit: "unit",
+      units: "",
       requires_scraping: false,
       stores: {}
     });
@@ -603,6 +609,7 @@ export default function AdminPage() {
       name: catalogItemForm.name.trim(),
       category: catalogItemForm.category || "grocery",
       unit: catalogItemForm.unit || "unit",
+      units: catalogItemForm.units !== undefined && catalogItemForm.units !== null && catalogItemForm.units !== "" ? Number(catalogItemForm.units) : undefined,
       requires_scraping: !!catalogItemForm.requires_scraping,
       stores: {} as Record<string, any>
     };
@@ -921,6 +928,7 @@ export default function AdminPage() {
       name: trimmedFormName,
       selected: false,
       unit: newGlobalUnit,
+      units: newGlobalUnits !== "" && newGlobalUnits !== undefined ? Number(newGlobalUnits) : undefined,
       requires_scraping: false,
       stores: {}
     };
@@ -933,6 +941,7 @@ export default function AdminPage() {
       setNewGlobalCustomCat("");
       setGlobalCatIsCustom(false);
       setNewGlobalUnit("unit");
+      setNewGlobalUnits("");
     }
   };
 
@@ -942,6 +951,7 @@ export default function AdminPage() {
     setEditingCatalogId(item.id);
     setEditCatalogName(item.name);
     setEditCatalogUnit(item.unit || "unit");
+    setEditCatalogUnits(item.units !== undefined && item.units !== null ? item.units : "");
   };
 
   const handleEditCatalogItemSubmit = async (id: string) => {
@@ -952,7 +962,12 @@ export default function AdminPage() {
     }
 
     const updated = (catalog?.items || []).map((item: any) => 
-      item.id === id ? { ...item, name: trimmed, unit: editCatalogUnit } : item
+      item.id === id ? { 
+        ...item, 
+        name: trimmed, 
+        unit: editCatalogUnit,
+        units: editCatalogUnits !== "" ? Number(editCatalogUnits) : undefined
+      } : item
     );
 
     const updatedCatalog = { ...catalog, items: updated };
@@ -1113,9 +1128,23 @@ export default function AdminPage() {
     if (matchingCatalog) {
       setEditScrapeItemMode("link");
       setEditSelectedCatalogName(matchingCatalog.name);
+      setEditNewCatalogUnit(matchingCatalog.unit || "unit");
+      setEditNewCatalogUnits(matchingCatalog.units || "");
     } else {
       setEditScrapeItemMode("create");
       setEditSelectedCatalogName("");
+      
+      // Auto-parse unit and units from title
+      const lowerTitle = item.name.toLowerCase();
+      const regex = /(\d+(?:\.\d+)?)\s*(g|kg|ml|l|lb|oz|gal|dozen|pack|bag|can|box|bunch|unit)s?\b/;
+      const match = lowerTitle.match(regex);
+      if (match) {
+        setEditNewCatalogUnit(match[2]);
+        setEditNewCatalogUnits(parseFloat(match[1]));
+      } else {
+        setEditNewCatalogUnit("unit");
+        setEditNewCatalogUnits("");
+      }
     }
     setEditNewCatalogCategory("");
     setEditCustomCategory("");
@@ -1156,6 +1185,8 @@ export default function AdminPage() {
           category: cat,
           name: finalItemName,
           selected: false,
+          unit: editNewCatalogUnit || "unit",
+          units: editNewCatalogUnits !== "" && editNewCatalogUnits !== undefined ? Number(editNewCatalogUnits) : undefined,
           requires_scraping: true,
           stores: {}
         };
@@ -1691,6 +1722,36 @@ export default function AdminPage() {
                                             <option value="Other">Other</option>
                                           </select>
                                         )}
+
+                                        <div className="grid grid-cols-2 gap-2 mt-2">
+                                          <div>
+                                            <label className="font-bold text-[10px] uppercase text-gray-600 block mb-0.5">Unit</label>
+                                            <select
+                                              value={editNewCatalogUnit}
+                                              onChange={(e) => setEditNewCatalogUnit(e.target.value)}
+                                              className="w-full px-2.5 py-1 text-xs border-2 border-black bg-white focus:outline-none font-bold cursor-pointer text-black"
+                                            >
+                                              {["unit", "g", "kg", "ml", "l", "lb", "oz", "gal", "dozen", "bunch", "bag", "can", "box", "pack"].map((u) => (
+                                                <option key={u} value={u}>{u}</option>
+                                              ))}
+                                            </select>
+                                          </div>
+                                          <div>
+                                            <label className="font-bold text-[10px] uppercase text-gray-600 block mb-0.5">Units (Size)</label>
+                                            <input
+                                              type="number"
+                                              step="any"
+                                              min="0"
+                                              placeholder="e.g. 450"
+                                              value={editNewCatalogUnits}
+                                              onChange={(e) => {
+                                                const val = e.target.value.trim();
+                                                setEditNewCatalogUnits(val === "" ? "" : Number(val));
+                                              }}
+                                              className="w-full px-2.5 py-1 text-xs border-2 border-black bg-white focus:outline-none font-bold text-black"
+                                            />
+                                          </div>
+                                        </div>
                                       </div>
                                     </div>
                                   )}
@@ -2085,7 +2146,7 @@ export default function AdminPage() {
             {/* Top-Level global category item creator */}
             <div className="bg-emerald-50 border-2 border-black p-4 mb-6 shadow-[3px_3px_0px_0px_rgba(0,0,0,1)] text-black animate-fade-in">
               <span className="text-xs font-black text-emerald-800 uppercase tracking-wider block mb-2">⚡ Quick catalog item creator</span>
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 mb-3">
+              <div className="grid grid-cols-1 sm:grid-cols-4 gap-3 mb-3">
                 <div>
                   <label className="text-[10px] uppercase font-black tracking-wider text-gray-500 block mb-0.5">Product Name</label>
                   <div className="mb-1.5 mt-0.5 py-0.5 opacity-0 select-none hidden sm:block">
@@ -2138,7 +2199,7 @@ export default function AdminPage() {
                 <div>
                   <label className="text-[10px] uppercase font-black tracking-wider text-gray-500 block mb-0.5">Base Unit</label>
                   <div className="mb-1.5 mt-0.5 py-0.5">
-                    <span className="text-[10px] font-bold text-[#b45309] uppercase bg-amber-50 px-1 border border-amber-200 rounded-sm">Default Shopping List Unit</span>
+                    <span className="text-[10px] font-bold text-[#b45309] uppercase bg-amber-50 px-1 border border-amber-200 rounded-sm">Default List Unit</span>
                   </div>
                   <select
                     value={newGlobalUnit}
@@ -2149,6 +2210,24 @@ export default function AdminPage() {
                       <option key={u} value={u}>{u}</option>
                     ))}
                   </select>
+                </div>
+                <div>
+                  <label className="text-[10px] uppercase font-black tracking-wider text-gray-500 block mb-0.5">Units (Size)</label>
+                  <div className="mb-1.5 mt-0.5 py-0.5 opacity-0 select-none hidden sm:block">
+                    <span className="text-[10px] px-1">Alignment spacer</span>
+                  </div>
+                  <input
+                    type="number"
+                    step="any"
+                    min="0"
+                    placeholder="e.g. 450"
+                    value={newGlobalUnits}
+                    onChange={(e) => {
+                      const val = e.target.value.trim();
+                      setNewGlobalUnits(val === "" ? "" : Number(val));
+                    }}
+                    className="w-full h-8 px-2.5 text-xs border-2 border-black bg-white focus:outline-none font-bold text-black"
+                  />
                 </div>
               </div>
               <button
@@ -2240,6 +2319,22 @@ export default function AdminPage() {
                                     <option key={u} value={u}>{u}</option>
                                   ))}
                                 </select>
+                                <input
+                                  type="number"
+                                  step="any"
+                                  min="0"
+                                  placeholder="Size"
+                                  value={editCatalogUnits}
+                                  onChange={(e) => {
+                                    const val = e.target.value.trim();
+                                    setEditCatalogUnits(val === "" ? "" : Number(val));
+                                  }}
+                                  onKeyDown={(e) => {
+                                    if (e.key === "Enter") handleEditCatalogItemSubmit(item.id);
+                                    if (e.key === "Escape") setEditingCatalogId(null);
+                                  }}
+                                  className="text-[10px] font-bold border border-black px-1 py-0.5 bg-white text-black w-12 focus:outline-none"
+                                />
                                 <button
                                   onClick={() => handleEditCatalogItemSubmit(item.id)}
                                   className="text-emerald-600 hover:text-emerald-800"
@@ -2263,7 +2358,12 @@ export default function AdminPage() {
                               key={item.id}
                               className="inline-flex items-center gap-2 pl-2.5 pr-1.5 py-1 bg-white text-gray-800 text-xs font-bold border border-black shadow-[1.5px_1.5px_0px_0px_rgba(0,0,0,1)] group hover:bg-[#fee2e2]/10 transition-colors"
                             >
-                              <span className="text-black">{item.name}</span>
+                              <span className="text-black">
+                                {item.name}
+                                <span className="text-[10px] text-gray-400 font-normal ml-1.5 italic">
+                                  ({item.units !== undefined && item.units !== null ? `${item.units} ${item.unit || "unit"}` : item.unit || "unit"})
+                                </span>
+                              </span>
                               <div className="flex items-center gap-1">
                                 <button
                                   onClick={() => handleStartEditCatalog(item)}
@@ -2510,7 +2610,7 @@ export default function AdminPage() {
                       />
                     </div>
 
-                    <div className="grid grid-cols-2 gap-2">
+                    <div className="grid grid-cols-3 gap-2">
                       <div>
                         <label className="block text-[10px] font-bold text-gray-500 uppercase mb-1">Category</label>
                         <input
@@ -2537,6 +2637,24 @@ export default function AdminPage() {
                             <option value={catalogItemForm.unit}>{catalogItemForm.unit}</option>
                           )}
                         </select>
+                      </div>
+                      <div>
+                        <label className="block text-[10px] font-bold text-gray-500 uppercase mb-1">Units (Size)</label>
+                        <input
+                          type="number"
+                          step="any"
+                          min="0"
+                          value={catalogItemForm.units ?? ""}
+                          onChange={(e) => {
+                            const val = e.target.value.trim();
+                            setCatalogItemForm({
+                              ...catalogItemForm,
+                              units: val === "" ? "" : Number(val)
+                            });
+                          }}
+                          placeholder="e.g. 450"
+                          className="w-full p-2 border-2 border-black font-medium text-xs text-black"
+                        />
                       </div>
                     </div>
 
@@ -2805,7 +2923,7 @@ export default function AdminPage() {
                                   {item.category || "Grocery"}
                                 </span>
                                 <span className="bg-gray-100 text-gray-800 text-[9px] font-bold px-1.5 py-0.5 border border-gray-400 italic whitespace-nowrap">
-                                  {item.unit || "unit"}
+                                  {item.units !== undefined && item.units !== null ? `${item.units} ${item.unit || "unit"}` : item.unit || "unit"}
                                 </span>
                               </div>
                             </td>

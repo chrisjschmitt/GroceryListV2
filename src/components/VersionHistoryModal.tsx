@@ -21,6 +21,19 @@ interface VersionEntry {
 
 const VERSIONS: VersionEntry[] = [
   {
+    version: "1.9.5",
+    date: "June 2026",
+    type: "patch",
+    title: "Category & Catalog Item Editor Units Support",
+    changes: [
+      {
+        icon: <Layout className="w-4 h-4 text-indigo-600" />,
+        category: "Catalog Management",
+        description: "Added unit select and units size input fields to the scrape item edit form (when auto-creating new catalog items), the top-level quick catalog creator, and the inline badge editor. Configured badges and grids to render units (size values) inline."
+      }
+    ]
+  },
+  {
     version: "1.9.4",
     date: "June 2026",
     type: "patch",
