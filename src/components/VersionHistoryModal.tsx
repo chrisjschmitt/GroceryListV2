@@ -21,6 +21,19 @@ interface VersionEntry {
 
 const VERSIONS: VersionEntry[] = [
   {
+    version: "1.9.6",
+    date: "June 2026",
+    type: "patch",
+    title: "Clickable Store Details Navigation",
+    changes: [
+      {
+        icon: <Zap className="w-4 h-4 text-amber-500" />,
+        category: "Catalog Management",
+        description: "Made configured retailer and pricing detail boxes under the Combined Catalog Registry grid clickable, instantly opening the target product URL in a new tab if configured."
+      }
+    ]
+  },
+  {
     version: "1.9.5",
     date: "June 2026",
     type: "patch",

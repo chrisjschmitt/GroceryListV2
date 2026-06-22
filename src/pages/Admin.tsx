@@ -2946,15 +2946,19 @@ export default function AdminPage() {
                                     const isPromo = (sInfo.is_on_sale === 1 || sInfo.is_on_sale === true) && !(sInfo.valid_until && isSaleExpiredAdmin(sInfo.valid_until));
                                     const isTracked = sInfo.track_pricing === true || sInfo.track_pricing === 1;
                                     const isVerified = sInfo.is_verified === true || sInfo.is_verified === 1;
-                                    return (
-                                      <div
-                                        key={storeKey}
-                                        className={`p-1.5 border border-black rounded-sm max-w-[240px] text-[10px] space-y-0.5 ${
-                                          isPromo ? "bg-amber-50" : "bg-white"
-                                        }`}
-                                      >
+                                    const hasUrl = !!sInfo.url;
+                                    
+                                    const wrapperClass = `p-1.5 border border-black rounded-sm max-w-[240px] text-[10px] space-y-0.5 block hover:translate-y-[-0.5px] transition-all text-left decoration-none no-underline ${
+                                      isPromo ? "bg-amber-50" : "bg-white"
+                                    } ${hasUrl ? "hover:bg-indigo-50/40 cursor-pointer shadow-[1.5px_1.5px_0px_rgba(0,0,0,1)] hover:shadow-none transition-all" : ""}`;
+
+                                    const innerContent = (
+                                      <>
                                         <div className="flex items-center justify-between gap-2 font-extrabold text-[9px] uppercase border-b border-gray-150 pb-0.5">
-                                          <span className="text-black">{dynamicStoreNames[storeKey] || storeKey}</span>
+                                          <span className="text-black flex items-center gap-0.5">
+                                            {dynamicStoreNames[storeKey] || storeKey}
+                                            {hasUrl && <span className="text-[8px] text-indigo-500 font-normal lowercase select-none">↗</span>}
+                                          </span>
                                           <div className="flex gap-1 items-center">
                                             {isVerified && <span className="text-[8px] text-blue-700 bg-blue-50 px-1 border border-blue-300" title="Link is verified">✓ Verified</span>}
                                             {isTracked && <span className="text-[8px] text-green-700 bg-green-50 px-1 border border-green-300">Tracking</span>}
@@ -2971,8 +2975,27 @@ export default function AdminPage() {
                                               Sale: <strong className="text-red-650">${Number(sInfo.sale_price).toFixed(2)}</strong>
                                             </span>
                                           ) : null}
-                                          {sInfo.upc && <span className="text-[8px] text-gray-400">UPC: {sInfo.upc}</span>}
+                                          {sInfo.upc && <span className="text-[8px] text-gray-400 font-sans">UPC: {sInfo.upc}</span>}
                                         </div>
+                                      </>
+                                    );
+
+                                    return hasUrl ? (
+                                      <a
+                                        key={storeKey}
+                                        href={sInfo.url}
+                                        target="_blank"
+                                        rel="noopener noreferrer"
+                                        className={wrapperClass}
+                                      >
+                                        {innerContent}
+                                      </a>
+                                    ) : (
+                                      <div
+                                        key={storeKey}
+                                        className={wrapperClass}
+                                      >
+                                        {innerContent}
                                       </div>
                                     );
                                   })}
