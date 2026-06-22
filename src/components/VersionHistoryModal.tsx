@@ -21,6 +21,24 @@ interface VersionEntry {
 
 const VERSIONS: VersionEntry[] = [
   {
+    version: "1.9.7",
+    date: "June 2026",
+    type: "patch",
+    title: "Ingestion Matching Feedback in Userscript",
+    changes: [
+      {
+        icon: <Sparkles className="w-4 h-4 text-purple-500" />,
+        category: "Userscript Exporter",
+        description: "Upgraded the Tampermonkey script modal to display real-time feedback from the ingestion endpoint (e.g. Exact Match, Gemini Match, New Created, or URL Already Exists) using distinct color-coded badges."
+      },
+      {
+        icon: <Database className="w-4 h-4 text-emerald-500" />,
+        category: "Ingestion API Pipeline",
+        description: "Enhanced the append-grocery API to scan the registry for pre-existing matching URLs and return structured catalog match metadata in the JSON response."
+      }
+    ]
+  },
+  {
     version: "1.9.6",
     date: "June 2026",
     type: "patch",

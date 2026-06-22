@@ -6,6 +6,7 @@ import path from "path";
 import { MongoClient } from "mongodb";
 import { parseCsv } from "../src/lib/csv-parser.js";
 import { evaluateGeminiMatch, runAllMatchingTests } from "../src/lib/gemini-match-service.js";
+import { RegularItem } from "../src/lib/types";
 import {
   blobGetGroceryItems,
   blobSetGroceryItems,
@@ -351,6 +352,30 @@ app.post("/api/append-grocery", async (req, res) => {
       unit: item.unit,
       units: item.units
     }));
+
+    const ensureHttps = (url: string): string => {
+      if (!url) return "";
+      let trimmed = url.trim();
+      trimmed = trimmed.replace(/["\\']/g, "");
+      if (!trimmed) return "";
+      if (/^https?:\/\//i.test(trimmed)) {
+        return trimmed;
+      }
+      return `https://${trimmed}`;
+    };
+
+    const dbUrl = ensureHttps(data.lookup_url || data.url || data.raw_share_url || data.rawUrl || "");
+    const urlAlreadyExists = dbUrl ? (catalog.items || []).some((item: any) => 
+      Object.values(item.stores || {}).some((s: any) => s && s.url && ensureHttps(s.url) === dbUrl)
+    ) : false;
+
+    let catalogMatchResult = {
+      matched: false,
+      matchType: "created", // "exact" | "gemini" | "created"
+      catalogItemName: "",
+      urlAlreadyExists: urlAlreadyExists
+    };
+
     let correctedData = { ...data };
 
     // Clean and parse pricing fields if present
@@ -390,6 +415,10 @@ app.post("/api/append-grocery", async (req, res) => {
           correctedData.match_reason = "Programmatic exact string match on ingestion";
           correctedData.original_config_name = configName;
 
+          catalogMatchResult.matched = true;
+          catalogMatchResult.matchType = "exact";
+          catalogMatchResult.catalogItemName = exactMatch.name;
+
           // Update catalog item attributes if passed
           const catalogItem = catalog.items.find(i => i.id === exactMatch.id);
           if (catalogItem) {
@@ -411,6 +440,10 @@ app.post("/api/append-grocery", async (req, res) => {
               correctedData.match_reason = matchResult.reason;
               correctedData.original_config_name = configName;
               console.log(`Matched incoming "${configName}" -> corrected to catalog name "${matchedItem.name}" (${matchResult.confidence}% confidence)`);
+
+              catalogMatchResult.matched = true;
+              catalogMatchResult.matchType = "gemini";
+              catalogMatchResult.catalogItemName = matchedItem.name;
 
               // Update catalog item attributes if passed
               const catalogItem = catalog.items.find(i => i.id === matchedItem.id);
@@ -445,6 +478,10 @@ app.post("/api/append-grocery", async (req, res) => {
             await blobSetCombinedCatalog(catalog);
             console.log(`[Auto-Create] Auto-created catalog item "${proposedName}" (ID ${newId}) under combined-catalog registry`);
 
+            catalogMatchResult.matched = false;
+            catalogMatchResult.matchType = "created";
+            catalogMatchResult.catalogItemName = proposedName;
+
             // Link pricing record to this newly-spawned item
             correctedData.config_name = proposedName;
             correctedData.item_name = proposedName;
@@ -457,18 +494,6 @@ app.post("/api/append-grocery", async (req, res) => {
       } catch (matchErr) {
         console.error("Gemini matching error in /api/append-grocery:", matchErr);
       }
-    }
-
-    function ensureHttps(url: string): string {
-      if (!url) return "";
-      let trimmed = url.trim();
-      // Remove surrounding or embedded double quotes/backslashes/single quotes
-      trimmed = trimmed.replace(/["\\']/g, "");
-      if (!trimmed) return "";
-      if (/^https?:\/\//i.test(trimmed)) {
-        return trimmed;
-      }
-      return `https://${trimmed}`;
     }
 
     let finalKey = key;
@@ -705,7 +730,8 @@ app.post("/api/append-grocery", async (req, res) => {
       matchedCount: result.matchedCount,
       modifiedCount: result.modifiedCount,
       upsertedCount: result.upsertedCount,
-      upsertedId: result.upsertedId ? (result.upsertedId._id || result.upsertedId) : finalKey
+      upsertedId: result.upsertedId ? (result.upsertedId._id || result.upsertedId) : finalKey,
+      catalogMatch: catalogMatchResult
     });
   } catch (error: any) {
     console.error("Error in POST /api/append-grocery:", error);

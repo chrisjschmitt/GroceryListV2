@@ -375,8 +375,34 @@
             data: JSON.stringify(payload),
             onload: function (response) {
                 if (response.status === 200) {
-                    sendBtn.innerHTML = `✅ Linked: $${payload.data.regular_price.toFixed(2)}`;
-                    sendBtn.style.background = '#22c55e';
+                    try {
+                        const resObj = JSON.parse(response.responseText);
+                        if (resObj && resObj.catalogMatch) {
+                            const cm = resObj.catalogMatch;
+                            if (cm.urlAlreadyExists) {
+                                sendBtn.innerHTML = `🔗 URL Existed: $${payload.data.regular_price.toFixed(2)}`;
+                                sendBtn.style.background = '#eab308';
+                            } else if (cm.matchType === 'exact') {
+                                sendBtn.innerHTML = `🎯 Exact Match: $${payload.data.regular_price.toFixed(2)}`;
+                                sendBtn.style.background = '#22c55e';
+                            } else if (cm.matchType === 'gemini') {
+                                sendBtn.innerHTML = `🤖 Gemini Match: $${payload.data.regular_price.toFixed(2)}`;
+                                sendBtn.style.background = '#3b82f6';
+                            } else if (cm.matchType === 'created') {
+                                sendBtn.innerHTML = `✨ Created: $${payload.data.regular_price.toFixed(2)}`;
+                                sendBtn.style.background = '#a855f7';
+                            } else {
+                                sendBtn.innerHTML = `✅ Linked: $${payload.data.regular_price.toFixed(2)}`;
+                                sendBtn.style.background = '#22c55e';
+                            }
+                        } else {
+                            sendBtn.innerHTML = `✅ Linked: $${payload.data.regular_price.toFixed(2)}`;
+                            sendBtn.style.background = '#22c55e';
+                        }
+                    } catch (e) {
+                        sendBtn.innerHTML = `✅ Linked: $${payload.data.regular_price.toFixed(2)}`;
+                        sendBtn.style.background = '#22c55e';
+                    }
                 } else {
                     sendBtn.innerHTML = '❌ Server Error';
                     sendBtn.style.background = '#ef4444';
@@ -385,7 +411,7 @@
                 setTimeout(() => {
                     sendBtn.innerHTML = '📥 Forward to App';
                     sendBtn.style.background = '#0284c7';
-                }, 2500);
+                }, 4000);
             },
             onerror: function (err) {
                 sendBtn.innerHTML = '❌ Network Error';
