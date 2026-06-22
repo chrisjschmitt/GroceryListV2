@@ -1,7 +1,7 @@
 // ==UserScript==
-// @name         GroceryScout - 2.9.1 Normalized Canonical Exporter
+// @name         GroceryScout - 2.9.2 Normalized Canonical Exporter
 // @namespace    http://tampermonkey.net/
-// @version      2.9.1
+// @version      2.9.2
 // @description  Added searchable catalog dropdown and dynamically loaded item lists
 // @author       You
 // @match        https://*.foodbasics.ca/*
@@ -363,8 +363,20 @@
 
     document.body.appendChild(modal);
 
-    function sendPayload(payload) {
+    function sendPayload(payload, submitBtn, cancelBtn) {
+        if (submitBtn) {
+            submitBtn.innerHTML = 'Connecting...';
+            submitBtn.disabled = true;
+            submitBtn.style.opacity = '0.8';
+        }
+        if (cancelBtn) {
+            cancelBtn.disabled = true;
+            cancelBtn.style.opacity = '0.5';
+        }
         sendBtn.innerHTML = 'Connecting...';
+
+        console.log("GroceryScout: Sending payload:", payload);
+
         GM_xmlhttpRequest({
             method: "POST",
             url: "https://grocery-list-v2-navy.vercel.app/api/append-grocery",
@@ -374,49 +386,110 @@
             },
             data: JSON.stringify(payload),
             onload: function (response) {
+                console.log("GroceryScout: Server response status:", response.status);
+                let statusText = 'Linked';
+                let statusBg = '#22c55e';
+
                 if (response.status === 200) {
                     try {
                         const resObj = JSON.parse(response.responseText);
+                        console.log("GroceryScout: Parsed server response:", resObj);
                         if (resObj && resObj.catalogMatch) {
                             const cm = resObj.catalogMatch;
                             if (cm.urlAlreadyExists) {
-                                sendBtn.innerHTML = `🔗 URL Existed: $${payload.data.regular_price.toFixed(2)}`;
-                                sendBtn.style.background = '#eab308';
+                                statusText = '🔗 URL Existed';
+                                statusBg = '#eab308';
                             } else if (cm.matchType === 'exact') {
-                                sendBtn.innerHTML = `🎯 Exact Match: $${payload.data.regular_price.toFixed(2)}`;
-                                sendBtn.style.background = '#22c55e';
+                                statusText = '🎯 Exact Match';
+                                statusBg = '#22c55e';
                             } else if (cm.matchType === 'gemini') {
-                                sendBtn.innerHTML = `🤖 Gemini Match: $${payload.data.regular_price.toFixed(2)}`;
-                                sendBtn.style.background = '#3b82f6';
+                                statusText = '🤖 Gemini Match';
+                                statusBg = '#3b82f6';
                             } else if (cm.matchType === 'created') {
-                                sendBtn.innerHTML = `✨ Created: $${payload.data.regular_price.toFixed(2)}`;
-                                sendBtn.style.background = '#a855f7';
+                                statusText = '✨ Created';
+                                statusBg = '#a855f7';
                             } else {
-                                sendBtn.innerHTML = `✅ Linked: $${payload.data.regular_price.toFixed(2)}`;
-                                sendBtn.style.background = '#22c55e';
+                                statusText = '✅ Linked';
+                                statusBg = '#22c55e';
                             }
                         } else {
-                            sendBtn.innerHTML = `✅ Linked: $${payload.data.regular_price.toFixed(2)}`;
-                            sendBtn.style.background = '#22c55e';
+                            statusText = '✅ Linked';
+                            statusBg = '#22c55e';
                         }
                     } catch (e) {
-                        sendBtn.innerHTML = `✅ Linked: $${payload.data.regular_price.toFixed(2)}`;
-                        sendBtn.style.background = '#22c55e';
+                        console.error("GroceryScout: Failed to parse JSON response:", e, response.responseText);
+                        statusText = '✅ Linked';
+                        statusBg = '#22c55e';
                     }
                 } else {
-                    sendBtn.innerHTML = '❌ Server Error';
-                    sendBtn.style.background = '#ef4444';
-                    console.error("Server Error Details:", response.responseText);
+                    statusText = '❌ Server Error';
+                    statusBg = '#ef4444';
+                    console.error("GroceryScout: Server returned error status " + response.status + ":", response.responseText);
                 }
+
+                // Update modal submit button
+                if (submitBtn) {
+                    submitBtn.innerHTML = statusText;
+                    submitBtn.style.background = statusBg;
+                    submitBtn.style.opacity = '1';
+                }
+
+                // Update floating button
+                sendBtn.innerHTML = statusText + `: $${payload.data.regular_price.toFixed(2)}`;
+                sendBtn.style.background = statusBg;
+
+                // Close modal after delay, or re-enable buttons if it failed
+                setTimeout(() => {
+                    if (response.status === 200) {
+                        cleanupModal();
+                    } else {
+                        if (submitBtn) {
+                            submitBtn.innerHTML = 'Submit';
+                            submitBtn.style.background = '#22c55e';
+                            submitBtn.disabled = false;
+                        }
+                        if (cancelBtn) {
+                            cancelBtn.disabled = false;
+                            cancelBtn.style.opacity = '1';
+                        }
+                    }
+                }, 3000);
+
                 setTimeout(() => {
                     sendBtn.innerHTML = '📥 Forward to App';
                     sendBtn.style.background = '#0284c7';
-                }, 4000);
+                }, 6000);
             },
             onerror: function (err) {
-                sendBtn.innerHTML = '❌ Network Error';
-                sendBtn.style.background = '#ef4444';
-                console.error("Network / CORS Error details:", err);
+                console.error("GroceryScout: Network/CORS error details:", err);
+                const statusText = '❌ Network Error';
+                const statusBg = '#ef4444';
+
+                if (submitBtn) {
+                    submitBtn.innerHTML = statusText;
+                    submitBtn.style.background = statusBg;
+                    submitBtn.style.opacity = '1';
+                }
+
+                sendBtn.innerHTML = statusText;
+                sendBtn.style.background = statusBg;
+
+                setTimeout(() => {
+                    if (submitBtn) {
+                        submitBtn.innerHTML = 'Submit';
+                        submitBtn.style.background = '#22c55e';
+                        submitBtn.disabled = false;
+                    }
+                    if (cancelBtn) {
+                        cancelBtn.disabled = false;
+                        cancelBtn.style.opacity = '1';
+                    }
+                }, 3000);
+
+                setTimeout(() => {
+                    sendBtn.innerHTML = '📥 Forward to App';
+                    sendBtn.style.background = '#0284c7';
+                }, 6000);
             }
         });
     }
@@ -589,8 +662,9 @@
             payload.data.unit = selectedUnit;
             payload.data.units = selectedUnits;
 
-            cleanupModal();
-            sendPayload(payload);
+            const submitBtn = document.getElementById('gs-btn-submit');
+            const cancelBtn = document.getElementById('gs-btn-cancel');
+            sendPayload(payload, submitBtn, cancelBtn);
         };
     };
 })();
