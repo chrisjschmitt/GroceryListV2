@@ -21,6 +21,24 @@ interface VersionEntry {
 
 const VERSIONS: VersionEntry[] = [
   {
+    version: "1.9.13",
+    date: "June 2026",
+    type: "patch",
+    title: "Admin Portal Tab Visibility Auto-Refresh & Manual Refresh",
+    changes: [
+      {
+        icon: <Layout className="w-4 h-4 text-emerald-500" />,
+        category: "Admin Portal",
+        description: "Implemented a tab-visibility listener that automatically reloads the catalog, pricing, and scrape config datasets when switching back to the Admin browser tab from store pages."
+      },
+      {
+        icon: <RefreshCw className="w-4 h-4 text-emerald-500" />,
+        category: "Admin Portal",
+        description: "Added a manual high-contrast 'Refresh' button in the Catalog Registry Manager header to fetch updates from the server instantly with visual spinning loader state feedback."
+      }
+    ]
+  },
+  {
     version: "1.9.12",
     date: "June 2026",
     type: "patch",

@@ -142,10 +142,12 @@ export default function AdminPage() {
   const fetchPrices = async () => {
     setPricesLoading(true);
     setCatalogLoading(true);
+    setScrapeLoading(true);
     try {
-      const [resPrices, resCatalog] = await Promise.all([
+      const [resPrices, resCatalog, resScrape] = await Promise.all([
         fetch("/api/prices?mongodbOnly=true"),
-        fetch("/api/catalog")
+        fetch("/api/catalog"),
+        fetch("/api/scrape-config")
       ]);
       if (resPrices.ok) {
         const data = await resPrices.json();
@@ -155,11 +157,16 @@ export default function AdminPage() {
         const data = await resCatalog.json();
         setCatalog(data || { stores: {}, items: [] });
       }
+      if (resScrape.ok) {
+        const data = await resScrape.json();
+        setScrapeConfig(data || { stores: {} });
+      }
     } catch (err) {
       console.error("Failed to refresh admin datasets:", err);
     } finally {
       setPricesLoading(false);
       setCatalogLoading(false);
+      setScrapeLoading(false);
     }
   };
 
@@ -458,6 +465,19 @@ export default function AdminPage() {
     load();
     return () => {
       cancelled = true;
+    };
+  }, []);
+
+  // Auto-refresh when tab becomes visible (active)
+  useEffect(() => {
+    const handleVisibility = () => {
+      if (document.visibilityState === "visible") {
+        fetchPrices();
+      }
+    };
+    document.addEventListener("visibilitychange", handleVisibility);
+    return () => {
+      document.removeEventListener("visibilitychange", handleVisibility);
     };
   }, []);
 
@@ -2416,6 +2436,16 @@ export default function AdminPage() {
                 <Database className="w-5 h-5 text-indigo-600" /> Combined Catalog Registry Manager (combined-catalog.json)
               </h2>
               <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={fetchPrices}
+                  disabled={catalogLoading || pricesLoading || scrapeLoading}
+                  className="text-xs font-black uppercase tracking-wider text-black bg-white hover:bg-gray-150 border-2 border-black px-3 py-1 shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] hover:shadow-none hover:translate-x-[1px] hover:translate-y-[1px] transition-all flex items-center gap-1.5 cursor-pointer"
+                  title="Reload catalog data from server"
+                >
+                  <RefreshCw className={`w-3.5 h-3.5 ${(catalogLoading || pricesLoading || scrapeLoading) ? "animate-spin" : ""}`} />
+                  <span>Refresh</span>
+                </button>
                 <button
                   type="button"
                   onClick={handleOpenAddCatalog}
