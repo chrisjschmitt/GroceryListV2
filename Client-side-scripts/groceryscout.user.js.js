@@ -1,7 +1,7 @@
 // ==UserScript==
-// @name         GroceryScout - 2.9.4 Normalized Canonical Exporter
+// @name         GroceryScout - 2.9.5 Normalized Canonical Exporter
 // @namespace    http://tampermonkey.net/
-// @version      2.9.4
+// @version      2.9.5
 // @description  Added searchable catalog dropdown and dynamically loaded item lists
 // @author       You
 // @match        https://*.foodbasics.ca/*
@@ -142,7 +142,7 @@
 
     function determineCategory(pageTitle) {
         const lowerTitle = pageTitle.toLowerCase();
-        if (lowerTitle.includes("produce") || lowerTitle.includes("fruit") || lowerTitle.includes("veg") || lowerTitle.includes("salad") || lowerTitle.includes("apple") || lowerTitle.includes("banana") || lowerTitle.includes("broccoli")) return "Fresh Produce";
+        if (lowerTitle.includes("produce") || lowerTitle.includes("fruit") || lowerTitle.includes("veg") || lowerTitle.includes("salad") || lowerTitle.includes("apple") || lowerTitle.includes("banana") || lowerTitle.includes("broccoli") || lowerTitle.includes("onion") || lowerTitle.includes("potato") || lowerTitle.includes("carrot") || lowerTitle.includes("pepper") || lowerTitle.includes("tomato") || lowerTitle.includes("garlic") || lowerTitle.includes("lemon") || lowerTitle.includes("lime") || lowerTitle.includes("berry") || lowerTitle.includes("berries") || lowerTitle.includes("pear") || lowerTitle.includes("orange") || lowerTitle.includes("grape") || lowerTitle.includes("lettuce") || lowerTitle.includes("celery") || lowerTitle.includes("cucumber") || lowerTitle.includes("avocado") || lowerTitle.includes("spinach") || lowerTitle.includes("herb") || lowerTitle.includes("parsley") || lowerTitle.includes("cilantro")) return "Fresh Produce";
         if (lowerTitle.includes("bakery") || lowerTitle.includes("bread") || lowerTitle.includes("bun") || lowerTitle.includes("muffin") || lowerTitle.includes("croissant")) return "Bakery & Breads";
         if (lowerTitle.includes("meat") || lowerTitle.includes("seafood") || lowerTitle.includes("fish") || lowerTitle.includes("chicken") || lowerTitle.includes("beef") || lowerTitle.includes("pork") || lowerTitle.includes("turkey") || lowerTitle.includes("salmon")) return "Meat & Seafood";
         if (lowerTitle.includes("dairy") || lowerTitle.includes("egg") || lowerTitle.includes("milk") || lowerTitle.includes("cheese") || lowerTitle.includes("butter") || lowerTitle.includes("yogurt")) return "Dairy & Eggs";

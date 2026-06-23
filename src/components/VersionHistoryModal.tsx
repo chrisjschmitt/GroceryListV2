@@ -21,6 +21,19 @@ interface VersionEntry {
 
 const VERSIONS: VersionEntry[] = [
   {
+    version: "1.9.11",
+    date: "June 2026",
+    type: "patch",
+    title: "Produce Category Ingestion Keywords Expansion",
+    changes: [
+      {
+        icon: <Zap className="w-4 h-4 text-amber-500" />,
+        category: "Userscript Exporter",
+        description: "Expanded the local category guesser keyword parser to identify onions, potatoes, carrots, garlic, peppers, tomatoes, citrus, greens, and common herbs as Fresh Produce."
+      }
+    ]
+  },
+  {
     version: "1.9.10",
     date: "June 2026",
     type: "patch",
