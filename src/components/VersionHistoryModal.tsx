@@ -21,6 +21,24 @@ interface VersionEntry {
 
 const VERSIONS: VersionEntry[] = [
   {
+    version: "1.9.8",
+    date: "June 2026",
+    type: "patch",
+    title: "Ingestion URL Normalization & Exporter Closure Fix",
+    changes: [
+      {
+        icon: <Zap className="w-4 h-4 text-amber-500" />,
+        category: "Ingestion API Pipeline",
+        description: "Introduced advanced URL normalization (stripping subdomains like www, protocol prefixes, trailing slashes, and query parameters) to make matching existing retail links 100% robust."
+      },
+      {
+        icon: <Layout className="w-4 h-4 text-indigo-600" />,
+        category: "Userscript Exporter",
+        description: "Passed cleanup closure to the submission callback in the Tampermonkey script, resolving a ReferenceError that prevented the modal from auto-closing after successful ingestion."
+      }
+    ]
+  },
+  {
     version: "1.9.7",
     date: "June 2026",
     type: "patch",

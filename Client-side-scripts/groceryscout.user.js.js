@@ -1,7 +1,7 @@
 // ==UserScript==
-// @name         GroceryScout - 2.9.2 Normalized Canonical Exporter
+// @name         GroceryScout - 2.9.3 Normalized Canonical Exporter
 // @namespace    http://tampermonkey.net/
-// @version      2.9.2
+// @version      2.9.3
 // @description  Added searchable catalog dropdown and dynamically loaded item lists
 // @author       You
 // @match        https://*.foodbasics.ca/*
@@ -363,7 +363,7 @@
 
     document.body.appendChild(modal);
 
-    function sendPayload(payload, submitBtn, cancelBtn) {
+    function sendPayload(payload, submitBtn, cancelBtn, callback) {
         if (submitBtn) {
             submitBtn.innerHTML = 'Connecting...';
             submitBtn.disabled = true;
@@ -441,7 +441,7 @@
                 // Close modal after delay, or re-enable buttons if it failed
                 setTimeout(() => {
                     if (response.status === 200) {
-                        cleanupModal();
+                        if (callback) callback();
                     } else {
                         if (submitBtn) {
                             submitBtn.innerHTML = 'Submit';
@@ -664,7 +664,7 @@
 
             const submitBtn = document.getElementById('gs-btn-submit');
             const cancelBtn = document.getElementById('gs-btn-cancel');
-            sendPayload(payload, submitBtn, cancelBtn);
+            sendPayload(payload, submitBtn, cancelBtn, cleanupModal);
         };
     };
 })();

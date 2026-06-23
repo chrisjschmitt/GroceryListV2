@@ -367,8 +367,22 @@ async function startServer() {
       };
 
       const dbUrl = ensureHttps(data.lookup_url || data.url || data.raw_share_url || data.rawUrl || "");
-      const urlAlreadyExists = dbUrl ? (catalog.items || []).some((item: any) => 
-        Object.values(item.stores || {}).some((s: any) => s && s.url && ensureHttps(s.url) === dbUrl)
+
+      const normalizeUrl = (url: string): string => {
+        if (!url) return "";
+        let u = url.trim().toLowerCase();
+        u = u.replace(/["\\']/g, "");
+        u = u.replace(/^https?:\/\//, "");
+        u = u.replace(/^www\./, "");
+        if (u.endsWith("/")) u = u.slice(0, -1);
+        const qIdx = u.indexOf("?");
+        if (qIdx !== -1) u = u.substring(0, qIdx);
+        return u;
+      };
+
+      const normalizedDbUrl = normalizeUrl(dbUrl);
+      const urlAlreadyExists = normalizedDbUrl ? (catalog.items || []).some((item: any) => 
+        Object.values(item.stores || {}).some((s: any) => s && s.url && normalizeUrl(s.url) === normalizedDbUrl)
       ) : false;
 
       let catalogMatchResult = {
