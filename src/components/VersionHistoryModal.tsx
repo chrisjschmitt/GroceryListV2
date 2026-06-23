@@ -1,5 +1,5 @@
 import React from "react";
-import { X, Calendar, GitBranch, Sparkles, Database, Layout, Smartphone, Cloud, FileSpreadsheet, Trash2, Clock, Zap } from "lucide-react";
+import { X, Calendar, GitBranch, Sparkles, Database, Layout, Smartphone, Cloud, FileSpreadsheet, Trash2, Clock, Zap, RefreshCw } from "lucide-react";
 
 interface VersionHistoryModalProps {
   isOpen: boolean;
