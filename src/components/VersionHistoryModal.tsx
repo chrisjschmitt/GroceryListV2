@@ -21,6 +21,24 @@ interface VersionEntry {
 
 const VERSIONS: VersionEntry[] = [
   {
+    version: "1.9.12",
+    date: "June 2026",
+    type: "patch",
+    title: "Catalog Category UX & Manual Pull Button",
+    changes: [
+      {
+        icon: <Database className="w-4 h-4 text-emerald-500" />,
+        category: "Catalog Creator",
+        description: "Replaced the plain text category input field in the catalog edit drawer with a robust dropdown list populated with canonical categories, adding a Custom category switch to eliminate typos."
+      },
+      {
+        icon: <RefreshCw className="w-4 h-4 text-emerald-500" />,
+        category: "System Sync",
+        description: "Introduced a manual 'Pull Updates' button next to the Sync indicator on the main checklist page, allowing instantaneous local catalog updates without refreshing the browser tab."
+      }
+    ]
+  },
+  {
     version: "1.9.11",
     date: "June 2026",
     type: "patch",

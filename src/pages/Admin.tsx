@@ -378,6 +378,8 @@ export default function AdminPage() {
   const [catalogStoreFilter, setCatalogStoreFilter] = useState("all");
 
   const [editingCatalogItem, setEditingCatalogItem] = useState<any>(null);
+  const [editCatIsCustom, setEditCatIsCustom] = useState(false);
+  const [editCustomCat, setEditCustomCat] = useState("");
   const [selectedCatalogStore, setSelectedCatalogStore] = useState<string>("foodbasics");
   const [catalogItemForm, setCatalogItemForm] = useState<any>({
     id: "",
@@ -515,6 +517,10 @@ export default function AdminPage() {
       }
     }
     
+    const isCustom = item.category && !CATEGORY_ORDER.includes(item.category);
+    setEditCatIsCustom(isCustom);
+    setEditCustomCat(isCustom ? item.category : "");
+    
     setCatalogItemForm({
       id: item.id || "",
       name: item.name || "",
@@ -531,10 +537,12 @@ export default function AdminPage() {
     setIsAddingCatalogItem(true);
     setEditingCatalogItem(null);
     setSelectedCatalogStore("foodbasics");
+    setEditCatIsCustom(false);
+    setEditCustomCat("");
     setCatalogItemForm({
       id: `catalog-${Date.now()}-${Math.random().toString(36).substring(2, 7)}`,
       name: "",
-      category: "grocery",
+      category: "Fresh Produce",
       unit: "unit",
       units: "",
       requires_scraping: false,
@@ -603,11 +611,16 @@ export default function AdminPage() {
 
     if (!catalog) return;
 
+    let targetCategory = catalogItemForm.category;
+    if (editCatIsCustom) {
+      targetCategory = editCustomCat.trim();
+    }
+
     // Standardize catalog item entries
     const newItem = {
       id: catalogItemForm.id || `catalog-${Date.now()}-${Math.random().toString(36).substring(2, 7)}`,
       name: catalogItemForm.name.trim(),
-      category: catalogItemForm.category || "grocery",
+      category: targetCategory || "Pantry Staples",
       unit: catalogItemForm.unit || "unit",
       units: catalogItemForm.units !== undefined && catalogItemForm.units !== null && catalogItemForm.units !== "" ? Number(catalogItemForm.units) : undefined,
       requires_scraping: !!catalogItemForm.requires_scraping,
@@ -2612,14 +2625,45 @@ export default function AdminPage() {
 
                     <div className="grid grid-cols-3 gap-2">
                       <div>
-                        <label className="block text-[10px] font-bold text-gray-500 uppercase mb-1">Category</label>
-                        <input
-                          type="text"
-                          value={catalogItemForm.category}
-                          onChange={(e) => setCatalogItemForm({ ...catalogItemForm, category: e.target.value })}
-                          placeholder="e.g. Fruit, Dairy, Meat"
-                          className="w-full p-2 border-2 border-black font-medium text-xs text-black"
-                        />
+                        <div className="flex items-center justify-between mb-1">
+                          <label className="block text-[10px] font-bold text-gray-500 uppercase">Category</label>
+                          <div className="flex items-center gap-0.5">
+                            <input
+                              id="editCatIsCustom"
+                              type="checkbox"
+                              checked={editCatIsCustom}
+                              onChange={(e) => setEditCatIsCustom(e.target.checked)}
+                              className="accent-black w-3 h-3 cursor-pointer"
+                            />
+                            <label htmlFor="editCatIsCustom" className="text-[8px] font-bold text-black cursor-pointer select-none">Custom</label>
+                          </div>
+                        </div>
+                        {editCatIsCustom ? (
+                          <input
+                            type="text"
+                            value={editCustomCat}
+                            onChange={(e) => setEditCustomCat(e.target.value)}
+                            placeholder="e.g. Frozen Food"
+                            className="w-full p-2 border-2 border-black font-medium text-xs text-black"
+                          />
+                        ) : (
+                          <select
+                            value={catalogItemForm.category}
+                            onChange={(e) => setCatalogItemForm({ ...catalogItemForm, category: e.target.value })}
+                            className="w-full p-2 border-2 border-black font-medium text-xs text-black bg-white cursor-pointer"
+                          >
+                            {CATEGORY_ORDER.map((cat) => (
+                              <option key={cat} value={cat}>
+                                {cat}
+                              </option>
+                            ))}
+                            {catalogItemForm.category && !CATEGORY_ORDER.includes(catalogItemForm.category) && (
+                              <option value={catalogItemForm.category}>
+                                {catalogItemForm.category}
+                              </option>
+                            )}
+                          </select>
+                        )}
                       </div>
                       <div>
                         <label className="block text-[10px] font-bold text-gray-500 uppercase mb-1">Unit</label>

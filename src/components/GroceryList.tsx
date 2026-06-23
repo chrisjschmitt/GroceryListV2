@@ -547,6 +547,7 @@ export default function GroceryList() {
                   hasPendingChanges={store.hasPendingChanges}
                   lastSavedBy={store.lastSavedBy}
                   onSave={store.saveChanges}
+                  onRefresh={store.refreshFromServer}
                 />
               </div>
             </div>
