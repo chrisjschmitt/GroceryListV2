@@ -1,7 +1,7 @@
 // ==UserScript==
-// @name         GroceryScout - 2.9.3 Normalized Canonical Exporter
+// @name         GroceryScout - 2.9.4 Normalized Canonical Exporter
 // @namespace    http://tampermonkey.net/
-// @version      2.9.3
+// @version      2.9.4
 // @description  Added searchable catalog dropdown and dynamically loaded item lists
 // @author       You
 // @match        https://*.foodbasics.ca/*
@@ -397,7 +397,7 @@
                         if (resObj && resObj.catalogMatch) {
                             const cm = resObj.catalogMatch;
                             if (cm.urlAlreadyExists) {
-                                statusText = '🔗 URL Existed';
+                                statusText = '🔗 URL Exists';
                                 statusBg = '#eab308';
                             } else if (cm.matchType === 'exact') {
                                 statusText = '🎯 Exact Match';

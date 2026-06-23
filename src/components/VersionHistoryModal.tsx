@@ -21,6 +21,19 @@ interface VersionEntry {
 
 const VERSIONS: VersionEntry[] = [
   {
+    version: "1.9.9",
+    date: "June 2026",
+    type: "patch",
+    title: "Exporter Feedback Status Terminology & Closure Tweaks",
+    changes: [
+      {
+        icon: <Zap className="w-4 h-4 text-amber-500" />,
+        category: "Userscript Exporter",
+        description: "Renamed the 'URL Existed' status message to 'URL Exists' for cleaner terminology and verified correct auto-closure callback flow upon submission."
+      }
+    ]
+  },
+  {
     version: "1.9.8",
     date: "June 2026",
     type: "patch",
