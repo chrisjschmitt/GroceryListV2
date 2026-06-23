@@ -689,6 +689,8 @@ app.post("/api/append-grocery", async (req, res) => {
             fStoreKey = "freshco";
           } else if (lowerUrl.includes("yourindependentgrocer")) {
             fStoreKey = "yourindependentgrocer";
+          } else if (lowerUrl.includes("foodbasics")) {
+            fStoreKey = "foodbasics";
           } else {
             const lowerId = String(priceDoc.store_id || "").toLowerCase();
             if (lowerId === "metro") fStoreKey = "metro";
@@ -696,6 +698,8 @@ app.post("/api/append-grocery", async (req, res) => {
             else if (lowerId === "nofrills") fStoreKey = "nofrills";
             else if (lowerId === "freshco" || lowerId.includes("freshco")) fStoreKey = "freshco";
             else if (lowerId === "yourindependentgrocer" || lowerId.includes("yourindependentgrocer")) fStoreKey = "yourindependentgrocer";
+            else if (lowerId === "7923194" || lowerId === "foodbasics") fStoreKey = "foodbasics";
+            else fStoreKey = lowerId || "foodbasics";
           }
 
           const existingStoreLink = (catalogItem.stores[fStoreKey] || {}) as any;
@@ -1115,6 +1119,34 @@ app.put("/api/catalog", async (req, res) => {
       res.status(400).json({ error: "Invalid catalog payload structure" });
       return;
     }
+
+    // Merge client stores maps with latest server catalog stores to avoid stale overwrites
+    try {
+      const currentCatalog = await blobGetCombinedCatalog();
+      for (const incomingItem of catalog.items) {
+        const currentItem = (currentCatalog.items || []).find((i: any) => i.id === incomingItem.id);
+        if (currentItem && currentItem.stores) {
+          if (!incomingItem.stores) {
+            incomingItem.stores = {};
+          }
+          for (const [storeKey, currentStoreDetails] of Object.entries(currentItem.stores)) {
+            if (!(storeKey in incomingItem.stores)) {
+              // Key not sent: stale client state didn't know about it. Restore.
+              incomingItem.stores[storeKey] = currentStoreDetails;
+            } else {
+              // Key sent: check if user cleared/deleted it in UI.
+              const incomingStore = incomingItem.stores[storeKey];
+              if (!incomingStore || (!incomingStore.url && !incomingStore.is_verified)) {
+                delete incomingItem.stores[storeKey];
+              }
+            }
+          }
+        }
+      }
+    } catch (mergeErr) {
+      console.warn("Failed to merge client catalog with server Vercel Blob catalog:", mergeErr);
+    }
+
     await blobSetCombinedCatalog(catalog);
     res.json({ success: true, catalog });
   } catch (error: any) {

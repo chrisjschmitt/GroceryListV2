@@ -603,7 +603,17 @@ export default function AdminPage() {
     if (confirm(`Remove store-specific price rules & tracking for "${storeKey}" on this item?`)) {
       setCatalogItemForm((prev: any) => {
         const updatedStores = { ...prev.stores };
-        delete updatedStores[storeKey];
+        updatedStores[storeKey] = {
+          url: "",
+          upc: "",
+          regular_price: null,
+          sale_price: null,
+          is_on_sale: 0,
+          valid_until: "",
+          track_pricing: false,
+          external_name: "",
+          is_verified: false
+        };
         return {
           ...prev,
           stores: updatedStores
