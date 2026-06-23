@@ -674,7 +674,6 @@ app.post("/api/append-grocery", async (req, res) => {
 
     if (priceDoc && priceDoc.matched_catalog_id) {
       try {
-        const catalog = await blobGetCombinedCatalog();
         const catalogItem = catalog.items.find((i: any) => i.id === priceDoc.matched_catalog_id);
         if (catalogItem) {
           const dbUrl = ensureHttps(priceDoc.lookup_url || priceDoc.url || priceDoc.raw_share_url || "");

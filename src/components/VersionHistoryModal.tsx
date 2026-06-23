@@ -21,6 +21,19 @@ interface VersionEntry {
 
 const VERSIONS: VersionEntry[] = [
   {
+    version: "1.9.10",
+    date: "June 2026",
+    type: "patch",
+    title: "Catalog Attribute Sync Fix",
+    changes: [
+      {
+        icon: <Database className="w-4 h-4 text-emerald-500" />,
+        category: "Ingestion API Pipeline",
+        description: "Fixed a shadowing bug in the append-grocery API where re-fetching the catalog during store link creation would overwrite and discard newly ingested catalog unit, units, and category changes."
+      }
+    ]
+  },
+  {
     version: "1.9.9",
     date: "June 2026",
     type: "patch",
