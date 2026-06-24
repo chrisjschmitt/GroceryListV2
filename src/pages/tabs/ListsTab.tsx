@@ -462,6 +462,11 @@ export default function ListsTab() {
                               }`}
                             >
                               {item.name}
+                              {item.units !== undefined && item.unit && (
+                                <span className="font-medium text-on-surface-variant/80 text-xs ml-1.5 lowercase shrink-0">
+                                  {item.units} {item.unit}
+                                </span>
+                              )}
                             </p>
                             <span className="text-[10px] font-medium text-on-surface-variant uppercase tracking-wider block mt-0.5">
                               {item.category || "Other"}
@@ -542,7 +547,14 @@ export default function ListsTab() {
                                 <h4 className="text-[10px] font-bold text-on-surface-variant uppercase tracking-wider">
                                   Verification Detail
                                 </h4>
-                                <p className="text-xs font-bold text-on-surface mt-0.5">{item.name}</p>
+                                <p className="text-xs font-bold text-on-surface mt-0.5">
+                                  {item.name}
+                                  {item.units !== undefined && item.unit && (
+                                    <span className="font-medium text-on-surface-variant/80 ml-1.5 lowercase">
+                                      {item.units} {item.unit}
+                                    </span>
+                                  )}
+                                </p>
                               </div>
                               <span className="text-[10px] font-black uppercase bg-primary/10 text-primary px-2 py-0.5 rounded-sm">
                                 cheapest store

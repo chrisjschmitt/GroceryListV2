@@ -21,6 +21,19 @@ interface VersionEntry {
 
 const VERSIONS: VersionEntry[] = [
   {
+    version: "1.9.19",
+    date: "June 2026",
+    type: "patch",
+    title: "Grocery Item Sizing & Units Suffixes",
+    changes: [
+      {
+        icon: <Sparkles className="w-4 h-4 text-emerald-500" />,
+        category: "Lists Tab",
+        description: "Appended sizing details (e.g., 796 ml, 1 kg) next to grocery item names in both the main list view and expanded verification accordion panels."
+      }
+    ]
+  },
+  {
     version: "1.9.18",
     date: "June 2026",
     type: "patch",

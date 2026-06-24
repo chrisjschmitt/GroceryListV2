@@ -30,7 +30,7 @@ export interface OfflineStore {
   hasPendingChanges: boolean;
   prices: PriceData;
   saveChanges: () => Promise<void>;
-  addGroceryItem: (name: string, quantity: number, unit: string, category?: string) => Promise<void>;
+  addGroceryItem: (name: string, quantity: number, unit: string, category?: string, units?: number) => Promise<void>;
   toggleGroceryItem: (id: string) => Promise<void>;
   updateGroceryItemQuantity: (id: string, quantity: number) => Promise<void>;
   removeGroceryItem: (id: string) => Promise<void>;
@@ -233,7 +233,7 @@ export function useOfflineStore(): OfflineStore {
 
   // --- Mutations ---
 
-  const addGroceryItem = useCallback(async (name: string, quantity: number, unit: string, category?: string) => {
+  const addGroceryItem = useCallback(async (name: string, quantity: number, unit: string, category?: string, units?: number) => {
     const existing = await localGetGroceryItems();
     if (existing.some((i) => i.name.toLowerCase() === name.toLowerCase())) {
       return;
@@ -245,6 +245,7 @@ export function useOfflineStore(): OfflineStore {
       category: category || "Other",
       quantity,
       unit,
+      units,
       checked: false,
       prices: [],
       bestPrice: undefined,
@@ -407,7 +408,7 @@ export function useOfflineStore(): OfflineStore {
     const newItems = selected.filter((s) => !currentNames.has(s.name.toLowerCase()));
 
     for (const ri of newItems) {
-      await addGroceryItem(ri.name, 1, (ri as any).unit || "unit", ri.category);
+      await addGroceryItem(ri.name, 1, ri.unit || "unit", ri.category, ri.units);
     }
 
     const allRegular = await localGetRegularItems();

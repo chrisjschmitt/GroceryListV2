@@ -19,6 +19,7 @@ export interface GroceryItem {
   category: string;
   quantity: number;
   unit: string;
+  units?: number;
   checked: boolean;
   prices: StorePrice[];
   bestPrice?: StorePrice;
