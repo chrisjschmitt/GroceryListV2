@@ -21,6 +21,24 @@ interface VersionEntry {
 
 const VERSIONS: VersionEntry[] = [
   {
+    version: "1.9.16",
+    date: "June 2026",
+    type: "patch",
+    title: "Grocery Walkthrough Category Sorting",
+    changes: [
+      {
+        icon: <Layout className="w-4 h-4 text-emerald-500" />,
+        category: "Lists UI",
+        description: "Sorted shopping list items by store walkthrough category layout (Produce -> Bakery -> Meat -> Dairy -> Pantry -> Frozen -> Other) first, and then alphabetically."
+      },
+      {
+        icon: <Database className="w-4 h-4 text-emerald-500" />,
+        category: "Lists UI",
+        description: "Renamed the fallback list group for untracked grocery items from 'Custom / Other Stores' to 'No Price Checking Configured'."
+      }
+    ]
+  },
+  {
     version: "1.9.15",
     date: "June 2026",
     type: "patch",

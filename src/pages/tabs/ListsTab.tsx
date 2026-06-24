@@ -29,6 +29,29 @@ function getStoreActivePrice(storeInfo: any): number | null {
   return typeof storeInfo.regular_price === "number" ? storeInfo.regular_price : parseFloat(storeInfo.regular_price) || null;
 }
 
+const CATEGORY_WALKTHROUGH_ORDER = [
+  "produce",
+  "bakery",
+  "meat",
+  "dairy",
+  "pantry",
+  "frozen",
+  "other"
+];
+
+function getCategoryWalkthroughIndex(categoryName: string): number {
+  const lower = (categoryName || "").toLowerCase().trim();
+  if (lower.includes("produce") || lower.includes("fruit") || lower.includes("veg")) return 0;
+  if (lower.includes("bakery") || lower.includes("bread")) return 1;
+  if (lower.includes("meat") || lower.includes("seafood") || lower.includes("poultry")) return 2;
+  if (lower.includes("dairy") || lower.includes("egg") || lower.includes("cheese")) return 3;
+  if (lower.includes("pantry") || lower.includes("pasta") || lower.includes("dry") || lower.includes("canned") || lower.includes("grocery")) return 4;
+  if (lower.includes("frozen")) return 5;
+  
+  const idx = CATEGORY_WALKTHROUGH_ORDER.findIndex(c => lower.includes(c));
+  return idx !== -1 ? idx : 999; // unknown category goes to the end
+}
+
 export default function ListsTab() {
   const store = useOfflineStore();
   const [expandedItems, setExpandedItems] = useState<Set<string>>(new Set());
@@ -175,7 +198,7 @@ export default function ListsTab() {
     const storeMap: Record<string, { name: string; items: GroceryItem[] }> = {
       foodbasics: { name: "Food Basics", items: [] },
       metro: { name: "Metro", items: [] },
-      unassigned: { name: "Custom / Other Stores", items: [] }
+      unassigned: { name: "No Price Checking Configured", items: [] }
     };
 
     for (const item of store.groceryItems) {
@@ -212,6 +235,16 @@ export default function ListsTab() {
       }
     }
 
+    // Sort items within each store by category walkthrough order, then alphabetically by name
+    for (const storeId in storeMap) {
+      storeMap[storeId].items.sort((a, b) => {
+        const idxA = getCategoryWalkthroughIndex(a.category || "");
+        const idxB = getCategoryWalkthroughIndex(b.category || "");
+        if (idxA !== idxB) return idxA - idxB;
+        return a.name.localeCompare(b.name);
+      });
+    }
+
     return Object.entries(storeMap)
       .filter(([_, data]) => data.items.length > 0)
       .map(([id, data]) => ({ id, ...data }));
@@ -225,9 +258,20 @@ export default function ListsTab() {
       if (!categoriesMap[cat]) categoriesMap[cat] = [];
       categoriesMap[cat].push(item);
     }
+
+    // Sort items alphabetically within each category
+    for (const catName in categoriesMap) {
+      categoriesMap[catName].sort((a, b) => a.name.localeCompare(b.name));
+    }
+
     return Object.entries(categoriesMap)
       .map(([name, items]) => ({ id: name.toLowerCase(), name, items }))
-      .sort((a, b) => a.name.localeCompare(b.name));
+      .sort((a, b) => {
+        const idxA = getCategoryWalkthroughIndex(a.name);
+        const idxB = getCategoryWalkthroughIndex(b.name);
+        if (idxA !== idxB) return idxA - idxB;
+        return a.name.localeCompare(b.name);
+      });
   }, [store.groceryItems]);
 
   const activeGroups = viewMode === "byStore" ? groupedByStore : groupedByCategory;
