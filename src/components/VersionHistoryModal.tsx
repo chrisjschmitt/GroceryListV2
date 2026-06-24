@@ -21,6 +21,19 @@ interface VersionEntry {
 
 const VERSIONS: VersionEntry[] = [
   {
+    version: "1.9.20",
+    date: "June 2026",
+    type: "patch",
+    title: "Auto-Save on Catalog Drawer Close",
+    changes: [
+      {
+        icon: <Zap className="w-4 h-4 text-emerald-500" />,
+        category: "Lists Tab",
+        description: "Automatically trigger saveChanges() when closing the Browse Catalog drawer to ensure selected items persist immediately."
+      }
+    ]
+  },
+  {
     version: "1.9.19",
     date: "June 2026",
     type: "patch",

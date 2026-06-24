@@ -649,7 +649,12 @@ export default function ListsTab() {
       {/* Catalog Drawer Modal */}
       <CatalogDrawer
         isOpen={isCatalogOpen}
-        onClose={() => setIsCatalogOpen(false)}
+        onClose={async () => {
+          setIsCatalogOpen(false);
+          if (store.hasPendingChanges) {
+            await store.saveChanges();
+          }
+        }}
         regularItems={store.regularItems}
         alreadyInList={shoppingListNames}
         priceLookup={priceLookup}
