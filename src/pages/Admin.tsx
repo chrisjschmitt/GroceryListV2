@@ -3487,7 +3487,19 @@ export default function AdminPage() {
                         <tr key={issue._id || issue.id} className="hover:bg-gray-50/50">
                           <td className="p-3 font-bold">{issue.itemName}</td>
                           <td className="p-3 uppercase font-semibold text-gray-700">
-                            {getStoreDisplayName(issue.storeId)}
+                            {issue.lookupUrl ? (
+                              <a 
+                                href={issue.lookupUrl} 
+                                target="_blank" 
+                                rel="noreferrer" 
+                                className="text-secondary hover:underline inline-flex items-center gap-1 cursor-pointer font-bold"
+                              >
+                                <span>{getStoreDisplayName(issue.storeId)}</span>
+                                <ExternalLink className="w-3.5 h-3.5" />
+                              </a>
+                            ) : (
+                              getStoreDisplayName(issue.storeId)
+                            )}
                           </td>
                           <td className="p-3 font-mono text-red-650 font-black">
                             ${issue.reportedPrice?.toFixed(2)}

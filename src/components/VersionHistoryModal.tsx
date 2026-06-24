@@ -21,6 +21,24 @@ interface VersionEntry {
 
 const VERSIONS: VersionEntry[] = [
   {
+    version: "1.9.18",
+    date: "June 2026",
+    type: "patch",
+    title: "Store-Specific Price Reporting & Verification Links",
+    changes: [
+      {
+        icon: <Zap className="w-4 h-4 text-emerald-500" />,
+        category: "Baskets Tab",
+        description: "Moved price reporting inline next to each store price row inside the accordion detail to let users report errors on specific stores."
+      },
+      {
+        icon: <Database className="w-4 h-4 text-emerald-500" />,
+        category: "Admin Portal",
+        description: "Linked the store name in the Reported Pricing Issues table to the item's scraper lookup URL for faster investigation."
+      }
+    ]
+  },
+  {
     version: "1.9.17",
     date: "June 2026",
     type: "patch",

@@ -251,7 +251,7 @@ export default function BasketsTab({ onNavigateToLists }: BasketsTabProps) {
     });
   };
 
-  const handleReportIncorrectPrice = async (item: GroceryItem, storeId: string, currentPrice: number) => {
+  const handleReportIncorrectPrice = async (item: GroceryItem, storeId: string, currentPrice: number, lookupUrl: string) => {
     const reportKey = `${item.id}-${storeId}`;
     if (reportingIds.has(reportKey) || reportedIds.has(reportKey)) return;
 
@@ -269,6 +269,7 @@ export default function BasketsTab({ onNavigateToLists }: BasketsTabProps) {
           itemName: item.name,
           storeId,
           reportedPrice: currentPrice,
+          lookupUrl,
         }),
       });
 
@@ -467,7 +468,7 @@ export default function BasketsTab({ onNavigateToLists }: BasketsTabProps) {
                                 const storePrice = getStoreActivePrice(sInfo);
                                 const isBest = storePrice === price;
                                 return (
-                                  <div key={storeKey} className="flex justify-between items-center text-xs">
+                                  <div key={storeKey} className="flex justify-between items-center text-xs py-1">
                                     {sInfo.lookup_url ? (
                                       <a 
                                         href={sInfo.lookup_url} 
@@ -484,45 +485,40 @@ export default function BasketsTab({ onNavigateToLists }: BasketsTabProps) {
                                         {sInfo.store_name || storeKey}
                                       </span>
                                     )}
-                                    <span className={`font-bold ${isBest ? "text-primary font-black" : "text-on-surface"}`}>
-                                      {storePrice !== null ? `$${storePrice.toFixed(2)}` : "—"}
-                                    </span>
+                                    <div className="flex items-center gap-2">
+                                      <span className={`font-bold ${isBest ? "text-primary font-black" : "text-on-surface"}`}>
+                                        {storePrice !== null ? `$${storePrice.toFixed(2)}` : "—"}
+                                      </span>
+                                      {storePrice !== null && (
+                                        <button
+                                          type="button"
+                                          onClick={(e) => {
+                                            e.stopPropagation();
+                                            handleReportIncorrectPrice(item, storeKey, storePrice, sInfo.lookup_url || "");
+                                          }}
+                                          disabled={reportingIds.has(`${item.id}-${storeKey}`) || reportedIds.has(`${item.id}-${storeKey}`)}
+                                          className={`p-1 rounded transition-all select-none ${
+                                            reportedIds.has(`${item.id}-${storeKey}`)
+                                              ? "text-emerald-600 bg-emerald-50 border border-emerald-200"
+                                              : "text-on-surface-variant hover:text-red-600 hover:bg-red-50 border border-transparent hover:border-red-200"
+                                          }`}
+                                          title="Report incorrect price for this store"
+                                        >
+                                          {reportingIds.has(`${item.id}-${storeKey}`) ? (
+                                            <span className="animate-spin border border-current border-t-transparent rounded-full w-3.5 h-3.5 block"></span>
+                                          ) : reportedIds.has(`${item.id}-${storeKey}`) ? (
+                                            <Check size={12} className="stroke-[3.5px]" />
+                                          ) : (
+                                            <AlertTriangle size={12} />
+                                          )}
+                                        </button>
+                                      )}
+                                    </div>
                                   </div>
                                 );
                               })}
                             </div>
                           )}
-
-                          {/* Report incorrect price */}
-                          <div className="pt-2 border-t border-outline/5 flex justify-end">
-                            <button
-                              type="button"
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                handleReportIncorrectPrice(item, "foodbasics", price);
-                              }}
-                              disabled={reportingIds.has(`${item.id}-foodbasics`) || reportedIds.has(`${item.id}-foodbasics`)}
-                              className={`px-2.5 py-1.5 rounded-md text-[10px] font-bold uppercase tracking-wider flex items-center gap-1.5 transition-all select-none ${
-                                reportedIds.has(`${item.id}-foodbasics`)
-                                  ? "bg-emerald-50 text-emerald-700 border border-emerald-300"
-                                  : "bg-surface hover:bg-red-50 text-on-surface-variant hover:text-red-700 border border-outline-variant hover:border-red-200"
-                              }`}
-                            >
-                              {reportingIds.has(`${item.id}-foodbasics`) ? (
-                                <span className="animate-spin border border-current border-t-transparent rounded-full w-3 h-3"></span>
-                              ) : reportedIds.has(`${item.id}-foodbasics`) ? (
-                                <>
-                                  <Check size={11} className="stroke-[3.5px]" />
-                                  <span>Reported</span>
-                                </>
-                              ) : (
-                                <>
-                                  <AlertTriangle size={11} />
-                                  <span>Report Incorrect Price</span>
-                                </>
-                              )}
-                            </button>
-                          </div>
                         </div>
                       </div>
                     )}
@@ -593,7 +589,7 @@ export default function BasketsTab({ onNavigateToLists }: BasketsTabProps) {
                                 const storePrice = getStoreActivePrice(sInfo);
                                 const isBest = storePrice === price;
                                 return (
-                                  <div key={storeKey} className="flex justify-between items-center text-xs">
+                                  <div key={storeKey} className="flex justify-between items-center text-xs py-1">
                                     {sInfo.lookup_url ? (
                                       <a 
                                         href={sInfo.lookup_url} 
@@ -610,45 +606,40 @@ export default function BasketsTab({ onNavigateToLists }: BasketsTabProps) {
                                         {sInfo.store_name || storeKey}
                                       </span>
                                     )}
-                                    <span className={`font-bold ${isBest ? "text-primary font-black" : "text-on-surface"}`}>
-                                      {storePrice !== null ? `$${storePrice.toFixed(2)}` : "—"}
-                                    </span>
+                                    <div className="flex items-center gap-2">
+                                      <span className={`font-bold ${isBest ? "text-primary font-black" : "text-on-surface"}`}>
+                                        {storePrice !== null ? `$${storePrice.toFixed(2)}` : "—"}
+                                      </span>
+                                      {storePrice !== null && (
+                                        <button
+                                          type="button"
+                                          onClick={(e) => {
+                                            e.stopPropagation();
+                                            handleReportIncorrectPrice(item, storeKey, storePrice, sInfo.lookup_url || "");
+                                          }}
+                                          disabled={reportingIds.has(`${item.id}-${storeKey}`) || reportedIds.has(`${item.id}-${storeKey}`)}
+                                          className={`p-1 rounded transition-all select-none ${
+                                            reportedIds.has(`${item.id}-${storeKey}`)
+                                              ? "text-emerald-600 bg-emerald-50 border border-emerald-200"
+                                              : "text-on-surface-variant hover:text-red-600 hover:bg-red-50 border border-transparent hover:border-red-200"
+                                          }`}
+                                          title="Report incorrect price for this store"
+                                        >
+                                          {reportingIds.has(`${item.id}-${storeKey}`) ? (
+                                            <span className="animate-spin border border-current border-t-transparent rounded-full w-3.5 h-3.5 block"></span>
+                                          ) : reportedIds.has(`${item.id}-${storeKey}`) ? (
+                                            <Check size={12} className="stroke-[3.5px]" />
+                                          ) : (
+                                            <AlertTriangle size={12} />
+                                          )}
+                                        </button>
+                                      )}
+                                    </div>
                                   </div>
                                 );
                               })}
                             </div>
                           )}
-
-                          {/* Report incorrect price */}
-                          <div className="pt-2 border-t border-outline/5 flex justify-end">
-                            <button
-                              type="button"
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                handleReportIncorrectPrice(item, "metro", price);
-                              }}
-                              disabled={reportingIds.has(`${item.id}-metro`) || reportedIds.has(`${item.id}-metro`)}
-                              className={`px-2.5 py-1.5 rounded-md text-[10px] font-bold uppercase tracking-wider flex items-center gap-1.5 transition-all select-none ${
-                                reportedIds.has(`${item.id}-metro`)
-                                  ? "bg-emerald-50 text-emerald-700 border border-emerald-300"
-                                  : "bg-surface hover:bg-red-50 text-on-surface-variant hover:text-red-700 border border-outline-variant hover:border-red-200"
-                              }`}
-                            >
-                              {reportingIds.has(`${item.id}-metro`) ? (
-                                <span className="animate-spin border border-current border-t-transparent rounded-full w-3 h-3"></span>
-                              ) : reportedIds.has(`${item.id}-metro`) ? (
-                                <>
-                                  <Check size={11} className="stroke-[3.5px]" />
-                                  <span>Reported</span>
-                                </>
-                              ) : (
-                                <>
-                                  <AlertTriangle size={11} />
-                                  <span>Report Incorrect Price</span>
-                                </>
-                              )}
-                            </button>
-                          </div>
                         </div>
                       </div>
                     )}

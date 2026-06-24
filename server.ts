@@ -1272,7 +1272,7 @@ async function startServer() {
   // 10. POST /api/report-pricing-issue
   app.post("/api/report-pricing-issue", async (req, res) => {
     try {
-      const { itemName, storeId, reportedPrice } = req.body;
+      const { itemName, storeId, reportedPrice, lookupUrl } = req.body;
       if (!itemName || !storeId || reportedPrice === undefined) {
         res.status(400).json({ error: "Missing required fields" });
         return;
@@ -1284,6 +1284,7 @@ async function startServer() {
         itemName,
         storeId,
         reportedPrice: parseFloat(reportedPrice),
+        lookupUrl: lookupUrl || "",
         timestamp,
       };
 
