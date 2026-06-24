@@ -376,6 +376,43 @@ export default function AdminPage() {
 
 
 
+  // Pricing Issues State
+  const [pricingIssues, setPricingIssues] = useState<any[]>([]);
+  const [pricingIssuesLoading, setPricingIssuesLoading] = useState(false);
+
+  const fetchPricingIssues = async () => {
+    try {
+      setPricingIssuesLoading(true);
+      const res = await fetch("/api/pricing-issues");
+      if (res.ok) {
+        const data = await res.json();
+        setPricingIssues(data.issues || []);
+      }
+    } catch (err) {
+      console.error("Failed to fetch pricing issues:", err);
+    } finally {
+      setPricingIssuesLoading(false);
+    }
+  };
+
+  const handleResolveIssue = async (id: string) => {
+    if (!confirm("Are you sure you want to mark this pricing issue as resolved?")) return;
+    try {
+      const res = await fetch(`/api/pricing-issues/${id}`, {
+        method: "DELETE"
+      });
+      if (res.ok) {
+        showVisualMessage("Pricing issue resolved successfully!");
+        fetchPricingIssues();
+      } else {
+        alert("Failed to resolve pricing issue.");
+      }
+    } catch (err) {
+      console.error(err);
+      alert("Error occurred while resolving pricing issue.");
+    }
+  };
+
   // Combined Catalog Manager State
   const [catalogLoading, setCatalogLoading] = useState(true);
   const [catalogScrapedFilter, setCatalogScrapedFilter] = useState("all");
@@ -437,19 +474,22 @@ export default function AdminPage() {
     let cancelled = false;
     async function load() {
       try {
-        const [configRes, catalogRes, pricesRes] = await Promise.all([
+        const [configRes, catalogRes, pricesRes, issuesRes] = await Promise.all([
           fetch("/api/scrape-config"),
           fetch("/api/catalog"),
           fetch("/api/prices?mongodbOnly=true"),
+          fetch("/api/pricing-issues"),
         ]);
         const configData = await configRes.json();
         const catalogData = await catalogRes.json();
         const pricesJson = await pricesRes.json();
+        const issuesJson = await issuesRes.json();
         if (!cancelled) {
           const normalizedConfig = ensureDefaultStores(configData);
           setScrapeConfig(normalizedConfig);
           setCatalog(catalogData || { stores: {}, items: [] });
           setPricesData(pricesJson.prices || {});
+          setPricingIssues(issuesJson.issues || []);
         }
       } catch (err) {
         console.error("Error loading admin system datasets:", err);
@@ -3398,6 +3438,78 @@ export default function AdminPage() {
 
             {/* Google Drive Import/Export Backup Block */}
             <GoogleDriveBackup items={items} scrapeConfig={scrapeConfig} onRestoreComplete={fetchCatalog} />
+          </div>
+
+          {/* Reported Pricing Issues Queue Section */}
+          <div className="bg-white border-2 border-black p-6 shadow-[6px_6px_0px_0px_rgba(0,0,0,1)] text-black">
+            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-4 pb-1.5 border-b-2 border-black">
+              <h2 className="text-base font-black uppercase tracking-tight flex items-center gap-1.5 text-black">
+                <CircleAlert className="w-5 h-5 text-red-650 animate-pulse" />
+                ⚠️ Reported Pricing Issues (Investigation Queue)
+              </h2>
+              <button
+                type="button"
+                onClick={fetchPricingIssues}
+                disabled={pricingIssuesLoading}
+                className="text-xs font-black uppercase tracking-wider bg-black hover:bg-emerald-600 disabled:bg-gray-400 text-white px-3 py-1.5 border border-black shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] hover:shadow-none hover:translate-x-[1px] hover:translate-y-[1px] transition-all inline-flex items-center gap-1 cursor-pointer"
+              >
+                <RefreshCw className={`w-3.5 h-3.5 ${pricingIssuesLoading ? 'animate-spin' : ''}`} />
+                Refresh Queue
+              </button>
+            </div>
+            
+            <p className="text-xs text-gray-500 mb-6 font-medium leading-relaxed">
+              This panel displays pricing inaccuracies reported by users directly from their baskets. Investigate the discrepancies on retailer sites and resolve them.
+            </p>
+
+            {pricingIssuesLoading && pricingIssues.length === 0 ? (
+              <div className="text-center py-8">
+                <RefreshCw className="w-6 h-6 animate-spin mx-auto text-red-605" />
+                <p className="text-xs font-bold text-gray-400 mt-2">Loading reported issues...</p>
+              </div>
+            ) : pricingIssues.length === 0 ? (
+              <p className="text-xs text-gray-500 italic">No reported pricing issues. All basket items are correct!</p>
+            ) : (
+              <div className="border-2 border-black overflow-hidden animate-fade-in">
+                <div className="max-h-[400px] overflow-y-auto">
+                  <table className="w-full text-left text-xs border-collapse">
+                    <thead>
+                      <tr className="bg-gray-100 border-b-2 border-black sticky top-0 font-black">
+                        <th className="p-3">Item Name</th>
+                        <th className="p-3">Store</th>
+                        <th className="p-3">Reported Price</th>
+                        <th className="p-3">Reported Date</th>
+                        <th className="p-3 text-right">Action</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-black/10">
+                      {pricingIssues.map((issue: any) => (
+                        <tr key={issue._id || issue.id} className="hover:bg-gray-50/50">
+                          <td className="p-3 font-bold">{issue.itemName}</td>
+                          <td className="p-3 uppercase font-semibold text-gray-700">
+                            {getStoreDisplayName(issue.storeId)}
+                          </td>
+                          <td className="p-3 font-mono text-red-650 font-black">
+                            ${issue.reportedPrice?.toFixed(2)}
+                          </td>
+                          <td className="p-3 text-gray-500 font-medium">
+                            {new Date(issue.timestamp).toLocaleString()}
+                          </td>
+                          <td className="p-3 text-right">
+                            <button
+                              onClick={() => handleResolveIssue(issue._id || issue.id)}
+                              className="bg-emerald-50 hover:bg-emerald-100 border-2 border-black font-black px-2.5 py-1 text-[10px] uppercase shadow-[1.5px_1.5px_0px_0px_rgba(0,0,0,1)] hover:shadow-none hover:translate-x-px hover:translate-y-px transition-all cursor-pointer"
+                            >
+                              Resolve
+                            </button>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            )}
           </div>
 
           {/* MongoDB Price Ingestion Logs (Prices Collection) */}

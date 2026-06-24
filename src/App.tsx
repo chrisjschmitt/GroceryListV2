@@ -35,7 +35,7 @@ export default function App() {
       case "home":
         return <HomeTab />;
       case "baskets":
-        return <BasketsTab />;
+        return <BasketsTab onNavigateToLists={() => setActiveTab("lists")} />;
       case "lists":
         return <ListsTab />;
       case "profile":

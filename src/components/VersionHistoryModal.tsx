@@ -21,6 +21,29 @@ interface VersionEntry {
 
 const VERSIONS: VersionEntry[] = [
   {
+    version: "1.9.17",
+    date: "June 2026",
+    type: "patch",
+    title: "Basket Optimizer & Price Investigation Queue",
+    changes: [
+      {
+        icon: <Sparkles className="w-4 h-4 text-emerald-500" />,
+        category: "Baskets Tab",
+        description: "Implemented Basket Optimizer layout showing single-store lowest totals vs. optimized smart-split savings, with store website hyperlinks for price verification."
+      },
+      {
+        icon: <Zap className="w-4 h-4 text-emerald-500" />,
+        category: "Baskets Tab",
+        description: "Added 'Report Incorrect Price' form inside basket items price verification accordion, logging errors to backend."
+      },
+      {
+        icon: <Database className="w-4 h-4 text-emerald-500" />,
+        category: "Admin Portal",
+        description: "Created Price Investigation Queue in Admin portal to display and resolve user-reported price discrepancies in real-time."
+      }
+    ]
+  },
+  {
     version: "1.9.16",
     date: "June 2026",
     type: "patch",

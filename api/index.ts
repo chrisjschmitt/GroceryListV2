@@ -3,7 +3,7 @@ import multer from "multer";
 import { spawn } from "child_process";
 import fs from "fs";
 import path from "path";
-import { MongoClient } from "mongodb";
+import { MongoClient, ObjectId } from "mongodb";
 import { parseCsv } from "../src/lib/csv-parser.js";
 import { evaluateGeminiMatch, runAllMatchingTests } from "../src/lib/gemini-match-service.js";
 import { RegularItem } from "../src/lib/types";
@@ -1215,6 +1215,109 @@ app.get("/api/diagnose", async (req, res) => {
       error: "Diagnostics handler threw an exception",
       details: error?.message || String(error),
     });
+  }
+});
+
+// 10. POST /api/report-pricing-issue
+const LOCAL_DIR = !!(process.env.VERCEL || process.env.NODE_ENV === "production")
+  ? path.join("/tmp", "db-storage")
+  : path.join(process.cwd(), "db-storage");
+
+app.post("/api/report-pricing-issue", async (req, res) => {
+  try {
+    const { itemName, storeId, reportedPrice } = req.body;
+    if (!itemName || !storeId || reportedPrice === undefined) {
+      res.status(400).json({ error: "Missing required fields" });
+      return;
+    }
+
+    const timestamp = new Date();
+    const report = {
+      id: Math.random().toString(36).substring(2, 9),
+      itemName,
+      storeId,
+      reportedPrice: parseFloat(reportedPrice),
+      timestamp,
+    };
+
+    try {
+      const { db } = await getMongoDatabase();
+      await db.collection("price_reports").insertOne({
+        ...report,
+        timestamp
+      });
+    } catch (dbErr) {
+      // Fallback local file save
+      if (!fs.existsSync(LOCAL_DIR)) {
+        fs.mkdirSync(LOCAL_DIR, { recursive: true });
+      }
+      const filepath = path.join(LOCAL_DIR, "pricing-issues.json");
+      let list = [];
+      if (fs.existsSync(filepath)) {
+        const content = fs.readFileSync(filepath, "utf8");
+        list = JSON.parse(content || "[]");
+      }
+      list.push(report);
+      fs.writeFileSync(filepath, JSON.stringify(list, null, 2), "utf8");
+    }
+
+    res.json({ success: true });
+  } catch (error) {
+    console.error("POST /api/report-pricing-issue error:", error);
+    res.status(500).json({ error: "Failed to report pricing issue" });
+  }
+});
+
+// 11. GET /api/pricing-issues
+app.get("/api/pricing-issues", async (req, res) => {
+  try {
+    let issues = [];
+    try {
+      const { db } = await getMongoDatabase();
+      issues = await db.collection("price_reports").find().sort({ timestamp: -1 }).toArray();
+    } catch (dbErr) {
+      // Fallback local file read
+      const filepath = path.join(LOCAL_DIR, "pricing-issues.json");
+      if (fs.existsSync(filepath)) {
+        const content = fs.readFileSync(filepath, "utf8");
+        issues = JSON.parse(content || "[]");
+        issues.sort((a: any, b: any) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
+      }
+    }
+    res.json({ success: true, issues });
+  } catch (error) {
+    console.error("GET /api/pricing-issues error:", error);
+    res.status(500).json({ error: "Failed to fetch pricing issues" });
+  }
+});
+
+// 12. DELETE /api/pricing-issues/:id
+app.delete("/api/pricing-issues/:id", async (req, res) => {
+  try {
+    const { id } = req.params;
+    try {
+      const { db } = await getMongoDatabase();
+      let deleteQuery = {};
+      if (ObjectId.isValid(id)) {
+        deleteQuery = { _id: new ObjectId(id) };
+      } else {
+        deleteQuery = { id: id };
+      }
+      await db.collection("price_reports").deleteOne(deleteQuery);
+    } catch (dbErr) {
+      // Fallback local file delete
+      const filepath = path.join(LOCAL_DIR, "pricing-issues.json");
+      if (fs.existsSync(filepath)) {
+        const content = fs.readFileSync(filepath, "utf8");
+        const list = JSON.parse(content || "[]");
+        const filtered = list.filter((item: any) => item.id !== id && item._id !== id);
+        fs.writeFileSync(filepath, JSON.stringify(filtered, null, 2), "utf8");
+      }
+    }
+    res.json({ success: true });
+  } catch (error) {
+    console.error("DELETE /api/pricing-issues error:", error);
+    res.status(500).json({ error: "Failed to resolve pricing issue" });
   }
 });
 
