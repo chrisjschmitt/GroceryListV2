@@ -687,6 +687,19 @@ export default function HomeTab() {
               const avgPercent = hasPrices && maxBound > 0 && item.avgPrice ? (item.avgPrice / maxBound) * 100 : 0;
               const isExpanded = expandedPrices.has(item.name);
 
+              let leftStoreLabel = "";
+              let rightStoreLabel = "";
+              if (item.pricesList.length > 0) {
+                const sortedPrices = [...item.pricesList].sort((a, b) => {
+                  if (a.price !== b.price) {
+                    return a.price - b.price;
+                  }
+                  return a.storeName.localeCompare(b.storeName);
+                });
+                leftStoreLabel = sortedPrices[0].storeName;
+                rightStoreLabel = sortedPrices.length > 1 ? sortedPrices[sortedPrices.length - 1].storeName : "";
+              }
+
               return (
                 <div 
                   key={item.id}
@@ -766,9 +779,9 @@ export default function HomeTab() {
                             />
                           </div>
                           <div className="flex justify-between items-center text-[9px] text-gray-400 font-bold uppercase">
-                            <span>Basics</span>
+                            <span className="truncate max-w-[40%] text-left" title={leftStoreLabel}>{leftStoreLabel}</span>
                             <span className="text-gray-900">Avg: ${item.avgPrice!.toFixed(2)}</span>
-                            <span>Metro</span>
+                            <span className="truncate max-w-[40%] text-right" title={rightStoreLabel}>{rightStoreLabel}</span>
                           </div>
                         </div>
                       ) : (
