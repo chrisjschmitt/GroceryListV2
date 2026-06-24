@@ -21,6 +21,19 @@ interface VersionEntry {
 
 const VERSIONS: VersionEntry[] = [
   {
+    version: "1.9.15",
+    date: "June 2026",
+    type: "patch",
+    title: "Hide Price Accordion for Untracked Items",
+    changes: [
+      {
+        icon: <Clock className="w-4 h-4 text-emerald-500" />,
+        category: "Lists UI",
+        description: "Disabled expandability and hid the expand chevron arrow for grocery list items that do not have active price checking data."
+      }
+    ]
+  },
+  {
     version: "1.9.14",
     date: "June 2026",
     type: "patch",

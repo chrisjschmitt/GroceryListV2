@@ -395,8 +395,10 @@ export default function ListsTab() {
                     >
                       {/* Interactive Header Row */}
                       <div
-                        onClick={() => toggleExpand(item.id)}
-                        className="flex items-center justify-between p-3.5 cursor-pointer select-none hover:bg-surface-container-low"
+                        onClick={cheapestPriceVal !== null ? () => toggleExpand(item.id) : undefined}
+                        className={`flex items-center justify-between p-3.5 select-none ${
+                          cheapestPriceVal !== null ? "cursor-pointer hover:bg-surface-container-low" : ""
+                        }`}
                       >
                         <div className="flex items-center gap-3 flex-1 min-w-0">
                           {/* Checked checkbox */}
@@ -463,30 +465,32 @@ export default function ListsTab() {
 
                         {/* Price & Expand button */}
                         <div className="flex items-center gap-3 shrink-0 font-tnum ml-2">
-                          <div className="text-right flex flex-col items-end">
-                            {cheapestPriceVal !== null && (
+                          {cheapestPriceVal !== null && (
+                            <div className="text-right flex flex-col items-end">
                               <span className="text-sm font-extrabold text-primary">
                                 ${(cheapestPriceVal * item.quantity).toFixed(2)}
                               </span>
-                            )}
-                            
-                            {item.quantity > 1 && (
-                              <span className="text-[9px] text-on-surface-variant font-medium">
-                                {item.quantity} × ${cheapestPriceVal?.toFixed(2)}
-                              </span>
-                            )}
-                          </div>
+                              
+                              {item.quantity > 1 && (
+                                <span className="text-[9px] text-on-surface-variant font-medium">
+                                  {item.quantity} × ${cheapestPriceVal.toFixed(2)}
+                                </span>
+                              )}
+                            </div>
+                          )}
                           
-                          {isExpanded ? (
-                            <ChevronUp size={16} className="text-on-surface-variant" />
-                          ) : (
-                            <ChevronDown size={16} className="text-on-surface-variant" />
+                          {cheapestPriceVal !== null && (
+                            isExpanded ? (
+                              <ChevronUp size={16} className="text-on-surface-variant" />
+                            ) : (
+                              <ChevronDown size={16} className="text-on-surface-variant" />
+                            )
                           )}
                         </div>
                       </div>
 
                       {/* Expandable Accordion Panel */}
-                      {isExpanded && (
+                      {isExpanded && cheapestPriceVal !== null && (
                         <div className="px-3.5 pb-3.5 pt-0 border-t border-outline/5 bg-surface-container-lowest animate-fade-in">
                           <div className="mt-3 bg-surface-container-low border border-primary/20 p-3.5 rounded-lg space-y-3">
                             <div className="flex justify-between items-start">
