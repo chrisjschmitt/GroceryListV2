@@ -1,1 +1,45 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap');
 @import "tailwindcss";
+
+
+@theme {
+  --color-primary: #0d631b;
+  --color-primary-container: #2e7d32;
+  --color-on-primary: #ffffff;
+  
+  --color-secondary: #4c56af;
+  --color-secondary-container: #959efd;
+  --color-on-secondary: #ffffff;
+  
+  --color-tertiary: #923357;
+  --color-tertiary-container: #b14b6f;
+  --color-on-tertiary: #ffffff;
+  
+  --color-background: #f9f9f9;
+  --color-on-background: #1a1c1c;
+  
+  --color-surface: #ffffff;
+  --color-on-surface: #1a1c1c;
+  --color-on-surface-variant: #40493d;
+  
+  --color-outline: #707a6c;
+  --color-outline-variant: #bfcaba;
+  
+  --font-sans: "Inter", sans-serif;
+  
+  --radius-sm: 0.25rem;
+  --radius-md: 0.75rem; /* 12px */
+  --radius-lg: 1rem;    /* 16px */
+  --radius-xl: 1.5rem;  /* 24px */
+}
+
+/* Custom global rules */
+body {
+  background-color: var(--color-background);
+  color: var(--color-on-background);
+  font-family: var(--font-sans);
+}
+
+.font-tnum {
+  font-variant-numeric: tabular-nums;
+}

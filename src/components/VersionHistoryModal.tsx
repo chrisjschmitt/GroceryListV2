@@ -21,6 +21,29 @@ interface VersionEntry {
 
 const VERSIONS: VersionEntry[] = [
   {
+    version: "1.9.14",
+    date: "June 2026",
+    type: "patch",
+    title: "BasketWise Tab Navigation & Catalog Redesign",
+    changes: [
+      {
+        icon: <Layout className="w-4 h-4 text-emerald-500" />,
+        category: "Navigation",
+        description: "Implemented a bottom navigation bar layout matching BasketWise designs with Home, Baskets, Lists, and Profile tabs."
+      },
+      {
+        icon: <Smartphone className="w-4 h-4 text-emerald-500" />,
+        category: "Lists UI",
+        description: "Redesigned Lists screen with segmented control for By Store or flat Category views, cheapest-store price match accordions, and inline horizontal quantity controllers."
+      },
+      {
+        icon: <Sparkles className="w-4 h-4 text-emerald-500" />,
+        category: "Catalog Drawer",
+        description: "Redesigned Catalog Drawer using dense row cards where tapping anywhere adds/removes items, featuring a circular indicator that toggles from a plus outline to a white checkmark."
+      }
+    ]
+  },
+  {
     version: "1.9.13",
     date: "June 2026",
     type: "patch",

@@ -29,6 +29,9 @@ import {
 
 const app = express();
 
+// Global catalog write mutex to serialize concurrent append-grocery updates
+let catalogWriteMutex = Promise.resolve();
+
 // Track container-level initialization
 let serverlessInitialized = false;
 async function initializeServerless() {
@@ -390,7 +393,10 @@ app.post("/api/append-grocery", async (req, res) => {
       urlAlreadyExists: urlAlreadyExists
     };
 
-    let correctedData = { ...data };
+    let correctedData = { 
+      ...data,
+      track_pricing: true
+    };
 
     // Clean and parse pricing fields if present
     if (data.regular_price !== undefined) {
@@ -412,6 +418,12 @@ app.post("/api/append-grocery", async (req, res) => {
       correctedData.valid_until = data.valid_until ? String(data.valid_until).trim() : null;
     }
 
+    let isUnmatchedCreation = false;
+    let proposedName = "";
+    let proposedCategory = "";
+    let proposedUnit = "";
+    let proposedUnits: number | undefined = undefined;
+
     const configName = data.config_name || data.item_name || "";
 
     if (configName) {
@@ -432,15 +444,6 @@ app.post("/api/append-grocery", async (req, res) => {
           catalogMatchResult.matched = true;
           catalogMatchResult.matchType = "exact";
           catalogMatchResult.catalogItemName = exactMatch.name;
-
-          // Update catalog item attributes if passed
-          const catalogItem = catalog.items.find(i => i.id === exactMatch.id);
-          if (catalogItem) {
-            if (data.category) catalogItem.category = data.category;
-            if (data.unit) catalogItem.unit = data.unit;
-            if (data.units !== undefined) catalogItem.units = data.units !== null ? Number(data.units) : undefined;
-          }
-          await blobSetCombinedCatalog(catalog);
         } else {
           // Apply highly optimized Gemini matcher
           const matchResult = await evaluateGeminiMatch(configName, catalogItems);
@@ -458,39 +461,17 @@ app.post("/api/append-grocery", async (req, res) => {
               catalogMatchResult.matched = true;
               catalogMatchResult.matchType = "gemini";
               catalogMatchResult.catalogItemName = matchedItem.name;
-
-              // Update catalog item attributes if passed
-              const catalogItem = catalog.items.find(i => i.id === matchedItem.id);
-              if (catalogItem) {
-                if (data.category) catalogItem.category = data.category;
-                if (data.unit) catalogItem.unit = data.unit;
-                if (data.units !== undefined) catalogItem.units = data.units !== null ? Number(data.units) : undefined;
-              }
-              await blobSetCombinedCatalog(catalog);
             }
           } else {
             // Unmatched ingestion fallback: Automatically create a new catalog item as requested
             // to ensure pricing actually appears in the UI instead of silently disappearing
-            const proposedName = matchResult.proposed_new_item?.name || configName;
-            const proposedCategory = data.category || matchResult.proposed_new_item?.category || "Bakery";
-            const proposedUnit = data.unit || "unit";
-            const proposedUnits = data.units !== undefined && data.units !== null ? Number(data.units) : undefined;
+            proposedName = matchResult.proposed_new_item?.name || configName;
+            proposedCategory = data.category || matchResult.proposed_new_item?.category || "Bakery";
+            proposedUnit = data.unit || "unit";
+            proposedUnits = data.units !== undefined && data.units !== null ? Number(data.units) : undefined;
 
             const newId = `regular-unmatched-${Date.now()}-${Math.random().toString(36).substring(2, 7)}`;
-            
-            // Create and save new combined-catalog item directly
-            const newCombinedItem = {
-              id: newId,
-              name: proposedName,
-              category: proposedCategory,
-              unit: proposedUnit,
-              units: proposedUnits,
-              requires_scraping: true,
-              stores: {}
-            };
-            catalog.items.push(newCombinedItem);
-            await blobSetCombinedCatalog(catalog);
-            console.log(`[Auto-Create] Auto-created catalog item "${proposedName}" (ID ${newId}) under combined-catalog registry`);
+            isUnmatchedCreation = true;
 
             catalogMatchResult.matched = false;
             catalogMatchResult.matchType = "created";
@@ -673,72 +654,113 @@ app.post("/api/append-grocery", async (req, res) => {
     }
 
     if (priceDoc && priceDoc.matched_catalog_id) {
-      try {
-        const catalogItem = catalog.items.find((i: any) => i.id === priceDoc.matched_catalog_id);
-        if (catalogItem) {
-          const dbUrl = ensureHttps(priceDoc.lookup_url || priceDoc.url || priceDoc.raw_share_url || "");
-          let fStoreKey = "foodbasics";
-          const lowerUrl = dbUrl.toLowerCase();
-          if (lowerUrl.includes("metro.ca")) {
-            fStoreKey = "metro";
-          } else if (lowerUrl.includes("loblaws.ca")) {
-            fStoreKey = "loblaws";
-          } else if (lowerUrl.includes("nofrills.ca")) {
-            fStoreKey = "nofrills";
-          } else if (lowerUrl.includes("freshco")) {
-            fStoreKey = "freshco";
-          } else if (lowerUrl.includes("yourindependentgrocer")) {
-            fStoreKey = "yourindependentgrocer";
-          } else if (lowerUrl.includes("foodbasics")) {
-            fStoreKey = "foodbasics";
+      // Serialize catalog updates to prevent race conditions
+      catalogWriteMutex = catalogWriteMutex.then(async () => {
+        try {
+          const freshCatalog = await blobGetCombinedCatalog();
+          let catalogItem: any = null;
+
+          if (isUnmatchedCreation) {
+            // Concurrent Duplicate Prevention: Check if another concurrent request already created an item with the proposedName
+            const existingItem = (freshCatalog.items || []).find(
+              (i: any) => i.name.toLowerCase() === proposedName.toLowerCase()
+            );
+            if (existingItem) {
+              catalogItem = existingItem;
+              priceDoc.matched_catalog_id = existingItem.id;
+              console.log(`[Concurrent Duplicate Prevention] Reusing existing catalog item "${catalogItem.name}" (${catalogItem.id}) instead of creating duplicate.`);
+            } else {
+              catalogItem = {
+                id: priceDoc.matched_catalog_id,
+                name: proposedName,
+                category: proposedCategory,
+                unit: proposedUnit,
+                units: proposedUnits,
+                requires_scraping: true,
+                stores: {}
+              };
+              if (!freshCatalog.items) {
+                freshCatalog.items = [];
+              }
+              freshCatalog.items.push(catalogItem);
+              console.log(`[Auto-Create] Auto-created catalog item "${proposedName}" (ID ${catalogItem.id}) under combined-catalog registry`);
+            }
           } else {
-            const lowerId = String(priceDoc.store_id || "").toLowerCase();
-            if (lowerId === "metro") fStoreKey = "metro";
-            else if (lowerId === "loblaws") fStoreKey = "loblaws";
-            else if (lowerId === "nofrills") fStoreKey = "nofrills";
-            else if (lowerId === "freshco" || lowerId.includes("freshco")) fStoreKey = "freshco";
-            else if (lowerId === "yourindependentgrocer" || lowerId.includes("yourindependentgrocer")) fStoreKey = "yourindependentgrocer";
-            else if (lowerId === "7923194" || lowerId === "foodbasics") fStoreKey = "foodbasics";
-            else fStoreKey = lowerId || "foodbasics";
+            catalogItem = (freshCatalog.items || []).find((i: any) => i.id === priceDoc.matched_catalog_id);
           }
 
-          const existingStoreLink = (catalogItem.stores[fStoreKey] || {}) as any;
+          if (catalogItem) {
+            // Update attributes if provided
+            if (data.category) catalogItem.category = data.category;
+            if (data.unit) catalogItem.unit = data.unit;
+            if (data.units !== undefined) catalogItem.units = data.units !== null ? Number(data.units) : undefined;
 
-          let regVal = typeof priceDoc.regular_price === "number" ? priceDoc.regular_price : (priceDoc.regular_price ? parseFloat(priceDoc.regular_price) : null);
-          let saleVal = typeof priceDoc.sale_price === "number" ? priceDoc.sale_price : (priceDoc.sale_price ? parseFloat(priceDoc.sale_price) : null);
-          let isOnSaleVal = priceDoc.is_on_sale !== undefined ? (priceDoc.is_on_sale ? 1 : 0) : (saleVal !== null ? 1 : 0);
+            const dbUrl = ensureHttps(priceDoc.lookup_url || priceDoc.url || priceDoc.raw_share_url || "");
+            let fStoreKey = "foodbasics";
+            const lowerUrl = dbUrl.toLowerCase();
+            if (lowerUrl.includes("metro.ca")) {
+              fStoreKey = "metro";
+            } else if (lowerUrl.includes("loblaws.ca")) {
+              fStoreKey = "loblaws";
+            } else if (lowerUrl.includes("nofrills.ca")) {
+              fStoreKey = "nofrills";
+            } else if (lowerUrl.includes("freshco")) {
+              fStoreKey = "freshco";
+            } else if (lowerUrl.includes("yourindependentgrocer")) {
+              fStoreKey = "yourindependentgrocer";
+            } else if (lowerUrl.includes("foodbasics")) {
+              fStoreKey = "foodbasics";
+            } else {
+              const lowerId = String(priceDoc.store_id || "").toLowerCase();
+              if (lowerId === "metro") fStoreKey = "metro";
+              else if (lowerId === "loblaws") fStoreKey = "loblaws";
+              else if (lowerId === "nofrills") fStoreKey = "nofrills";
+              else if (lowerId === "freshco" || lowerId.includes("freshco")) fStoreKey = "freshco";
+              else if (lowerId === "yourindependentgrocer" || lowerId.includes("yourindependentgrocer")) fStoreKey = "yourindependentgrocer";
+              else if (lowerId === "7923194" || lowerId === "foodbasics") fStoreKey = "foodbasics";
+              else fStoreKey = lowerId || "foodbasics";
+            }
 
-          if (regVal === null && existingStoreLink.regular_price !== undefined) {
-            regVal = existingStoreLink.regular_price;
+            if (!catalogItem.stores) {
+              catalogItem.stores = {};
+            }
+            const existingStoreLink = (catalogItem.stores[fStoreKey] || {}) as any;
+
+            let regVal = typeof priceDoc.regular_price === "number" ? priceDoc.regular_price : (priceDoc.regular_price ? parseFloat(priceDoc.regular_price) : null);
+            let saleVal = typeof priceDoc.sale_price === "number" ? priceDoc.sale_price : (priceDoc.sale_price ? parseFloat(priceDoc.sale_price) : null);
+            let isOnSaleVal = priceDoc.is_on_sale !== undefined ? (priceDoc.is_on_sale ? 1 : 0) : (saleVal !== null ? 1 : 0);
+
+            if (regVal === null && existingStoreLink.regular_price !== undefined) {
+              regVal = existingStoreLink.regular_price;
+            }
+            if (saleVal === null && existingStoreLink.sale_price !== undefined) {
+              saleVal = existingStoreLink.sale_price;
+            }
+            if (priceDoc.is_on_sale === undefined && existingStoreLink.is_on_sale !== undefined) {
+              isOnSaleVal = existingStoreLink.is_on_sale;
+            }
+
+            catalogItem.requires_scraping = true;
+            catalogItem.stores[fStoreKey] = {
+              url: dbUrl,
+              upc: priceDoc._id || finalKey,
+              regular_price: regVal,
+              sale_price: saleVal,
+              is_on_sale: isOnSaleVal,
+              external_name: priceDoc.item_name || priceDoc.config_name || existingStoreLink.external_name || "",
+              track_pricing: true,
+              valid_until: priceDoc.valid_until || existingStoreLink.valid_until || "",
+              is_verified: true
+            };
+
+            await blobSetCombinedCatalog(freshCatalog);
+            console.log(`Successfully synced matched item "${catalogItem.name}" to combined-catalog under store "${fStoreKey}" from MongoDB prices log entry.`);
           }
-          if (saleVal === null && existingStoreLink.sale_price !== undefined) {
-            saleVal = existingStoreLink.sale_price;
-          }
-          if (priceDoc.is_on_sale === undefined && existingStoreLink.is_on_sale !== undefined) {
-            isOnSaleVal = existingStoreLink.is_on_sale;
-          }
-
-          catalogItem.requires_scraping = true;
-          catalogItem.stores[fStoreKey] = {
-            url: dbUrl,
-            upc: priceDoc._id || finalKey,
-            regular_price: regVal,
-            sale_price: saleVal,
-            is_on_sale: isOnSaleVal,
-            external_name: priceDoc.item_name || priceDoc.config_name || existingStoreLink.external_name || "",
-            track_pricing: priceDoc.track_pricing === 1 || priceDoc.track_pricing === true || priceDoc.track_pricing === "true" || !!existingStoreLink.track_pricing,
-            valid_until: priceDoc.valid_until || existingStoreLink.valid_until || "",
-            is_verified: existingStoreLink.is_verified === true || existingStoreLink.is_verified === 1 || String(existingStoreLink.is_verified) === "true"
-          };
-
-          await blobSetCombinedCatalog(catalog);
-          console.log(`Successfully synced matched item "${catalogItem.name}" to combined-catalog under store "${fStoreKey}" from MongoDB prices log entry.`);
-
-          // Vercel prices.json cache update eliminated for the append/grocery API pipeline.
+        } catch (catalogErr) {
+          console.error("Error updating combined-catalog in /api/append-grocery:", catalogErr);
         }
-      } catch (catalogErr) {
-        console.error("Error updating combined-catalog in /api/append-grocery:", catalogErr);
-      }
+      }).catch(() => {});
+      await catalogWriteMutex;
     }
 
     res.json({

@@ -80,39 +80,58 @@ function invalidateBlobsCache(): void {
 }
 
 async function readBlob<T>(pathname: string, fallback: T): Promise<T> {
+  console.log(`[readBlob] Initiating read for: ${pathname}`);
   if (hasVercelBlob()) {
+    console.log(`[readBlob] process.env.BLOB_READ_WRITE_TOKEN is defined.`);
     try {
       const blobs = await getBlobsList();
+      console.log(`[readBlob] Total blobs in list: ${blobs.length}`);
       const normalize = (p: string) => p.replace(/^\//, "").toLowerCase();
       const targetPath = normalize(pathname);
       const blob = blobs.find((b) => normalize(b.pathname) === targetPath);
-      if (!blob) return fallback;
+      if (!blob) {
+        console.log(`[readBlob] Blob not found in list for pathname: ${pathname}`);
+        return fallback;
+      }
 
       // Append cache-buster query parameter to bypass CDN/edge caching on the static URL
       const url = blob.url.includes("?") 
         ? `${blob.url}&t=${Date.now()}` 
         : `${blob.url}?t=${Date.now()}`;
 
+      console.log(`[readBlob] Fetching URL: ${url}`);
       let response = await fetch(url);
+      console.log(`[readBlob] Fetch status (no-auth): ${response.status}`);
       if (!response.ok && process.env.BLOB_READ_WRITE_TOKEN) {
+        console.log(`[readBlob] Fetch failed, retrying with Authorization header...`);
         response = await fetch(url, {
           headers: {
             Authorization: `Bearer ${process.env.BLOB_READ_WRITE_TOKEN}`,
           },
         });
+        console.log(`[readBlob] Fetch status (with-auth): ${response.status}`);
       }
-      if (!response.ok) return fallback;
+      if (!response.ok) {
+        console.log(`[readBlob] Fetch failed completely. Status: ${response.status}`);
+        return fallback;
+      }
       const text = await response.text();
-      return JSON.parse(text) as T;
-    } catch (err) {
-      console.warn("Vercel Blob read error, using local fallback", err);
+      const parsed = JSON.parse(text);
+      console.log(`[readBlob] Successfully read and parsed JSON. Count: ${parsed && Array.isArray((parsed as any).items) ? (parsed as any).items.length : 'N/A'}`);
+      return parsed as T;
+    } catch (err: any) {
+      console.warn("Vercel Blob read error, using local fallback", err?.message || err);
     }
+  } else {
+    console.log(`[readBlob] process.env.BLOB_READ_WRITE_TOKEN is NOT defined.`);
   }
 
   // File system fallback
   try {
     const localPath = getLocalPath(pathname);
+    console.log(`[readBlob] Reading from local file fallback: ${localPath}`);
     if (!fs.existsSync(localPath)) {
+      console.log(`[readBlob] Local fallback file does not exist.`);
       return fallback;
     }
     const data = fs.readFileSync(localPath, "utf8");
@@ -124,9 +143,12 @@ async function readBlob<T>(pathname: string, fallback: T): Promise<T> {
 }
 
 async function writeBlob<T>(pathname: string, data: T): Promise<void> {
+  console.log(`[writeBlob] Initiating write for: ${pathname}`);
   if (hasVercelBlob()) {
+    console.log(`[writeBlob] process.env.BLOB_READ_WRITE_TOKEN is defined.`);
     try {
       try {
+        console.log(`[writeBlob] Attempting public put...`);
         await put(pathname, JSON.stringify(data), {
           access: "public",
           addRandomSuffix: false,
@@ -134,31 +156,36 @@ async function writeBlob<T>(pathname: string, data: T): Promise<void> {
           contentType: "application/json",
           cacheControlMaxAge: 0, // Force cache expiration immediately (bypass edge cache)
         });
+        console.log(`[writeBlob] Public put succeeded.`);
         invalidateBlobsCache();
         return;
       } catch (err: any) {
+        console.log(`[writeBlob] Public put failed. Error: ${err?.message || err}`);
         const errMsg = String(err?.message || err || "").toLowerCase();
-        if (errMsg.includes("private store") || errMsg.includes("private access") || errMsg.includes("private")) {
-          await put(pathname, JSON.stringify(data), {
+          console.log(`[writeBlob] Attempting private put...`);
+          const putResult = await put(pathname, JSON.stringify(data), {
             access: "private",
             addRandomSuffix: false,
             allowOverwrite: true,
             contentType: "application/json",
             cacheControlMaxAge: 0, // Force cache expiration immediately (bypass edge cache)
           });
+          console.log(`[writeBlob] Private put succeeded. Returned URL: ${putResult.url}`);
           invalidateBlobsCache();
           return;
-        }
         throw err;
       }
-    } catch (err) {
-      console.warn("Vercel Blob write error, writing locally instead. Details:", err);
+    } catch (err: any) {
+      console.warn("Vercel Blob write error, writing locally instead. Details:", err?.message || err);
     }
+  } else {
+    console.log(`[writeBlob] process.env.BLOB_READ_WRITE_TOKEN is NOT defined.`);
   }
 
   // File system fallback
   try {
     const localPath = getLocalPath(pathname);
+    console.log(`[writeBlob] Writing to local file fallback: ${localPath}`);
     fs.writeFileSync(localPath, JSON.stringify(data, null, 2), "utf8");
   } catch (err) {
     console.error("Local file write error", err);
