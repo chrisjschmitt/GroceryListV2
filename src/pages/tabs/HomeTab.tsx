@@ -43,24 +43,32 @@ function getStoreActivePrice(storeInfo: any): number | null {
   return typeof storeInfo.regular_price === "number" ? storeInfo.regular_price : parseFloat(storeInfo.regular_price) || null;
 }
 
-// --- Product Images Mapping ---
 const PRODUCT_IMAGES: Record<string, string> = {
-  milk: "https://lh3.googleusercontent.com/aida-public/AB6AXuAdONhlEq_IXLFtUkuQrVP7H9uFmHR3555qOjU6Mj2pJi4cQHLdXZ8sv9F_5TXXY8Qy-CAH-5RleXve8TEYNUbFoB35iWtf8OreJcagtdQHNaeEbD4xgHrauMc9kImf2PF1jJoBs66jxW65jTiuq1fX6qHFYRg3J_ZSDNd7_6nYc-LtKcPWemq1O5byMvqI3dqDMK-2WAX5Q__R8YR-b-nLBP_j3TxW1krBQcCKWnsh8NytK1wDC269cT9jCXA7wzhaQttlOsRMVYCY",
-  egg: "https://lh3.googleusercontent.com/aida-public/AB6AXuAQSyWBnqqQv2K6M0yP4mDhCg-B-lwpveeREp_QDl3FOZRn7eRyWS4UtcjHr4SUNXNMQpLHyl-yirvtmYuplXlg0Xu82oiqtAkJiNJxgPumUGleoS3Bj8cgi0MmQHfl0bBhWBWPOhBnTj75vXe11uphFN28HnriNtIdZ5v6TRoRv6ee2yjjK01xrW-7naeFCuU8OItwXstW98JHfIPjJucCCYxzAkk3GQKy9QLS0i1reIqdv6guPcjR9Y0LRJjj4EFy7ElfAHDoRGRg",
-  bread: "https://lh3.googleusercontent.com/aida-public/AB6AXuDr3KSUVqLbuqXfTUuUXuWxIyy-d95KVLEgE7eIXbiIGR0RhgLexXUEXWh9Xt0sEMqwoY9e7v6x_furK0qT4Aa-UyGBEpQjWDOGV3N5MMgWsHqGkLezOcxlo8Xw07_ftvFcFgCCpat_uwRwVX25I7_Ul6IKVDnQR2fm18i2WDF6n6uAJKN4jSlRdgJwctzn7tGWHUggSvxSU-XIyADsXjwVtdvJDWjpThDlmPmMaT1dXjp-t54a2UUBHSYnaDW3-x7SvVEj--dQnEPP",
-  banana: "https://lh3.googleusercontent.com/aida-public/AB6AXuCL-ywKRUU1DTZX0gq-IzdPj0rqpZeMxeDBcvBCfLEGDWmQJw8nWZI_BJk1GkQGFA3TtOcIXF3LDdINgyJEKU-NSgpJiOMmM9N771UAD0FYn94LXrHGSqMcEH2Y1cNLdcAHCUXZZzCpg3cl0ar7tRZg0P-kstEuW1S1C5uHJkH3Z0EnTJlHTeCnX4xtKzTxHmNJ4mkFHYtwnFCf7IceOTX9R2tb6jFqHfQQ9EZflsPrXeZZqQ7KJrdG_eeJLnvofb84h1QNgZCrpNsF",
-  coffee: "https://lh3.googleusercontent.com/aida-public/AB6AXuD5j7CrQU_1Q5MCe_SJtHq6ID5kZjlG-6Dj9DVvBF2s8lFU73vGxapBgY4lTJAQfqpL0eooFgJqpnxQyyH-GMsQQgLdOdfjjSzIUoPnoeHtjztuLs6WWfRBHvnc048AtfigIKSqCueyEdbBF9975Iz3gOArLRegM6seDnkbPY0LRKkTucfcPFswgXxeL2sCiXu-yO-gI6wQm5T3VYpWdLegNA3rn36hHdTOyNBgHoFSuaO5KzfXAvEc6_-8JCUsNgqJEo1M-PU8p9vA",
-  blueberr: "https://lh3.googleusercontent.com/aida-public/AB6AXuAaG9lxLzKHmxAB6Efi7yn3DPvnduX7tUSyTawe-4ObPWB8-1m80-bt0eRQpa627ej3aIu-jkB3TcCfloVbLRQ2XEqc5CoS3_NXt895DGfQzTpdskHFP6hAs8NmG-2J79L30Be11O43YQGwtwDERfg-G8_cvvM4Mr2n69wVxQWCzkH5WSSCpX2KsT6XJtxotySxOkf4RGtN0Km3tv_ie0iYVFcH4B--TgTHs-Rc4ePSkqqo3_7O0ZbCcL7wGcOs_cN9XHG4hRozXBCL",
-  strawberr: "https://images.unsplash.com/photo-1464965911861-746a04b4bca6?auto=format&fit=crop&q=80&w=200",
-  raspberr: "https://images.unsplash.com/photo-1544072694-4dab4bcad76e?auto=format&fit=crop&q=80&w=200",
-  broccoli: "https://images.unsplash.com/photo-1584270354949-c26b0d5b4a0c?auto=format&fit=crop&q=80&w=200",
+  milk: "https://images.unsplash.com/photo-1550583724-b2692b85b150?auto=format&fit=crop&q=80&w=200",
+  egg: "https://images.unsplash.com/photo-1506976785307-8732e854ad03?auto=format&fit=crop&q=80&w=200",
+  bread: "https://images.unsplash.com/photo-1509440159596-0249088772ff?auto=format&fit=crop&q=80&w=200",
+  tortilla: "https://images.unsplash.com/photo-1628102476697-8d4e92a2a07c?auto=format&fit=crop&q=80&w=200",
+  banana: "https://images.unsplash.com/photo-1571771894821-ce9b6c11b08e?auto=format&fit=crop&q=80&w=200",
+  coffee: "https://images.unsplash.com/photo-1509042239860-f550ce710b93?auto=format&fit=crop&q=80&w=200",
+  blueberr: "https://images.unsplash.com/photo-1601004890684-d8cbf643f5f2?auto=format&fit=crop&q=80&w=200",
+  strawberr: "https://images.unsplash.com/photo-1518635017498-87f514b751ba?auto=format&fit=crop&q=80&w=200",
+  raspberr: "https://images.unsplash.com/photo-1577069861033-55d04cec4ef5?auto=format&fit=crop&q=80&w=200",
+  broccoli: "https://images.unsplash.com/photo-1453224311646-69d40b747e25?auto=format&fit=crop&q=80&w=200",
   chicken: "https://images.unsplash.com/photo-1604503468506-a8da13d82791?auto=format&fit=crop&q=80&w=200",
   beef: "https://images.unsplash.com/photo-1588166524941-3bf61a9c41db?auto=format&fit=crop&q=80&w=200",
   butter: "https://images.unsplash.com/photo-1589985270826-4b7bb135bc9d?auto=format&fit=crop&q=80&w=200",
   sausage: "https://images.unsplash.com/photo-1541048611056-291e110cfacc?auto=format&fit=crop&q=80&w=200",
-  yogurt: "https://images.unsplash.com/photo-1488477181946-6428a0291777?auto=format&fit=crop&q=80&w=200",
-  cheese: "https://images.unsplash.com/photo-1486299267070-83823f5448dd?auto=format&fit=crop&q=80&w=200",
-  cereal: "https://lh3.googleusercontent.com/aida-public/AB6AXuDrLLNhWnaRIeTfyipQltmgFuL33a0qJ_u7ffowVPWWsp5cYdcv7rg65oAgJB2rWiWaDbvAPzlzD_XtctUJ-qw4OZYoQ80mCoa3F7CiLUK7B99lPG3WXG8v9K2SVsYWvIQOuZuN-_OAjGyWGz11Lenbrm7ZaZUU-1b5aqyjY3fJUqQXWQFyzXO9q3OhYZuMkNh5iNZFh40SQS8QfzdkAu4-4Zc4H9LAeGppEWRh-DyFlEYMFQxnwffbbtArHBiskkW6MOrlWVvBifK0",
+  yogurt: "https://images.unsplash.com/photo-1571244856353-fb085c66d2c0?auto=format&fit=crop&q=80&w=200",
+  cheese: "https://images.unsplash.com/photo-1552763440-47e2ebde8f1f?auto=format&fit=crop&q=80&w=200",
+  lettuce: "https://images.unsplash.com/photo-1622206151226-18ca2c9ab4a1?auto=format&fit=crop&q=80&w=200",
+  salad: "https://images.unsplash.com/photo-1622206151226-18ca2c9ab4a1?auto=format&fit=crop&q=80&w=200",
+  romaine: "https://images.unsplash.com/photo-1622206151226-18ca2c9ab4a1?auto=format&fit=crop&q=80&w=200",
+  olive: "https://images.unsplash.com/photo-1541432901042-2d8bd64b4a9b?auto=format&fit=crop&q=80&w=200",
+  towel: "https://images.unsplash.com/photo-1583947215259-38e31be8751f?auto=format&fit=crop&q=80&w=200",
+  paper: "https://images.unsplash.com/photo-1583947215259-38e31be8751f?auto=format&fit=crop&q=80&w=200",
+  mushroom: "https://images.unsplash.com/photo-1534422298391-e4f8c172dddb?auto=format&fit=crop&q=80&w=200",
+  "ice cream": "https://images.unsplash.com/photo-1563805042-7684c019e1cb?auto=format&fit=crop&q=80&w=200",
+  cereal: "https://images.unsplash.com/photo-1586444248902-2f64eddc13df?auto=format&fit=crop&q=80&w=200",
 };
 
 function getProductImage(name: string): string {
