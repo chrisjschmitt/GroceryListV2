@@ -1,79 +1,948 @@
-import { Sparkles, TrendingDown, DollarSign } from "lucide-react";
+import { useState, useMemo, useRef } from "react";
+import { useOfflineStore } from "@/lib/client/use-offline-store";
+import { RegularItem, PriceEntry } from "@/lib/types";
+import {
+  Sparkles,
+  TrendingDown,
+  DollarSign,
+  ShoppingBasket,
+  Search,
+  Plus,
+  Check,
+  ChevronDown,
+  ChevronUp,
+  ExternalLink,
+  ChevronLeft,
+  ChevronRight,
+  X,
+  Lightbulb
+} from "lucide-react";
+
+// --- Helper Functions copied from ListsTab for consistency ---
+function normalizeStoreKey(storeId: string): string {
+  if (!storeId) return "foodbasics";
+  const lower = String(storeId).toLowerCase().trim();
+  if (lower.includes("metro")) return "metro";
+  if (lower.includes("loblaws")) return "loblaws";
+  if (lower.includes("nofrills")) return "nofrills";
+  if (lower.includes("freshco")) return "freshco";
+  if (lower.includes("yourindependentgrocer")) return "yourindependentgrocer";
+  if (lower === "7923194" || lower.includes("foodbasics") || lower.includes("food basics")) return "foodbasics";
+  return lower;
+}
+
+function getStoreActivePrice(storeInfo: any): number | null {
+  if (!storeInfo) return null;
+  const hasReg = storeInfo.regular_price !== null && storeInfo.regular_price !== undefined && storeInfo.regular_price > 0;
+  const hasSale = storeInfo.is_on_sale && storeInfo.sale_price !== null && storeInfo.sale_price !== undefined && storeInfo.sale_price > 0;
+  if (!hasReg && !hasSale) return null;
+  
+  if (storeInfo.is_on_sale && storeInfo.sale_price !== null && storeInfo.sale_price !== undefined && storeInfo.sale_price > 0) {
+    return typeof storeInfo.sale_price === "number" ? storeInfo.sale_price : parseFloat(storeInfo.sale_price) || null;
+  }
+  return typeof storeInfo.regular_price === "number" ? storeInfo.regular_price : parseFloat(storeInfo.regular_price) || null;
+}
+
+// --- Product Images Mapping ---
+const PRODUCT_IMAGES: Record<string, string> = {
+  milk: "https://lh3.googleusercontent.com/aida-public/AB6AXuAdONhlEq_IXLFtUkuQrVP7H9uFmHR3555qOjU6Mj2pJi4cQHLdXZ8sv9F_5TXXY8Qy-CAH-5RleXve8TEYNUbFoB35iWtf8OreJcagtdQHNaeEbD4xgHrauMc9kImf2PF1jJoBs66jxW65jTiuq1fX6qHFYRg3J_ZSDNd7_6nYc-LtKcPWemq1O5byMvqI3dqDMK-2WAX5Q__R8YR-b-nLBP_j3TxW1krBQcCKWnsh8NytK1wDC269cT9jCXA7wzhaQttlOsRMVYCY",
+  egg: "https://lh3.googleusercontent.com/aida-public/AB6AXuAQSyWBnqqQv2K6M0yP4mDhCg-B-lwpveeREp_QDl3FOZRn7eRyWS4UtcjHr4SUNXNMQpLHyl-yirvtmYuplXlg0Xu82oiqtAkJiNJxgPumUGleoS3Bj8cgi0MmQHfl0bBhWBWPOhBnTj75vXe11uphFN28HnriNtIdZ5v6TRoRv6ee2yjjK01xrW-7naeFCuU8OItwXstW98JHfIPjJucCCYxzAkk3GQKy9QLS0i1reIqdv6guPcjR9Y0LRJjj4EFy7ElfAHDoRGRg",
+  bread: "https://lh3.googleusercontent.com/aida-public/AB6AXuDr3KSUVqLbuqXfTUuUXuWxIyy-d95KVLEgE7eIXbiIGR0RhgLexXUEXWh9Xt0sEMqwoY9e7v6x_furK0qT4Aa-UyGBEpQjWDOGV3N5MMgWsHqGkLezOcxlo8Xw07_ftvFcFgCCpat_uwRwVX25I7_Ul6IKVDnQR2fm18i2WDF6n6uAJKN4jSlRdgJwctzn7tGWHUggSvxSU-XIyADsXjwVtdvJDWjpThDlmPmMaT1dXjp-t54a2UUBHSYnaDW3-x7SvVEj--dQnEPP",
+  banana: "https://lh3.googleusercontent.com/aida-public/AB6AXuCL-ywKRUU1DTZX0gq-IzdPj0rqpZeMxeDBcvBCfLEGDWmQJw8nWZI_BJk1GkQGFA3TtOcIXF3LDdINgyJEKU-NSgpJiOMmM9N771UAD0FYn94LXrHGSqMcEH2Y1cNLdcAHCUXZZzCpg3cl0ar7tRZg0P-kstEuW1S1C5uHJkH3Z0EnTJlHTeCnX4xtKzTxHmNJ4mkFHYtwnFCf7IceOTX9R2tb6jFqHfQQ9EZflsPrXeZZqQ7KJrdG_eeJLnvofb84h1QNgZCrpNsF",
+  coffee: "https://lh3.googleusercontent.com/aida-public/AB6AXuD5j7CrQU_1Q5MCe_SJtHq6ID5kZjlG-6Dj9DVvBF2s8lFU73vGxapBgY4lTJAQfqpL0eooFgJqpnxQyyH-GMsQQgLdOdfjjSzIUoPnoeHtjztuLs6WWfRBHvnc048AtfigIKSqCueyEdbBF9975Iz3gOArLRegM6seDnkbPY0LRKkTucfcPFswgXxeL2sCiXu-yO-gI6wQm5T3VYpWdLegNA3rn36hHdTOyNBgHoFSuaO5KzfXAvEc6_-8JCUsNgqJEo1M-PU8p9vA",
+  blueberr: "https://lh3.googleusercontent.com/aida-public/AB6AXuAaG9lxLzKHmxAB6Efi7yn3DPvnduX7tUSyTawe-4ObPWB8-1m80-bt0eRQpa627ej3aIu-jkB3TcCfloVbLRQ2XEqc5CoS3_NXt895DGfQzTpdskHFP6hAs8NmG-2J79L30Be11O43YQGwtwDERfg-G8_cvvM4Mr2n69wVxQWCzkH5WSSCpX2KsT6XJtxotySxOkf4RGtN0Km3tv_ie0iYVFcH4B--TgTHs-Rc4ePSkqqo3_7O0ZbCcL7wGcOs_cN9XHG4hRozXBCL",
+  strawberr: "https://images.unsplash.com/photo-1464965911861-746a04b4bca6?auto=format&fit=crop&q=80&w=200",
+  raspberr: "https://images.unsplash.com/photo-1544072694-4dab4bcad76e?auto=format&fit=crop&q=80&w=200",
+  broccoli: "https://images.unsplash.com/photo-1584270354949-c26b0d5b4a0c?auto=format&fit=crop&q=80&w=200",
+  chicken: "https://images.unsplash.com/photo-1604503468506-a8da13d82791?auto=format&fit=crop&q=80&w=200",
+  beef: "https://images.unsplash.com/photo-1588166524941-3bf61a9c41db?auto=format&fit=crop&q=80&w=200",
+  butter: "https://images.unsplash.com/photo-1589985270826-4b7bb135bc9d?auto=format&fit=crop&q=80&w=200",
+  sausage: "https://images.unsplash.com/photo-1541048611056-291e110cfacc?auto=format&fit=crop&q=80&w=200",
+  yogurt: "https://images.unsplash.com/photo-1488477181946-6428a0291777?auto=format&fit=crop&q=80&w=200",
+  cheese: "https://images.unsplash.com/photo-1486299267070-83823f5448dd?auto=format&fit=crop&q=80&w=200",
+  cereal: "https://lh3.googleusercontent.com/aida-public/AB6AXuDrLLNhWnaRIeTfyipQltmgFuL33a0qJ_u7ffowVPWWsp5cYdcv7rg65oAgJB2rWiWaDbvAPzlzD_XtctUJ-qw4OZYoQ80mCoa3F7CiLUK7B99lPG3WXG8v9K2SVsYWvIQOuZuN-_OAjGyWGz11Lenbrm7ZaZUU-1b5aqyjY3fJUqQXWQFyzXO9q3OhYZuMkNh5iNZFh40SQS8QfzdkAu4-4Zc4H9LAeGppEWRh-DyFlEYMFQxnwffbbtArHBiskkW6MOrlWVvBifK0",
+};
+
+function getProductImage(name: string): string {
+  const lower = name.toLowerCase();
+  for (const [key, url] of Object.entries(PRODUCT_IMAGES)) {
+    if (lower.includes(key)) {
+      return url;
+    }
+  }
+  // Default high-quality grocery placeholder
+  return PRODUCT_IMAGES.cereal;
+}
+
+// --- Stylized Store Initial Circle Badges ---
+function StoreLogo({ storeId, className = "w-6 h-6" }: { storeId: string; className?: string }) {
+  const normId = normalizeStoreKey(storeId);
+  if (normId === "foodbasics") {
+    return (
+      <div className={`${className} bg-[#0d631b]/10 text-[#0d631b] rounded-full flex items-center justify-center font-extrabold text-[9px]`} title="Food Basics">
+        FB
+      </div>
+    );
+  } else if (normId === "metro") {
+    return (
+      <div className={`${className} bg-[#4c56af]/10 text-[#4c56af] rounded-full flex items-center justify-center font-extrabold text-[9px]`} title="Metro">
+        M
+      </div>
+    );
+  }
+  return (
+    <div className={`${className} bg-gray-100 text-gray-600 rounded-full flex items-center justify-center font-extrabold text-[9px]`} title={storeId}>
+      {storeId.substring(0, 2).toUpperCase()}
+    </div>
+  );
+}
+
+interface SaleItem {
+  id: string;
+  name: string;
+  category: string;
+  unit?: string;
+  units?: number;
+  regularPrice: number;
+  salePrice: number;
+  savings: number;
+  storeName: string;
+  storeId: string;
+  lookup_url?: string;
+}
 
 export default function HomeTab() {
+  const store = useOfflineStore();
+  const carouselRef = useRef<HTMLDivElement>(null);
+
+  // States
+  const [searchTerm, setSearchTerm] = useState("");
+  const [selectedCategory, setSelectedCategory] = useState("All");
+  const [expandedPrices, setExpandedPrices] = useState<Set<string>>(new Set());
+  const [isViewAllSaleOpen, setIsViewAllSaleOpen] = useState(false);
+  const [saleSearchTerm, setSaleSearchTerm] = useState("");
+
+  // Build name ➔ price lookup
+  const priceLookup = useMemo(() => {
+    const map = new Map<string, PriceEntry>();
+    for (const entry of Object.values(store.prices)) {
+      if (!entry) continue;
+
+      const keysToRegister = [];
+      if (entry.config_name) keysToRegister.push(entry.config_name.toLowerCase());
+      if (entry.item_name) keysToRegister.push(entry.item_name.toLowerCase());
+
+      for (const nameKey of keysToRegister) {
+        const existing = map.get(nameKey);
+        if (existing) {
+          const mergedStores: Record<string, any> = {};
+
+          const addOrMergeStore = (sId: string, sInfo: any) => {
+            const normId = normalizeStoreKey(sId);
+            const currentStorePrice = getStoreActivePrice(sInfo);
+            if (currentStorePrice === null) return;
+              
+            const existingStorePriceInfo = mergedStores[normId];
+            const existingStorePrice = existingStorePriceInfo
+              ? (getStoreActivePrice(existingStorePriceInfo) ?? Infinity)
+              : Infinity;
+
+            if (!existingStorePriceInfo || currentStorePrice < existingStorePrice) {
+              mergedStores[normId] = {
+                ...sInfo,
+                store_id: normId,
+              };
+            }
+          };
+
+          if (existing.stores && typeof existing.stores === "object") {
+            for (const [sId, sInfo] of Object.entries(existing.stores)) {
+              addOrMergeStore(sId, sInfo);
+            }
+          } else {
+            const existingStoreId = existing.store_id || "foodbasics";
+            addOrMergeStore(existingStoreId, {
+              store_name: existing.store_name || "Food Basics",
+              postal_code: existing.postal_code || "",
+              store_id: existingStoreId,
+              regular_price: existing.regular_price,
+              sale_price: existing.sale_price,
+              is_on_sale: existing.is_on_sale,
+              lookup_url: existing.lookup_url,
+              valid_until: existing.valid_until,
+            });
+          }
+
+          if (entry.stores && typeof entry.stores === "object") {
+            for (const [sId, sInfo] of Object.entries(entry.stores)) {
+              addOrMergeStore(sId, sInfo);
+            }
+          } else {
+            const entryStoreId = entry.store_id || "foodbasics";
+            addOrMergeStore(entryStoreId, {
+              store_name: entry.store_name || "Food Basics",
+              postal_code: entry.postal_code || "",
+              store_id: entryStoreId,
+              regular_price: entry.regular_price,
+              sale_price: entry.sale_price,
+              is_on_sale: entry.is_on_sale,
+              lookup_url: entry.lookup_url,
+              valid_until: entry.valid_until,
+            });
+          }
+
+          map.set(nameKey, {
+            ...existing,
+            stores: mergedStores,
+          });
+        } else {
+          const initialStores: Record<string, any> = {};
+          if (entry.stores && typeof entry.stores === "object") {
+            for (const [sId, sInfo] of Object.entries(entry.stores)) {
+              const normId = normalizeStoreKey(sId);
+              initialStores[normId] = { ...sInfo, store_id: normId };
+            }
+          } else {
+            const entryStoreId = entry.store_id || "foodbasics";
+            initialStores[entryStoreId] = {
+              store_name: entry.store_name || "Food Basics",
+              postal_code: entry.postal_code || "",
+              store_id: entryStoreId,
+              regular_price: entry.regular_price,
+              sale_price: entry.sale_price,
+              is_on_sale: entry.is_on_sale,
+              lookup_url: entry.lookup_url,
+              valid_until: entry.valid_until,
+            };
+          }
+
+          map.set(nameKey, {
+            ...entry,
+            stores: initialStores,
+          });
+        }
+      }
+    }
+    return map;
+  }, [store.prices]);
+
+  // Shopping list set for O(1) checks
+  const shoppingListNames = useMemo(() => {
+    return new Set(store.groceryItems.map((i) => i.name.toLowerCase()));
+  }, [store.groceryItems]);
+
+  // Staples on Sale Calculations
+  const saleItems = useMemo(() => {
+    const list: SaleItem[] = [];
+    // Keep track of added names to avoid duplicate items in carousel
+    const seenNames = new Set<string>();
+
+    for (const ri of store.regularItems) {
+      const nameLower = ri.name.toLowerCase();
+      if (seenNames.has(nameLower)) continue;
+
+      const priceInfo = priceLookup.get(nameLower);
+      if (!priceInfo) continue;
+
+      let bestSaleStore: any = null;
+      let minSalePrice = Infinity;
+
+      const checkStoreSale = (sId: string, sInfo: any) => {
+        const isSale = sInfo.is_on_sale === 1 || !!sInfo.is_on_sale;
+        const saleVal = sInfo.sale_price;
+        const regVal = sInfo.regular_price;
+        if (isSale && saleVal !== null && saleVal !== undefined && saleVal > 0) {
+          if (saleVal < minSalePrice) {
+            minSalePrice = saleVal;
+            bestSaleStore = {
+              storeId: sId,
+              storeName: sInfo.store_name || sId,
+              regularPrice: regVal || saleVal,
+              salePrice: saleVal,
+              lookup_url: sInfo.lookup_url || "",
+            };
+          }
+        }
+      };
+
+      if (priceInfo.stores && typeof priceInfo.stores === "object") {
+        for (const [sId, sInfo] of Object.entries(priceInfo.stores)) {
+          checkStoreSale(sId, sInfo);
+        }
+      } else {
+        checkStoreSale(priceInfo.store_id || "foodbasics", priceInfo);
+      }
+
+      if (bestSaleStore) {
+        seenNames.add(nameLower);
+        list.push({
+          id: ri.id,
+          name: ri.name,
+          category: ri.category,
+          unit: ri.unit,
+          units: ri.units,
+          regularPrice: bestSaleStore.regularPrice,
+          salePrice: bestSaleStore.salePrice,
+          savings: Math.max(0, bestSaleStore.regularPrice - bestSaleStore.salePrice),
+          storeName: bestSaleStore.storeName,
+          storeId: bestSaleStore.storeId,
+          lookup_url: bestSaleStore.lookup_url,
+        });
+      }
+    }
+    return list;
+  }, [store.regularItems, priceLookup]);
+
+  // Trending Items calculations (Staples Basket regular items list)
+  const trendingItems = useMemo(() => {
+    return store.regularItems.map((ri) => {
+      const priceInfo = priceLookup.get(ri.name.toLowerCase());
+      const pricesList: { storeId: string; storeName: string; price: number; onSale: boolean; lookup_url?: string }[] = [];
+
+      if (priceInfo) {
+        const addPrice = (sId: string, sInfo: any) => {
+          const val = getStoreActivePrice(sInfo);
+          if (val !== null) {
+            pricesList.push({
+              storeId: sId,
+              storeName: sInfo.store_name || sId,
+              price: val,
+              onSale: sInfo.is_on_sale === 1 || !!sInfo.is_on_sale,
+              lookup_url: sInfo.lookup_url,
+            });
+          }
+        };
+
+        if (priceInfo.stores && typeof priceInfo.stores === "object") {
+          for (const [sId, sInfo] of Object.entries(priceInfo.stores)) {
+            addPrice(sId, sInfo);
+          }
+        } else {
+          addPrice(priceInfo.store_id || "foodbasics", priceInfo);
+        }
+      }
+
+      let minPrice: number | null = null;
+      let maxPrice: number | null = null;
+      let avgPrice: number | null = null;
+
+      if (pricesList.length > 0) {
+        const vals = pricesList.map((p) => p.price);
+        minPrice = Math.min(...vals);
+        maxPrice = Math.max(...vals);
+        avgPrice = vals.reduce((sum, v) => sum + v, 0) / vals.length;
+      }
+
+      return {
+        id: ri.id,
+        name: ri.name,
+        category: ri.category,
+        unit: ri.unit,
+        units: ri.units,
+        minPrice,
+        maxPrice,
+        avgPrice,
+        pricesList,
+      };
+    }).filter((item) => item.pricesList.length > 0);
+  }, [store.regularItems, priceLookup]);
+
+  // Dynamic Categories from regularItems
+  const categories = useMemo(() => {
+    const cats = new Set<string>();
+    cats.add("All");
+    for (const item of store.regularItems) {
+      if (item.category) {
+        cats.add(item.category);
+      }
+    }
+    return Array.from(cats);
+  }, [store.regularItems]);
+
+  // Filtered Trending Groceries
+  const filteredTrending = useMemo(() => {
+    return trendingItems.filter((item) => {
+      const matchesSearch = item.name.toLowerCase().includes(searchTerm.toLowerCase()) || 
+                            item.category.toLowerCase().includes(searchTerm.toLowerCase());
+      const matchesCategory = selectedCategory === "All" || item.category === selectedCategory;
+      return matchesSearch && matchesCategory;
+    });
+  }, [trendingItems, searchTerm, selectedCategory]);
+
+  // Filtered View All Sale Items
+  const filteredSales = useMemo(() => {
+    return saleItems.filter((item) =>
+      item.name.toLowerCase().includes(saleSearchTerm.toLowerCase()) ||
+      item.category.toLowerCase().includes(saleSearchTerm.toLowerCase())
+    );
+  }, [saleItems, saleSearchTerm]);
+
+  // Active Grocery Basket cost optimizations
+  const optimization = useMemo(() => {
+    let foodbasicsTotal = 0;
+    let metroTotal = 0;
+    let splitTotal = 0;
+    let pricedCount = 0;
+
+    for (const item of store.groceryItems) {
+      const priceInfo = priceLookup.get(item.name.toLowerCase());
+      
+      let basicsPrice: number | null = null;
+      let metroPrice: number | null = null;
+
+      if (priceInfo) {
+        if (priceInfo.stores && typeof priceInfo.stores === "object") {
+          basicsPrice = getStoreActivePrice(priceInfo.stores["foodbasics"]);
+          metroPrice = getStoreActivePrice(priceInfo.stores["metro"]);
+        } else {
+          const p = getStoreActivePrice(priceInfo);
+          const sId = normalizeStoreKey(priceInfo.store_id || "");
+          if (sId === "foodbasics") basicsPrice = p;
+          else if (sId === "metro") metroPrice = p;
+        }
+      }
+
+      if (basicsPrice !== null || metroPrice !== null) {
+        pricedCount++;
+        const basicsCost = (basicsPrice ?? metroPrice ?? 0) * item.quantity;
+        const metroCost = (metroPrice ?? basicsPrice ?? 0) * item.quantity;
+
+        foodbasicsTotal += basicsCost;
+        metroTotal += metroCost;
+
+        if (basicsPrice !== null && metroPrice !== null) {
+          splitTotal += Math.min(basicsPrice, metroPrice) * item.quantity;
+        } else if (basicsPrice !== null) {
+          splitTotal += basicsPrice * item.quantity;
+        } else if (metroPrice !== null) {
+          splitTotal += metroPrice * item.quantity;
+        }
+      }
+    }
+
+    const singleStoreCheapestTotal = Math.min(foodbasicsTotal, metroTotal);
+    const splitSavings = Math.max(0, singleStoreCheapestTotal - splitTotal);
+    const cheapestStoreName = foodbasicsTotal <= metroTotal ? "Food Basics" : "Metro";
+    
+    return {
+      foodbasicsTotal,
+      metroTotal,
+      splitTotal,
+      splitSavings,
+      pricedCount,
+      totalCount: store.groceryItems.length,
+      cheapestStore: cheapestStoreName,
+    };
+  }, [store.groceryItems, priceLookup]);
+
+  // Actions
+  const handleToggleGroceryItem = async (ri: { name: string; category: string; unit?: string; units?: number }) => {
+    const isAdded = shoppingListNames.has(ri.name.toLowerCase());
+    if (isAdded) {
+      await store.removeGroceryItemByName(ri.name);
+    } else {
+      await store.addGroceryItem(ri.name, 1, ri.unit || "unit", ri.category, ri.units);
+    }
+  };
+
+  const togglePriceExpand = (itemName: string) => {
+    setExpandedPrices((prev) => {
+      const next = new Set(prev);
+      if (next.has(itemName)) {
+        next.delete(itemName);
+      } else {
+        next.add(itemName);
+      }
+      return next;
+    });
+  };
+
+  const scrollCarousel = (direction: "left" | "right") => {
+    if (carouselRef.current) {
+      const scrollAmount = 320;
+      carouselRef.current.scrollBy({
+        left: direction === "left" ? -scrollAmount : scrollAmount,
+        behavior: "smooth"
+      });
+    }
+  };
+
   return (
-    <div className="space-y-6">
+    <div className="space-y-8 pb-10">
       {/* Hero Welcome banner */}
-      <div className="bg-gradient-to-br from-primary to-primary-container text-white p-6 rounded-lg shadow-lg relative overflow-hidden">
+      <div className="bg-gradient-to-br from-[#0d631b] via-[#2e7d32] to-[#4c56af] text-white p-6 rounded-2xl shadow-md relative overflow-hidden">
         <div className="absolute right-0 bottom-0 translate-x-4 translate-y-4 opacity-10">
           <Sparkles size={160} />
         </div>
-        <span className="text-xs font-bold uppercase tracking-widest bg-white/20 px-2 py-1 rounded-full backdrop-blur-xs">
-          Smart Grocery Saver
-        </span>
-        <h2 className="text-2xl font-extrabold mt-3 leading-tight">
-          Welcome back to BasketWise
-        </h2>
-        <p className="text-sm opacity-90 mt-2 max-w-sm">
-          Compare prices across Food Basics and Metro to get the highest value on your basket.
-        </p>
+        <div className="relative z-10 space-y-3">
+          <span className="text-[10px] font-bold uppercase tracking-widest bg-white/20 px-2.5 py-1 rounded-full backdrop-blur-xs">
+            ⚡ BasketWise Smart Saver
+          </span>
+          <h2 className="text-2xl font-extrabold tracking-tight leading-tight">
+            Welcome back to BasketWise
+          </h2>
+          <p className="text-xs opacity-90 max-w-md leading-relaxed">
+            Compare prices across Food Basics and Metro dynamically. Find local deals and split your basket to maximize savings!
+          </p>
+        </div>
       </div>
 
-      {/* Grid for Summary Panels */}
-      <div className="grid grid-cols-2 gap-4">
-        {/* Savings Card */}
-        <div className="bg-surface p-4 rounded-lg border border-outline/10 shadow-xs flex flex-col justify-between h-32">
-          <div className="flex justify-between items-start">
-            <span className="text-xs font-bold text-on-surface-variant uppercase tracking-wider">
-              Est. Savings
-            </span>
-            <div className="p-1.5 bg-emerald-50 rounded-md text-primary">
-              <TrendingDown size={18} />
+      {/* Staples on Sale Carousel Section */}
+      <section className="relative">
+        <div className="flex justify-between items-end mb-4">
+          <div>
+            <h2 className="text-lg font-bold text-gray-900">Staples on Sale</h2>
+            <p className="text-xs text-gray-500">Best local prices for everyday essentials</p>
+          </div>
+          <button 
+            onClick={() => setIsViewAllSaleOpen(true)}
+            className="text-[#0d631b] text-xs font-bold hover:underline bg-[#0d631b]/5 px-3 py-1.5 rounded-full transition-colors"
+          >
+            View All ({saleItems.length})
+          </button>
+        </div>
+
+        {saleItems.length === 0 ? (
+          <div className="bg-gray-50 border border-[#EEEEEE] rounded-2xl p-8 text-center text-gray-500 text-xs">
+            No items are currently flagged on sale. Try loading more scraper configs or check back later!
+          </div>
+        ) : (
+          <div className="relative group">
+            {/* Scroll indicators for desktop */}
+            <button 
+              onClick={() => scrollCarousel("left")}
+              className="absolute left-2 top-1/2 -translate-y-1/2 z-10 w-9 h-9 bg-white border border-[#EEEEEE] rounded-full shadow-md flex items-center justify-center text-gray-600 opacity-0 group-hover:opacity-100 focus:opacity-100 transition-opacity hover:bg-gray-50"
+              aria-label="Scroll left"
+            >
+              <ChevronLeft size={18} />
+            </button>
+            
+            <div 
+              ref={carouselRef}
+              className="flex overflow-x-auto gap-4 no-scrollbar pb-3 scroll-smooth snap-x snap-mandatory"
+            >
+              {saleItems.map((item) => {
+                const isAdded = shoppingListNames.has(item.name.toLowerCase());
+                return (
+                  <div 
+                    key={item.id}
+                    onClick={() => handleToggleGroceryItem(item)}
+                    className={`flex-shrink-0 w-72 bg-white rounded-2xl border transition-all duration-200 p-4 cursor-pointer snap-start select-none relative
+                      ${isAdded 
+                        ? "border-[#0d631b] shadow-xs bg-emerald-50/10 ring-1 ring-[#0d631b]" 
+                        : "border-[#EEEEEE] hover:border-gray-300 hover:shadow-md"
+                      }`}
+                  >
+                    <div className="flex gap-4">
+                      {/* Image container */}
+                      <div className="w-20 h-20 bg-gray-50 rounded-xl overflow-hidden flex-shrink-0 border border-gray-100 relative">
+                        <img 
+                          className="w-full h-full object-cover" 
+                          src={getProductImage(item.name)} 
+                          alt={item.name} 
+                        />
+                        {isAdded && (
+                          <div className="absolute inset-0 bg-[#0d631b]/60 flex items-center justify-center">
+                            <div className="bg-white text-[#0d631b] p-1.5 rounded-full shadow-sm">
+                              <Check size={16} className="stroke-[3]" />
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                      
+                      {/* Item Details */}
+                      <div className="flex flex-col justify-between py-0.5 flex-1 min-w-0">
+                        <div className="space-y-1">
+                          <span className="bg-[#FFF9C4] text-amber-900 text-[9px] font-black px-2 py-0.5 rounded-full uppercase tracking-wider">
+                            Save ${(item.savings).toFixed(2)}
+                          </span>
+                          <h3 className="text-sm font-bold text-gray-900 truncate" title={item.name}>
+                            {item.name}
+                          </h3>
+                        </div>
+
+                        <div className="flex items-center gap-2">
+                          <StoreLogo storeId={item.storeId} className="w-5 h-5 flex-shrink-0" />
+                          <div className="flex items-baseline gap-1.5">
+                            <span className="text-sm font-extrabold text-[#0d631b]">${item.salePrice.toFixed(2)}</span>
+                            <span className="text-[10px] text-gray-400 line-through">${item.regularPrice.toFixed(2)}</span>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+
+            <button 
+              onClick={() => scrollCarousel("right")}
+              className="absolute right-2 top-1/2 -translate-y-1/2 z-10 w-9 h-9 bg-white border border-[#EEEEEE] rounded-full shadow-md flex items-center justify-center text-gray-600 opacity-0 group-hover:opacity-100 focus:opacity-100 transition-opacity hover:bg-gray-50"
+              aria-label="Scroll right"
+            >
+              <ChevronRight size={18} />
+            </button>
+          </div>
+        )}
+      </section>
+
+      {/* Dynamic Smart Basket Tip Card */}
+      <div className="bg-white rounded-2xl border border-[#EEEEEE] p-5 shadow-xs flex items-center gap-4 transition-all duration-300">
+        <div className="w-12 h-12 bg-[#4c56af]/10 rounded-full flex items-center justify-center text-[#4c56af] flex-shrink-0">
+          <Lightbulb size={24} />
+        </div>
+        <div className="space-y-1">
+          <h4 className="text-xs font-bold text-[#4c56af] uppercase tracking-wider">Smart Basket Tip</h4>
+          <p className="text-xs text-gray-700 leading-relaxed font-medium">
+            {store.groceryItems.length === 0 ? (
+              "Your shopping list is empty! Go to the Catalog or tap items above to add staples, compare prices, and unlock savings."
+            ) : optimization.pricedCount === 0 ? (
+              "Add price-tracked items to compare store prices and see which store is cheaper."
+            ) : optimization.splitSavings > 0 ? (
+              <span>
+                Splitting your shopping list between <strong className="text-[#0d631b]">Food Basics</strong> and <strong className="text-[#4c56af]">Metro</strong> can save you <strong className="text-[#0d631b]">${optimization.splitSavings.toFixed(2)}</strong> today!
+              </span>
+            ) : (
+              <span>
+                Shopping entirely at <strong className="text-[#0d631b]">{optimization.cheapestStore}</strong> is currently your best option, saving you <strong className="text-[#0d631b]">${Math.abs(optimization.foodbasicsTotal - optimization.metroTotal).toFixed(2)}</strong> over the alternative.
+              </span>
+            )}
+          </p>
+        </div>
+      </div>
+
+      {/* Trending Groceries Section */}
+      <section className="space-y-4">
+        <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+          <div>
+            <h2 className="text-lg font-bold text-gray-900">Trending Groceries</h2>
+            <p className="text-xs text-gray-500">Staples Basket catalog items & pricing spread</p>
+          </div>
+
+          {/* Search bar integration */}
+          <div className="relative w-full sm:w-64">
+            <Search size={16} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400" />
+            <input 
+              type="text" 
+              placeholder="Search staples..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className="w-full bg-white border border-[#EEEEEE] rounded-full py-2 pl-10 pr-4 text-xs font-medium text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-1 focus:ring-[#0d631b] focus:border-[#0d631b] transition-all"
+            />
+            {searchTerm && (
+              <button 
+                onClick={() => setSearchTerm("")} 
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
+              >
+                <X size={14} />
+              </button>
+            )}
+          </div>
+        </div>
+
+        {/* Category Filter Pills */}
+        <div className="flex overflow-x-auto gap-2 no-scrollbar pb-2">
+          {categories.map((cat) => (
+            <button
+              key={cat}
+              onClick={() => setSelectedCategory(cat)}
+              className={`px-4 py-2 rounded-full text-xs font-bold transition-all flex-shrink-0 cursor-pointer border
+                ${selectedCategory === cat 
+                  ? "bg-[#0d631b] text-white border-[#0d631b]" 
+                  : "bg-white text-gray-600 border-[#EEEEEE] hover:bg-gray-50"
+                }`}
+            >
+              {cat}
+            </button>
+          ))}
+        </div>
+
+        {/* Grid layout */}
+        {filteredTrending.length === 0 ? (
+          <div className="bg-white border border-[#EEEEEE] rounded-2xl p-12 text-center text-gray-500 text-xs">
+            No trending staples found matching the filters.
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {filteredTrending.map((item) => {
+              const isAdded = shoppingListNames.has(item.name.toLowerCase());
+              
+              // Calculate custom percentage values for the range slider
+              const hasPrices = item.minPrice !== null && item.maxPrice !== null;
+              const priceSpreadStr = hasPrices 
+                ? `$${item.minPrice!.toFixed(2)} - $${item.maxPrice!.toFixed(2)}`
+                : "No Scraped Prices";
+
+              const maxBound = hasPrices ? item.maxPrice! * 1.25 : 0;
+              const leftPercent = hasPrices && maxBound > 0 ? (item.minPrice! / maxBound) * 100 : 0;
+              const rightPercent = hasPrices && maxBound > 0 ? 100 - (item.maxPrice! / maxBound) * 100 : 0;
+              const avgPercent = hasPrices && maxBound > 0 && item.avgPrice ? (item.avgPrice / maxBound) * 100 : 0;
+              const isExpanded = expandedPrices.has(item.name);
+
+              return (
+                <div 
+                  key={item.id}
+                  className={`bg-white rounded-2xl border p-4 flex flex-col justify-between transition-all duration-200
+                    ${isAdded 
+                      ? "border-[#0d631b] bg-emerald-50/5 ring-1 ring-[#0d631b]" 
+                      : "border-[#EEEEEE] hover:border-gray-300"
+                    }`}
+                >
+                  <div className="flex gap-4 items-start">
+                    <div className="w-16 h-16 bg-gray-50 rounded-xl overflow-hidden border border-gray-100 flex-shrink-0 relative">
+                      <img 
+                        className="w-full h-full object-cover" 
+                        src={getProductImage(item.name)} 
+                        alt={item.name} 
+                      />
+                      {isAdded && (
+                        <div className="absolute inset-0 bg-[#0d631b]/30 flex items-center justify-center" />
+                      )}
+                    </div>
+                    
+                    <div className="flex-1 min-w-0 py-0.5">
+                      <h4 className="text-sm font-bold text-gray-900 truncate" title={item.name}>
+                        {item.name}
+                      </h4>
+                      <p className="text-[11px] text-gray-400 font-bold uppercase tracking-wider mt-0.5">
+                        {item.category}
+                      </p>
+                      {item.unit && (
+                        <p className="text-[11px] text-gray-500 font-medium mt-0.5">
+                          {item.units || 1} {item.unit}
+                        </p>
+                      )}
+                    </div>
+
+                    <button 
+                      onClick={() => handleToggleGroceryItem(item)}
+                      className={`w-9 h-9 rounded-full border flex items-center justify-center transition-all cursor-pointer flex-shrink-0
+                        ${isAdded 
+                          ? "bg-[#0d631b] border-[#0d631b] text-white hover:bg-[#2e7d32]" 
+                          : "border-[#EEEEEE] text-[#0d631b] hover:bg-[#0d631b]/5"
+                        }`}
+                      aria-label={isAdded ? "Remove from Grocery List" : "Add to Grocery List"}
+                    >
+                      {isAdded ? <Check size={16} className="stroke-[3]" /> : <ShoppingBasket size={16} />}
+                    </button>
+                  </div>
+
+                  {/* Range Slider Container */}
+                  <div className="mt-5 space-y-2">
+                    <div 
+                      onClick={() => togglePriceExpand(item.name)}
+                      className="cursor-pointer hover:bg-gray-50 p-2 rounded-xl border border-dashed border-gray-100 transition-colors"
+                      title="Click to view store pricing details"
+                    >
+                      <div className="flex justify-between items-center mb-1.5">
+                        <span className="text-[10px] font-bold text-gray-400 uppercase tracking-wider flex items-center gap-1">
+                          Price Range {isExpanded ? <ChevronUp size={12} /> : <ChevronDown size={12} />}
+                        </span>
+                        <span className="text-xs font-extrabold text-gray-900">
+                          {priceSpreadStr}
+                        </span>
+                      </div>
+                      
+                      {hasPrices ? (
+                        <div className="space-y-1.5">
+                          <div className="w-full h-2 bg-gray-100 rounded-full overflow-hidden relative">
+                            {/* Green range bar */}
+                            <div 
+                              className="absolute h-full bg-[#0d631b] rounded-full"
+                              style={{ left: `${leftPercent}%`, right: `${rightPercent}%` }}
+                            />
+                            {/* Black average marker */}
+                            <div 
+                              className="absolute w-1 h-3 bg-gray-900 -top-0.5"
+                              style={{ left: `${avgPercent}%` }}
+                            />
+                          </div>
+                          <div className="flex justify-between items-center text-[9px] text-gray-400 font-bold uppercase">
+                            <span>Basics</span>
+                            <span className="text-gray-900">Avg: ${item.avgPrice!.toFixed(2)}</span>
+                            <span>Metro</span>
+                          </div>
+                        </div>
+                      ) : (
+                        <div className="w-full h-2 bg-gray-100 rounded-full" />
+                      )}
+                    </div>
+
+                    {/* Expandable store prices details */}
+                    {isExpanded && (
+                      <div className="bg-gray-50/50 rounded-xl border border-gray-100 p-3 mt-2 space-y-2 animate-fadeIn">
+                        <h5 className="text-[9px] font-black text-gray-400 uppercase tracking-wider border-b border-gray-100 pb-1">
+                          Available Store Pricing
+                        </h5>
+                        {item.pricesList.length === 0 ? (
+                          <p className="text-[10px] text-gray-400 italic">No price data currently fetched for this item.</p>
+                        ) : (
+                          <div className="space-y-2">
+                            {item.pricesList.map((pr) => (
+                              <div key={pr.storeId} className="flex justify-between items-center text-xs">
+                                <div className="flex items-center gap-2">
+                                  <StoreLogo storeId={pr.storeId} className="w-5 h-5 flex-shrink-0" />
+                                  <span className="font-semibold text-gray-800">{pr.storeName}</span>
+                                </div>
+                                <div className="flex items-center gap-2">
+                                  {pr.onSale && (
+                                    <span className="bg-amber-100 text-amber-900 text-[8px] font-black px-1.5 py-0.5 rounded-sm uppercase">
+                                      Sale
+                                    </span>
+                                  )}
+                                  <span className="font-extrabold text-gray-900">${pr.price.toFixed(2)}</span>
+                                  {pr.lookup_url && (
+                                    <a 
+                                      href={pr.lookup_url} 
+                                      target="_blank" 
+                                      rel="noopener noreferrer"
+                                      className="text-gray-400 hover:text-gray-700 transition-colors p-1"
+                                      title="Verify price at store web page"
+                                    >
+                                      <ExternalLink size={12} />
+                                    </a>
+                                  )}
+                                </div>
+                              </div>
+                            ))}
+                          </div>
+                        )}
+                      </div>
+                    )}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        )}
+      </section>
+
+      {/* --- Staples on Sale View All Modal Drawer Overlay --- */}
+      {isViewAllSaleOpen && (
+        <div className="fixed inset-0 z-50 flex justify-end">
+          {/* Backdrop */}
+          <div 
+            onClick={() => setIsViewAllSaleOpen(false)}
+            className="absolute inset-0 bg-black/35 backdrop-blur-xs transition-opacity duration-300"
+          />
+
+          {/* Drawer container */}
+          <div className="relative w-full max-w-md bg-white h-full shadow-2xl flex flex-col p-6 z-10 animate-slideIn">
+            {/* Header */}
+            <div className="flex justify-between items-center border-b border-gray-100 pb-4 mb-4">
+              <div>
+                <h3 className="text-base font-extrabold text-gray-900">Staples on Sale</h3>
+                <p className="text-[11px] text-gray-400 font-bold uppercase tracking-wider">All Active Deals</p>
+              </div>
+              <button 
+                onClick={() => setIsViewAllSaleOpen(false)}
+                className="w-8 h-8 rounded-full bg-gray-50 border border-gray-100 flex items-center justify-center text-gray-600 hover:bg-gray-100 transition-all"
+                aria-label="Close panel"
+              >
+                <X size={16} />
+              </button>
+            </div>
+
+            {/* Modal search input */}
+            <div className="relative mb-4">
+              <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
+              <input 
+                type="text" 
+                placeholder="Search deals..."
+                value={saleSearchTerm}
+                onChange={(e) => setSaleSearchTerm(e.target.value)}
+                className="w-full bg-gray-50 border border-gray-100 rounded-xl py-2 pl-9 pr-4 text-xs font-medium text-gray-900 focus:outline-none focus:ring-1 focus:ring-[#0d631b] transition-all"
+              />
+              {saleSearchTerm && (
+                <button 
+                  onClick={() => setSaleSearchTerm("")} 
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400"
+                >
+                  <X size={12} />
+                </button>
+              )}
+            </div>
+
+            {/* Scrollable Deals Grid */}
+            <div className="flex-1 overflow-y-auto pr-1 space-y-3 no-scrollbar">
+              {filteredSales.length === 0 ? (
+                <div className="text-center text-gray-400 py-12 text-xs italic">
+                  No sales found matching search.
+                </div>
+              ) : (
+                filteredSales.map((item) => {
+                  const isAdded = shoppingListNames.has(item.name.toLowerCase());
+                  return (
+                    <div 
+                      key={item.id}
+                      onClick={() => handleToggleGroceryItem(item)}
+                      className={`flex items-center justify-between border rounded-xl p-3 cursor-pointer select-none transition-all duration-150
+                        ${isAdded 
+                          ? "border-[#0d631b] bg-emerald-50/10 ring-1 ring-[#0d631b]" 
+                          : "border-gray-100 hover:border-gray-300 hover:shadow-xs"
+                        }`}
+                    >
+                      <div className="flex items-center gap-3 min-w-0">
+                        {/* Image */}
+                        <div className="w-12 h-12 bg-gray-50 rounded-lg overflow-hidden border border-gray-100 flex-shrink-0 relative">
+                          <img 
+                            className="w-full h-full object-cover" 
+                            src={getProductImage(item.name)} 
+                            alt={item.name} 
+                          />
+                          {isAdded && (
+                            <div className="absolute inset-0 bg-[#0d631b]/60 flex items-center justify-center">
+                              <Check size={12} className="text-white stroke-[3]" />
+                            </div>
+                          )}
+                        </div>
+
+                        {/* Title and details */}
+                        <div className="min-w-0">
+                          <h4 className="text-xs font-bold text-gray-800 truncate" title={item.name}>
+                            {item.name}
+                          </h4>
+                          <div className="flex items-center gap-1.5 mt-1">
+                            <StoreLogo storeId={item.storeId} className="w-4 h-4" />
+                            <span className="text-[10px] text-gray-400 font-bold uppercase">{item.storeName}</span>
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Pricing and Action */}
+                      <div className="flex items-center gap-3 pl-3">
+                        <div className="text-right">
+                          <div className="text-xs font-black text-[#0d631b]">${item.salePrice.toFixed(2)}</div>
+                          <div className="text-[9px] text-gray-400 line-through">${item.regularPrice.toFixed(2)}</div>
+                        </div>
+                        <div 
+                          className={`w-7 h-7 rounded-full flex items-center justify-center transition-colors
+                            ${isAdded 
+                              ? "bg-[#0d631b] text-white" 
+                              : "bg-gray-100 text-gray-500 hover:bg-gray-200"
+                            }`}
+                        >
+                          {isAdded ? <Check size={14} className="stroke-[3]" /> : <Plus size={14} />}
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })
+              )}
+            </div>
+
+            {/* Footer */}
+            <div className="border-t border-gray-100 pt-4 mt-4">
+              <button 
+                onClick={() => setIsViewAllSaleOpen(false)}
+                className="w-full py-2.5 bg-gray-900 text-white rounded-xl text-xs font-bold hover:bg-black transition-colors cursor-pointer text-center block"
+              >
+                Close Deals
+              </button>
             </div>
           </div>
-          <div>
-            <span className="text-2xl font-extrabold text-primary font-tnum">$0.00</span>
-            <p className="text-[10px] text-on-surface-variant mt-1">Based on items in list</p>
-          </div>
         </div>
-
-        {/* Total Cost Card */}
-        <div className="bg-surface p-4 rounded-lg border border-outline/10 shadow-xs flex flex-col justify-between h-32">
-          <div className="flex justify-between items-start">
-            <span className="text-xs font-bold text-on-surface-variant uppercase tracking-wider">
-              Smart Choice
-            </span>
-            <div className="p-1.5 bg-indigo-50 rounded-md text-secondary">
-              <DollarSign size={18} />
-            </div>
-          </div>
-          <div>
-            <span className="text-sm font-extrabold text-secondary">Pending List</span>
-            <p className="text-[10px] text-on-surface-variant mt-1">Comparing Metro & Food Basics</p>
-          </div>
-        </div>
-      </div>
-
-      {/* Quick Tips / Dashboard section */}
-      <div className="bg-surface p-5 rounded-lg border border-outline/10 shadow-xs space-y-4">
-        <h3 className="text-sm font-extrabold text-on-surface uppercase tracking-wider">
-          BasketWise Tips
-        </h3>
-        <div className="space-y-3">
-          <div className="flex items-start gap-3 text-xs leading-relaxed text-on-surface-variant">
-            <span className="text-base">💡</span>
-            <p>
-              Use the <strong>Lists</strong> tab to manage items and check prices at local stores.
-            </p>
-          </div>
-          <div className="flex items-start gap-3 text-xs leading-relaxed text-on-surface-variant">
-            <span className="text-base">🚀</span>
-            <p>
-              Check the <strong>Baskets</strong> tab to track staples and overall price fluctuations.
-            </p>
-          </div>
-        </div>
-      </div>
+      )}
     </div>
   );
 }
