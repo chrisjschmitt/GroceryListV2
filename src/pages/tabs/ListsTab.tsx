@@ -56,7 +56,7 @@ export default function ListsTab() {
   const store = useOfflineStore();
   const [expandedItems, setExpandedItems] = useState<Set<string>>(new Set());
   const [isCatalogOpen, setIsCatalogOpen] = useState(false);
-  const [viewMode, setViewMode] = useState<"byStore" | "all">("byStore");
+  const [viewMode, setViewMode] = useState<"byStore" | "all">("all");
 
   // Build name ➔ price lookup from scraped data (match on config_name and item_name)
   const priceLookup = useMemo(() => {
@@ -361,16 +361,6 @@ export default function ListsTab() {
       {totalItems > 0 && (
         <div className="flex bg-surface-container-low p-1 rounded-xl w-full max-w-xs mx-auto border border-outline/5">
           <button
-            onClick={() => setViewMode("byStore")}
-            className={`flex-1 py-1.5 px-4 rounded-lg font-bold text-xs transition-all cursor-pointer ${
-              viewMode === "byStore"
-                ? "bg-primary text-on-primary shadow-xs"
-                : "text-on-surface-variant hover:bg-surface-container-high"
-            }`}
-          >
-            By Store
-          </button>
-          <button
             onClick={() => setViewMode("all")}
             className={`flex-1 py-1.5 px-4 rounded-lg font-bold text-xs transition-all cursor-pointer ${
               viewMode === "all"
@@ -379,6 +369,16 @@ export default function ListsTab() {
             }`}
           >
             All Items
+          </button>
+          <button
+            onClick={() => setViewMode("byStore")}
+            className={`flex-1 py-1.5 px-4 rounded-lg font-bold text-xs transition-all cursor-pointer ${
+              viewMode === "byStore"
+                ? "bg-primary text-on-primary shadow-xs"
+                : "text-on-surface-variant hover:bg-surface-container-high"
+            }`}
+          >
+            By Store
           </button>
         </div>
       )}

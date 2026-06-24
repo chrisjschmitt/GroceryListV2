@@ -21,6 +21,19 @@ interface VersionEntry {
 
 const VERSIONS: VersionEntry[] = [
   {
+    version: "1.9.21",
+    date: "June 2026",
+    type: "patch",
+    title: "All Items View Mode Default & Swapped Toggle",
+    changes: [
+      {
+        icon: <Layout className="w-4 h-4 text-emerald-500" />,
+        category: "Lists Tab",
+        description: "Reversed By Store and All Items selector controls in Lists page, setting All Items (Category Grouped) as the default layout on load."
+      }
+    ]
+  },
+  {
     version: "1.9.20",
     date: "June 2026",
     type: "patch",
