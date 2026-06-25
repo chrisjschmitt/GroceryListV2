@@ -137,23 +137,41 @@ async function mergeMongoPrices(prices: any, catalogIdToKey?: Record<string, str
       // Build updated stores mapping
       const updatedStores = { ...(existingEntry.stores || {}) };
       
-      // Extract specific pricing properties safely
+      // Extract specific pricing properties safely from MongoDB
       const regPrice = typeof doc.regular_price === "number" ? doc.regular_price : (doc.regular_price ? parseFloat(doc.regular_price) : null);
       const salePrice = typeof doc.sale_price === "number" ? doc.sale_price : (doc.sale_price ? parseFloat(doc.sale_price) : null);
       const isOnSale = doc.is_on_sale !== undefined ? (doc.is_on_sale ? 1 : 0) : (salePrice !== null ? 1 : 0);
       
+      // Prioritize manual configurations from catalog over database scraped values
+      const catalogStore = existingEntry.stores?.[storeKey];
+      const catalogRegPrice = catalogStore?.regular_price;
+      const catalogSalePrice = catalogStore?.sale_price;
+      const catalogIsOnSale = catalogStore?.is_on_sale;
+      const hasCatalogPrice = catalogRegPrice !== null && catalogRegPrice !== undefined;
+
+      const finalRegPrice = hasCatalogPrice ? catalogRegPrice : (regPrice !== null && regPrice !== undefined ? regPrice : null);
+      const finalSalePrice = hasCatalogPrice ? catalogSalePrice : (salePrice !== null && salePrice !== undefined ? salePrice : null);
+      const finalIsOnSale = hasCatalogPrice ? catalogIsOnSale : (doc.is_on_sale !== undefined ? isOnSale : 0);
+      const finalLookupUrl = catalogStore?.lookup_url || doc.url || doc.lookup_url || doc.lookupUrl || "";
+      const finalValidUntil = hasCatalogPrice ? (catalogStore?.valid_until || "") : (doc.valid_until || catalogStore?.valid_until || "");
+      const finalTrackPricing = catalogStore?.track_pricing !== undefined ? (catalogStore.track_pricing ? 1 : 0) : (doc.track_pricing === 1 || doc.track_pricing === true ? 1 : 0);
+      const finalExternalName = catalogStore?.external_name || doc.external_name || doc.item_name || "";
+      const finalLastUpdated = hasCatalogPrice 
+        ? (catalogStore?.last_updated || existingEntry.last_updated || new Date().toISOString())
+        : (doc.last_updated || (doc.synchronized_at instanceof Date ? doc.synchronized_at.toISOString() : (typeof doc.synchronized_at === 'string' ? doc.synchronized_at : null)) || catalogStore?.last_updated || new Date().toISOString());
+
       updatedStores[storeKey] = {
         store_name: storeName,
-        postal_code: doc.postal_code || existingEntry.stores?.[storeKey]?.postal_code || "K7H3C6",
+        postal_code: doc.postal_code || catalogStore?.postal_code || "K7H3C6",
         store_id: storeId,
-        regular_price: regPrice !== null && regPrice !== undefined ? regPrice : (existingEntry.stores?.[storeKey]?.regular_price ?? null),
-        sale_price: salePrice !== null && salePrice !== undefined ? salePrice : (existingEntry.stores?.[storeKey]?.sale_price ?? null),
-        is_on_sale: doc.is_on_sale !== undefined ? isOnSale : (existingEntry.stores?.[storeKey]?.is_on_sale ?? 0),
-        lookup_url: doc.url || doc.lookup_url || doc.lookupUrl || existingEntry.stores?.[storeKey]?.lookup_url || "",
-        valid_until: doc.valid_until || existingEntry.stores?.[storeKey]?.valid_until || "",
-        last_updated: doc.last_updated || (doc.synchronized_at instanceof Date ? doc.synchronized_at.toISOString() : (typeof doc.synchronized_at === 'string' ? doc.synchronized_at : null)) || existingEntry.stores?.[storeKey]?.last_updated || new Date().toISOString(),
-        track_pricing: doc.track_pricing === 1 || doc.track_pricing === true || existingEntry.stores?.[storeKey]?.track_pricing ? 1 : 0,
-        external_name: doc.external_name || doc.item_name || existingEntry.stores?.[storeKey]?.external_name || "",
+        regular_price: finalRegPrice,
+        sale_price: finalSalePrice,
+        is_on_sale: finalIsOnSale,
+        lookup_url: finalLookupUrl,
+        valid_until: finalValidUntil,
+        last_updated: finalLastUpdated,
+        track_pricing: finalTrackPricing,
+        external_name: finalExternalName,
       };
       
       // Determine the best price info from all available stores
