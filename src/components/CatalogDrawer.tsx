@@ -25,13 +25,28 @@ function normalizeStoreKey(storeId: string): string {
   return lower;
 }
 
+function isSaleActive(validUntil: string | null | undefined): boolean {
+  if (!validUntil) return true;
+  try {
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const expiry = new Date(validUntil);
+    if (isNaN(expiry.getTime())) return true;
+    return expiry >= today;
+  } catch {
+    return true;
+  }
+}
+
 function getStoreActivePrice(storeInfo: any): number | null {
   if (!storeInfo) return null;
   const hasReg = storeInfo.regular_price !== null && storeInfo.regular_price !== undefined && storeInfo.regular_price > 0;
-  const hasSale = storeInfo.is_on_sale && storeInfo.sale_price !== null && storeInfo.sale_price !== undefined && storeInfo.sale_price > 0;
+  
+  const saleActive = isSaleActive(storeInfo.valid_until);
+  const hasSale = storeInfo.is_on_sale && saleActive && storeInfo.sale_price !== null && storeInfo.sale_price !== undefined && storeInfo.sale_price > 0;
   if (!hasReg && !hasSale) return null;
   
-  if (storeInfo.is_on_sale && storeInfo.sale_price !== null && storeInfo.sale_price !== undefined && storeInfo.sale_price > 0) {
+  if (hasSale) {
     return typeof storeInfo.sale_price === "number" ? storeInfo.sale_price : parseFloat(storeInfo.sale_price) || null;
   }
   return typeof storeInfo.regular_price === "number" ? storeInfo.regular_price : parseFloat(storeInfo.regular_price) || null;
@@ -254,17 +269,33 @@ export default function CatalogDrawer({
                 let isOnSale = false;
                 let unitStr = item.unit ? ` / ${item.unit}` : "";
 
-                const storesWithPrices: { storeId: string; storeName: string; price: number; onSale: boolean; lookup_url?: string }[] = [];
+                const storesWithPrices: {
+                  storeId: string;
+                  storeName: string;
+                  price: number;
+                  onSale: boolean;
+                  isExpired: boolean;
+                  validUntil: string | null;
+                  regularPrice: number | null;
+                  salePrice: number | null;
+                  lookup_url?: string;
+                }[] = [];
 
                 if (priceInfo) {
                   const addPrice = (sId: string, sInfo: any) => {
                     const val = getStoreActivePrice(sInfo);
                     if (val !== null) {
+                      const saleActive = isSaleActive(sInfo.valid_until);
+                      const isExpired = !!sInfo.is_on_sale && !saleActive;
                       storesWithPrices.push({
                         storeId: sId,
                         storeName: sInfo.store_name || sId,
                         price: val,
-                        onSale: sInfo.is_on_sale === 1 || !!sInfo.is_on_sale,
+                        onSale: (sInfo.is_on_sale === 1 || !!sInfo.is_on_sale) && saleActive,
+                        isExpired,
+                        validUntil: sInfo.valid_until || null,
+                        regularPrice: sInfo.regular_price != null ? Number(sInfo.regular_price) : null,
+                        salePrice: sInfo.sale_price != null ? Number(sInfo.sale_price) : null,
                         lookup_url: sInfo.lookup_url,
                       });
                     }
@@ -367,9 +398,11 @@ export default function CatalogDrawer({
                           <button
                             key={sp.storeId}
                             onClick={(e) => toggleItemPrices(item.id, e)}
-                            className={`px-2.5 py-1 rounded-full text-[9px] font-extrabold border cursor-pointer select-none transition-all hover:scale-105 active:scale-95 ${getStoreBadgeClass(sp.storeId)}`}
+                            className={`px-2.5 py-1 rounded-full text-[9px] font-extrabold border cursor-pointer select-none transition-all hover:scale-105 active:scale-95 flex items-center gap-1 ${getStoreBadgeClass(sp.storeId)}`}
                           >
-                            {sp.storeName}
+                            {sp.onSale && <Flame size={9} className="fill-amber-600 stroke-none" />}
+                            {sp.isExpired && <span>⏰</span>}
+                            <span>{sp.storeName}</span>
                           </button>
                         ))}
                       </div>
@@ -409,14 +442,43 @@ export default function CatalogDrawer({
                                     )}
                                   </span>
                                   {sp.onSale && (
-                                    <span className="bg-[#FFF9C4] text-[#7B5E00] text-[8px] font-black px-1.5 py-0.5 rounded-sm uppercase">
+                                    <span className="bg-[#FFF9C4] text-[#7B5E00] text-[8px] font-black px-1.5 py-0.5 rounded-sm uppercase flex items-center gap-0.5">
+                                      <Flame size={8} className="fill-amber-600 stroke-none" />
                                       Sale
+                                    </span>
+                                  )}
+                                  {sp.isExpired && (
+                                    <span className="bg-red-50 text-red-500 text-[8px] font-black px-1.5 py-0.5 rounded-sm border border-red-100 uppercase">
+                                      Expired
+                                    </span>
+                                  )}
+                                  {sp.validUntil && (
+                                    <span className="text-[9px] text-on-surface-variant opacity-75">
+                                      {sp.onSale ? `until ${sp.validUntil}` : `on ${sp.validUntil}`}
                                     </span>
                                   )}
                                 </div>
                                 
                                 <div className="flex items-center gap-3">
-                                  <span className="font-extrabold text-on-surface">${sp.price.toFixed(2)}</span>
+                                  {sp.isExpired ? (
+                                    <div className="flex flex-col items-end font-tnum">
+                                      <span className="font-extrabold text-on-surface">${sp.regularPrice?.toFixed(2)}</span>
+                                      <span className="text-[9px] text-red-500 line-through opacity-85">
+                                        Sale: ${sp.salePrice?.toFixed(2)}
+                                      </span>
+                                    </div>
+                                  ) : sp.onSale ? (
+                                    <div className="flex flex-col items-end font-tnum">
+                                      <span className="font-extrabold text-amber-600">${sp.price.toFixed(2)}</span>
+                                      {sp.regularPrice !== null && sp.regularPrice !== undefined && sp.regularPrice > 0 && (
+                                        <span className="text-[9px] text-on-surface-variant line-through opacity-60">
+                                          Reg: ${sp.regularPrice.toFixed(2)}
+                                        </span>
+                                      )}
+                                    </div>
+                                  ) : (
+                                    <span className="font-extrabold text-on-surface font-tnum">${sp.price.toFixed(2)}</span>
+                                  )}
                                   
                                   <button
                                     onClick={(e) => handleReportIncorrectPrice(e, item.name, item.id, sp.storeId, sp.price, sp.lookup_url || "")}

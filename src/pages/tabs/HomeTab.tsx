@@ -15,7 +15,8 @@ import {
   ChevronLeft,
   ChevronRight,
   X,
-  Lightbulb
+  Lightbulb,
+  Flame
 } from "lucide-react";
 
 // --- Helper Functions copied from ListsTab for consistency ---
@@ -31,13 +32,28 @@ function normalizeStoreKey(storeId: string): string {
   return lower;
 }
 
+function isSaleActive(validUntil: string | null | undefined): boolean {
+  if (!validUntil) return true;
+  try {
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const expiry = new Date(validUntil);
+    if (isNaN(expiry.getTime())) return true;
+    return expiry >= today;
+  } catch {
+    return true;
+  }
+}
+
 function getStoreActivePrice(storeInfo: any): number | null {
   if (!storeInfo) return null;
   const hasReg = storeInfo.regular_price !== null && storeInfo.regular_price !== undefined && storeInfo.regular_price > 0;
-  const hasSale = storeInfo.is_on_sale && storeInfo.sale_price !== null && storeInfo.sale_price !== undefined && storeInfo.sale_price > 0;
+  
+  const saleActive = isSaleActive(storeInfo.valid_until);
+  const hasSale = storeInfo.is_on_sale && saleActive && storeInfo.sale_price !== null && storeInfo.sale_price !== undefined && storeInfo.sale_price > 0;
   if (!hasReg && !hasSale) return null;
   
-  if (storeInfo.is_on_sale && storeInfo.sale_price !== null && storeInfo.sale_price !== undefined && storeInfo.sale_price > 0) {
+  if (hasSale) {
     return typeof storeInfo.sale_price === "number" ? storeInfo.sale_price : parseFloat(storeInfo.sale_price) || null;
   }
   return typeof storeInfo.regular_price === "number" ? storeInfo.regular_price : parseFloat(storeInfo.regular_price) || null;
@@ -256,7 +272,8 @@ export default function HomeTab() {
       let minSalePrice = Infinity;
 
       const checkStoreSale = (sId: string, sInfo: any) => {
-        const isSale = sInfo.is_on_sale === 1 || !!sInfo.is_on_sale;
+        const saleActive = isSaleActive(sInfo.valid_until);
+        const isSale = (sInfo.is_on_sale === 1 || !!sInfo.is_on_sale) && saleActive;
         const saleVal = sInfo.sale_price;
         const regVal = sInfo.regular_price;
         if (isSale && saleVal !== null && saleVal !== undefined && saleVal > 0) {
@@ -305,17 +322,32 @@ export default function HomeTab() {
   const trendingItems = useMemo(() => {
     return store.regularItems.map((ri) => {
       const priceInfo = priceLookup.get(ri.name.toLowerCase());
-      const pricesList: { storeId: string; storeName: string; price: number; onSale: boolean; lookup_url?: string }[] = [];
+      const pricesList: {
+        storeId: string;
+        storeName: string;
+        price: number;
+        onSale: boolean;
+        isExpired: boolean;
+        validUntil: string | null;
+        regularPrice: number | null;
+        salePrice: number | null;
+        lookup_url?: string;
+      }[] = [];
 
       if (priceInfo) {
         const addPrice = (sId: string, sInfo: any) => {
           const val = getStoreActivePrice(sInfo);
           if (val !== null) {
+            const saleActive = isSaleActive(sInfo.valid_until);
             pricesList.push({
               storeId: sId,
               storeName: sInfo.store_name || sId,
               price: val,
-              onSale: sInfo.is_on_sale === 1 || !!sInfo.is_on_sale,
+              onSale: (sInfo.is_on_sale === 1 || !!sInfo.is_on_sale) && saleActive,
+              isExpired: !!sInfo.is_on_sale && !saleActive,
+              validUntil: sInfo.valid_until || null,
+              regularPrice: sInfo.regular_price != null ? Number(sInfo.regular_price) : null,
+              salePrice: sInfo.sale_price != null ? Number(sInfo.sale_price) : null,
               lookup_url: sInfo.lookup_url,
             });
           }
@@ -803,15 +835,48 @@ export default function HomeTab() {
                               <div key={pr.storeId} className="flex justify-between items-center text-xs">
                                 <div className="flex items-center gap-2">
                                   <StoreLogo storeId={pr.storeId} className="w-5 h-5 flex-shrink-0" />
-                                  <span className="font-semibold text-gray-800">{pr.storeName}</span>
+                                  <div className="flex flex-col">
+                                    <span className="font-semibold text-gray-800 flex items-center gap-1.5">
+                                      {pr.storeName}
+                                      {pr.onSale && (
+                                        <span className="bg-amber-100 text-amber-900 text-[8px] font-black px-1.5 py-0.5 rounded-sm uppercase flex items-center gap-0.5">
+                                          <Flame size={8} className="fill-amber-600 stroke-none" />
+                                          Sale
+                                        </span>
+                                      )}
+                                      {pr.isExpired && (
+                                        <span className="bg-red-50 text-red-500 text-[8px] font-black px-1.5 py-0.5 rounded-sm border border-red-100 uppercase">
+                                          Expired
+                                        </span>
+                                      )}
+                                    </span>
+                                    {pr.validUntil && (
+                                      <span className="text-[9px] text-gray-400 font-medium">
+                                        {pr.onSale ? `ends ${pr.validUntil}` : pr.isExpired ? `expired ${pr.validUntil}` : ""}
+                                      </span>
+                                    )}
+                                  </div>
                                 </div>
                                 <div className="flex items-center gap-2">
-                                  {pr.onSale && (
-                                    <span className="bg-amber-100 text-amber-900 text-[8px] font-black px-1.5 py-0.5 rounded-sm uppercase">
-                                      Sale
-                                    </span>
+                                  {pr.isExpired ? (
+                                    <div className="flex flex-col items-end font-tnum">
+                                      <span className="font-extrabold text-gray-900">${pr.regularPrice?.toFixed(2)}</span>
+                                      <span className="text-[9px] text-red-500 line-through opacity-85">
+                                        Sale: ${pr.salePrice?.toFixed(2)}
+                                      </span>
+                                    </div>
+                                  ) : pr.onSale ? (
+                                    <div className="flex flex-col items-end font-tnum">
+                                      <span className="font-extrabold text-amber-600">${pr.price.toFixed(2)}</span>
+                                      {pr.regularPrice !== null && pr.regularPrice !== undefined && pr.regularPrice > 0 && (
+                                        <span className="text-[9px] text-gray-400 line-through opacity-60">
+                                          Reg: ${pr.regularPrice.toFixed(2)}
+                                        </span>
+                                      )}
+                                    </div>
+                                  ) : (
+                                    <span className="font-extrabold text-gray-900 font-tnum">${pr.price.toFixed(2)}</span>
                                   )}
-                                  <span className="font-extrabold text-gray-900">${pr.price.toFixed(2)}</span>
                                   {pr.lookup_url && (
                                     <a 
                                       href={pr.lookup_url} 
