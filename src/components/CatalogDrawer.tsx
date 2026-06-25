@@ -1,5 +1,5 @@
 import { useState, useMemo } from "react";
-import { X, Search, Sparkles, Flame, Check, Plus, TrendingDown } from "lucide-react";
+import { X, Search, Sparkles, Flame, Check, Plus, TrendingDown, ExternalLink } from "lucide-react";
 import { RegularItem, PriceEntry } from "@/lib/types";
 
 interface CatalogDrawerProps {
@@ -10,6 +10,31 @@ interface CatalogDrawerProps {
   priceLookup: Map<string, PriceEntry>;
   onAdd: (item: RegularItem) => Promise<void>;
   onRemove: (name: string) => Promise<void>;
+}
+
+// --- Helper Functions for Store Keys ---
+function normalizeStoreKey(storeId: string): string {
+  if (!storeId) return "foodbasics";
+  const lower = String(storeId).toLowerCase().trim();
+  if (lower.includes("metro")) return "metro";
+  if (lower.includes("loblaws")) return "loblaws";
+  if (lower.includes("nofrills")) return "nofrills";
+  if (lower.includes("freshco")) return "freshco";
+  if (lower.includes("yourindependentgrocer")) return "yourindependentgrocer";
+  if (lower === "7923194" || lower.includes("foodbasics") || lower.includes("food basics")) return "foodbasics";
+  return lower;
+}
+
+function getStoreActivePrice(storeInfo: any): number | null {
+  if (!storeInfo) return null;
+  const hasReg = storeInfo.regular_price !== null && storeInfo.regular_price !== undefined && storeInfo.regular_price > 0;
+  const hasSale = storeInfo.is_on_sale && storeInfo.sale_price !== null && storeInfo.sale_price !== undefined && storeInfo.sale_price > 0;
+  if (!hasReg && !hasSale) return null;
+  
+  if (storeInfo.is_on_sale && storeInfo.sale_price !== null && storeInfo.sale_price !== undefined && storeInfo.sale_price > 0) {
+    return typeof storeInfo.sale_price === "number" ? storeInfo.sale_price : parseFloat(storeInfo.sale_price) || null;
+  }
+  return typeof storeInfo.regular_price === "number" ? storeInfo.regular_price : parseFloat(storeInfo.regular_price) || null;
 }
 
 export default function CatalogDrawer({
@@ -24,6 +49,11 @@ export default function CatalogDrawer({
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedCategory, setSelectedCategory] = useState("All Items");
   const [addingIds, setAddingIds] = useState<Set<string>>(new Set());
+  
+  // Expanded dropdown & reporting states
+  const [expandedItemPrices, setExpandedItemPrices] = useState<Set<string>>(new Set());
+  const [reportingKeys, setReportingKeys] = useState<Set<string>>(new Set());
+  const [reportedKeys, setReportedKeys] = useState<Set<string>>(new Set());
 
   // Available categories derived dynamically or using standard list
   const categories = ["All Items", "Produce", "Dairy", "Pantry", "Bakery", "Meat", "Other"];
@@ -74,6 +104,79 @@ export default function CatalogDrawer({
         return next;
       });
     }
+  };
+
+  const toggleItemPrices = (itemId: string, e: React.MouseEvent) => {
+    e.stopPropagation(); // Avoid triggering lists toggle
+    setExpandedItemPrices((prev) => {
+      const next = new Set(prev);
+      if (next.has(itemId)) {
+        next.delete(itemId);
+      } else {
+        next.add(itemId);
+      }
+      return next;
+    });
+  };
+
+  const handleReportIncorrectPrice = async (
+    e: React.MouseEvent,
+    itemName: string,
+    itemId: string,
+    storeId: string,
+    currentPrice: number,
+    lookupUrl: string
+  ) => {
+    e.stopPropagation(); // Avoid triggering list addition toggle
+    const reportKey = `${itemId}-${storeId}`;
+    if (reportingKeys.has(reportKey) || reportedKeys.has(reportKey)) return;
+
+    setReportingKeys((prev) => {
+      const next = new Set(prev);
+      next.add(reportKey);
+      return next;
+    });
+
+    try {
+      const response = await fetch("/api/report-pricing-issue", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          itemName,
+          storeId,
+          reportedPrice: currentPrice,
+          lookupUrl,
+        }),
+      });
+
+      if (response.ok) {
+        setReportedKeys((prev) => {
+          const next = new Set(prev);
+          next.add(reportKey);
+          return next;
+        });
+      } else {
+        alert("Failed to report pricing issue.");
+      }
+    } catch (err) {
+      console.error(err);
+      alert("An error occurred while reporting pricing issue.");
+    } finally {
+      setReportingKeys((prev) => {
+        const next = new Set(prev);
+        next.delete(reportKey);
+        return next;
+      });
+    }
+  };
+
+  const getStoreBadgeClass = (storeId: string) => {
+    const norm = normalizeStoreKey(storeId);
+    if (norm === "foodbasics") return "bg-[#0d631b]/10 text-[#0d631b] border-[#0d631b]/20 hover:bg-[#0d631b]/20";
+    if (norm === "metro") return "bg-[#4c56af]/10 text-[#4c56af] border-[#4c56af]/20 hover:bg-[#4c56af]/20";
+    if (norm === "costco") return "bg-blue-50 text-blue-700 border-blue-200 hover:bg-blue-100";
+    if (norm === "freshco") return "bg-lime-50 text-lime-700 border-lime-200 hover:bg-lime-100";
+    return "bg-gray-50 text-gray-600 border-gray-200 hover:bg-gray-100";
   };
 
   if (!isOpen) return null;
@@ -151,28 +254,35 @@ export default function CatalogDrawer({
                 let isOnSale = false;
                 let unitStr = item.unit ? ` / ${item.unit}` : "";
 
+                const storesWithPrices: { storeId: string; storeName: string; price: number; onSale: boolean; lookup_url?: string }[] = [];
+
                 if (priceInfo) {
-                  let lowestPrice = Infinity;
+                  const addPrice = (sId: string, sInfo: any) => {
+                    const val = getStoreActivePrice(sInfo);
+                    if (val !== null) {
+                      storesWithPrices.push({
+                        storeId: sId,
+                        storeName: sInfo.store_name || sId,
+                        price: val,
+                        onSale: sInfo.is_on_sale === 1 || !!sInfo.is_on_sale,
+                        lookup_url: sInfo.lookup_url,
+                      });
+                    }
+                  };
+
                   if (priceInfo.stores && typeof priceInfo.stores === "object") {
-                    for (const storeInfo of Object.values(priceInfo.stores)) {
-                      const regPrice = typeof storeInfo.regular_price === "number" ? storeInfo.regular_price : parseFloat(storeInfo.regular_price || "0");
-                      const activePrice = storeInfo.is_on_sale && storeInfo.sale_price !== null ? (typeof storeInfo.sale_price === "number" ? storeInfo.sale_price : parseFloat(storeInfo.sale_price || "0")) : regPrice;
-                      if (activePrice > 0 && activePrice < lowestPrice) {
-                        lowestPrice = activePrice;
-                        if (storeInfo.is_on_sale) isOnSale = true;
-                      }
+                    for (const [sId, sInfo] of Object.entries(priceInfo.stores)) {
+                      addPrice(sId, sInfo);
                     }
                   } else {
-                    const regPrice = typeof priceInfo.regular_price === "number" ? priceInfo.regular_price : parseFloat(priceInfo.regular_price || "0");
-                    const activePrice = priceInfo.is_on_sale && priceInfo.sale_price !== null ? (typeof priceInfo.sale_price === "number" ? priceInfo.sale_price : parseFloat(priceInfo.sale_price || "0")) : regPrice;
-                    if (activePrice > 0) {
-                      lowestPrice = activePrice;
-                      if (priceInfo.is_on_sale) isOnSale = true;
-                    }
+                    addPrice(priceInfo.store_id || "foodbasics", priceInfo);
                   }
 
-                  if (lowestPrice !== Infinity) {
+                  if (storesWithPrices.length > 0) {
+                    const activePrices = storesWithPrices.map(p => p.price);
+                    const lowestPrice = Math.min(...activePrices);
                     cheapestPriceStr = `$${lowestPrice.toFixed(2)}`;
+                    isOnSale = storesWithPrices.some(p => p.onSale);
                   }
                 }
 
@@ -191,62 +301,143 @@ export default function CatalogDrawer({
                   <div
                     key={item.id}
                     onClick={() => handleAddToggle(item)}
-                    className={`cursor-pointer select-none transition-all duration-200 border rounded-xl p-4 flex items-center justify-between gap-4 hover:shadow-xs active:scale-[0.99] ${
+                    className={`cursor-pointer select-none transition-all duration-200 border rounded-xl p-4 flex flex-col gap-1 hover:shadow-xs active:scale-[0.99] ${
                       isAdded
                         ? "bg-primary/[0.04] border-primary/25"
                         : "bg-surface-container-lowest border-outline-variant hover:bg-surface-container-low hover:border-outline"
                     }`}
                   >
-                    <div className="flex flex-col flex-grow min-w-0">
-                      {/* Category Badge & Product Name */}
-                      <div className="flex items-center gap-2 mb-1.5 min-w-0">
-                        <span className={`px-2 py-0.5 rounded-md font-bold text-[9px] uppercase tracking-wider shrink-0 select-none ${getCategoryStyle(item.category)}`}>
-                          {item.category || "Other"}
-                        </span>
-                        <h4 className="text-sm font-bold text-on-surface truncate leading-tight" title={item.name}>
-                          {item.name}
-                        </h4>
+                    <div className="flex items-center justify-between gap-4 w-full">
+                      <div className="flex flex-col flex-grow min-w-0">
+                        {/* Category Badge & Product Name */}
+                        <div className="flex items-center gap-2 mb-1.5 min-w-0">
+                          <span className={`px-2 py-0.5 rounded-md font-bold text-[9px] uppercase tracking-wider shrink-0 select-none ${getCategoryStyle(item.category)}`}>
+                            {item.category || "Other"}
+                          </span>
+                          <h4 className="text-sm font-bold text-on-surface truncate leading-tight" title={item.name}>
+                            {item.name}
+                          </h4>
+                        </div>
+
+                        {/* Price details & Price matched badge */}
+                        {cheapestPriceStr && (
+                          <div className="flex items-center gap-2 flex-wrap font-tnum mt-1">
+                            <span className="text-sm font-extrabold text-primary">
+                              {cheapestPriceStr}
+                              <span className="text-[10px] text-on-surface-variant ml-0.5 font-normal">{unitStr}</span>
+                            </span>
+                            
+                            {isOnSale ? (
+                              <div className="flex items-center gap-0.5 bg-[#FFF9C4] text-[#7B5E00] px-1.5 py-0.5 rounded text-[9px] font-black uppercase tracking-wider">
+                                <Flame size={10} className="fill-amber-600 stroke-none" />
+                                <span>Sale</span>
+                              </div>
+                            ) : (
+                              <div className="flex items-center gap-0.5 bg-primary/10 text-primary px-1.5 py-0.5 rounded text-[9px] font-bold">
+                                <TrendingDown size={10} />
+                                <span>Tracked</span>
+                              </div>
+                            )}
+                          </div>
+                        )}
                       </div>
 
-                      {/* Price details & Price matched badge */}
-                      {cheapestPriceStr && (
-                        <div className="flex items-center gap-2 flex-wrap font-tnum mt-1">
-                          <span className="text-sm font-extrabold text-primary">
-                            {cheapestPriceStr}
-                            <span className="text-[10px] text-on-surface-variant ml-0.5 font-normal">{unitStr}</span>
-                          </span>
-                          
-                          {isOnSale ? (
-                            <div className="flex items-center gap-0.5 bg-[#FFF9C4] text-[#7B5E00] px-1.5 py-0.5 rounded text-[9px] font-black uppercase tracking-wider">
-                              <Flame size={10} className="fill-amber-600 stroke-none" />
-                              <span>Sale</span>
-                            </div>
-                          ) : (
-                            <div className="flex items-center gap-0.5 bg-primary/10 text-primary px-1.5 py-0.5 rounded text-[9px] font-bold">
-                              <TrendingDown size={10} />
-                              <span>Tracked</span>
-                            </div>
-                          )}
-                        </div>
-                      )}
+                      {/* Status Circle indicator */}
+                      <div
+                        className={`shrink-0 w-8 h-8 rounded-full border flex items-center justify-center transition-all duration-200 ${
+                          isAdded
+                            ? "bg-primary border-primary text-on-primary"
+                            : "border-primary/30 bg-transparent text-primary"
+                        }`}
+                      >
+                        {isAdding ? (
+                          <span className="animate-spin border-2 border-current border-t-transparent rounded-full w-4 h-4"></span>
+                        ) : isAdded ? (
+                          <Check size={16} className="stroke-[3.5px]" />
+                        ) : (
+                          <Plus size={16} className="stroke-[3.5px]" />
+                        )}
+                      </div>
                     </div>
 
-                    {/* Status Circle indicator */}
-                    <div
-                      className={`shrink-0 w-8 h-8 rounded-full border flex items-center justify-center transition-all duration-200 ${
-                        isAdded
-                          ? "bg-primary border-primary text-on-primary"
-                          : "border-primary/30 bg-transparent text-primary"
-                      }`}
-                    >
-                      {isAdding ? (
-                        <span className="animate-spin border-2 border-current border-t-transparent rounded-full w-4 h-4"></span>
-                      ) : isAdded ? (
-                        <Check size={16} className="stroke-[3.5px]" />
-                      ) : (
-                        <Plus size={16} className="stroke-[3.5px]" />
-                      )}
-                    </div>
+                    {/* Store Badges Row */}
+                    {storesWithPrices.length > 0 && (
+                      <div className="flex flex-wrap gap-1.5 mt-2">
+                        {storesWithPrices.map((sp) => (
+                          <button
+                            key={sp.storeId}
+                            onClick={(e) => toggleItemPrices(item.id, e)}
+                            className={`px-2.5 py-1 rounded-full text-[9px] font-extrabold border cursor-pointer select-none transition-all hover:scale-105 active:scale-95 ${getStoreBadgeClass(sp.storeId)}`}
+                          >
+                            {sp.storeName}
+                          </button>
+                        ))}
+                      </div>
+                    )}
+
+                    {/* Expandable store prices details */}
+                    {expandedItemPrices.has(item.id) && storesWithPrices.length > 0 && (
+                      <div 
+                        onClick={(e) => e.stopPropagation()} 
+                        className="mt-3 pt-3 border-t border-outline/10 space-y-2 cursor-default w-full"
+                      >
+                        <div className="text-[9px] font-black text-on-surface-variant uppercase tracking-wider mb-2">
+                          Scraped Prices by Store
+                        </div>
+                        <div className="space-y-2">
+                          {storesWithPrices.map((sp) => {
+                            const reportKey = `${item.id}-${sp.storeId}`;
+                            const isReporting = reportingKeys.has(reportKey);
+                            const isReported = reportedKeys.has(reportKey);
+                            
+                            return (
+                              <div key={sp.storeId} className="flex justify-between items-center text-xs">
+                                <div className="flex items-center gap-2">
+                                  <span className="font-bold">
+                                    {sp.lookup_url ? (
+                                      <a 
+                                        href={sp.lookup_url} 
+                                        target="_blank" 
+                                        rel="noopener noreferrer" 
+                                        className="text-[#4c56af] hover:underline flex items-center gap-1"
+                                      >
+                                        {sp.storeName}
+                                        <ExternalLink size={10} />
+                                      </a>
+                                    ) : (
+                                      sp.storeName
+                                    )}
+                                  </span>
+                                  {sp.onSale && (
+                                    <span className="bg-[#FFF9C4] text-[#7B5E00] text-[8px] font-black px-1.5 py-0.5 rounded-sm uppercase">
+                                      Sale
+                                    </span>
+                                  )}
+                                </div>
+                                
+                                <div className="flex items-center gap-3">
+                                  <span className="font-extrabold text-on-surface">${sp.price.toFixed(2)}</span>
+                                  
+                                  <button
+                                    onClick={(e) => handleReportIncorrectPrice(e, item.name, item.id, sp.storeId, sp.price, sp.lookup_url || "")}
+                                    disabled={isReporting || isReported}
+                                    className={`flex items-center gap-1 px-2 py-1 rounded text-[9px] font-extrabold border transition-colors cursor-pointer select-none
+                                      ${isReported 
+                                        ? "bg-red-50 text-red-500 border-red-200" 
+                                        : isReporting 
+                                          ? "bg-gray-50 text-gray-400 border-gray-200 cursor-wait" 
+                                          : "bg-amber-50 text-amber-600 border-amber-200 hover:bg-amber-100 hover:text-amber-700"
+                                      }`}
+                                  >
+                                    {isReported ? "Reported" : "Report Error"}
+                                  </button>
+                                </div>
+                              </div>
+                            );
+                          })}
+                        </div>
+                      </div>
+                    )}
                   </div>
                 );
               })}
