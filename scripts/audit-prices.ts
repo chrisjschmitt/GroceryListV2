@@ -80,10 +80,14 @@ interface AuditResult {
   catalogSale: number | null;
   catalogIsOnSale: boolean;
   catalogValidUntil: string | null;
+  catalogUnit: string | null;
+  catalogUnits: number | null;
   geminiRegular: number | null;
   geminiSale: number | null;
   geminiIsOnSale: boolean;
   geminiValidUntil: string | null;
+  geminiUnit: string | null;
+  geminiUnits: number | null;
   screenshotFile: string;
   status: "MATCH" | "MISMATCH" | "ERROR";
   discrepancies: string[];
@@ -166,6 +170,15 @@ async function runAudit() {
           storeLink.is_on_sale = update.is_on_sale;
           storeLink.valid_until = update.valid_until;
           storeLink.is_verified = true; // Mark link as verified active
+
+          // Update parent item's global unit and units if extracted
+          if (update.unit) {
+            liveItem.unit = update.unit;
+          }
+          if (update.units !== undefined && update.units !== null) {
+            liveItem.units = update.units;
+          }
+
           appliedCount++;
         } else {
           console.warn(`   ⚠️ Warning: Store "${update.storeKey}" not found on live item "${update.itemName}" (${update.itemId}). Skipping.`);
@@ -368,10 +381,13 @@ async function runAudit() {
       const catalogSale = storeDetails.sale_price != null ? Number(storeDetails.sale_price) : null;
       const catalogIsOnSale = storeDetails.is_on_sale === 1 || storeDetails.is_on_sale === true;
       const catalogValidUntil = storeDetails.valid_until ? String(storeDetails.valid_until).trim() : null;
+      const catalogUnit = item.unit ? String(item.unit) : null;
+      const catalogUnits = item.units != null ? Number(item.units) : null;
 
       console.log(`   ├─ Catalog regular price: $${catalogRegular ?? "--"}`);
       console.log(`   ├─ Catalog sale price:    $${catalogSale ?? "--"} (On Sale: ${catalogIsOnSale ? "YES" : "NO"})`);
       console.log(`   ├─ Catalog valid until:   ${catalogValidUntil ?? "--"}`);
+      console.log(`   ├─ Catalog unit:          ${catalogUnit ?? "--"} (${catalogUnits ?? "--"})`);
 
       const screenshotName = `${item.id}_${storeKey}.png`;
       const screenshotPath = path.join(screenshotsDir, screenshotName);
@@ -387,10 +403,14 @@ async function runAudit() {
           catalogSale,
           catalogIsOnSale,
           catalogValidUntil,
+          catalogUnit,
+          catalogUnits,
           geminiRegular: null,
           geminiSale: null,
           geminiIsOnSale: false,
           geminiValidUntil: null,
+          geminiUnit: null,
+          geminiUnits: null,
           screenshotFile: screenshotPath,
           status: "MATCH",
           discrepancies: []
@@ -432,10 +452,14 @@ async function runAudit() {
           catalogSale,
           catalogIsOnSale,
           catalogValidUntil,
+          catalogUnit,
+          catalogUnits,
           geminiRegular: null,
           geminiSale: null,
           geminiIsOnSale: false,
           geminiValidUntil: null,
+          geminiUnit: null,
+          geminiUnits: null,
           screenshotFile: screenshotPath,
           status: "MATCH",
           discrepancies: []
@@ -452,10 +476,14 @@ async function runAudit() {
           catalogSale,
           catalogIsOnSale,
           catalogValidUntil,
+          catalogUnit,
+          catalogUnits,
           geminiRegular: null,
           geminiSale: null,
           geminiIsOnSale: false,
           geminiValidUntil: null,
+          geminiUnit: null,
+          geminiUnits: null,
           screenshotFile: "",
           status: "ERROR",
           discrepancies: [],
@@ -487,6 +515,8 @@ async function runAudit() {
       const catalogSale = storeDetails.sale_price != null ? Number(storeDetails.sale_price) : null;
       const catalogIsOnSale = storeDetails.is_on_sale === 1 || storeDetails.is_on_sale === true;
       const catalogValidUntil = storeDetails.valid_until ? String(storeDetails.valid_until).trim() : null;
+      const catalogUnit = item.unit ? String(item.unit) : null;
+      const catalogUnits = item.units != null ? Number(item.units) : null;
 
       const hasScreenshot = fs.existsSync(screenshotPath);
       if (hasScreenshot) {
@@ -499,10 +529,14 @@ async function runAudit() {
           catalogSale,
           catalogIsOnSale,
           catalogValidUntil,
+          catalogUnit,
+          catalogUnits,
           geminiRegular: null,
           geminiSale: null,
           geminiIsOnSale: false,
           geminiValidUntil: null,
+          geminiUnit: null,
+          geminiUnits: null,
           screenshotFile: screenshotPath,
           status: "MATCH",
           discrepancies: []
@@ -517,10 +551,14 @@ async function runAudit() {
           catalogSale,
           catalogIsOnSale,
           catalogValidUntil,
+          catalogUnit,
+          catalogUnits,
           geminiRegular: null,
           geminiSale: null,
           geminiIsOnSale: false,
           geminiValidUntil: null,
+          geminiUnit: null,
+          geminiUnits: null,
           screenshotFile: "",
           status: "ERROR",
           discrepancies: [],
@@ -536,7 +574,7 @@ async function runAudit() {
   const currentYear = new Date().getFullYear();
   const currentDateStr = new Date().toLocaleDateString("en-US", { year: "numeric", month: "long", day: "numeric" });
   const systemInstruction = `
-You are a precision grocery price auditing bot. Your task is to analyze the screenshot of a grocery item product page and extract the exact pricing details.
+You are a precision grocery price auditing bot. Your task is to analyze the screenshot of a grocery item product page and extract the exact pricing details and unit measurement information.
 The current date is ${currentDateStr} (Year ${currentYear}). If the flyer/screenshot displays a date without a year (e.g. "August 12" or "valid until Aug 12"), assume the current year is ${currentYear} and construct the YYYY-MM-DD date.
 
 Please extract the following fields:
@@ -544,8 +582,14 @@ Please extract the following fields:
 2. "sale_price": The active promotional sale price of the item. It must be a number (e.g. 3.99). Set to null if no active sale/discount is visible.
 3. "is_on_sale": A boolean indicating if the item is currently on sale/discount.
 4. "valid_until": The expiration or end date of the active flyer/promotional sale in format "YYYY-MM-DD" (e.g. "${currentYear}-06-24"). Set to null if no expiry date or no active sale is found.
+5. "unit": The unit type/measurement type of the item as displayed. Common values include:
+   - "kg" or "lb" for weighted items (e.g. Bananas sold at 1.52 per kg has unit "kg" or "lb").
+   - "g" or "ml" or "l" for packaged products (e.g. 450 g has unit "g", 1.5 L has unit "l" or "ml").
+   - "unit" or "count" or "pack" for count-based or packaged items (e.g. "30 count eggs" has unit "count" or "unit", "3 units per package" has unit "unit" or "pack").
+   - Use lowercase and standard abbreviations (e.g., "g", "kg", "ml", "l", "lb", "unit", "count", "pack"). If not visible or unclear, set to null.
+6. "unit_quantity": The numeric quantity, count, weight, or volume size corresponding to the unit (e.g. 30 for 30 count eggs, 3 for a package of 3 romaine lettuce hearts, 1 for bananas priced per kg, 450 for a 450g package). It must be a number (e.g., 30, 3, 1, 450). Set to null if not found or unclear.
 
-Look for currency symbols ($, ¢). Be precise and double check your numbers.
+Look for currency symbols ($, ¢). Be precise and double check your numbers and unit information.
 `;
 
   for (let i = 0; i < auditResults.length; i++) {
@@ -561,7 +605,7 @@ Look for currency symbols ($, ¢). Be precise and double check your numbers.
       
       const userPrompt = `
 Analyze this screenshot for the product "${result.itemName}" at store "${result.storeKey}".
-Extract regular price, sale price, sale status, and flyer validity date.
+Extract regular price, sale price, sale status, flyer validity date, unit type, and unit quantity.
 `;
 
       const response = await ai.models.generateContent({
@@ -580,7 +624,7 @@ Extract regular price, sale price, sale status, and flyer validity date.
           responseMimeType: "application/json",
           responseSchema: {
             type: Type.OBJECT,
-            required: ["regular_price", "sale_price", "is_on_sale", "valid_until"],
+            required: ["regular_price", "sale_price", "is_on_sale", "valid_until", "unit", "unit_quantity"],
             properties: {
               regular_price: {
                 type: Type.NUMBER,
@@ -597,6 +641,14 @@ Extract regular price, sale price, sale status, and flyer validity date.
               valid_until: {
                 type: Type.STRING,
                 description: " Flyer end date in format YYYY-MM-DD, or null if not found."
+              },
+              unit: {
+                type: Type.STRING,
+                description: "The measurement or packaging unit type (e.g., 'kg', 'g', 'ml', 'lb', 'unit', 'count', 'pack'), or null if not found."
+              },
+              unit_quantity: {
+                type: Type.NUMBER,
+                description: "The numeric size, weight, or quantity of units (e.g. 30 for 30 count, 3 for 3 units, 1 for per kg/lb, 450 for 450g), or null if not found."
               }
             }
           }
@@ -642,9 +694,20 @@ Extract regular price, sale price, sale status, and flyer validity date.
       }
       result.geminiValidUntil = valDate;
 
+      const validUnits = ["g", "kg", "ml", "l", "lb", "unit", "count", "pack", "each", "pcs", "roll", "box", "bag", "can", "bunch", "dozen", "piece", "pieces", "pc", "lbs"];
+      result.geminiUnit = parsed.unit ? String(parsed.unit).trim().toLowerCase() : null;
+      if (result.geminiUnit && !validUnits.includes(result.geminiUnit)) {
+        result.geminiUnit = null;
+      }
+      result.geminiUnits = parsed.unit_quantity != null ? Number(parsed.unit_quantity) : null;
+      if (result.geminiUnits !== null && (isNaN(result.geminiUnits) || result.geminiUnits <= 0)) {
+        result.geminiUnits = null;
+      }
+
       console.log(`   ├─ Extracted regular price: $${result.geminiRegular ?? "--"}`);
       console.log(`   ├─ Extracted sale price:    $${result.geminiSale ?? "--"} (On Sale: ${result.geminiIsOnSale ? "YES" : "NO"})`);
       console.log(`   ├─ Extracted valid until:   ${result.geminiValidUntil ?? "--"}`);
+      console.log(`   ├─ Extracted unit:          ${result.geminiUnit ?? "--"} (${result.geminiUnits ?? "--"})`);
 
       // 5. Compare Gemini findings against Combined Catalog
       const discrepancies: string[] = [];
@@ -666,6 +729,30 @@ Extract regular price, sale price, sale status, and flyer validity date.
         discrepancies.push(`Validity Date mismatch: Catalog has "${result.catalogValidUntil ?? "--"}", Live has "${result.geminiValidUntil ?? "--"}"`);
       }
 
+      // Unit check
+      const normalizeUnit = (u: string | null) => {
+        if (!u) return null;
+        const lowered = u.trim().toLowerCase();
+        if (lowered === "each" || lowered === "count" || lowered === "pcs" || lowered === "pieces" || lowered === "pc") {
+          return "unit";
+        }
+        if (lowered === "lbs") {
+          return "lb";
+        }
+        return lowered;
+      };
+
+      const normCatalogUnit = normalizeUnit(result.catalogUnit);
+      const normGeminiUnit = normalizeUnit(result.geminiUnit);
+      if (normCatalogUnit !== normGeminiUnit) {
+        discrepancies.push(`Unit mismatch: Catalog has "${result.catalogUnit ?? "--"}", Live has "${result.geminiUnit ?? "--"}"`);
+      }
+
+      // Unit Quantity check
+      if (result.catalogUnits !== result.geminiUnits) {
+        discrepancies.push(`Unit Quantity mismatch: Catalog has ${result.catalogUnits ?? "--"}, Live has ${result.geminiUnits ?? "--"}`);
+      }
+
       if (discrepancies.length > 0) {
         result.status = "MISMATCH";
         result.discrepancies = discrepancies;
@@ -673,7 +760,7 @@ Extract regular price, sale price, sale status, and flyer validity date.
         discrepancies.forEach(d => console.log(`      • ${d}`));
       } else {
         result.status = "MATCH";
-        console.log(`   └─ [OK] Prices and dates match perfectly.`);
+        console.log(`   └─ [OK] Prices, dates, and units match perfectly.`);
       }
 
     } catch (err: any) {
@@ -709,6 +796,15 @@ Extract regular price, sale price, sale status, and flyer validity date.
           storeLink.is_on_sale = res.geminiIsOnSale ? 1 : 0;
           storeLink.valid_until = res.geminiValidUntil || "";
           storeLink.is_verified = true; // Mark link as verified active
+
+          // Update global unit and units size on parent catalog item
+          if (res.geminiUnit) {
+            item.unit = res.geminiUnit;
+          }
+          if (res.geminiUnits !== null) {
+            item.units = res.geminiUnits;
+          }
+
           updatedCount++;
         }
       }
@@ -734,6 +830,8 @@ Extract regular price, sale price, sale status, and flyer validity date.
         sale_price: r.geminiSale,
         is_on_sale: r.geminiIsOnSale ? 1 : 0,
         valid_until: r.geminiValidUntil || "",
+        unit: r.geminiUnit,
+        units: r.geminiUnits,
         status: r.status,
         discrepancies: r.discrepancies
       }));
@@ -767,8 +865,8 @@ function writeMarkdownReport(results: AuditResult[]) {
   md += `| ${total} | ${matches} | ${mismatches} | ${errors} |\n\n`;
 
   md += `## Audit Registry Details\n\n`;
-  md += `| Item Name | Store | Status | Catalog Price | Live Price | Expiry Match? | Discrepancies / Error |\n`;
-  md += `| --- | --- | --- | --- | --- | --- | --- |\n`;
+  md += `| Item Name | Store | Status | Catalog Price | Live Price | Catalog Unit / Size | Live Unit / Size | Expiry Match? | Discrepancies / Error |\n`;
+  md += `| --- | --- | --- | --- | --- | --- | --- | --- | --- |\n`;
 
   for (const r of results) {
     const catalogPriceStr = r.catalogIsOnSale 
@@ -778,6 +876,9 @@ function writeMarkdownReport(results: AuditResult[]) {
     const livePriceStr = r.geminiIsOnSale
       ? `Sale: $${r.geminiSale ?? "--"} (Reg: $${r.geminiRegular ?? "--"})`
       : `Reg: $${r.geminiRegular ?? "--"}`;
+
+    const catalogUnitSize = `${r.catalogUnit ?? "--"} (${r.catalogUnits ?? "--"})`;
+    const liveUnitSize = `${r.geminiUnit ?? "--"} (${r.geminiUnits ?? "--"})`;
 
     const dateMatchStr = r.catalogValidUntil === r.geminiValidUntil ? "Yes" : "No";
 
@@ -789,7 +890,7 @@ function writeMarkdownReport(results: AuditResult[]) {
       ? `Error: ${r.errorMessage}` 
       : r.discrepancies.join("; ") || "None";
 
-    md += `| ${r.itemName} | ${r.storeKey} | ${statusBadge} | ${catalogPriceStr} | ${livePriceStr} | ${dateMatchStr} | ${descStr} |\n`;
+    md += `| ${r.itemName} | ${r.storeKey} | ${statusBadge} | ${catalogPriceStr} | ${livePriceStr} | ${catalogUnitSize} | ${liveUnitSize} | ${dateMatchStr} | ${descStr} |\n`;
   }
 
   fs.writeFileSync(reportPath, md, "utf8");
