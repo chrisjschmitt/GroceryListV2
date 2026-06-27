@@ -103,6 +103,91 @@ export default function ListsTab() {
     return localStorage.getItem("primaryStoreId") || null;
   });
 
+  const openFlyerForStoreItem = (storeName: string, itemName: string, configName?: string, postalCode?: string) => {
+    const newTab = window.open("about:blank", "_blank");
+    if (!newTab) return;
+    newTab.document.write(`
+      <html>
+        <head>
+          <title>Loading Flyer...</title>
+          <style>
+            body {
+              font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+              display: flex;
+              flex-direction: column;
+              align-items: center;
+              justify-content: center;
+              height: 100vh;
+              margin: 0;
+              background-color: #0f172a;
+              color: #f8fafc;
+            }
+            .container {
+              text-align: center;
+              background: rgba(30, 41, 59, 0.7);
+              backdrop-filter: blur(12px);
+              padding: 2.5rem;
+              border-radius: 1rem;
+              border: 1px solid rgba(255, 255, 255, 0.08);
+              box-shadow: 0 20px 25px -5px rgb(0 0 0 / 0.5);
+            }
+            .spinner {
+              border: 3px solid rgba(255, 255, 255, 0.1);
+              border-top: 3px solid #10b981;
+              border-radius: 50%;
+              width: 48px;
+              height: 48px;
+              animation: spin 0.8s linear infinite;
+              margin: 0 auto 1.5rem;
+            }
+            h1 {
+              font-size: 1.25rem;
+              font-weight: 700;
+              margin: 0 0 0.5rem;
+              letter-spacing: -0.025em;
+            }
+            p {
+              font-size: 0.875rem;
+              color: #94a3b8;
+              margin: 0;
+            }
+            @keyframes spin {
+              0% { transform: rotate(0deg); }
+              100% { transform: rotate(360deg); }
+            }
+          </style>
+        </head>
+        <body>
+          <div class="container">
+            <div class="spinner"></div>
+            <h1>Locating Weekly Flyer</h1>
+            <p>Searching Flipp.com for local ${storeName.replace(/'/g, "\\'")} deals...</p>
+          </div>
+        </body>
+      </html>
+    `);
+
+    const qParams = new URLSearchParams({
+      storeName: storeName || "",
+      itemName: itemName || "",
+      configName: configName || "",
+      postalCode: postalCode || "K7H3C6"
+    });
+
+    fetch("/api/flipp/resolve?" + qParams.toString())
+      .then(r => r.json())
+      .then(data => {
+        if (data && data.url) {
+          newTab.location.href = data.url;
+        } else {
+          newTab.location.href = getFlippSearchUrl(storeName, itemName, configName, postalCode);
+        }
+      })
+      .catch(() => {
+        newTab.location.href = getFlippSearchUrl(storeName, itemName, configName, postalCode);
+      });
+  };
+
   useEffect(() => {
     if (primaryStoreId) {
       localStorage.setItem("primaryStoreId", primaryStoreId);
@@ -570,15 +655,22 @@ export default function ListsTab() {
                                   <span className="text-[9px] font-black bg-amber-100 text-amber-900 border border-amber-300 px-1 py-0.2 rounded-sm uppercase tracking-wider animate-pulse flex items-center gap-0.5">
                                     ⚡ Match ${cheapestPriceVal!.toFixed(2)} at {abbreviateStoreName(matchedStoreName)}
                                   </span>
-                                  <a
-                                    href={getFlippSearchUrl(matchedStoreName, item.name, priceInfo?.config_name, bestCompetitorInfo?.postal_code || priceInfo?.postal_code)}
-                                    target="_blank"
-                                    rel="noreferrer"
+                                  <button
+                                    type="button"
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      openFlyerForStoreItem(
+                                        matchedStoreName,
+                                        item.name,
+                                        priceInfo?.config_name,
+                                        bestCompetitorInfo?.postal_code || priceInfo?.postal_code
+                                      );
+                                    }}
                                     className="text-[8px] font-black uppercase bg-emerald-600 hover:bg-emerald-700 text-white border border-emerald-500 px-1 py-0.2 rounded-sm shadow-[0.5px_0.5px_0px_rgba(0,0,0,0.1)] flex items-center gap-0.5 hover:underline cursor-pointer text-center"
                                     title={`Open flyer for ${matchedStoreName}`}
                                   >
                                     Open Flyer ↗
-                                  </a>
+                                  </button>
                                 </div>
                               )}
                             </div>
@@ -715,20 +807,23 @@ export default function ListsTab() {
                             {/* Action Buttons Row */}
                             <div className="flex justify-end items-center pt-2 border-t border-outline/5 gap-2 text-xs">
                               {(bestCompetitorInfo || priceInfo) && (
-                                <a
-                                  href={getFlippSearchUrl(
-                                    matchedStoreName || bestCompetitorInfo?.store_name || priceInfo?.store_name || "",
-                                    item.name,
-                                    priceInfo?.config_name
-                                  )}
-                                  target="_blank"
-                                  rel="noreferrer"
+                                <button
+                                  type="button"
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    openFlyerForStoreItem(
+                                      matchedStoreName || bestCompetitorInfo?.store_name || priceInfo?.store_name || "",
+                                      item.name,
+                                      priceInfo?.config_name,
+                                      bestCompetitorInfo?.postal_code || priceInfo?.postal_code
+                                    );
+                                  }}
                                   className="flex items-center gap-1.5 px-3 py-1.5 bg-emerald-50 hover:bg-emerald-100 border border-emerald-250 text-emerald-700 rounded-md transition-colors font-bold text-xs"
                                   title="Open flyer in new tab"
                                 >
                                   <ExternalLink size={12} />
                                   <span>Open Flyer</span>
-                                </a>
+                                </button>
                               )}
 
                               <button

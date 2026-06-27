@@ -72,6 +72,91 @@ function getFlippSearchUrl(storeName: string, itemName: string, configName?: str
 }
 
 export default function GroceryItemRow({ item, onToggle, onRemove, onUpdateQuantity, priceInfo, primaryStoreId }: GroceryItemRowProps) {
+  const openFlyerForStoreItem = (storeName: string, itemName: string, configName?: string, postalCode?: string) => {
+    const newTab = window.open("about:blank", "_blank");
+    if (!newTab) return;
+    newTab.document.write(`
+      <html>
+        <head>
+          <title>Loading Flyer...</title>
+          <style>
+            body {
+              font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+              display: flex;
+              flex-direction: column;
+              align-items: center;
+              justify-content: center;
+              height: 100vh;
+              margin: 0;
+              background-color: #0f172a;
+              color: #f8fafc;
+            }
+            .container {
+              text-align: center;
+              background: rgba(30, 41, 59, 0.7);
+              backdrop-filter: blur(12px);
+              padding: 2.5rem;
+              border-radius: 1rem;
+              border: 1px solid rgba(255, 255, 255, 0.08);
+              box-shadow: 0 20px 25px -5px rgb(0 0 0 / 0.5);
+            }
+            .spinner {
+              border: 3px solid rgba(255, 255, 255, 0.1);
+              border-top: 3px solid #10b981;
+              border-radius: 50%;
+              width: 48px;
+              height: 48px;
+              animation: spin 0.8s linear infinite;
+              margin: 0 auto 1.5rem;
+            }
+            h1 {
+              font-size: 1.25rem;
+              font-weight: 700;
+              margin: 0 0 0.5rem;
+              letter-spacing: -0.025em;
+            }
+            p {
+              font-size: 0.875rem;
+              color: #94a3b8;
+              margin: 0;
+            }
+            @keyframes spin {
+              0% { transform: rotate(0deg); }
+              100% { transform: rotate(360deg); }
+            }
+          </style>
+        </head>
+        <body>
+          <div class="container">
+            <div class="spinner"></div>
+            <h1>Locating Weekly Flyer</h1>
+            <p>Searching Flipp.com for local ${storeName.replace(/'/g, "\\'")} deals...</p>
+          </div>
+        </body>
+      </html>
+    `);
+
+    const qParams = new URLSearchParams({
+      storeName: storeName || "",
+      itemName: itemName || "",
+      configName: configName || "",
+      postalCode: postalCode || "K7H3C6"
+    });
+
+    fetch("/api/flipp/resolve?" + qParams.toString())
+      .then(r => r.json())
+      .then(data => {
+        if (data && data.url) {
+          newTab.location.href = data.url;
+        } else {
+          newTab.location.href = getFlippSearchUrl(storeName, itemName, configName, postalCode);
+        }
+      })
+      .catch(() => {
+        newTab.location.href = getFlippSearchUrl(storeName, itemName, configName, postalCode);
+      });
+  };
+
   let finalPrice = undefined;
   let otherPrices: any[] = [];
   let bestCompetitorPrice: any = undefined;
@@ -304,15 +389,22 @@ export default function GroceryItemRow({ item, onToggle, onRemove, onUpdateQuant
                   <span className="text-[10px] font-black bg-amber-100 text-amber-900 border border-amber-300 px-1.5 py-0.5 rounded shadow-[1px_1px_0px_rgba(0,0,0,1)] uppercase tracking-wider animate-pulse flex items-center gap-0.5">
                     ⚡ Match ${bestCompetitorPrice.price.toFixed(2)} ({abbreviateStoreName(bestCompetitorPrice.storeName)})
                   </span>
-                  <a
-                    href={getFlippSearchUrl(bestCompetitorPrice.storeName, item.name, priceInfo?.config_name, bestCompetitorPrice.postal_code || priceInfo?.postal_code)}
-                    target="_blank"
-                    rel="noopener noreferrer"
+                  <button
+                    type="button"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      openFlyerForStoreItem(
+                        bestCompetitorPrice.storeName,
+                        item.name,
+                        priceInfo?.config_name,
+                        bestCompetitorPrice.postal_code || priceInfo?.postal_code
+                      );
+                    }}
                     className="text-[9px] font-black uppercase bg-emerald-500 hover:bg-emerald-600 text-white border border-emerald-650 px-1.5 py-0.5 rounded shadow-[1px_1px_0px_rgba(0,0,0,1)] hover:shadow-none hover:translate-x-[1px] hover:translate-y-[1px] transition-all flex items-center gap-0.5 hover:underline cursor-pointer text-center text-xs"
                     title={`Open flyer for ${bestCompetitorPrice.storeName}`}
                   >
                     Open Flyer ↗
-                  </a>
+                  </button>
                 </span>
               )}
             </span>

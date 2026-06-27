@@ -801,6 +801,90 @@ app.post("/api/append-grocery", async (req, res) => {
   }
 });
 
+// GET /api/flipp/resolve
+app.get("/api/flipp/resolve", async (req, res) => {
+  try {
+    const storeName = req.query.storeName as string;
+    const itemName = req.query.itemName as string;
+    const configName = req.query.configName as string;
+    const postalCode = req.query.postalCode as string || "K7H3C6";
+
+    if (!storeName || !itemName) {
+      return res.status(400).json({ error: "Missing required query parameters: storeName and itemName" });
+    }
+
+    let cleanStore = storeName.trim();
+    const lowerStore = cleanStore.toLowerCase();
+    if (lowerStore.includes("food basics") || lowerStore === "fb" || lowerStore === "foodbasics") cleanStore = "Food Basics";
+    else if (lowerStore.includes("no frills") || lowerStore === "nofrills" || lowerStore === "nf") cleanStore = "No Frills";
+    else if (lowerStore.includes("your independent grocer") || lowerStore === "yourindependentgrocer" || lowerStore === "yig") cleanStore = "Your Independent Grocer";
+    else if (lowerStore.includes("loblaws") || lowerStore === "loblaws" || lowerStore === "lb") cleanStore = "Loblaws";
+    else if (lowerStore.includes("metro") || lowerStore === "metro" || lowerStore === "mt") cleanStore = "Metro";
+    else if (lowerStore.includes("freshco") || lowerStore === "freshco" || lowerStore === "fc") cleanStore = "FreshCo";
+    else if (lowerStore.includes("walmart") || lowerStore === "walmart") cleanStore = "Walmart";
+
+    let cleanItem = configName || itemName;
+    cleanItem = cleanItem
+      .replace(/\s*-\s*\d+$/gi, "") 
+      .replace(/\s*-\s*\w+$/gi, "") 
+      .replace(/\s*\(\d+g\)/gi, "")  
+      .replace(/\s*\d+g\b/gi, "")    
+      .replace(/\s*\d+-pack\b/gi, "") 
+      .trim();
+
+    const searchTerms = `${cleanStore} ${cleanItem}`.trim();
+    const flippApiUrl = `https://backflipp.wishabi.com/flipp/items/search?locale=en-ca&postal_code=${encodeURIComponent(postalCode.trim())}&q=${encodeURIComponent(searchTerms)}`;
+    
+    const fetchResponse = await fetch(flippApiUrl, {
+      headers: {
+        "User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
+      }
+    });
+
+    if (!fetchResponse.ok) {
+      throw new Error(`Flipp API returned status ${fetchResponse.status}`);
+    }
+
+    const data: any = await fetchResponse.json();
+    const items = data.items || [];
+
+    const merchantItems = items.filter((it: any) => {
+      const itMerchant = (it.merchant_name || "").toLowerCase();
+      const targetMerchant = cleanStore.toLowerCase();
+      return itMerchant.includes(targetMerchant) || targetMerchant.includes(itMerchant);
+    });
+
+    let targetUrl = `https://flipp.com/search?q=${encodeURIComponent(searchTerms)}&postal_code=${encodeURIComponent(postalCode)}`;
+
+    if (merchantItems.length > 0) {
+      const bestItem = merchantItems[0];
+      if (bestItem.id) {
+        targetUrl = `https://flipp.com/item/${bestItem.id}?postal_code=${encodeURIComponent(postalCode)}`;
+      } else if (bestItem.flyer_id) {
+        targetUrl = `https://flipp.com/flyer/${bestItem.flyer_id}?postal_code=${encodeURIComponent(postalCode)}`;
+      }
+    } else if (items.length > 0) {
+      const anyMerchantItem = items.find((it: any) => {
+        const itMerchant = (it.merchant_name || "").toLowerCase();
+        const targetMerchant = cleanStore.toLowerCase();
+        return itMerchant.includes(targetMerchant) || targetMerchant.includes(itMerchant);
+      });
+      if (anyMerchantItem && anyMerchantItem.id) {
+        targetUrl = `https://flipp.com/item/${anyMerchantItem.id}?postal_code=${encodeURIComponent(postalCode)}`;
+      }
+    }
+
+    return res.json({ url: targetUrl });
+  } catch (error: any) {
+    console.error("Error in /api/flipp/resolve:", error);
+    const storeName = req.query.storeName as string || "";
+    const itemName = req.query.itemName as string || "";
+    const postalCode = req.query.postalCode as string || "K7H3C6";
+    const fallbackUrl = `https://flipp.com/search?q=${encodeURIComponent(storeName + " " + itemName)}&postal_code=${encodeURIComponent(postalCode)}`;
+    return res.json({ url: fallbackUrl });
+  }
+});
+
 // 1. GET /api/sync
 app.get("/api/sync", async (req, res) => {
   try {
