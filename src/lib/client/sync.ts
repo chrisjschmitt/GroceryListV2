@@ -1,15 +1,17 @@
-import { GroceryItem, RegularItem, SyncMetadata, PriceData } from "../types";
+import { GroceryItem, RegularItem, SyncMetadata, PriceData, PurchaseLogEntry } from "../types";
 import {
   localGetGroceryItems,
   localSetGroceryItems,
   localGetRegularItems,
   localSetRegularItems,
+  localGetPurchaseLogs,
+  localSetPurchaseLogs,
   setLastSyncTime,
 } from "./local-db";
 import { getDeviceName } from "./device-name";
 
 export type SyncStatus = "synced" | "syncing" | "offline" | "error";
-export type DirtyFlag = "grocery" | "regular";
+export type DirtyFlag = "grocery" | "regular" | "purchaseLogs";
 
 const FETCH_TIMEOUT = 10000;
 
@@ -38,6 +40,9 @@ export async function pushDirtyToServer(dirty: Set<DirtyFlag>): Promise<{ succes
     if (dirty.has("regular")) {
       payload.regularItems = await localGetRegularItems();
     }
+    if (dirty.has("purchaseLogs")) {
+      payload.purchaseLogs = await localGetPurchaseLogs();
+    }
 
     const res = await fetchWithTimeout("/api/sync", {
       method: "PUT",
@@ -55,7 +60,7 @@ export async function pushDirtyToServer(dirty: Set<DirtyFlag>): Promise<{ succes
 }
 
 export async function syncAllToServer(): Promise<{ success: boolean }> {
-  return pushDirtyToServer(new Set(["grocery", "regular"]));
+  return pushDirtyToServer(new Set(["grocery", "regular", "purchaseLogs"]));
 }
 
 export interface PullResult {
@@ -63,6 +68,7 @@ export interface PullResult {
   regularItems: RegularItem[];
   syncMeta: SyncMetadata | null;
   prices: PriceData;
+  purchaseLogs: PurchaseLogEntry[];
 }
 
 export async function pullFromServer(): Promise<PullResult | null> {
@@ -77,12 +83,14 @@ export async function pullFromServer(): Promise<PullResult | null> {
     const regularItems: RegularItem[] = data.regularItems || [];
     const syncMeta: SyncMetadata | null = data.syncMeta || null;
     const prices: PriceData = data.prices || {};
+    const purchaseLogs: PurchaseLogEntry[] = data.purchaseLogs || [];
 
     await localSetGroceryItems(groceryItems);
     await localSetRegularItems(regularItems);
+    await localSetPurchaseLogs(purchaseLogs);
     await setLastSyncTime(Date.now());
 
-    return { groceryItems, regularItems, syncMeta, prices };
+    return { groceryItems, regularItems, syncMeta, prices, purchaseLogs };
   } catch {
     return null;
   }

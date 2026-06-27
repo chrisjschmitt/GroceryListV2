@@ -1,12 +1,13 @@
 import { openDB, IDBPDatabase } from "idb";
-import { GroceryItem, RegularItem } from "../types";
+import { GroceryItem, RegularItem, PurchaseLogEntry } from "../types";
 
 const DB_NAME = "grocerylist";
-const DB_VERSION = 1;
+const DB_VERSION = 2;
 
 export interface LocalDB {
   groceryItems: GroceryItem[];
   regularItems: RegularItem[];
+  purchaseLogs: PurchaseLogEntry[];
 }
 
 let dbPromise: Promise<IDBPDatabase> | null = null;
@@ -23,6 +24,9 @@ function getLocalDb(): Promise<IDBPDatabase> {
         }
         if (!db.objectStoreNames.contains("meta")) {
           db.createObjectStore("meta", { keyPath: "key" });
+        }
+        if (!db.objectStoreNames.contains("purchaseLogs")) {
+          db.createObjectStore("purchaseLogs", { keyPath: "id" });
         }
       },
     });
@@ -123,4 +127,29 @@ export async function getLastSyncTime(): Promise<number> {
 export async function setLastSyncTime(time: number): Promise<void> {
   const db = await getLocalDb();
   await db.put("meta", { key: "lastSync", value: time });
+}
+
+// Purchase Logs
+export async function localGetPurchaseLogs(): Promise<PurchaseLogEntry[]> {
+  const db = await getLocalDb();
+  return db.getAll("purchaseLogs");
+}
+
+export async function localSetPurchaseLogs(logs: PurchaseLogEntry[]): Promise<void> {
+  const db = await getLocalDb();
+  const tx = db.transaction("purchaseLogs", "readwrite");
+  await tx.store.clear();
+  for (const log of logs) {
+    await tx.store.put(log);
+  }
+  await tx.done;
+}
+
+export async function localAddPurchaseLogs(newLogs: PurchaseLogEntry[]): Promise<void> {
+  const db = await getLocalDb();
+  const tx = db.transaction("purchaseLogs", "readwrite");
+  for (const log of newLogs) {
+    await tx.store.put(log);
+  }
+  await tx.done;
 }

@@ -129,6 +129,7 @@ export interface SyncMetadata {
   lastSavedTime: number;
 }
 
+
 export interface TelemetryEntry {
   timestamp: string;
   store_key?: string;
@@ -139,4 +140,19 @@ export interface TelemetryEntry {
   severity?: "success" | "warning" | "error" | "info";
   message?: string;
 }
+
+export interface PurchaseLogEntry {
+  id: string; // unique id (log-[timestamp]-[random])
+  timestamp: string; // ISO string
+  itemId: string; // matched catalog item ID or UPC
+  name: string; // product name
+  category: string; // product category
+  quantity: number; // quantity purchased
+  unit?: string;
+  units?: number;
+  storeId?: string; // purchased store ID
+  storeName?: string; // purchased store name
+  price?: number; // active price at purchase
+}
+
 

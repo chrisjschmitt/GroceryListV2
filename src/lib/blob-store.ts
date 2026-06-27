@@ -11,7 +11,8 @@ import {
   CombinedStoreLink,
   StoreInfo,
   ScrapeItemConfig,
-  ScrapeStoreItemLink
+  ScrapeStoreItemLink,
+  PurchaseLogEntry
 } from "./types.js";
 import { standardizeCategory } from "./categories.js";
 import fs from "fs";
@@ -24,6 +25,7 @@ const SYNC_META_BLOB = "grocerylist/sync-meta.json";
 const PRICES_BLOB = "grocerylist/prices.json";
 const SCRAPE_CONFIG_BLOB = "grocerylist/scrape-config.json";
 const TELEMETRY_BLOB = "grocerylist/telemetry.json";
+const PURCHASE_LOGS_BLOB = "grocerylist/purchase-logs.json";
 
 // We keep a local database file structure in case no BLOB_READ_WRITE_TOKEN is defined.
 const isServerless = !!(process.env.VERCEL || process.env.NODE_ENV === "production");
@@ -269,6 +271,14 @@ export async function blobGetGroceryItems(): Promise<GroceryItem[]> {
 
 export async function blobSetGroceryItems(items: GroceryItem[]): Promise<void> {
   await writeBlob(GROCERY_BLOB, items);
+}
+
+export async function blobGetPurchaseLogs(): Promise<PurchaseLogEntry[]> {
+  return readBlob<PurchaseLogEntry[]>(PURCHASE_LOGS_BLOB, []);
+}
+
+export async function blobSetPurchaseLogs(logs: PurchaseLogEntry[]): Promise<void> {
+  await writeBlob(PURCHASE_LOGS_BLOB, logs);
 }
 
 export async function blobGetRegularItems(): Promise<RegularItem[]> {

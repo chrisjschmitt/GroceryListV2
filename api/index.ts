@@ -6,7 +6,7 @@ import path from "path";
 import { MongoClient, ObjectId } from "mongodb";
 import { parseCsv } from "../src/lib/csv-parser.js";
 import { evaluateGeminiMatch, runAllMatchingTests } from "../src/lib/gemini-match-service.js";
-import { RegularItem } from "../src/lib/types";
+import { RegularItem, PurchaseLogEntry } from "../src/lib/types";
 import {
   blobGetGroceryItems,
   blobSetGroceryItems,
@@ -25,6 +25,8 @@ import {
   checkForLocalPricesJsonAndImport,
   blobGetCombinedCatalog,
   blobSetCombinedCatalog,
+  blobGetPurchaseLogs,
+  blobSetPurchaseLogs,
 } from "../src/lib/blob-store.js";
 
 const app = express();
@@ -802,13 +804,14 @@ app.post("/api/append-grocery", async (req, res) => {
 // 1. GET /api/sync
 app.get("/api/sync", async (req, res) => {
   try {
-    const [groceryItems, regularItems, syncMeta, prices] = await Promise.all([
+    const [groceryItems, regularItems, syncMeta, prices, purchaseLogs] = await Promise.all([
       blobGetGroceryItems(),
       blobGetRegularItems(),
       blobGetSyncMeta(),
       getMergedPrices(),
+      blobGetPurchaseLogs(),
     ]);
-    res.json({ groceryItems, regularItems, syncMeta, prices });
+    res.json({ groceryItems, regularItems, syncMeta, prices, purchaseLogs });
   } catch (error) {
     console.error("GET /api/sync error:", error);
     res.status(500).json({ error: "Failed to fetch sync data", details: String(error) });
@@ -818,13 +821,24 @@ app.get("/api/sync", async (req, res) => {
 // 2. PUT /api/sync
 app.put("/api/sync", async (req, res) => {
   try {
-    const { groceryItems, regularItems, deviceName } = req.body;
+    const { groceryItems, regularItems, purchaseLogs, deviceName } = req.body;
 
     if (groceryItems) {
       await blobSetGroceryItems(groceryItems);
     }
     if (regularItems) {
       await blobSetRegularItems(regularItems);
+    }
+    if (purchaseLogs && Array.isArray(purchaseLogs)) {
+      const existingLogs = await blobGetPurchaseLogs();
+      const mergedLogsMap = new Map<string, PurchaseLogEntry>();
+      for (const log of existingLogs) {
+        mergedLogsMap.set(log.id, log);
+      }
+      for (const log of purchaseLogs) {
+        mergedLogsMap.set(log.id, log);
+      }
+      await blobSetPurchaseLogs(Array.from(mergedLogsMap.values()));
     }
 
     const syncMeta = await blobUpdateSyncMeta(deviceName || "Unknown");

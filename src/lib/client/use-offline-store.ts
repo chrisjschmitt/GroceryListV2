@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback, useRef, useMemo } from "react";
-import { GroceryItem, RegularItem, PriceData, PriceEntry } from "../types";
+import { GroceryItem, RegularItem, PriceData, PriceEntry, PurchaseLogEntry } from "../types";
 import {
   localGetGroceryItems,
   localAddGroceryItem,
@@ -12,6 +12,8 @@ import {
   localUpdateRegularItem,
   localClearRegularItems,
   localRemoveRegularItem,
+  localGetPurchaseLogs,
+  localAddPurchaseLogs,
 } from "./local-db";
 import { pullFromServer, pushDirtyToServer, syncAllToServer, SyncStatus, DirtyFlag } from "./sync";
 import { parseCsv } from "../csv-parser";
@@ -23,6 +25,7 @@ const POLL_INTERVAL = 60000;
 export interface OfflineStore {
   groceryItems: GroceryItem[];
   regularItems: RegularItem[];
+  purchaseLogs: PurchaseLogEntry[];
   syncStatus: SyncStatus;
   isOnline: boolean;
   lastSynced: Date | null;
@@ -55,6 +58,8 @@ export function useOfflineStore(): OfflineStore {
   const [lastSynced, setLastSynced] = useState<Date | null>(null);
   const [lastSavedBy, setLastSavedBy] = useState<string | null>(null);
   const [prices, setPrices] = useState<PriceData>({});
+
+  const [purchaseLogs, setPurchaseLogs] = useState<PurchaseLogEntry[]>([]);
 
   const [serverGroceryItems, setServerGroceryItems] = useState<GroceryItem[]>([]);
   const [serverRegularItems, setServerRegularItems] = useState<RegularItem[]>([]);
@@ -93,9 +98,12 @@ export function useOfflineStore(): OfflineStore {
     return false;
   }, [regularItems, serverRegularItems]);
 
-  const hasPendingChanges = isGroceryItemsDifferent || isRegularItemsDifferent;
-
   const dirtyRef = useRef<Set<DirtyFlag>>(new Set());
+
+  // We check dirtyRef instead of comparing with server logs because logs only append
+  const hasPendingChanges = useMemo(() => {
+    return isGroceryItemsDifferent || isRegularItemsDifferent || dirtyRef.current.has("purchaseLogs");
+  }, [isGroceryItemsDifferent, isRegularItemsDifferent, purchaseLogs]);
 
   const markSynced = useCallback((savedBy?: string) => {
     setSyncStatus("synced");
@@ -111,6 +119,7 @@ export function useOfflineStore(): OfflineStore {
     const toFlush = new Set<DirtyFlag>();
     if (isGroceryItemsDifferent) toFlush.add("grocery");
     if (isRegularItemsDifferent) toFlush.add("regular");
+    if (dirtyRef.current.has("purchaseLogs")) toFlush.add("purchaseLogs");
     if (toFlush.size === 0) return;
 
     if (!navigator.onLine) {
@@ -138,6 +147,7 @@ export function useOfflineStore(): OfflineStore {
       setGroceryItems(serverData.groceryItems);
       setRegularItems(serverData.regularItems);
       setPrices(serverData.prices);
+      setPurchaseLogs(serverData.purchaseLogs);
       setServerGroceryItems(JSON.parse(JSON.stringify(serverData.groceryItems)));
       setServerRegularItems(JSON.parse(JSON.stringify(serverData.regularItems)));
       markSynced(serverData.syncMeta?.lastSavedBy || undefined);
@@ -147,13 +157,15 @@ export function useOfflineStore(): OfflineStore {
   // Load from IndexedDB on mount, then do initial server reconciliation
   useEffect(() => {
     async function init() {
-      const [localGrocery, localRegular] = await Promise.all([
+      const [localGrocery, localRegular, localLogs] = await Promise.all([
         localGetGroceryItems(),
         localGetRegularItems(),
+        localGetPurchaseLogs(),
       ]);
 
       setGroceryItems(localGrocery);
       setRegularItems(localRegular);
+      setPurchaseLogs(localLogs);
       setServerGroceryItems(JSON.parse(JSON.stringify(localGrocery)));
       setServerRegularItems(JSON.parse(JSON.stringify(localRegular)));
 
@@ -170,6 +182,7 @@ export function useOfflineStore(): OfflineStore {
         setGroceryItems(serverData.groceryItems);
         setRegularItems(serverData.regularItems);
         setPrices(serverData.prices);
+        setPurchaseLogs(serverData.purchaseLogs);
         setServerGroceryItems(JSON.parse(JSON.stringify(serverData.groceryItems)));
         setServerRegularItems(JSON.parse(JSON.stringify(serverData.regularItems)));
         markSynced(serverData.syncMeta?.lastSavedBy || undefined);
@@ -356,10 +369,31 @@ export function useOfflineStore(): OfflineStore {
   }, [markDirty]);
 
   const clearCheckedGroceryItems = useCallback(async () => {
+    const checked = groceryItems.filter((i) => i.checked);
+    if (checked.length > 0) {
+      const newLogs: PurchaseLogEntry[] = checked.map((item) => ({
+        id: `log-${Date.now()}-${Math.random().toString(36).substring(2, 7)}`,
+        timestamp: new Date().toISOString(),
+        itemId: item.id,
+        name: item.name,
+        category: item.category,
+        quantity: item.quantity,
+        unit: item.unit,
+        units: item.units,
+        storeId: item.bestPrice?.storeId,
+        storeName: item.bestPrice?.storeName,
+        price: item.bestPrice?.price,
+      }));
+
+      await localAddPurchaseLogs(newLogs);
+      setPurchaseLogs((prev) => [...prev, ...newLogs]);
+      markDirty("purchaseLogs");
+    }
+
     setGroceryItems((prev) => prev.filter((i) => !i.checked));
     await localClearCheckedGroceryItems();
     markDirty("grocery");
-  }, [markDirty]);
+  }, [groceryItems, markDirty]);
 
   const clearAllGroceryItems = useCallback(async () => {
     setGroceryItems([]);
@@ -452,6 +486,7 @@ export function useOfflineStore(): OfflineStore {
   return {
     groceryItems,
     regularItems,
+    purchaseLogs,
     syncStatus,
     isOnline,
     lastSynced,
