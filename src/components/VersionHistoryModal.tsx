@@ -21,6 +21,19 @@ interface VersionEntry {
 
 const VERSIONS: VersionEntry[] = [
   {
+    version: "1.9.29",
+    date: "June 2026",
+    type: "patch",
+    title: "Flyer URLs Redirected to Flipp.com Search",
+    changes: [
+      {
+        icon: <Cloud className="w-4 h-4 text-emerald-500" />,
+        category: "Price Matching",
+        description: "Redirected flyer links to query Flipp.com search with 'Store Name + Item Name' rather than direct store websites, ensuring cashier-accepted flyer clippings are shown."
+      }
+    ]
+  },
+  {
     version: "1.9.28",
     date: "June 2026",
     type: "patch",
