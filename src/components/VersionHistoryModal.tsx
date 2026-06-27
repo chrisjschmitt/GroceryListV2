@@ -21,6 +21,19 @@ interface VersionEntry {
 
 const VERSIONS: VersionEntry[] = [
   {
+    version: "1.9.27",
+    date: "June 2026",
+    type: "patch",
+    title: "Checkout Price Matching & Flyer Validation",
+    changes: [
+      {
+        icon: <Zap className="w-4 h-4 text-emerald-500" />,
+        category: "Price Matching",
+        description: "Implemented primary store selection (Shopping At dropdown) and automatic competitor price match identification. Added inline Open Flyer links mapping to Flipp/wishabi URLs."
+      }
+    ]
+  },
+  {
     version: "1.9.21",
     date: "June 2026",
     type: "patch",
