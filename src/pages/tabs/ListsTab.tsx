@@ -64,7 +64,7 @@ function abbreviateStoreName(name: string): string {
   return name.substring(0, 3).toUpperCase();
 }
 
-function getFlippSearchUrl(storeName: string, itemName: string, configName?: string): string {
+function getFlippSearchUrl(storeName: string, itemName: string, configName?: string, postalCode?: string): string {
   let queryStore = storeName || "";
   if (queryStore.toLowerCase().includes("food basics")) queryStore = "Food Basics";
   else if (queryStore.toLowerCase().includes("no frills")) queryStore = "No Frills";
@@ -87,7 +87,11 @@ function getFlippSearchUrl(storeName: string, itemName: string, configName?: str
     .trim();
 
   const fullQuery = `${queryStore} ${queryItem}`.trim();
-  return `https://flipp.com/search?q=${encodeURIComponent(fullQuery)}`;
+  let url = `https://flipp.com/search?q=${encodeURIComponent(fullQuery)}`;
+  if (postalCode) {
+    url += `&postal_code=${encodeURIComponent(postalCode.trim())}`;
+  }
+  return url;
 }
 
 export default function ListsTab() {
@@ -567,7 +571,7 @@ export default function ListsTab() {
                                     ⚡ Match ${cheapestPriceVal!.toFixed(2)} at {abbreviateStoreName(matchedStoreName)}
                                   </span>
                                   <a
-                                    href={getFlippSearchUrl(matchedStoreName, item.name, priceInfo?.config_name)}
+                                    href={getFlippSearchUrl(matchedStoreName, item.name, priceInfo?.config_name, bestCompetitorInfo?.postal_code || priceInfo?.postal_code)}
                                     target="_blank"
                                     rel="noreferrer"
                                     className="text-[8px] font-black uppercase bg-emerald-600 hover:bg-emerald-700 text-white border border-emerald-500 px-1 py-0.2 rounded-sm shadow-[0.5px_0.5px_0px_rgba(0,0,0,0.1)] flex items-center gap-0.5 hover:underline cursor-pointer text-center"

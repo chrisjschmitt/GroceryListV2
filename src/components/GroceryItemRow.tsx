@@ -41,7 +41,7 @@ export function isSaleExpired(validUntil?: string | null): boolean {
   return now > expiryDate;
 }
 
-function getFlippSearchUrl(storeName: string, itemName: string, configName?: string): string {
+function getFlippSearchUrl(storeName: string, itemName: string, configName?: string, postalCode?: string): string {
   let queryStore = storeName || "";
   if (queryStore.toLowerCase().includes("food basics")) queryStore = "Food Basics";
   else if (queryStore.toLowerCase().includes("no frills")) queryStore = "No Frills";
@@ -64,7 +64,11 @@ function getFlippSearchUrl(storeName: string, itemName: string, configName?: str
     .trim();
 
   const fullQuery = `${queryStore} ${queryItem}`.trim();
-  return `https://flipp.com/search?q=${encodeURIComponent(fullQuery)}`;
+  let url = `https://flipp.com/search?q=${encodeURIComponent(fullQuery)}`;
+  if (postalCode) {
+    url += `&postal_code=${encodeURIComponent(postalCode.trim())}`;
+  }
+  return url;
 }
 
 export default function GroceryItemRow({ item, onToggle, onRemove, onUpdateQuantity, priceInfo, primaryStoreId }: GroceryItemRowProps) {
@@ -85,7 +89,8 @@ export default function GroceryItemRow({ item, onToggle, onRemove, onUpdateQuant
           price: pVal,
           onSale: storeData.is_on_sale === 1 || !!storeData.is_on_sale,
           lookup_url: storeData.lookup_url,
-          valid_until: storeData.valid_until
+          valid_until: storeData.valid_until,
+          postal_code: storeData.postal_code || priceInfo.postal_code
         };
       }
     }
@@ -98,7 +103,8 @@ export default function GroceryItemRow({ item, onToggle, onRemove, onUpdateQuant
         price: rawPrice,
         onSale: priceInfo.is_on_sale === 1 || !!priceInfo.is_on_sale,
         lookup_url: priceInfo.lookup_url,
-        valid_until: priceInfo.valid_until
+        valid_until: priceInfo.valid_until,
+        postal_code: priceInfo.postal_code
       };
     }
 
@@ -117,6 +123,7 @@ export default function GroceryItemRow({ item, onToggle, onRemove, onUpdateQuant
             onSale: storeInfo.is_on_sale === 1 || !!storeInfo.is_on_sale,
             lookup_url: storeInfo.lookup_url || "",
             valid_until: storeInfo.valid_until,
+            postal_code: storeInfo.postal_code || priceInfo.postal_code
           };
         });
     }
@@ -298,7 +305,7 @@ export default function GroceryItemRow({ item, onToggle, onRemove, onUpdateQuant
                     ⚡ Match ${bestCompetitorPrice.price.toFixed(2)} ({abbreviateStoreName(bestCompetitorPrice.storeName)})
                   </span>
                   <a
-                    href={getFlippSearchUrl(bestCompetitorPrice.storeName, item.name, priceInfo?.config_name)}
+                    href={getFlippSearchUrl(bestCompetitorPrice.storeName, item.name, priceInfo?.config_name, bestCompetitorPrice.postal_code || priceInfo?.postal_code)}
                     target="_blank"
                     rel="noopener noreferrer"
                     className="text-[9px] font-black uppercase bg-emerald-500 hover:bg-emerald-600 text-white border border-emerald-650 px-1.5 py-0.5 rounded shadow-[1px_1px_0px_rgba(0,0,0,1)] hover:shadow-none hover:translate-x-[1px] hover:translate-y-[1px] transition-all flex items-center gap-0.5 hover:underline cursor-pointer text-center text-xs"
