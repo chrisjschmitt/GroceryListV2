@@ -21,6 +21,19 @@ interface VersionEntry {
 
 const VERSIONS: VersionEntry[] = [
   {
+    version: "1.9.33",
+    date: "June 2026",
+    type: "patch",
+    title: "Flyer Landing Page Fallback",
+    changes: [
+      {
+        icon: <Layout className="w-4 h-4 text-emerald-500" />,
+        category: "Price Matching",
+        description: "Implemented a secondary fallback querying Wishabi for the merchant's active flyer ID when a specific item search returns 0 matches. This opens the actual store flyer landing page instead of a blank search results page."
+      }
+    ]
+  },
+  {
     version: "1.9.32",
     date: "June 2026",
     type: "patch",
