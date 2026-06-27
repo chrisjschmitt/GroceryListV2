@@ -21,6 +21,19 @@ interface VersionEntry {
 
 const VERSIONS: VersionEntry[] = [
   {
+    version: "1.9.30",
+    date: "June 2026",
+    type: "patch",
+    title: "Flyer Search Postal Code Parameter Support",
+    changes: [
+      {
+        icon: <Database className="w-4 h-4 text-emerald-500" />,
+        category: "Price Matching",
+        description: "Appended the store-specific postal_code parameter to dynamic Flipp.com search URLs to ensure the correct local flyer clipping is loaded."
+      }
+    ]
+  },
+  {
     version: "1.9.29",
     date: "June 2026",
     type: "patch",
