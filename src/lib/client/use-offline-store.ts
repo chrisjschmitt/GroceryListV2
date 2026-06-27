@@ -157,11 +157,27 @@ export function useOfflineStore(): OfflineStore {
   // Load from IndexedDB on mount, then do initial server reconciliation
   useEffect(() => {
     async function init() {
-      const [localGrocery, localRegular, localLogs] = await Promise.all([
-        localGetGroceryItems(),
-        localGetRegularItems(),
-        localGetPurchaseLogs(),
-      ]);
+      let localGrocery: GroceryItem[] = [];
+      let localRegular: RegularItem[] = [];
+      let localLogs: PurchaseLogEntry[] = [];
+
+      try {
+        localGrocery = await localGetGroceryItems();
+      } catch (err) {
+        console.error("Failed to load local grocery items from IndexedDB:", err);
+      }
+
+      try {
+        localRegular = await localGetRegularItems();
+      } catch (err) {
+        console.error("Failed to load local regular items from IndexedDB:", err);
+      }
+
+      try {
+        localLogs = await localGetPurchaseLogs();
+      } catch (err) {
+        console.error("Failed to load local purchase logs from IndexedDB:", err);
+      }
 
       setGroceryItems(localGrocery);
       setRegularItems(localRegular);
@@ -176,27 +192,32 @@ export function useOfflineStore(): OfflineStore {
       }
 
       setSyncStatus("syncing");
-      const serverData = await pullFromServer();
+      try {
+        const serverData = await pullFromServer();
 
-      if (serverData) {
-        setGroceryItems(serverData.groceryItems);
-        setRegularItems(serverData.regularItems);
-        setPrices(serverData.prices);
-        setPurchaseLogs(serverData.purchaseLogs);
-        setServerGroceryItems(JSON.parse(JSON.stringify(serverData.groceryItems)));
-        setServerRegularItems(JSON.parse(JSON.stringify(serverData.regularItems)));
-        markSynced(serverData.syncMeta?.lastSavedBy || undefined);
-      } else if (localGrocery.length > 0 || localRegular.length > 0) {
-        const result = await syncAllToServer();
-        if (result.success) {
-          setServerGroceryItems(JSON.parse(JSON.stringify(localGrocery)));
-          setServerRegularItems(JSON.parse(JSON.stringify(localRegular)));
-          markSynced(getDeviceName());
+        if (serverData) {
+          setGroceryItems(serverData.groceryItems);
+          setRegularItems(serverData.regularItems);
+          setPrices(serverData.prices);
+          setPurchaseLogs(serverData.purchaseLogs);
+          setServerGroceryItems(JSON.parse(JSON.stringify(serverData.groceryItems)));
+          setServerRegularItems(JSON.parse(JSON.stringify(serverData.regularItems)));
+          markSynced(serverData.syncMeta?.lastSavedBy || undefined);
+        } else if (localGrocery.length > 0 || localRegular.length > 0) {
+          const result = await syncAllToServer();
+          if (result.success) {
+            setServerGroceryItems(JSON.parse(JSON.stringify(localGrocery)));
+            setServerRegularItems(JSON.parse(JSON.stringify(localRegular)));
+            markSynced(getDeviceName());
+          } else {
+            setSyncStatus("offline");
+          }
         } else {
-          setSyncStatus("offline");
+          markSynced();
         }
-      } else {
-        markSynced();
+      } catch (syncErr) {
+        console.error("Failed server reconciliation on mount:", syncErr);
+        setSyncStatus("error");
       }
     }
 
