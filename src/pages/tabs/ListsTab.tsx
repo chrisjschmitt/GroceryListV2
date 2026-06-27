@@ -64,6 +64,32 @@ function abbreviateStoreName(name: string): string {
   return name.substring(0, 3).toUpperCase();
 }
 
+function getFlippSearchUrl(storeName: string, itemName: string, configName?: string): string {
+  let queryStore = storeName || "";
+  if (queryStore.toLowerCase().includes("food basics")) queryStore = "Food Basics";
+  else if (queryStore.toLowerCase().includes("no frills")) queryStore = "No Frills";
+  else if (queryStore.toLowerCase().includes("your independent grocer")) queryStore = "Your Independent Grocer";
+  else if (queryStore.toLowerCase().includes("loblaws")) queryStore = "Loblaws";
+  else if (queryStore.toLowerCase().includes("metro")) queryStore = "Metro";
+  else if (queryStore.toLowerCase().includes("freshco")) queryStore = "FreshCo";
+  else if (queryStore.toLowerCase().includes("walmart")) queryStore = "Walmart";
+
+  let queryItem = itemName || "";
+  if (configName) {
+    queryItem = configName;
+  }
+  queryItem = queryItem
+    .replace(/\s*-\s*\d+$/gi, "") 
+    .replace(/\s*-\s*\w+$/gi, "") 
+    .replace(/\s*\(\d+g\)/gi, "")  
+    .replace(/\s*\d+g\b/gi, "")    
+    .replace(/\s*\d+-pack\b/gi, "") 
+    .trim();
+
+  const fullQuery = `${queryStore} ${queryItem}`.trim();
+  return `https://flipp.com/search?q=${encodeURIComponent(fullQuery)}`;
+}
+
 export default function ListsTab() {
   const store = useOfflineStore();
   const [expandedItems, setExpandedItems] = useState<Set<string>>(new Set());
@@ -541,7 +567,7 @@ export default function ListsTab() {
                                     ⚡ Match ${cheapestPriceVal!.toFixed(2)} at {abbreviateStoreName(matchedStoreName)}
                                   </span>
                                   <a
-                                    href={bestCompetitorInfo?.lookup_url || `https://flipp.com/search?q=${encodeURIComponent(item.name)}`}
+                                    href={getFlippSearchUrl(matchedStoreName, item.name, priceInfo?.config_name)}
                                     target="_blank"
                                     rel="noreferrer"
                                     className="text-[8px] font-black uppercase bg-emerald-600 hover:bg-emerald-700 text-white border border-emerald-500 px-1 py-0.2 rounded-sm shadow-[0.5px_0.5px_0px_rgba(0,0,0,0.1)] flex items-center gap-0.5 hover:underline cursor-pointer text-center"
@@ -684,9 +710,13 @@ export default function ListsTab() {
 
                             {/* Action Buttons Row */}
                             <div className="flex justify-end items-center pt-2 border-t border-outline/5 gap-2 text-xs">
-                              {(bestCompetitorInfo?.lookup_url || priceInfo?.lookup_url) && (
+                              {(bestCompetitorInfo || priceInfo) && (
                                 <a
-                                  href={bestCompetitorInfo?.lookup_url || priceInfo?.lookup_url || `https://flipp.com/search?q=${encodeURIComponent(item.name)}`}
+                                  href={getFlippSearchUrl(
+                                    matchedStoreName || bestCompetitorInfo?.store_name || priceInfo?.store_name || "",
+                                    item.name,
+                                    priceInfo?.config_name
+                                  )}
                                   target="_blank"
                                   rel="noreferrer"
                                   className="flex items-center gap-1.5 px-3 py-1.5 bg-emerald-50 hover:bg-emerald-100 border border-emerald-250 text-emerald-700 rounded-md transition-colors font-bold text-xs"

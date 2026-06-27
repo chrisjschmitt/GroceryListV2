@@ -41,6 +41,32 @@ export function isSaleExpired(validUntil?: string | null): boolean {
   return now > expiryDate;
 }
 
+function getFlippSearchUrl(storeName: string, itemName: string, configName?: string): string {
+  let queryStore = storeName || "";
+  if (queryStore.toLowerCase().includes("food basics")) queryStore = "Food Basics";
+  else if (queryStore.toLowerCase().includes("no frills")) queryStore = "No Frills";
+  else if (queryStore.toLowerCase().includes("your independent grocer")) queryStore = "Your Independent Grocer";
+  else if (queryStore.toLowerCase().includes("loblaws")) queryStore = "Loblaws";
+  else if (queryStore.toLowerCase().includes("metro")) queryStore = "Metro";
+  else if (queryStore.toLowerCase().includes("freshco")) queryStore = "FreshCo";
+  else if (queryStore.toLowerCase().includes("walmart")) queryStore = "Walmart";
+
+  let queryItem = itemName || "";
+  if (configName) {
+    queryItem = configName;
+  }
+  queryItem = queryItem
+    .replace(/\s*-\s*\d+$/gi, "") 
+    .replace(/\s*-\s*\w+$/gi, "") 
+    .replace(/\s*\(\d+g\)/gi, "")  
+    .replace(/\s*\d+g\b/gi, "")    
+    .replace(/\s*\d+-pack\b/gi, "") 
+    .trim();
+
+  const fullQuery = `${queryStore} ${queryItem}`.trim();
+  return `https://flipp.com/search?q=${encodeURIComponent(fullQuery)}`;
+}
+
 export default function GroceryItemRow({ item, onToggle, onRemove, onUpdateQuantity, priceInfo, primaryStoreId }: GroceryItemRowProps) {
   let finalPrice = undefined;
   let otherPrices: any[] = [];
@@ -272,7 +298,7 @@ export default function GroceryItemRow({ item, onToggle, onRemove, onUpdateQuant
                     ⚡ Match ${bestCompetitorPrice.price.toFixed(2)} ({abbreviateStoreName(bestCompetitorPrice.storeName)})
                   </span>
                   <a
-                    href={bestCompetitorPrice.lookup_url || `https://flipp.com/search?q=${encodeURIComponent(item.name)}`}
+                    href={getFlippSearchUrl(bestCompetitorPrice.storeName, item.name, priceInfo?.config_name)}
                     target="_blank"
                     rel="noopener noreferrer"
                     className="text-[9px] font-black uppercase bg-emerald-500 hover:bg-emerald-600 text-white border border-emerald-650 px-1.5 py-0.5 rounded shadow-[1px_1px_0px_rgba(0,0,0,1)] hover:shadow-none hover:translate-x-[1px] hover:translate-y-[1px] transition-all flex items-center gap-0.5 hover:underline cursor-pointer text-center text-xs"
