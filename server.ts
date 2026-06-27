@@ -854,7 +854,6 @@ async function startServer() {
       if (fetchResponse.ok) {
         const data: any = await fetchResponse.json();
         const items = data.items || [];
-
         const merchantItems = items.filter((it: any) => {
           const itMerchant = (it.merchant_name || "").toLowerCase();
           const targetMerchant = cleanStore.toLowerCase();
@@ -864,16 +863,52 @@ async function startServer() {
         if (merchantItems.length > 0) {
           const bestItem = merchantItems[0];
           if (bestItem.id) {
-            targetUrl = `https://flipp.com/item/${bestItem.id}?postal_code=${encodeURIComponent(postalCode)}`;
-            return res.json({ url: targetUrl });
+            return res.json({ url: `https://flipp.com/item/${bestItem.id}?postal_code=${encodeURIComponent(postalCode)}` });
           } else if (bestItem.flyer_id) {
-            targetUrl = `https://flipp.com/flyer/${bestItem.flyer_id}?postal_code=${encodeURIComponent(postalCode)}`;
-            return res.json({ url: targetUrl });
+            return res.json({ url: `https://flipp.com/flyer/${bestItem.flyer_id}?postal_code=${encodeURIComponent(postalCode)}` });
           }
         }
       }
 
-      // FALLBACK: If specific item search returned 0 items, query for the store flyer itself
+      // SECONDARY STAGE: Try simplified query by stripping flavor/descriptive terms (e.g. unsalted, salted, organic)
+      const simplifiedItem = cleanItem
+        .replace(/\b(unsalted|salted|salted\/unsalted|organic|original|sweet|fresh|frozen|large|small|sliced|whole)\b/gi, "")
+        .replace(/\s+/g, " ")
+        .trim();
+
+      if (simplifiedItem && simplifiedItem !== cleanItem) {
+        const secondaryTerms = `${cleanStore} ${simplifiedItem}`.trim();
+        try {
+          const secondaryApiUrl = `https://backflipp.wishabi.com/flipp/items/search?locale=en-ca&postal_code=${encodeURIComponent(postalCode.trim())}&q=${encodeURIComponent(secondaryTerms)}`;
+          const secondaryResponse = await fetch(secondaryApiUrl, {
+            headers: {
+              "User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
+            }
+          });
+          if (secondaryResponse.ok) {
+            const secData: any = await secondaryResponse.json();
+            const secItems = secData.items || [];
+            const secMerchantItems = secItems.filter((it: any) => {
+              const itMerchant = (it.merchant_name || "").toLowerCase();
+              const targetMerchant = cleanStore.toLowerCase();
+              return itMerchant.includes(targetMerchant) || targetMerchant.includes(itMerchant);
+            });
+
+            if (secMerchantItems.length > 0) {
+              const bestSecItem = secMerchantItems[0];
+              if (bestSecItem.id) {
+                return res.json({ url: `https://flipp.com/item/${bestSecItem.id}?postal_code=${encodeURIComponent(postalCode)}` });
+              } else if (bestSecItem.flyer_id) {
+                return res.json({ url: `https://flipp.com/flyer/${bestSecItem.flyer_id}?postal_code=${encodeURIComponent(postalCode)}` });
+              }
+            }
+          }
+        } catch (secErr) {
+          console.error("Error in secondary simplified search:", secErr);
+        }
+      }
+
+      // TERTIARY STAGE: If specific item search returned 0 items, query for the store flyer itself
       try {
         const storeApiUrl = `https://backflipp.wishabi.com/flipp/items/search?locale=en-ca&postal_code=${encodeURIComponent(postalCode.trim())}&q=${encodeURIComponent(cleanStore)}`;
         const storeResponse = await fetch(storeApiUrl, {
@@ -890,8 +925,7 @@ async function startServer() {
             return itMerchant.includes(targetMerchant) || targetMerchant.includes(itMerchant);
           });
           if (matchedStoreItem && matchedStoreItem.flyer_id) {
-            targetUrl = `https://flipp.com/flyer/${matchedStoreItem.flyer_id}?postal_code=${encodeURIComponent(postalCode)}`;
-            return res.json({ url: targetUrl });
+            return res.json({ url: `https://flipp.com/flyer/${matchedStoreItem.flyer_id}?postal_code=${encodeURIComponent(postalCode)}` });
           }
         }
       } catch (storeErr) {
