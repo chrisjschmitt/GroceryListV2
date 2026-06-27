@@ -1,4 +1,4 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { useOfflineStore } from "@/lib/client/use-offline-store";
 import { GroceryItem, PriceEntry } from "@/lib/types";
 import { ChevronDown, ChevronUp, Trash2, Plus, Minus, ListPlus, ExternalLink, RefreshCw } from "lucide-react";
@@ -52,11 +52,34 @@ function getCategoryWalkthroughIndex(categoryName: string): number {
   return idx !== -1 ? idx : 999; // unknown category goes to the end
 }
 
+function abbreviateStoreName(name: string): string {
+  if (!name) return "";
+  const normalized = name.toLowerCase().trim();
+  if (normalized.includes("food basics") || normalized === "fb" || normalized === "foodbasics") return "FB";
+  if (normalized.includes("metro") || normalized === "mt") return "MT";
+  if (normalized.includes("freshco") || normalized === "freshco") return "FC";
+  if (normalized.includes("loblaws") || normalized === "loblaws") return "LB";
+  if (normalized.includes("no frills") || normalized === "nofrills") return "NF";
+  if (normalized.includes("your independent grocer") || normalized === "yourindependentgrocer") return "YIG";
+  return name.substring(0, 3).toUpperCase();
+}
+
 export default function ListsTab() {
   const store = useOfflineStore();
   const [expandedItems, setExpandedItems] = useState<Set<string>>(new Set());
   const [isCatalogOpen, setIsCatalogOpen] = useState(false);
   const [viewMode, setViewMode] = useState<"byStore" | "all">("all");
+  const [primaryStoreId, setPrimaryStoreId] = useState<string | null>(() => {
+    return localStorage.getItem("primaryStoreId") || null;
+  });
+
+  useEffect(() => {
+    if (primaryStoreId) {
+      localStorage.setItem("primaryStoreId", primaryStoreId);
+    } else {
+      localStorage.removeItem("primaryStoreId");
+    }
+  }, [primaryStoreId]);
 
   // Build name ➔ price lookup from scraped data (match on config_name and item_name)
   const priceLookup = useMemo(() => {
@@ -339,6 +362,26 @@ export default function ListsTab() {
         />
       </div>
 
+      {/* Shopping At Store Selector Card */}
+      <div className="flex items-center justify-between gap-3 p-3.5 bg-surface border border-outline/10 rounded-xl shadow-xs">
+        <span className="text-xs font-black uppercase text-on-surface-variant tracking-wider flex items-center gap-1.5">
+          🛒 Shopping At:
+        </span>
+        <select
+          value={primaryStoreId || ""}
+          onChange={(e) => setPrimaryStoreId(e.target.value || null)}
+          className="text-xs font-black uppercase bg-surface border border-outline/25 rounded-md px-3 py-1.5 focus:outline-none focus:ring-1 focus:ring-primary cursor-pointer text-on-surface"
+        >
+          <option value="">(Select Store)</option>
+          <option value="foodbasics">Food Basics</option>
+          <option value="metro">Metro</option>
+          <option value="freshco">FreshCo</option>
+          <option value="loblaws">Loblaws</option>
+          <option value="nofrills">No Frills</option>
+          <option value="yourindependentgrocer">Your Independent Grocer</option>
+        </select>
+      </div>
+
       {/* Control Actions Row (Clear and edit buttons) */}
       {totalItems > 0 && (
         <div className="flex gap-2 justify-end">
@@ -405,30 +448,50 @@ export default function ListsTab() {
                   const isExpanded = expandedItems.has(item.id);
                   const priceInfo = priceLookup.get(item.name.toLowerCase());
                   
-                  // Compute cheapest price display
+                  // Compute prices
                   let cheapestPriceVal: number | null = null;
                   let matchedStoreName = "";
+                  let bestCompetitorInfo: any = null;
+                  let primaryStorePrice: number | null = null;
+
                   if (priceInfo) {
+                    // 1. Get primary store price if configured
+                    if (primaryStoreId) {
+                      const storeKey = primaryStoreId.toLowerCase();
+                      const storeData = priceInfo.stores?.[storeKey];
+                      if (storeData) {
+                        primaryStorePrice = getStoreActivePrice(storeData);
+                      }
+                    }
+
+                    // 2. Get cheapest price overall
                     let minP = Infinity;
+                    let bestStoreData: any = null;
                     if (priceInfo.stores && typeof priceInfo.stores === "object") {
                       for (const [sId, sInfo] of Object.entries(priceInfo.stores) as [string, any][]) {
                         const val = getStoreActivePrice(sInfo);
                         if (val !== null && val < minP) {
                           minP = val;
-                          matchedStoreName = sInfo.store_name || sId;
+                          bestStoreData = sInfo;
                         }
                       }
                     } else {
                       const val = getStoreActivePrice(priceInfo);
                       if (val !== null) {
                         minP = val;
-                        matchedStoreName = priceInfo.store_name || "Food Basics";
+                        bestStoreData = priceInfo;
                       }
                     }
                     if (minP !== Infinity) {
                       cheapestPriceVal = minP;
+                      matchedStoreName = bestStoreData?.store_name || "Food Basics";
+                      bestCompetitorInfo = bestStoreData;
                     }
                   }
+
+                  // Determine display price and if a match is suggested
+                  const displayPriceVal = primaryStorePrice !== null ? primaryStorePrice : cheapestPriceVal;
+                  const showPriceMatch = primaryStorePrice !== null && cheapestPriceVal !== null && cheapestPriceVal < primaryStorePrice;
 
                   return (
                     <div
@@ -439,9 +502,9 @@ export default function ListsTab() {
                     >
                       {/* Interactive Header Row */}
                       <div
-                        onClick={cheapestPriceVal !== null ? () => toggleExpand(item.id) : undefined}
+                        onClick={displayPriceVal !== null ? () => toggleExpand(item.id) : undefined}
                         className={`flex items-center justify-between p-3.5 select-none ${
-                          cheapestPriceVal !== null ? "cursor-pointer hover:bg-surface-container-low" : ""
+                          displayPriceVal !== null ? "cursor-pointer hover:bg-surface-container-low" : ""
                         }`}
                       >
                         <div className="flex items-center gap-3 flex-1 min-w-0">
@@ -468,9 +531,27 @@ export default function ListsTab() {
                                 </span>
                               )}
                             </p>
-                            <span className="text-[10px] font-medium text-on-surface-variant uppercase tracking-wider block mt-0.5">
-                              {item.category || "Other"}
-                            </span>
+                            <div className="flex flex-wrap items-center gap-2 mt-0.5">
+                              <span className="text-[10px] font-medium text-on-surface-variant uppercase tracking-wider block">
+                                {item.category || "Other"}
+                              </span>
+                              {showPriceMatch && !item.checked && (
+                                <div className="flex items-center gap-1 shrink-0 select-none" onClick={(e) => e.stopPropagation()}>
+                                  <span className="text-[9px] font-black bg-amber-100 text-amber-900 border border-amber-300 px-1 py-0.2 rounded-sm uppercase tracking-wider animate-pulse flex items-center gap-0.5">
+                                    ⚡ Match ${cheapestPriceVal!.toFixed(2)} at {abbreviateStoreName(matchedStoreName)}
+                                  </span>
+                                  <a
+                                    href={bestCompetitorInfo?.lookup_url || `https://flipp.com/search?q=${encodeURIComponent(item.name)}`}
+                                    target="_blank"
+                                    rel="noreferrer"
+                                    className="text-[8px] font-black uppercase bg-emerald-600 hover:bg-emerald-700 text-white border border-emerald-500 px-1 py-0.2 rounded-sm shadow-[0.5px_0.5px_0px_rgba(0,0,0,0.1)] flex items-center gap-0.5 hover:underline cursor-pointer text-center"
+                                    title={`Open flyer for ${matchedStoreName}`}
+                                  >
+                                    Open Flyer ↗
+                                  </a>
+                                </div>
+                              )}
+                            </div>
                           </div>
                         </div>
 
@@ -514,21 +595,30 @@ export default function ListsTab() {
 
                         {/* Price & Expand button */}
                         <div className="flex items-center gap-3 shrink-0 font-tnum ml-2">
-                          {cheapestPriceVal !== null && (
+                          {displayPriceVal !== null && (
                             <div className="text-right flex flex-col items-end">
-                              <span className="text-sm font-extrabold text-primary">
-                                ${(cheapestPriceVal * item.quantity).toFixed(2)}
+                              <span className={`text-sm font-extrabold ${showPriceMatch ? "text-amber-600" : "text-primary"}`}>
+                                ${(displayPriceVal * item.quantity).toFixed(2)}
                               </span>
                               
-                              {item.quantity > 1 && (
-                                <span className="text-[9px] text-on-surface-variant font-medium">
-                                  {item.quantity} × ${cheapestPriceVal.toFixed(2)}
-                                </span>
+                              {(item.quantity > 1 || showPriceMatch) && (
+                                <div className="text-[9px] text-on-surface-variant font-medium flex flex-col items-end">
+                                  {item.quantity > 1 && (
+                                    <span>
+                                      {item.quantity} × ${displayPriceVal.toFixed(2)}
+                                    </span>
+                                  )}
+                                  {showPriceMatch && (
+                                    <span className="text-[8px] text-amber-600 font-bold uppercase">
+                                      Save ${( (displayPriceVal - cheapestPriceVal!) * item.quantity ).toFixed(2)}
+                                    </span>
+                                  )}
+                                </div>
                               )}
                             </div>
                           )}
                           
-                          {cheapestPriceVal !== null && (
+                          {displayPriceVal !== null && (
                             isExpanded ? (
                               <ChevronUp size={16} className="text-on-surface-variant" />
                             ) : (
@@ -539,7 +629,7 @@ export default function ListsTab() {
                       </div>
 
                       {/* Expandable Accordion Panel */}
-                      {isExpanded && cheapestPriceVal !== null && (
+                      {isExpanded && displayPriceVal !== null && (
                         <div className="px-3.5 pb-3.5 pt-0 border-t border-outline/5 bg-surface-container-lowest animate-fade-in">
                           <div className="mt-3 bg-surface-container-low border border-primary/20 p-3.5 rounded-lg space-y-3">
                             <div className="flex justify-between items-start">
@@ -594,16 +684,16 @@ export default function ListsTab() {
 
                             {/* Action Buttons Row */}
                             <div className="flex justify-end items-center pt-2 border-t border-outline/5 gap-2 text-xs">
-                              {priceInfo?.lookup_url && (
+                              {(bestCompetitorInfo?.lookup_url || priceInfo?.lookup_url) && (
                                 <a
-                                  href={priceInfo.lookup_url}
+                                  href={bestCompetitorInfo?.lookup_url || priceInfo?.lookup_url || `https://flipp.com/search?q=${encodeURIComponent(item.name)}`}
                                   target="_blank"
                                   rel="noreferrer"
-                                  className="flex items-center gap-1.5 px-3 py-1.5 bg-surface hover:bg-surface-container-low border border-outline-variant text-on-surface-variant hover:text-on-surface rounded-md transition-colors font-bold text-xs"
-                                  title="View store website"
+                                  className="flex items-center gap-1.5 px-3 py-1.5 bg-emerald-50 hover:bg-emerald-100 border border-emerald-250 text-emerald-700 rounded-md transition-colors font-bold text-xs"
+                                  title="Open flyer in new tab"
                                 >
                                   <ExternalLink size={12} />
-                                  <span>View Store</span>
+                                  <span>Open Flyer</span>
                                 </a>
                               )}
 
