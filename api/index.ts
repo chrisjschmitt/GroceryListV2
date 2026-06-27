@@ -807,6 +807,7 @@ app.get("/api/flipp/resolve", async (req, res) => {
     const storeName = req.query.storeName as string;
     const itemName = req.query.itemName as string;
     const configName = req.query.configName as string;
+    const scrapedName = req.query.scrapedName as string;
     const postalCode = req.query.postalCode as string || "K7H3C6";
 
     if (!storeName || !itemName) {
@@ -823,13 +824,13 @@ app.get("/api/flipp/resolve", async (req, res) => {
     else if (lowerStore.includes("freshco") || lowerStore === "freshco" || lowerStore === "fc") cleanStore = "FreshCo";
     else if (lowerStore.includes("walmart") || lowerStore === "walmart") cleanStore = "Walmart";
 
-    let cleanItem = configName || itemName;
+    let cleanItem = scrapedName || configName || itemName;
     cleanItem = cleanItem
+      .replace(/\s*\(\d+[^)]*\)/gi, "") 
       .replace(/\s*-\s*\d+$/gi, "") 
       .replace(/\s*-\s*\w+$/gi, "") 
-      .replace(/\s*\(\d+g\)/gi, "")  
-      .replace(/\s*\d+g\b/gi, "")    
-      .replace(/\s*\d+-pack\b/gi, "") 
+      .replace(/\s*\b\d+g\b/gi, "")    
+      .replace(/\s*\b\d+-pack\b/gi, "") 
       .trim();
 
     const searchTerms = `${cleanStore} ${cleanItem}`.trim();

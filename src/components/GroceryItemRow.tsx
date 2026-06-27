@@ -72,7 +72,7 @@ function getFlippSearchUrl(storeName: string, itemName: string, configName?: str
 }
 
 export default function GroceryItemRow({ item, onToggle, onRemove, onUpdateQuantity, priceInfo, primaryStoreId }: GroceryItemRowProps) {
-  const openFlyerForStoreItem = (storeName: string, itemName: string, configName?: string, postalCode?: string) => {
+  const openFlyerForStoreItem = (storeName: string, itemName: string, configName?: string, postalCode?: string, scrapedName?: string) => {
     const newTab = window.open("about:blank", "_blank");
     if (!newTab) return;
     newTab.document.write(`
@@ -140,7 +140,8 @@ export default function GroceryItemRow({ item, onToggle, onRemove, onUpdateQuant
       storeName: storeName || "",
       itemName: itemName || "",
       configName: configName || "",
-      postalCode: postalCode || "K7H3C6"
+      postalCode: postalCode || "K7H3C6",
+      scrapedName: scrapedName || ""
     });
 
     fetch("/api/flipp/resolve?" + qParams.toString())
@@ -397,7 +398,8 @@ export default function GroceryItemRow({ item, onToggle, onRemove, onUpdateQuant
                         bestCompetitorPrice.storeName,
                         item.name,
                         priceInfo?.config_name,
-                        bestCompetitorPrice.postal_code || priceInfo?.postal_code
+                        bestCompetitorPrice.postal_code || priceInfo?.postal_code,
+                        priceInfo?.item_name || bestCompetitorPrice.item_name
                       );
                     }}
                     className="text-[9px] font-black uppercase bg-emerald-500 hover:bg-emerald-600 text-white border border-emerald-650 px-1.5 py-0.5 rounded shadow-[1px_1px_0px_rgba(0,0,0,1)] hover:shadow-none hover:translate-x-[1px] hover:translate-y-[1px] transition-all flex items-center gap-0.5 hover:underline cursor-pointer text-center text-xs"

@@ -103,7 +103,7 @@ export default function ListsTab() {
     return localStorage.getItem("primaryStoreId") || null;
   });
 
-  const openFlyerForStoreItem = (storeName: string, itemName: string, configName?: string, postalCode?: string) => {
+  const openFlyerForStoreItem = (storeName: string, itemName: string, configName?: string, postalCode?: string, scrapedName?: string) => {
     const newTab = window.open("about:blank", "_blank");
     if (!newTab) return;
     newTab.document.write(`
@@ -171,7 +171,8 @@ export default function ListsTab() {
       storeName: storeName || "",
       itemName: itemName || "",
       configName: configName || "",
-      postalCode: postalCode || "K7H3C6"
+      postalCode: postalCode || "K7H3C6",
+      scrapedName: scrapedName || ""
     });
 
     fetch("/api/flipp/resolve?" + qParams.toString())
@@ -663,7 +664,8 @@ export default function ListsTab() {
                                         matchedStoreName,
                                         item.name,
                                         priceInfo?.config_name,
-                                        bestCompetitorInfo?.postal_code || priceInfo?.postal_code
+                                        bestCompetitorInfo?.postal_code || priceInfo?.postal_code,
+                                        priceInfo?.item_name || bestCompetitorInfo?.item_name
                                       );
                                     }}
                                     className="text-[8px] font-black uppercase bg-emerald-600 hover:bg-emerald-700 text-white border border-emerald-500 px-1 py-0.2 rounded-sm shadow-[0.5px_0.5px_0px_rgba(0,0,0,0.1)] flex items-center gap-0.5 hover:underline cursor-pointer text-center"
@@ -815,7 +817,8 @@ export default function ListsTab() {
                                       matchedStoreName || bestCompetitorInfo?.store_name || priceInfo?.store_name || "",
                                       item.name,
                                       priceInfo?.config_name,
-                                      bestCompetitorInfo?.postal_code || priceInfo?.postal_code
+                                      bestCompetitorInfo?.postal_code || priceInfo?.postal_code,
+                                      priceInfo?.item_name || bestCompetitorInfo?.item_name
                                     );
                                   }}
                                   className="flex items-center gap-1.5 px-3 py-1.5 bg-emerald-50 hover:bg-emerald-100 border border-emerald-250 text-emerald-700 rounded-md transition-colors font-bold text-xs"
