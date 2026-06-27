@@ -24,6 +24,7 @@ interface GroceryItemRowProps {
   onRemove: (id: string) => void;
   onUpdateQuantity?: (id: string, quantity: number) => void;
   priceInfo?: PriceEntry;
+  primaryStoreId?: string;
 }
 
 export function isSaleExpired(validUntil?: string | null): boolean {
@@ -40,20 +41,40 @@ export function isSaleExpired(validUntil?: string | null): boolean {
   return now > expiryDate;
 }
 
-export default function GroceryItemRow({ item, onToggle, onRemove, onUpdateQuantity, priceInfo }: GroceryItemRowProps) {
+export default function GroceryItemRow({ item, onToggle, onRemove, onUpdateQuantity, priceInfo, primaryStoreId }: GroceryItemRowProps) {
   let finalPrice = undefined;
   let otherPrices: any[] = [];
+  let bestCompetitorPrice: any = undefined;
 
   if (priceInfo) {
-    const rawPrice = (priceInfo.is_on_sale && priceInfo.sale_price !== null) ? priceInfo.sale_price : (priceInfo.regular_price || 0);
-    finalPrice = {
-      storeId: priceInfo.store_id || "foodbasics",
-      storeName: priceInfo.store_name || "Food Basics",
-      price: rawPrice,
-      onSale: priceInfo.is_on_sale === 1 || !!priceInfo.is_on_sale,
-      lookup_url: priceInfo.lookup_url,
-      valid_until: priceInfo.valid_until
-    };
+    if (primaryStoreId) {
+      const storeKey = primaryStoreId.toLowerCase();
+      const storeData = priceInfo.stores?.[storeKey];
+      if (storeData) {
+        const regular = typeof storeData.regular_price === "number" ? storeData.regular_price : parseFloat(storeData.regular_price) || 0;
+        const pVal = (storeData.is_on_sale && storeData.sale_price !== null) ? storeData.sale_price : regular;
+        finalPrice = {
+          storeId: storeKey,
+          storeName: storeData.store_name || storeKey,
+          price: pVal,
+          onSale: storeData.is_on_sale === 1 || !!storeData.is_on_sale,
+          lookup_url: storeData.lookup_url,
+          valid_until: storeData.valid_until
+        };
+      }
+    }
+
+    if (!finalPrice) {
+      const rawPrice = (priceInfo.is_on_sale && priceInfo.sale_price !== null) ? priceInfo.sale_price : (priceInfo.regular_price || 0);
+      finalPrice = {
+        storeId: priceInfo.store_id || "foodbasics",
+        storeName: priceInfo.store_name || "Food Basics",
+        price: rawPrice,
+        onSale: priceInfo.is_on_sale === 1 || !!priceInfo.is_on_sale,
+        lookup_url: priceInfo.lookup_url,
+        valid_until: priceInfo.valid_until
+      };
+    }
 
     if (priceInfo.stores && typeof priceInfo.stores === "object") {
       otherPrices = Object.entries(priceInfo.stores)
@@ -72,6 +93,17 @@ export default function GroceryItemRow({ item, onToggle, onRemove, onUpdateQuant
             valid_until: storeInfo.valid_until,
           };
         });
+    }
+
+    // Determine if there is a competitor with a lower price
+    if (primaryStoreId && finalPrice.storeId === primaryStoreId.toLowerCase()) {
+      let lowestPrice = finalPrice.price;
+      for (const op of otherPrices) {
+        if (op.price > 0 && op.price < lowestPrice) {
+          lowestPrice = op.price;
+          bestCompetitorPrice = op;
+        }
+      }
     }
   } else {
     finalPrice = item.bestPrice;
@@ -232,6 +264,22 @@ export default function GroceryItemRow({ item, onToggle, onRemove, onUpdateQuant
                       </span>
                     );
                   })}
+                </span>
+              )}
+              {bestCompetitorPrice && (
+                <span className="inline-flex flex-wrap items-center gap-1.5 ml-2 normal-case">
+                  <span className="text-[10px] font-black bg-amber-100 text-amber-900 border border-amber-300 px-1.5 py-0.5 rounded shadow-[1px_1px_0px_rgba(0,0,0,1)] uppercase tracking-wider animate-pulse flex items-center gap-0.5">
+                    ⚡ Match ${bestCompetitorPrice.price.toFixed(2)} ({abbreviateStoreName(bestCompetitorPrice.storeName)})
+                  </span>
+                  <a
+                    href={bestCompetitorPrice.lookup_url || `https://flipp.com/search?q=${encodeURIComponent(item.name)}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-[9px] font-black uppercase bg-emerald-500 hover:bg-emerald-600 text-white border border-emerald-650 px-1.5 py-0.5 rounded shadow-[1px_1px_0px_rgba(0,0,0,1)] hover:shadow-none hover:translate-x-[1px] hover:translate-y-[1px] transition-all flex items-center gap-0.5 hover:underline cursor-pointer text-center text-xs"
+                    title={`Open flyer for ${bestCompetitorPrice.storeName}`}
+                  >
+                    Open Flyer ↗
+                  </a>
                 </span>
               )}
             </span>

@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useMemo, useState, useEffect } from "react";
 import { useOfflineStore } from "@/lib/client/use-offline-store";
 import { GroceryItem, PriceEntry } from "@/lib/types";
 import AddItemForm from "./AddItemForm";
@@ -49,6 +49,17 @@ export default function GroceryList() {
   const store = useOfflineStore();
   const [confirmUncheckAll, setConfirmUncheckAll] = useState(false);
   const [selectedStoreForLowestPrices, setSelectedStoreForLowestPrices] = useState<string | null>(null);
+  const [primaryStoreId, setPrimaryStoreId] = useState<string | null>(() => {
+    return localStorage.getItem("primaryStoreId") || null;
+  });
+
+  useEffect(() => {
+    if (primaryStoreId) {
+      localStorage.setItem("primaryStoreId", primaryStoreId);
+    } else {
+      localStorage.removeItem("primaryStoreId");
+    }
+  }, [primaryStoreId]);
 
   const shoppingListNames = useMemo(
     () => new Set(store.groceryItems.map((i) => i.name.toLowerCase())),
@@ -614,7 +625,23 @@ export default function GroceryList() {
                 </div>
               </div>
 
-              <div className="mb-4">
+              <div className="mb-4 flex flex-col gap-3">
+                <div className="flex items-center justify-between gap-2 border-2 border-black p-2 bg-gray-50 shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]">
+                  <span className="text-[10px] font-black uppercase text-gray-500 tracking-wider">🛒 Shopping At:</span>
+                  <select
+                    value={primaryStoreId || ""}
+                    onChange={(e) => setPrimaryStoreId(e.target.value || null)}
+                    className="text-xs font-black uppercase bg-white border-2 border-black px-2 py-1 focus:outline-none focus:bg-amber-50 cursor-pointer"
+                  >
+                    <option value="">(Select Store)</option>
+                    <option value="foodbasics">Food Basics</option>
+                    <option value="metro">Metro</option>
+                    <option value="freshco">FreshCo</option>
+                    <option value="loblaws">Loblaws</option>
+                    <option value="nofrills">No Frills</option>
+                    <option value="yourindependentgrocer">Your Independent Grocer</option>
+                  </select>
+                </div>
                 <AddItemForm onAdd={handleAdd} />
               </div>
 
@@ -658,6 +685,7 @@ export default function GroceryList() {
                             onRemove={store.removeGroceryItem}
                             onUpdateQuantity={store.updateGroceryItemQuantity}
                             priceInfo={priceLookup.get(item.name.toLowerCase())}
+                            primaryStoreId={primaryStoreId || undefined}
                           />
                         ))}
                       </div>
