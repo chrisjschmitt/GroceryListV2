@@ -21,6 +21,19 @@ interface VersionEntry {
 
 const VERSIONS: VersionEntry[] = [
   {
+    version: "1.9.32",
+    date: "June 2026",
+    type: "patch",
+    title: "Enhanced Exact-Match Flyer Resolving",
+    changes: [
+      {
+        icon: <Zap className="w-4 h-4 text-emerald-500" />,
+        category: "Price Matching",
+        description: "Passed original scraped catalog names (e.g. 'Selection Butter') to the Flipp resolver backend to achieve 100% exact matches on specific flyer items, eliminating fallback searches on complex item names."
+      }
+    ]
+  },
+  {
     version: "1.9.31",
     date: "June 2026",
     type: "patch",
