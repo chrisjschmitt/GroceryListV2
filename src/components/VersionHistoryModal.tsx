@@ -21,6 +21,19 @@ interface VersionEntry {
 
 const VERSIONS: VersionEntry[] = [
   {
+    version: "1.9.28",
+    date: "June 2026",
+    type: "patch",
+    title: "ListsTab Integration of Price Matching",
+    changes: [
+      {
+        icon: <Layout className="w-4 h-4 text-emerald-500" />,
+        category: "Lists Tab",
+        description: "Migrated Shopping At dropdown and Price Matching logic directly into ListsTab.tsx (active view mode layout)."
+      }
+    ]
+  },
+  {
     version: "1.9.27",
     date: "June 2026",
     type: "patch",
