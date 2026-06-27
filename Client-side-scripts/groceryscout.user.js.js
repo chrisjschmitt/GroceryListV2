@@ -1,8 +1,8 @@
 // ==UserScript==
-// @name         GroceryScout - 2.9.5 Normalized Canonical Exporter
+// @name         GroceryScout - 2.9.6 Normalized Canonical Exporter
 // @namespace    http://tampermonkey.net/
-// @version      2.9.5
-// @description  Added searchable catalog dropdown and dynamically loaded item lists
+// @version      2.9.6
+// @description  Added Canadian Tire
 // @author       You
 // @match        https://*.foodbasics.ca/*
 // @match        https://foodbasics.ca/*
@@ -16,6 +16,10 @@
 // @match        https://loblaws.ca/*
 // @match        https://*.nofrills.ca/*
 // @match        https://nofrills.ca/*
+// @match        https://*.canadiantire.ca/*
+// @match        https://canadiantire.ca/*
+// @match        https://*.flipp.ca/*
+// @match        https://flipp.ca/*
 // @match        https://*.yourindependentgrocer.ca/*
 // @match        https://yourindependentgrocer.ca/*
 // @connect      ais-dev-kynlhucnvvzplwokihj56s-569102779948.us-west2.run.app
@@ -196,7 +200,7 @@
                 .replace(/\bdecaffeinated\b/g, "decaf")
                 .replace(/[\s,()\-]+/g, " ");
             const catalogWords = cleanCatalog.split(" ").filter(w => w.length > 2 || w === "lf" || /^\d+%?$/.test(w));
-            
+
             if (catalogWords.length === 0) continue;
 
             const intersection = catalogWords.filter(w => titleWords.some(tw => {
@@ -210,7 +214,7 @@
                 if (intersection.length === catalogWords.length) {
                     score += 25;
                 }
-                
+
                 const isLfScraped = cleanTitle.includes("lf");
                 const isLfCatalog = cleanCatalog.includes("lf");
                 if (isLfScraped !== isLfCatalog) score -= 30;
@@ -254,6 +258,8 @@
         else if (domain.includes("walmart")) storeId = "walmart";
         else if (domain.includes("loblaws")) storeId = "loblaws";
         else if (domain.includes("nofrills")) storeId = "nofrills";
+        else if (domain.includes("canadiantire")) storeId = "canadiantire";
+        else if (domain.includes("flipp")) storeId = "flipp";
         else if (domain.includes("yourindependentgrocer")) storeId = "yourindependentgrocer";
 
         return {
@@ -502,7 +508,7 @@
         document.getElementById('gs-reg-price').value = '';
         document.getElementById('gs-sale-price').value = '';
         document.getElementById('gs-valid-until').value = '';
-        
+
         const itemSearchInput = document.getElementById('gs-item-search');
         const itemDropdown = document.getElementById('gs-item-dropdown');
         const categorySelect = document.getElementById('gs-category');
@@ -514,7 +520,7 @@
         const parsedSize = determineUnitAndSize(rawTitle);
         unitsInput.value = parsedSize.units;
         unitSelect.value = parsedSize.unitOfMeasurement;
-        
+
         itemSearchInput.value = payload.data.config_name;
         document.getElementById('gs-reg-price').focus();
 
@@ -524,9 +530,9 @@
         function renderDropdown() {
             const query = itemSearchInput.value.trim().toLowerCase();
             filteredItems = catalogItems.filter(item => item.name.toLowerCase().includes(query));
-            
+
             const itemsToShow = filteredItems.slice(0, 10);
-            
+
             if (itemsToShow.length === 0) {
                 itemDropdown.style.display = 'none';
                 return;
@@ -600,11 +606,11 @@
             document.removeEventListener('click', clickOutsideHandler);
         }
 
-        document.getElementById('gs-btn-cancel').onclick = function() {
+        document.getElementById('gs-btn-cancel').onclick = function () {
             cleanupModal();
         };
 
-        document.getElementById('gs-btn-submit').onclick = function() {
+        document.getElementById('gs-btn-submit').onclick = function () {
             const regPriceInput = document.getElementById('gs-reg-price').value.trim();
             const salePriceInput = document.getElementById('gs-sale-price').value.trim();
             const validUntilInput = document.getElementById('gs-valid-until').value.trim();

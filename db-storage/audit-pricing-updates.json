@@ -4,19 +4,22 @@
     "itemName": "Romaine lettuce 3-pack",
     "storeKey": "foodbasics",
     "regular_price": 5.88,
-    "sale_price": null,
-    "is_on_sale": 0,
-    "valid_until": "",
+    "sale_price": 4.99,
+    "is_on_sale": 1,
+    "valid_until": "2026-07-01",
     "unit": "unit",
     "units": 3,
-    "status": "MATCH",
-    "discrepancies": []
+    "status": "MISMATCH",
+    "discrepancies": [
+      "Sale Price mismatch: Catalog has $--, Live has $4.99",
+      "Validity Date mismatch: Catalog has \"--\", Live has \"2026-07-01\""
+    ]
   },
   {
     "itemId": "catalog-1782220513890-y2b5l",
     "itemName": "Romaine lettuce 3-pack",
     "storeKey": "freshco",
-    "regular_price": 7.99,
+    "regular_price": 5.99,
     "sale_price": null,
     "is_on_sale": 0,
     "valid_until": "",
@@ -24,7 +27,7 @@
     "units": 3,
     "status": "MISMATCH",
     "discrepancies": [
-      "Sale Price mismatch: Catalog has $4.99, Live has $--"
+      "Regular Price mismatch: Catalog has $7.99, Live has $5.99"
     ]
   },
   {
@@ -58,13 +61,16 @@
     "itemName": "Butter unsalted",
     "storeKey": "foodbasics",
     "regular_price": 5.99,
-    "sale_price": null,
-    "is_on_sale": 0,
-    "valid_until": "",
+    "sale_price": 4.88,
+    "is_on_sale": 1,
+    "valid_until": "2026-07-01",
     "unit": "g",
     "units": 454,
-    "status": "MATCH",
-    "discrepancies": []
+    "status": "MISMATCH",
+    "discrepancies": [
+      "Sale Price mismatch: Catalog has $--, Live has $4.88",
+      "Validity Date mismatch: Catalog has \"--\", Live has \"2026-07-01\""
+    ]
   },
   {
     "itemId": "regular-1779915020670-118-o1289",
@@ -91,7 +97,7 @@
     "units": 227,
     "status": "MISMATCH",
     "discrepancies": [
-      "Unit Quantity mismatch: Catalog has --, Live has 227"
+      "Unit Quantity mismatch: Catalog has 250, Live has 227"
     ]
   },
   {
@@ -104,10 +110,8 @@
     "valid_until": "",
     "unit": "g",
     "units": 250,
-    "status": "MISMATCH",
-    "discrepancies": [
-      "Unit Quantity mismatch: Catalog has --, Live has 250"
-    ]
+    "status": "MATCH",
+    "discrepancies": []
   },
   {
     "itemId": "regular-1779915020670-128-8upl5",
@@ -119,10 +123,8 @@
     "valid_until": "",
     "unit": "g",
     "units": 200,
-    "status": "MISMATCH",
-    "discrepancies": [
-      "Unit Quantity mismatch: Catalog has --, Live has 200"
-    ]
+    "status": "MATCH",
+    "discrepancies": []
   },
   {
     "itemId": "regular-1779915020670-136-wkbu5",
@@ -141,18 +143,17 @@
     "itemId": "regular-1779915020670-141-i9zvd",
     "itemName": "Lactose Free cheese",
     "storeKey": "foodbasics",
-    "regular_price": 1,
-    "sale_price": 6,
-    "is_on_sale": 1,
+    "regular_price": null,
+    "sale_price": null,
+    "is_on_sale": 0,
     "valid_until": "",
-    "unit": "12.                  *                                                                  **                                            *",
+    "unit": "g",
     "units": 200,
     "status": "MISMATCH",
     "discrepancies": [
-      "Regular Price mismatch: Catalog has $6.49, Live has $1",
-      "Sale Price mismatch: Catalog has $--, Live has $6",
-      "Unit mismatch: Catalog has \"unit\", Live has \"12.                  *                                                                  **                                            *\"",
-      "Unit Quantity mismatch: Catalog has --, Live has 200"
+      "Regular Price mismatch: Catalog has $1, Live has $--",
+      "Sale Price mismatch: Catalog has $6, Live has $--",
+      "Unit Quantity mismatch: Catalog has 400, Live has 200"
     ]
   },
   {
@@ -165,11 +166,8 @@
     "valid_until": "",
     "unit": "g",
     "units": 400,
-    "status": "MISMATCH",
-    "discrepancies": [
-      "Unit mismatch: Catalog has \"unit\", Live has \"g\"",
-      "Unit Quantity mismatch: Catalog has --, Live has 400"
-    ]
+    "status": "MATCH",
+    "discrepancies": []
   },
   {
     "itemId": "regular-1779915020670-146-nz7l8",
@@ -194,24 +192,23 @@
     "valid_until": "2026-08-12",
     "unit": "g",
     "units": 750,
-    "status": "MISMATCH",
-    "discrepancies": [
-      "Validity Date mismatch: Catalog has \"2024-08-12\", Live has \"2026-08-12\""
-    ]
+    "status": "MATCH",
+    "discrepancies": []
   },
   {
     "itemId": "regular-1779915020670-149-d9f5m",
     "itemName": "LF Ice cream",
     "storeKey": "foodbasics",
     "regular_price": 7.99,
-    "sale_price": 5.88,
-    "is_on_sale": 1,
-    "valid_until": "2026-06-24",
+    "sale_price": null,
+    "is_on_sale": 0,
+    "valid_until": "",
     "unit": "l",
     "units": 1,
     "status": "MISMATCH",
     "discrepancies": [
-      "Unit Quantity mismatch: Catalog has --, Live has 1"
+      "Sale Price mismatch: Catalog has $5.88, Live has $--",
+      "Validity Date mismatch: Catalog has \"2026-06-24\", Live has \"--\""
     ]
   },
   {
@@ -224,10 +221,8 @@
     "valid_until": "",
     "unit": "l",
     "units": 1,
-    "status": "MISMATCH",
-    "discrepancies": [
-      "Unit Quantity mismatch: Catalog has --, Live has 1"
-    ]
+    "status": "MATCH",
+    "discrepancies": []
   },
   {
     "itemId": "regular-1779915020670-149-d9f5m",
@@ -239,10 +234,8 @@
     "valid_until": "",
     "unit": "l",
     "units": 1,
-    "status": "MISMATCH",
-    "discrepancies": [
-      "Unit Quantity mismatch: Catalog has --, Live has 1"
-    ]
+    "status": "MATCH",
+    "discrepancies": []
   },
   {
     "itemId": "regular-1779915020670-158-15694",
@@ -256,8 +249,7 @@
     "units": 350,
     "status": "MISMATCH",
     "discrepancies": [
-      "Unit mismatch: Catalog has \"lb\", Live has \"g\"",
-      "Unit Quantity mismatch: Catalog has --, Live has 350"
+      "Unit Quantity mismatch: Catalog has 450, Live has 350"
     ]
   },
   {
@@ -270,26 +262,24 @@
     "valid_until": "",
     "unit": "g",
     "units": 450,
-    "status": "MISMATCH",
-    "discrepancies": [
-      "Unit mismatch: Catalog has \"lb\", Live has \"g\"",
-      "Unit Quantity mismatch: Catalog has --, Live has 450"
-    ]
+    "status": "MATCH",
+    "discrepancies": []
   },
   {
     "itemId": "regular-1779915020670-169-92x0f",
     "itemName": "Ground Chicken Lean 450g",
     "storeKey": "foodbasics",
     "regular_price": 7.99,
-    "sale_price": 6.99,
-    "is_on_sale": 1,
-    "valid_until": "2026-06-24",
+    "sale_price": null,
+    "is_on_sale": 0,
+    "valid_until": "",
     "unit": "g",
     "units": 454,
     "status": "MISMATCH",
     "discrepancies": [
-      "Unit mismatch: Catalog has \"lb\", Live has \"g\"",
-      "Unit Quantity mismatch: Catalog has --, Live has 454"
+      "Sale Price mismatch: Catalog has $6.99, Live has $--",
+      "Validity Date mismatch: Catalog has \"2026-06-24\", Live has \"--\"",
+      "Unit Quantity mismatch: Catalog has 450, Live has 454"
     ]
   },
   {
@@ -302,25 +292,24 @@
     "valid_until": "",
     "unit": "g",
     "units": 450,
-    "status": "MISMATCH",
-    "discrepancies": [
-      "Unit mismatch: Catalog has \"lb\", Live has \"g\"",
-      "Unit Quantity mismatch: Catalog has --, Live has 450"
-    ]
+    "status": "MATCH",
+    "discrepancies": []
   },
   {
     "itemId": "regular-1779915020670-17-zsjkh",
     "itemName": "Strawberries 454g",
     "storeKey": "foodbasics",
     "regular_price": 4.99,
-    "sale_price": null,
-    "is_on_sale": 0,
-    "valid_until": "",
+    "sale_price": 1.88,
+    "is_on_sale": 1,
+    "valid_until": "2026-07-01",
     "unit": "g",
     "units": 454,
     "status": "MISMATCH",
     "discrepancies": [
-      "Unit Quantity mismatch: Catalog has --, Live has 454"
+      "Sale Price mismatch: Catalog has $--, Live has $1.88",
+      "Validity Date mismatch: Catalog has \"--\", Live has \"2026-07-01\"",
+      "Unit mismatch: Catalog has \"unit_quantity\", Live has \"g\""
     ]
   },
   {
@@ -328,15 +317,16 @@
     "itemName": "Strawberries 454g",
     "storeKey": "freshco",
     "regular_price": 5.99,
-    "sale_price": null,
-    "is_on_sale": 0,
-    "valid_until": "",
-    "unit": "unit_quantity",
+    "sale_price": 3.99,
+    "is_on_sale": 1,
+    "valid_until": "2026-07-01",
+    "unit": "g",
     "units": 454,
     "status": "MISMATCH",
     "discrepancies": [
-      "Unit mismatch: Catalog has \"g\", Live has \"unit_quantity\"",
-      "Unit Quantity mismatch: Catalog has --, Live has 454"
+      "Sale Price mismatch: Catalog has $--, Live has $3.99",
+      "Validity Date mismatch: Catalog has \"--\", Live has \"2026-07-01\"",
+      "Unit mismatch: Catalog has \"unit_quantity\", Live has \"g\""
     ]
   },
   {
@@ -359,13 +349,16 @@
     "itemName": "Avocados 6-pack",
     "storeKey": "foodbasics",
     "regular_price": 5.88,
-    "sale_price": 3.99,
+    "sale_price": 4.99,
     "is_on_sale": 1,
-    "valid_until": "2026-06-24",
+    "valid_until": "2026-07-01",
     "unit": "count",
     "units": 6,
-    "status": "MATCH",
-    "discrepancies": []
+    "status": "MISMATCH",
+    "discrepancies": [
+      "Sale Price mismatch: Catalog has $3.99, Live has $4.99",
+      "Validity Date mismatch: Catalog has \"2026-06-24\", Live has \"2026-07-01\""
+    ]
   },
   {
     "itemId": "regular-1779915020670-235-a1glt",
@@ -377,11 +370,8 @@
     "valid_until": "",
     "unit": "ml",
     "units": 398,
-    "status": "MISMATCH",
-    "discrepancies": [
-      "Unit mismatch: Catalog has \"can\", Live has \"ml\"",
-      "Unit Quantity mismatch: Catalog has --, Live has 398"
-    ]
+    "status": "MATCH",
+    "discrepancies": []
   },
   {
     "itemId": "regular-1779915020670-242-ymkpr",
@@ -393,16 +383,14 @@
     "valid_until": "2026-07-01",
     "unit": "ml",
     "units": 540,
-    "status": "MISMATCH",
-    "discrepancies": [
-      "Sale Price mismatch: Catalog has $13, Live has $13.99"
-    ]
+    "status": "MATCH",
+    "discrepancies": []
   },
   {
     "itemId": "regular-1779915020670-27-nqius",
     "itemName": "Broccoli",
     "storeKey": "foodbasics",
-    "regular_price": 4.99,
+    "regular_price": 3.99,
     "sale_price": null,
     "is_on_sale": 0,
     "valid_until": "",
@@ -410,7 +398,7 @@
     "units": 1,
     "status": "MISMATCH",
     "discrepancies": [
-      "Unit Quantity mismatch: Catalog has --, Live has 1"
+      "Regular Price mismatch: Catalog has $4.99, Live has $3.99"
     ]
   },
   {
@@ -423,10 +411,8 @@
     "valid_until": "",
     "unit": "unit",
     "units": 1,
-    "status": "MISMATCH",
-    "discrepancies": [
-      "Unit Quantity mismatch: Catalog has --, Live has 1"
-    ]
+    "status": "MATCH",
+    "discrepancies": []
   },
   {
     "itemId": "regular-1779915020670-27-nqius",
@@ -436,12 +422,10 @@
     "sale_price": null,
     "is_on_sale": 0,
     "valid_until": "",
-    "unit": "unit",
+    "unit": "count",
     "units": 1,
-    "status": "MISMATCH",
-    "discrepancies": [
-      "Unit Quantity mismatch: Catalog has --, Live has 1"
-    ]
+    "status": "MATCH",
+    "discrepancies": []
   },
   {
     "itemId": "regular-1779915020670-3-5fdno",
@@ -486,14 +470,18 @@
     "itemId": "regular-1779915020670-30-26ht1",
     "itemName": "Carrots",
     "storeKey": "foodbasics",
-    "regular_price": 4.39,
+    "regular_price": 0.88,
     "sale_price": null,
     "is_on_sale": 0,
     "valid_until": "",
-    "unit": "kg",
-    "units": 1,
-    "status": "MATCH",
-    "discrepancies": []
+    "unit": "g",
+    "units": 200,
+    "status": "MISMATCH",
+    "discrepancies": [
+      "Regular Price mismatch: Catalog has $4.39, Live has $0.88",
+      "Unit mismatch: Catalog has \"kg\", Live has \"g\"",
+      "Unit Quantity mismatch: Catalog has 1, Live has 200"
+    ]
   },
   {
     "itemId": "regular-1779915020670-33-ra1bk",
@@ -502,12 +490,12 @@
     "regular_price": 3.99,
     "sale_price": 2.99,
     "is_on_sale": 1,
-    "valid_until": "2026-06-24",
+    "valid_until": "2026-07-01",
     "unit": "unit",
     "units": 1,
     "status": "MISMATCH",
     "discrepancies": [
-      "Unit Quantity mismatch: Catalog has --, Live has 1"
+      "Validity Date mismatch: Catalog has \"2026-06-24\", Live has \"2026-07-01\""
     ]
   },
   {
@@ -520,10 +508,8 @@
     "valid_until": "",
     "unit": "unit",
     "units": 1,
-    "status": "MISMATCH",
-    "discrepancies": [
-      "Unit Quantity mismatch: Catalog has --, Live has 1"
-    ]
+    "status": "MATCH",
+    "discrepancies": []
   },
   {
     "itemId": "regular-1779915020670-4-luoje",
@@ -532,19 +518,19 @@
     "regular_price": 4.99,
     "sale_price": 3.99,
     "is_on_sale": 1,
-    "valid_until": "2026-06-24",
+    "valid_until": "2026-07-01",
     "unit": "g",
     "units": 170,
     "status": "MISMATCH",
     "discrepancies": [
-      "Unit Quantity mismatch: Catalog has --, Live has 170"
+      "Validity Date mismatch: Catalog has \"2026-06-24\", Live has \"2026-07-01\""
     ]
   },
   {
     "itemId": "regular-1779915020670-4-luoje",
     "itemName": "Blackberries",
     "storeKey": "freshco",
-    "regular_price": 3.99,
+    "regular_price": 4.49,
     "sale_price": null,
     "is_on_sale": 0,
     "valid_until": "",
@@ -552,9 +538,7 @@
     "units": 170,
     "status": "MISMATCH",
     "discrepancies": [
-      "Sale Price mismatch: Catalog has $1.99, Live has $--",
-      "Validity Date mismatch: Catalog has \"2026-06-24\", Live has \"--\"",
-      "Unit Quantity mismatch: Catalog has --, Live has 170"
+      "Regular Price mismatch: Catalog has $3.99, Live has $4.49"
     ]
   },
   {
@@ -565,13 +549,10 @@
     "sale_price": 2.49,
     "is_on_sale": 1,
     "valid_until": "2026-07-01",
-    "unit": "count",
+    "unit": "unit",
     "units": 1,
-    "status": "MISMATCH",
-    "discrepancies": [
-      "Sale Price mismatch: Catalog has $--, Live has $2.49",
-      "Validity Date mismatch: Catalog has \"--\", Live has \"2026-07-01\""
-    ]
+    "status": "MATCH",
+    "discrepancies": []
   },
   {
     "itemId": "regular-1779915020670-46-3agqu",
@@ -580,11 +561,13 @@
     "regular_price": 3.99,
     "sale_price": 2.99,
     "is_on_sale": 1,
-    "valid_until": "2026-06-24",
+    "valid_until": "2026-07-01",
     "unit": "unit",
     "units": 1,
-    "status": "MATCH",
-    "discrepancies": []
+    "status": "MISMATCH",
+    "discrepancies": [
+      "Validity Date mismatch: Catalog has \"2026-06-24\", Live has \"2026-07-01\""
+    ]
   },
   {
     "itemId": "regular-1779915020670-5-w4ac6",
@@ -599,7 +582,7 @@
     "status": "MISMATCH",
     "discrepancies": [
       "Unit mismatch: Catalog has \"g\", Live has \"unit\"",
-      "Unit Quantity mismatch: Catalog has --, Live has 1"
+      "Unit Quantity mismatch: Catalog has 340, Live has 1"
     ]
   },
   {
@@ -607,14 +590,15 @@
     "itemName": "Blueberries",
     "storeKey": "freshco",
     "regular_price": 5.99,
-    "sale_price": null,
-    "is_on_sale": 0,
-    "valid_until": "",
+    "sale_price": 4.99,
+    "is_on_sale": 1,
+    "valid_until": "2026-07-01",
     "unit": "g",
     "units": 340,
     "status": "MISMATCH",
     "discrepancies": [
-      "Unit Quantity mismatch: Catalog has --, Live has 340"
+      "Sale Price mismatch: Catalog has $--, Live has $4.99",
+      "Validity Date mismatch: Catalog has \"--\", Live has \"2026-07-01\""
     ]
   },
   {
@@ -624,29 +608,29 @@
     "regular_price": 4.99,
     "sale_price": 3.99,
     "is_on_sale": 1,
-    "valid_until": "2026-06-24",
+    "valid_until": "2026-07-01",
     "unit": "g",
     "units": 170,
     "status": "MISMATCH",
     "discrepancies": [
-      "Unit Quantity mismatch: Catalog has --, Live has 170"
+      "Validity Date mismatch: Catalog has \"2026-06-24\", Live has \"2026-07-01\""
     ]
   },
   {
     "itemId": "regular-1779915020670-6-nmszl",
     "itemName": "Raspberries",
     "storeKey": "metro",
-    "regular_price": null,
-    "sale_price": 5.99,
-    "is_on_sale": 1,
-    "valid_until": "2026-06-25",
+    "regular_price": 4.99,
+    "sale_price": null,
+    "is_on_sale": 0,
+    "valid_until": "",
     "unit": "g",
     "units": 170,
     "status": "MISMATCH",
     "discrepancies": [
-      "Regular Price mismatch: Catalog has $8.99, Live has $--",
-      "Validity Date mismatch: Catalog has \"2023-08-30\", Live has \"2026-06-25\"",
-      "Unit Quantity mismatch: Catalog has --, Live has 170"
+      "Regular Price mismatch: Catalog has $--, Live has $4.99",
+      "Sale Price mismatch: Catalog has $5.99, Live has $--",
+      "Validity Date mismatch: Catalog has \"2026-06-25\", Live has \"--\""
     ]
   },
   {
@@ -659,11 +643,8 @@
     "valid_until": "",
     "unit": "unit",
     "units": 1,
-    "status": "MISMATCH",
-    "discrepancies": [
-      "Unit mismatch: Catalog has \"g\", Live has \"unit\"",
-      "Unit Quantity mismatch: Catalog has 100, Live has 1"
-    ]
+    "status": "MATCH",
+    "discrepancies": []
   },
   {
     "itemId": "regular-1779915020670-62-qjz4m",
@@ -675,10 +656,38 @@
     "valid_until": "",
     "unit": "unit",
     "units": 1,
+    "status": "MATCH",
+    "discrepancies": []
+  },
+  {
+    "itemId": "regular-1779915020670-63-0slj8",
+    "itemName": "Yellow onions",
+    "storeKey": "freshco",
+    "regular_price": 4.49,
+    "sale_price": null,
+    "is_on_sale": 0,
+    "valid_until": "",
+    "unit": "kg",
+    "units": 2.27,
     "status": "MISMATCH",
     "discrepancies": [
-      "Unit mismatch: Catalog has \"g\", Live has \"unit\"",
-      "Unit Quantity mismatch: Catalog has 100, Live has 1"
+      "Unit Quantity mismatch: Catalog has 1, Live has 2.27"
+    ]
+  },
+  {
+    "itemId": "regular-1779915020670-63-0slj8",
+    "itemName": "Yellow onions",
+    "storeKey": "foodbasics",
+    "regular_price": 2.99,
+    "sale_price": null,
+    "is_on_sale": 0,
+    "valid_until": "",
+    "unit": "lb",
+    "units": 2,
+    "status": "MISMATCH",
+    "discrepancies": [
+      "Unit mismatch: Catalog has \"kg\", Live has \"lb\"",
+      "Unit Quantity mismatch: Catalog has 1, Live has 2"
     ]
   },
   {
@@ -717,11 +726,8 @@
     "valid_until": "",
     "unit": "g",
     "units": 235,
-    "status": "MISMATCH",
-    "discrepancies": [
-      "Unit mismatch: Catalog has \"unit\", Live has \"g\"",
-      "Unit Quantity mismatch: Catalog has --, Live has 235"
-    ]
+    "status": "MATCH",
+    "discrepancies": []
   },
   {
     "itemId": "regular-1779915020671-326-5gr7u",
@@ -730,13 +736,13 @@
     "regular_price": 1.99,
     "sale_price": 1.49,
     "is_on_sale": 1,
-    "valid_until": "2026-06-24",
+    "valid_until": "2026-07-01",
     "unit": "ml",
     "units": 398,
     "status": "MISMATCH",
     "discrepancies": [
-      "Unit mismatch: Catalog has \"unit\", Live has \"ml\"",
-      "Unit Quantity mismatch: Catalog has --, Live has 398"
+      "Validity Date mismatch: Catalog has \"2026-06-24\", Live has \"2026-07-01\"",
+      "Unit Quantity mismatch: Catalog has 796, Live has 398"
     ]
   },
   {
@@ -749,11 +755,8 @@
     "valid_until": "",
     "unit": "ml",
     "units": 796,
-    "status": "MISMATCH",
-    "discrepancies": [
-      "Unit mismatch: Catalog has \"unit\", Live has \"ml\"",
-      "Unit Quantity mismatch: Catalog has --, Live has 796"
-    ]
+    "status": "MATCH",
+    "discrepancies": []
   },
   {
     "itemId": "regular-1779915020671-328-cdpv2",
@@ -765,10 +768,8 @@
     "valid_until": "2026-07-01",
     "unit": "ml",
     "units": 156,
-    "status": "MISMATCH",
-    "discrepancies": [
-      "Unit Quantity mismatch: Catalog has --, Live has 156"
-    ]
+    "status": "MATCH",
+    "discrepancies": []
   },
   {
     "itemId": "regular-1779915020671-328-cdpv2",
@@ -777,12 +778,12 @@
     "regular_price": 1.29,
     "sale_price": 0.99,
     "is_on_sale": 1,
-    "valid_until": "2026-06-24",
+    "valid_until": "2026-07-01",
     "unit": "ml",
     "units": 156,
     "status": "MISMATCH",
     "discrepancies": [
-      "Unit Quantity mismatch: Catalog has --, Live has 156"
+      "Validity Date mismatch: Catalog has \"2026-06-24\", Live has \"2026-07-01\""
     ]
   },
   {
@@ -795,11 +796,8 @@
     "valid_until": "",
     "unit": "g",
     "units": 90,
-    "status": "MISMATCH",
-    "discrepancies": [
-      "Unit mismatch: Catalog has \"unit\", Live has \"g\"",
-      "Unit Quantity mismatch: Catalog has --, Live has 90"
-    ]
+    "status": "MATCH",
+    "discrepancies": []
   },
   {
     "itemId": "regular-1779915020671-346-tzb0w",
@@ -813,7 +811,7 @@
     "units": 120,
     "status": "MISMATCH",
     "discrepancies": [
-      "Unit Quantity mismatch: Catalog has --, Live has 120"
+      "Unit Quantity mismatch: Catalog has 70, Live has 120"
     ]
   },
   {
@@ -821,14 +819,15 @@
     "itemName": "Toothpaste",
     "storeKey": "foodbasics",
     "regular_price": 2.49,
-    "sale_price": null,
-    "is_on_sale": 0,
-    "valid_until": "",
+    "sale_price": 1.99,
+    "is_on_sale": 1,
+    "valid_until": "2026-07-22",
     "unit": "ml",
     "units": 70,
     "status": "MISMATCH",
     "discrepancies": [
-      "Unit Quantity mismatch: Catalog has --, Live has 70"
+      "Sale Price mismatch: Catalog has $--, Live has $1.99",
+      "Validity Date mismatch: Catalog has \"--\", Live has \"2026-07-22\""
     ]
   },
   {
@@ -838,14 +837,13 @@
     "regular_price": 7.46,
     "sale_price": 6.96,
     "is_on_sale": 1,
-    "valid_until": "2026-06-24",
+    "valid_until": "2026-06-25",
     "unit": "roll",
     "units": 3,
     "status": "MISMATCH",
     "discrepancies": [
-      "Validity Date mismatch: Catalog has \"--\", Live has \"2026-06-24\"",
-      "Unit mismatch: Catalog has \"pack\", Live has \"roll\"",
-      "Unit Quantity mismatch: Catalog has --, Live has 3"
+      "Validity Date mismatch: Catalog has \"2026-06-24\", Live has \"2026-06-25\"",
+      "Unit mismatch: Catalog has \"unit\", Live has \"roll\""
     ]
   },
   {
@@ -858,26 +856,23 @@
     "valid_until": "2026-08-12",
     "unit": "unit",
     "units": 3,
-    "status": "MISMATCH",
-    "discrepancies": [
-      "Unit mismatch: Catalog has \"pack\", Live has \"unit\"",
-      "Unit Quantity mismatch: Catalog has --, Live has 3"
-    ]
+    "status": "MATCH",
+    "discrepancies": []
   },
   {
     "itemId": "regular-1779915020671-419-8cvwx",
     "itemName": "2-ply paper towels - 3-pack",
     "storeKey": "foodbasics",
     "regular_price": 10.99,
-    "sale_price": 7.48,
-    "is_on_sale": 1,
-    "valid_until": "2026-06-24",
+    "sale_price": null,
+    "is_on_sale": 0,
+    "valid_until": "",
     "unit": "unit",
     "units": 3,
     "status": "MISMATCH",
     "discrepancies": [
-      "Unit mismatch: Catalog has \"pack\", Live has \"unit\"",
-      "Unit Quantity mismatch: Catalog has --, Live has 3"
+      "Sale Price mismatch: Catalog has $7.48, Live has $--",
+      "Validity Date mismatch: Catalog has \"2026-06-24\", Live has \"--\""
     ]
   },
   {
@@ -890,11 +885,8 @@
     "valid_until": "",
     "unit": "l",
     "units": 2,
-    "status": "MISMATCH",
-    "discrepancies": [
-      "Unit mismatch: Catalog has \"unit\", Live has \"l\"",
-      "Unit Quantity mismatch: Catalog has --, Live has 2"
-    ]
+    "status": "MATCH",
+    "discrepancies": []
   },
   {
     "itemId": "regular-1780000227251-qjhyv",
@@ -906,23 +898,7 @@
     "valid_until": "",
     "unit": "l",
     "units": 2,
-    "status": "MISMATCH",
-    "discrepancies": [
-      "Unit mismatch: Catalog has \"unit\", Live has \"l\"",
-      "Unit Quantity mismatch: Catalog has --, Live has 2"
-    ]
-  },
-  {
-    "itemId": "regular-1780000227251-qjhyv",
-    "itemName": "Milk LF 1%",
-    "storeKey": "yourindependentgrocer",
-    "regular_price": null,
-    "sale_price": null,
-    "is_on_sale": 0,
-    "valid_until": "",
-    "unit": null,
-    "units": null,
-    "status": "ERROR",
+    "status": "MATCH",
     "discrepancies": []
   },
   {
@@ -930,29 +906,16 @@
     "itemName": "Milk LF 1%",
     "storeKey": "foodbasics",
     "regular_price": 6.69,
-    "sale_price": null,
-    "is_on_sale": 0,
-    "valid_until": "",
+    "sale_price": 4.98,
+    "is_on_sale": 1,
+    "valid_until": "2026-07-01",
     "unit": "l",
     "units": 2,
     "status": "MISMATCH",
     "discrepancies": [
-      "Unit mismatch: Catalog has \"unit\", Live has \"l\"",
-      "Unit Quantity mismatch: Catalog has --, Live has 2"
+      "Sale Price mismatch: Catalog has $--, Live has $4.98",
+      "Validity Date mismatch: Catalog has \"--\", Live has \"2026-07-01\""
     ]
-  },
-  {
-    "itemId": "regular-1780000227251-qjhyv",
-    "itemName": "Milk LF 1%",
-    "storeKey": "metro",
-    "regular_price": null,
-    "sale_price": null,
-    "is_on_sale": 0,
-    "valid_until": "",
-    "unit": null,
-    "units": null,
-    "status": "ERROR",
-    "discrepancies": []
   },
   {
     "itemId": "regular-1780000536215-5uz0s",
@@ -966,8 +929,8 @@
     "units": 610,
     "status": "MISMATCH",
     "discrepancies": [
-      "Unit mismatch: Catalog has \"lb\", Live has \"g\"",
-      "Unit Quantity mismatch: Catalog has --, Live has 610"
+      "Unit mismatch: Catalog has \"count\", Live has \"g\"",
+      "Unit Quantity mismatch: Catalog has 4, Live has 610"
     ]
   },
   {
@@ -980,25 +943,23 @@
     "valid_until": "",
     "unit": "count",
     "units": 4,
-    "status": "MISMATCH",
-    "discrepancies": [
-      "Unit mismatch: Catalog has \"lb\", Live has \"count\"",
-      "Unit Quantity mismatch: Catalog has --, Live has 4"
-    ]
+    "status": "MATCH",
+    "discrepancies": []
   },
   {
     "itemId": "regular-1780002091583-d1qmr",
     "itemName": "2% Lactose free Milk",
     "storeKey": "foodbasics",
     "regular_price": 6.69,
-    "sale_price": null,
-    "is_on_sale": 0,
-    "valid_until": "",
+    "sale_price": 4.98,
+    "is_on_sale": 1,
+    "valid_until": "2026-07-01",
     "unit": "l",
     "units": 2,
     "status": "MISMATCH",
     "discrepancies": [
-      "Unit Quantity mismatch: Catalog has --, Live has 2"
+      "Sale Price mismatch: Catalog has $--, Live has $4.98",
+      "Validity Date mismatch: Catalog has \"--\", Live has \"2026-07-01\""
     ]
   },
   {
@@ -1011,10 +972,8 @@
     "valid_until": "",
     "unit": "g",
     "units": 450,
-    "status": "MISMATCH",
-    "discrepancies": [
-      "Unit Quantity mismatch: Catalog has --, Live has 450"
-    ]
+    "status": "MATCH",
+    "discrepancies": []
   },
   {
     "itemId": "regular-1780002196782-3zrl4",
@@ -1026,25 +985,23 @@
     "valid_until": "",
     "unit": "g",
     "units": 450,
-    "status": "MISMATCH",
-    "discrepancies": [
-      "Unit Quantity mismatch: Catalog has --, Live has 450"
-    ]
+    "status": "MATCH",
+    "discrepancies": []
   },
   {
     "itemId": "regular-1781704393494-krtzp",
     "itemName": "Whole wheat english muffins",
     "storeKey": "metro",
     "regular_price": 3.49,
-    "sale_price": null,
-    "is_on_sale": 0,
-    "valid_until": "",
+    "sale_price": 0.99,
+    "is_on_sale": 1,
+    "valid_until": "2026-07-01",
     "unit": "g",
     "units": 342,
     "status": "MISMATCH",
     "discrepancies": [
-      "Unit mismatch: Catalog has \"unit\", Live has \"g\"",
-      "Unit Quantity mismatch: Catalog has --, Live has 342"
+      "Sale Price mismatch: Catalog has $--, Live has $0.99",
+      "Validity Date mismatch: Catalog has \"--\", Live has \"2026-07-01\""
     ]
   },
   {
@@ -1057,11 +1014,8 @@
     "valid_until": "",
     "unit": "g",
     "units": 342,
-    "status": "MISMATCH",
-    "discrepancies": [
-      "Unit mismatch: Catalog has \"unit\", Live has \"g\"",
-      "Unit Quantity mismatch: Catalog has --, Live has 342"
-    ]
+    "status": "MATCH",
+    "discrepancies": []
   },
   {
     "itemId": "regular-1781705596347-hx8pp",
@@ -1070,13 +1024,12 @@
     "regular_price": 23.99,
     "sale_price": 21.49,
     "is_on_sale": 1,
-    "valid_until": "2026-06-24",
+    "valid_until": "2026-09-16",
     "unit": "ml",
     "units": 4260,
     "status": "MISMATCH",
     "discrepancies": [
-      "Unit mismatch: Catalog has \"box\", Live has \"ml\"",
-      "Unit Quantity mismatch: Catalog has --, Live has 4260"
+      "Validity Date mismatch: Catalog has \"2026-06-24\", Live has \"2026-09-16\""
     ]
   },
   {
@@ -1084,15 +1037,15 @@
     "itemName": "Beer - Corona Alcohol free",
     "storeKey": "freshco",
     "regular_price": 21.99,
-    "sale_price": null,
-    "is_on_sale": 0,
-    "valid_until": "",
+    "sale_price": 19.99,
+    "is_on_sale": 1,
+    "valid_until": "2026-07-01",
     "unit": "ml",
     "units": 4260,
     "status": "MISMATCH",
     "discrepancies": [
-      "Unit mismatch: Catalog has \"box\", Live has \"ml\"",
-      "Unit Quantity mismatch: Catalog has --, Live has 4260"
+      "Sale Price mismatch: Catalog has $--, Live has $19.99",
+      "Validity Date mismatch: Catalog has \"--\", Live has \"2026-07-01\""
     ]
   },
   {
@@ -1105,10 +1058,8 @@
     "valid_until": "",
     "unit": "g",
     "units": 750,
-    "status": "MISMATCH",
-    "discrepancies": [
-      "Unit Quantity mismatch: Catalog has --, Live has 750"
-    ]
+    "status": "MATCH",
+    "discrepancies": []
   },
   {
     "itemId": "regular-1781706572768-1mfdt",
@@ -1120,10 +1071,8 @@
     "valid_until": "2026-08-12",
     "unit": "g",
     "units": 750,
-    "status": "MISMATCH",
-    "discrepancies": [
-      "Unit Quantity mismatch: Catalog has --, Live has 750"
-    ]
+    "status": "MATCH",
+    "discrepancies": []
   },
   {
     "itemId": "regular-unmatched-1781603797827-g89x2",
@@ -1132,12 +1081,12 @@
     "regular_price": 1.99,
     "sale_price": 0.99,
     "is_on_sale": 1,
-    "valid_until": "2026-06-24",
+    "valid_until": "2026-07-01",
     "unit": "unit",
     "units": 1,
     "status": "MISMATCH",
     "discrepancies": [
-      "Unit Quantity mismatch: Catalog has --, Live has 1"
+      "Validity Date mismatch: Catalog has \"2026-06-24\", Live has \"2026-07-01\""
     ]
   },
   {
@@ -1150,12 +1099,8 @@
     "valid_until": "2026-07-01",
     "unit": "count",
     "units": 1,
-    "status": "MISMATCH",
-    "discrepancies": [
-      "Sale Price mismatch: Catalog has $--, Live has $0.69",
-      "Validity Date mismatch: Catalog has \"--\", Live has \"2026-07-01\"",
-      "Unit Quantity mismatch: Catalog has --, Live has 1"
-    ]
+    "status": "MATCH",
+    "discrepancies": []
   },
   {
     "itemId": "regular-unmatched-1781982592923-8ucg3",
@@ -1167,10 +1112,7 @@
     "valid_until": "",
     "unit": "g",
     "units": 285,
-    "status": "MISMATCH",
-    "discrepancies": [
-      "Unit mismatch: Catalog has \"each\", Live has \"g\"",
-      "Unit Quantity mismatch: Catalog has --, Live has 285"
-    ]
+    "status": "MATCH",
+    "discrepancies": []
   }
 ]

@@ -70,9 +70,9 @@
           "url": "https://foodbasics.ca/aisles/fruits-vegetables/packaged-salads-vegetables/romaine-lettuce-hearts/p/072668601004",
           "upc": "072668601004",
           "regular_price": 5.88,
-          "sale_price": null,
-          "is_on_sale": 0,
-          "valid_until": "",
+          "sale_price": 4.99,
+          "is_on_sale": 1,
+          "valid_until": "2026-07-01",
           "track_pricing": true,
           "external_name": "Romaine lettuce",
           "is_verified": true
@@ -80,7 +80,7 @@
         "freshco": {
           "url": "https://freshco.com/products/romaine-lettuce-hearts-3-count",
           "upc": "manual-1782220907079",
-          "regular_price": 7.99,
+          "regular_price": 5.99,
           "sale_price": null,
           "is_on_sale": 0,
           "valid_until": "",
@@ -270,9 +270,9 @@
           "url": "https://www.foodbasics.ca/aisles/dairy-eggs/milk-cream-butter/cream-creamers/unsalted-butter/p/059749894777",
           "upc": "059749894777",
           "regular_price": 5.99,
-          "sale_price": null,
-          "is_on_sale": 0,
-          "valid_until": "",
+          "sale_price": 4.88,
+          "is_on_sale": 1,
+          "valid_until": "2026-07-01",
           "track_pricing": true,
           "external_name": "",
           "is_verified": true
@@ -370,6 +370,7 @@
       "name": "Lactose free cream cheese 227g",
       "category": "Dairy & Eggs",
       "unit": "g",
+      "units": 250,
       "requires_scraping": true,
       "stores": {
         "foodbasics": {
@@ -394,14 +395,14 @@
           "external_name": "Lactose free cream cheese 227g",
           "is_verified": true
         }
-      },
-      "units": 250
+      }
     },
     {
       "id": "regular-1779915020670-128-8upl5",
       "name": "Lactose fee Feta cheese 200g",
       "category": "Dairy & Eggs",
       "unit": "g",
+      "units": 200,
       "requires_scraping": true,
       "stores": {
         "freshco": {
@@ -415,8 +416,7 @@
           "external_name": "Lactose fee Feta cheese 200g",
           "is_verified": true
         }
-      },
-      "units": 200
+      }
     },
     {
       "id": "regular-1779915020670-129-u7ofq",
@@ -559,14 +559,15 @@
       "name": "Lactose Free cheese",
       "category": "Dairy & Eggs",
       "unit": "g",
+      "units": 400,
       "requires_scraping": true,
       "stores": {
         "foodbasics": {
           "url": "https://foodbasics.ca/aisles/dairy-eggs/deli-cheese/mozzarella-feta/lactose-free-traditional-feta-cheese/p/059441183360",
           "upc": "059441183360",
-          "regular_price": 1,
-          "sale_price": 6,
-          "is_on_sale": 1,
+          "regular_price": null,
+          "sale_price": null,
+          "is_on_sale": 0,
           "valid_until": "",
           "track_pricing": true,
           "external_name": "Lactose Free cheese",
@@ -584,8 +585,7 @@
           "is_verified": true
         }
       },
-      "last_updated": "2026-06-19T10:55:23.596Z",
-      "units": 400
+      "last_updated": "2026-06-19T10:55:23.596Z"
     },
     {
       "id": "regular-1779915020670-142-0b2wb",
@@ -664,15 +664,16 @@
       "name": "LF Ice cream",
       "category": "Dairy & Eggs",
       "unit": "l",
+      "units": 1,
       "requires_scraping": true,
       "stores": {
         "foodbasics": {
           "url": "https://www.foodbasics.ca/aisles/frozen/ice-cream-treats/sorbet-non-dairy/lactose-free-dutch-chocolate-ice-cream/p/062942000883",
           "upc": "062942000883",
           "regular_price": 7.99,
-          "sale_price": 5.88,
-          "is_on_sale": 1,
-          "valid_until": "2026-06-24",
+          "sale_price": null,
+          "is_on_sale": 0,
+          "valid_until": "",
           "track_pricing": true,
           "external_name": "",
           "is_verified": true
@@ -700,8 +701,7 @@
           "is_verified": true
         }
       },
-      "last_updated": "2026-06-19T10:55:23.596Z",
-      "units": 1
+      "last_updated": "2026-06-19T10:55:23.596Z"
     },
     {
       "id": "regular-1779915020670-15-4v0lv",
@@ -772,6 +772,7 @@
       "name": "Ground beef Lean 450g",
       "category": "Meat & Seafood",
       "unit": "g",
+      "units": 450,
       "requires_scraping": true,
       "stores": {
         "foodbasics": {
@@ -797,8 +798,7 @@
           "is_verified": true
         }
       },
-      "last_updated": "2026-06-19T10:55:23.596Z",
-      "units": 450
+      "last_updated": "2026-06-19T10:55:23.596Z"
     },
     {
       "id": "regular-1779915020670-159-xv54n",
@@ -885,15 +885,16 @@
       "name": "Ground Chicken Lean 450g",
       "category": "Meat & Seafood",
       "unit": "g",
+      "units": 450,
       "requires_scraping": true,
       "stores": {
         "foodbasics": {
           "url": "https://www.foodbasics.ca/aisles/meat-poultry/chicken-turkey/ground-strips-fondue/extra-lean-ground-chicken/p/063100814137",
           "upc": "063100814137",
           "regular_price": 7.99,
-          "sale_price": 6.99,
-          "is_on_sale": 1,
-          "valid_until": "2026-06-24",
+          "sale_price": null,
+          "is_on_sale": 0,
+          "valid_until": "",
           "track_pricing": true,
           "external_name": "",
           "is_verified": true
@@ -909,23 +910,23 @@
           "external_name": "",
           "is_verified": true
         }
-      },
-      "units": 450
+      }
     },
     {
       "id": "regular-1779915020670-17-zsjkh",
       "name": "Strawberries 454g",
       "category": "Fresh Produce",
-      "unit": "unit_quantity",
+      "unit": "g",
+      "units": 454,
       "requires_scraping": true,
       "stores": {
         "foodbasics": {
           "url": "https://www.foodbasics.ca/aisles/fruits-vegetables/fruits/berries-cherries/strawberries/p/665290001184",
           "upc": "665290001184",
           "regular_price": 4.99,
-          "sale_price": null,
-          "is_on_sale": 0,
-          "valid_until": "",
+          "sale_price": 1.88,
+          "is_on_sale": 1,
+          "valid_until": "2026-07-01",
           "track_pricing": true,
           "external_name": "",
           "is_verified": true
@@ -934,16 +935,15 @@
           "url": "https://www.freshco.com/products/strawberries-454-g",
           "upc": "",
           "regular_price": 5.99,
-          "sale_price": null,
-          "is_on_sale": 0,
-          "valid_until": "",
+          "sale_price": 3.99,
+          "is_on_sale": 1,
+          "valid_until": "2026-07-01",
           "track_pricing": true,
           "external_name": "",
           "is_verified": true
         }
       },
-      "last_updated": "2026-06-19T10:55:23.596Z",
-      "units": 454
+      "last_updated": "2026-06-19T10:55:23.596Z"
     },
     {
       "id": "regular-1779915020670-170-xwll8",
@@ -1389,9 +1389,9 @@
           "url": "https://foodbasics.ca/aisles/fruits-vegetables/fruits/avocadoes-exotic-fruits/bag-of-avocados/p/333834015910",
           "upc": "333834015910",
           "regular_price": 5.88,
-          "sale_price": 3.99,
+          "sale_price": 4.99,
           "is_on_sale": 1,
-          "valid_until": "2026-06-24",
+          "valid_until": "2026-07-01",
           "track_pricing": true,
           "external_name": "Avocados",
           "is_verified": true
@@ -1531,6 +1531,7 @@
       "name": "Olives",
       "category": "Pantry Staples",
       "unit": "ml",
+      "units": 398,
       "requires_scraping": true,
       "stores": {
         "foodbasics": {
@@ -1545,8 +1546,7 @@
           "is_verified": true
         }
       },
-      "last_updated": "2026-06-19T10:55:23.596Z",
-      "units": 398
+      "last_updated": "2026-06-19T10:55:23.596Z"
     },
     {
       "id": "regular-1779915020670-236-crzgk",
@@ -1861,13 +1861,14 @@
       "id": "regular-1779915020670-27-nqius",
       "name": "Broccoli",
       "category": "Fresh Produce",
-      "unit": "unit",
+      "unit": "count",
+      "units": 1,
       "requires_scraping": true,
       "stores": {
         "foodbasics": {
           "url": "https://www.foodbasics.ca/aisles/fruits-vegetables/vegetables/broccoli-cauliflower-cabbage/broccoli/p/4060",
           "upc": "4060",
-          "regular_price": 4.99,
+          "regular_price": 3.99,
           "sale_price": null,
           "is_on_sale": 0,
           "valid_until": "",
@@ -1898,8 +1899,7 @@
           "is_verified": true
         }
       },
-      "last_updated": "2026-06-19T10:55:23.596Z",
-      "units": 1
+      "last_updated": "2026-06-19T10:55:23.596Z"
     },
     {
       "id": "regular-1779915020670-270-pbs7f",
@@ -2196,8 +2196,8 @@
       "id": "regular-1779915020670-30-26ht1",
       "name": "Carrots",
       "category": "Fresh Produce",
-      "unit": "kg",
-      "units": 1,
+      "unit": "g",
+      "units": 200,
       "requires_scraping": true,
       "stores": {
         "freshco": {
@@ -2214,7 +2214,7 @@
         "foodbasics": {
           "url": "https://foodbasics.ca/aisles/fruits-vegetables/vegetables/potatoes-carrots-celery/carrot/p/4562",
           "upc": "4562",
-          "regular_price": 4.39,
+          "regular_price": 0.88,
           "sale_price": null,
           "is_on_sale": 0,
           "valid_until": "",
@@ -2405,6 +2405,7 @@
       "name": "Celery",
       "category": "Fresh Produce",
       "unit": "unit",
+      "units": 1,
       "requires_scraping": true,
       "stores": {
         "foodbasics": {
@@ -2413,7 +2414,7 @@
           "regular_price": 3.99,
           "sale_price": 2.99,
           "is_on_sale": 1,
-          "valid_until": "2026-06-24",
+          "valid_until": "2026-07-01",
           "track_pricing": true,
           "external_name": "",
           "is_verified": true
@@ -2430,8 +2431,7 @@
           "is_verified": true
         }
       },
-      "last_updated": "2026-06-19T10:55:23.654Z",
-      "units": 1
+      "last_updated": "2026-06-19T10:55:23.654Z"
     },
     {
       "id": "regular-1779915020670-34-06fdf",
@@ -2486,6 +2486,7 @@
       "name": "Blackberries",
       "category": "Fresh Produce",
       "unit": "g",
+      "units": 170,
       "requires_scraping": true,
       "stores": {
         "foodbasics": {
@@ -2494,7 +2495,7 @@
           "regular_price": 4.99,
           "sale_price": 3.99,
           "is_on_sale": 1,
-          "valid_until": "2026-06-24",
+          "valid_until": "2026-07-01",
           "track_pricing": true,
           "external_name": "",
           "is_verified": true
@@ -2502,7 +2503,7 @@
         "freshco": {
           "url": "https://www.freshco.com/products/blackberries-170-g",
           "upc": "",
-          "regular_price": 3.99,
+          "regular_price": 4.49,
           "sale_price": null,
           "is_on_sale": 0,
           "valid_until": "",
@@ -2511,8 +2512,7 @@
           "is_verified": true
         }
       },
-      "last_updated": "2026-06-19T10:55:23.596Z",
-      "units": 170
+      "last_updated": "2026-06-19T10:55:23.596Z"
     },
     {
       "id": "regular-1779915020670-40-5yftb",
@@ -2587,7 +2587,7 @@
           "regular_price": 3.99,
           "sale_price": 2.99,
           "is_on_sale": 1,
-          "valid_until": "2026-06-24",
+          "valid_until": "2026-07-01",
           "track_pricing": true,
           "external_name": "Lettuce",
           "is_verified": true
@@ -2623,6 +2623,7 @@
       "name": "Blueberries",
       "category": "Fresh Produce",
       "unit": "g",
+      "units": 340,
       "requires_scraping": true,
       "stores": {
         "foodbasics": {
@@ -2640,15 +2641,14 @@
           "url": "https://freshco.com/products/blueberries-pint-340-g",
           "upc": "manual-1782044440840",
           "regular_price": 5.99,
-          "sale_price": null,
-          "is_on_sale": 0,
-          "valid_until": "",
+          "sale_price": 4.99,
+          "is_on_sale": 1,
+          "valid_until": "2026-07-01",
           "track_pricing": true,
           "external_name": "Blueberries",
           "is_verified": true
         }
-      },
-      "units": 340
+      }
     },
     {
       "id": "regular-1779915020670-50-xxdyn",
@@ -2735,6 +2735,7 @@
       "name": "Raspberries",
       "category": "Fresh Produce",
       "unit": "g",
+      "units": 170,
       "requires_scraping": true,
       "stores": {
         "foodbasics": {
@@ -2743,7 +2744,7 @@
           "regular_price": 4.99,
           "sale_price": 3.99,
           "is_on_sale": 1,
-          "valid_until": "2026-06-24",
+          "valid_until": "2026-07-01",
           "track_pricing": true,
           "external_name": "",
           "is_verified": true
@@ -2751,17 +2752,16 @@
         "metro": {
           "url": "https://www.metro.ca/en/online-grocery/aisles/fruits-vegetables/fruits/berries-cherries/raspberries/p/715756100019",
           "upc": "715756100019-metro",
-          "regular_price": null,
-          "sale_price": 5.99,
-          "is_on_sale": 1,
-          "valid_until": "2026-06-25",
+          "regular_price": 4.99,
+          "sale_price": null,
+          "is_on_sale": 0,
+          "valid_until": "",
           "track_pricing": true,
           "external_name": "",
           "is_verified": true
         }
       },
-      "last_updated": "2026-06-19T10:55:23.596Z",
-      "units": 170
+      "last_updated": "2026-06-19T10:55:23.596Z"
     },
     {
       "id": "regular-1779915020670-60-ggnhb",
@@ -2815,31 +2815,31 @@
       "id": "regular-1779915020670-63-0slj8",
       "name": "Yellow onions",
       "category": "Fresh Produce",
-      "unit": "kg",
-      "units": 1,
+      "unit": "lb",
+      "units": 2,
       "requires_scraping": true,
       "stores": {
         "freshco": {
           "url": "https://freshco.com/products/yellow-onions-2%252E27-kg",
           "upc": "manual-1782182891434",
-          "regular_price": 0.45,
+          "regular_price": 4.49,
           "sale_price": null,
           "is_on_sale": 0,
           "valid_until": "",
-          "track_pricing": false,
+          "track_pricing": true,
           "external_name": "Yellow onions",
-          "is_verified": false
+          "is_verified": true
         },
         "foodbasics": {
           "url": "https://foodbasics.ca/aisles/fruits-vegetables/vegetables/onions-leeks/yellow-onions/p/059749900133",
           "upc": "059749900133",
-          "regular_price": 0.33,
+          "regular_price": 2.99,
           "sale_price": null,
           "is_on_sale": 0,
           "valid_until": "",
-          "track_pricing": false,
+          "track_pricing": true,
           "external_name": "Yellow onions",
-          "is_verified": false
+          "is_verified": true
         }
       }
     },
@@ -3104,6 +3104,7 @@
       "name": "Baguette",
       "category": "Bakery & Breads",
       "unit": "g",
+      "units": 235,
       "requires_scraping": true,
       "stores": {
         "freshco": {
@@ -3117,8 +3118,7 @@
           "external_name": "Baguette",
           "is_verified": true
         }
-      },
-      "units": 235
+      }
     },
     {
       "id": "regular-1779915020670-94-t2v3c",
@@ -3205,6 +3205,7 @@
       "name": "No Salt Added Canned Diced Tomatoes",
       "category": "Pantry Staples",
       "unit": "ml",
+      "units": 796,
       "requires_scraping": true,
       "stores": {
         "foodbasics": {
@@ -3213,7 +3214,7 @@
           "regular_price": 1.99,
           "sale_price": 1.49,
           "is_on_sale": 1,
-          "valid_until": "2026-06-24",
+          "valid_until": "2026-07-01",
           "track_pricing": true,
           "external_name": "",
           "is_verified": true
@@ -3229,8 +3230,7 @@
           "external_name": "",
           "is_verified": true
         }
-      },
-      "units": 796
+      }
     },
     {
       "id": "regular-1779915020671-327-fc8cw",
@@ -3245,6 +3245,7 @@
       "name": "Tomato paste 156ml",
       "category": "Pantry Staples",
       "unit": "ml",
+      "units": 156,
       "requires_scraping": true,
       "stores": {
         "freshco": {
@@ -3264,13 +3265,12 @@
           "regular_price": 1.29,
           "sale_price": 0.99,
           "is_on_sale": 1,
-          "valid_until": "2026-06-24",
+          "valid_until": "2026-07-01",
           "track_pricing": true,
           "external_name": "Tomato paste 156ml",
           "is_verified": true
         }
-      },
-      "units": 156
+      }
     },
     {
       "id": "regular-1779915020671-329-j66gj",
@@ -3357,6 +3357,7 @@
       "name": "Decaf coffee - Nescafé",
       "category": "Pantry Staples",
       "unit": "g",
+      "units": 90,
       "requires_scraping": true,
       "stores": {
         "metro": {
@@ -3371,8 +3372,7 @@
           "is_verified": true
         }
       },
-      "last_updated": "2026-06-19T10:55:23.596Z",
-      "units": 90
+      "last_updated": "2026-06-19T10:55:23.596Z"
     },
     {
       "id": "regular-1779915020671-340-2fv5j",
@@ -3419,6 +3419,7 @@
       "name": "Toothpaste",
       "category": "Health, Personal & Household",
       "unit": "ml",
+      "units": 70,
       "requires_scraping": true,
       "stores": {
         "metro": {
@@ -3436,16 +3437,15 @@
           "url": "https://foodbasics.ca/aisles/health-beauty/oral-care/toothpaste/whitening-toothpaste/p/058000142039",
           "upc": "058000142039",
           "regular_price": 2.49,
-          "sale_price": null,
-          "is_on_sale": 0,
-          "valid_until": "",
+          "sale_price": 1.99,
+          "is_on_sale": 1,
+          "valid_until": "2026-07-22",
           "track_pricing": true,
           "external_name": "",
           "is_verified": true
         }
       },
-      "last_updated": "2026-06-19T10:55:23.596Z",
-      "units": 70
+      "last_updated": "2026-06-19T10:55:23.596Z"
     },
     {
       "id": "regular-1779915020671-347-shr8a",
@@ -3988,6 +3988,7 @@
       "name": "2-ply paper towels - 3-pack",
       "category": "Pantry Staples",
       "unit": "unit",
+      "units": 3,
       "requires_scraping": true,
       "stores": {
         "walmart": {
@@ -3996,7 +3997,7 @@
           "regular_price": 7.46,
           "sale_price": 6.96,
           "is_on_sale": 1,
-          "valid_until": "2026-06-24",
+          "valid_until": "2026-06-25",
           "track_pricing": true,
           "external_name": "",
           "is_verified": true
@@ -4016,15 +4017,14 @@
           "url": "https://foodbasics.ca/aisles/household-cleaning/paper/paper-towels/2-play-paper-towel/p/061328531331",
           "upc": "061328531331",
           "regular_price": 10.99,
-          "sale_price": 7.48,
-          "is_on_sale": 1,
-          "valid_until": "2026-06-24",
+          "sale_price": null,
+          "is_on_sale": 0,
+          "valid_until": "",
           "track_pricing": true,
           "external_name": "2-ply paper towels - 6-pack",
           "is_verified": true
         }
-      },
-      "units": 3
+      }
     },
     {
       "id": "regular-1779915020671-420-zwya5",
@@ -4079,6 +4079,7 @@
       "name": "2% Lactose-Free Milk",
       "category": "Dairy & Eggs",
       "unit": "l",
+      "units": 2,
       "requires_scraping": true,
       "stores": {
         "freshco": {
@@ -4092,14 +4093,14 @@
           "external_name": "2% Lactose-Free Milk",
           "is_verified": true
         }
-      },
-      "units": 2
+      }
     },
     {
       "id": "regular-1780000227251-qjhyv",
       "name": "Milk LF 1%",
       "category": "Dairy & Eggs",
       "unit": "l",
+      "units": 2,
       "requires_scraping": true,
       "stores": {
         "freshco": {
@@ -4114,7 +4115,7 @@
           "is_verified": true
         },
         "yourindependentgrocer": {
-          "url": "https://www.yourindependentgrocer.ca/en/lactose-free-1-dairy-product/p/20077874003_EA",
+          "url": "https://yourindependentgrocer.ca/en/lactose-free-1-dairy-product/p/20077874003_EA",
           "upc": "20077874003_EA",
           "regular_price": 7.29,
           "sale_price": null,
@@ -4128,9 +4129,9 @@
           "url": "https://www.foodbasics.ca/aisles/dairy-eggs/milk-cream-butter/lactose-free-non-dairy-milk/1-lactose-free-milk/p/068200148441",
           "upc": "",
           "regular_price": 6.69,
-          "sale_price": null,
-          "is_on_sale": 0,
-          "valid_until": "",
+          "sale_price": 4.98,
+          "is_on_sale": 1,
+          "valid_until": "2026-07-01",
           "track_pricing": true,
           "external_name": "",
           "is_verified": true
@@ -4146,14 +4147,14 @@
           "external_name": "Milk LF 1%",
           "is_verified": false
         }
-      },
-      "units": 2
+      }
     },
     {
       "id": "regular-1780000536215-5uz0s",
       "name": "Boneless Chicken Breasts",
       "category": "Meat & Seafood",
       "unit": "count",
+      "units": 4,
       "requires_scraping": true,
       "stores": {
         "foodbasics": {
@@ -4178,35 +4179,35 @@
           "external_name": "Boneless Chicken Breasts",
           "is_verified": true
         }
-      },
-      "units": 4
+      }
     },
     {
       "id": "regular-1780002091583-d1qmr",
       "name": "2% Lactose free Milk",
       "category": "Dairy & Eggs",
       "unit": "l",
+      "units": 2,
       "requires_scraping": true,
       "stores": {
         "foodbasics": {
           "url": "https://www.foodbasics.ca/aisles/dairy-eggs/milk-cream-butter/lactose-free-non-dairy-milk/2-lactose-free-milk/p/068200148434",
           "upc": "068200148434",
           "regular_price": 6.69,
-          "sale_price": null,
-          "is_on_sale": 0,
-          "valid_until": "",
+          "sale_price": 4.98,
+          "is_on_sale": 1,
+          "valid_until": "2026-07-01",
           "track_pricing": true,
           "external_name": "",
           "is_verified": true
         }
-      },
-      "units": 2
+      }
     },
     {
       "id": "regular-1780002196782-3zrl4",
       "name": "2% lactose free cottage cheese",
       "category": "Dairy & Eggs",
       "unit": "g",
+      "units": 450,
       "requires_scraping": true,
       "stores": {
         "foodbasics": {
@@ -4231,8 +4232,7 @@
           "external_name": "2% lactose free cottage cheese",
           "is_verified": true
         }
-      },
-      "units": 450
+      }
     },
     {
       "id": "regular-1780002321494-4hpz7",
@@ -4296,15 +4296,16 @@
       "name": "Whole wheat english muffins",
       "category": "Fresh Produce",
       "unit": "g",
+      "units": 342,
       "requires_scraping": true,
       "stores": {
         "metro": {
           "url": "https://metro.ca/en/online-grocery/aisles/bread-bakery-products/muffins-bagels-baked-goods/croissants-chocolatines/whole-wheat-english-muffins/p/059749955324",
           "upc": "059749955324",
           "regular_price": 3.49,
-          "sale_price": null,
-          "is_on_sale": 0,
-          "valid_until": "",
+          "sale_price": 0.99,
+          "is_on_sale": 1,
+          "valid_until": "2026-07-01",
           "track_pricing": true,
           "external_name": "Whole wheat english muffins",
           "is_verified": true
@@ -4321,14 +4322,14 @@
           "is_verified": true
         }
       },
-      "last_updated": "2026-06-19T10:55:23.596Z",
-      "units": 342
+      "last_updated": "2026-06-19T10:55:23.596Z"
     },
     {
       "id": "regular-1781705596347-hx8pp",
       "name": "Beer - Corona Alcohol free",
       "category": "Snacks & Beverages",
       "unit": "ml",
+      "units": 4260,
       "requires_scraping": true,
       "stores": {
         "foodbasics": {
@@ -4337,7 +4338,7 @@
           "regular_price": 23.99,
           "sale_price": 21.49,
           "is_on_sale": 1,
-          "valid_until": "2026-06-24",
+          "valid_until": "2026-09-16",
           "track_pricing": true,
           "external_name": "Beer - Corona Alcohol free",
           "is_verified": true
@@ -4346,16 +4347,15 @@
           "url": "https://freshco.com/products/corona-cero-non-alcoholic-beer-12-x-355-ml-(cans)",
           "upc": "manual-1781707796429",
           "regular_price": 21.99,
-          "sale_price": null,
-          "is_on_sale": 0,
-          "valid_until": "",
+          "sale_price": 19.99,
+          "is_on_sale": 1,
+          "valid_until": "2026-07-01",
           "track_pricing": true,
           "external_name": "Beer - Corona Alcohol free",
           "is_verified": true
         }
       },
-      "last_updated": "2026-06-19T10:55:23.596Z",
-      "units": 4260
+      "last_updated": "2026-06-19T10:55:23.596Z"
     },
     {
       "id": "regular-1781705733803-8ag2k",
@@ -4370,6 +4370,7 @@
       "name": "Lactose free plain yogurt",
       "category": "Dairy & Eggs",
       "unit": "g",
+      "units": 750,
       "requires_scraping": true,
       "stores": {
         "foodbasics": {
@@ -4394,8 +4395,7 @@
           "external_name": "Lactose free plain yogurt",
           "is_verified": true
         }
-      },
-      "units": 750
+      }
     },
     {
       "id": "regular-1781713270385-9qh3d",
@@ -4418,6 +4418,7 @@
       "name": "English Cucumber",
       "category": "Fresh Produce",
       "unit": "count",
+      "units": 1,
       "requires_scraping": true,
       "stores": {
         "foodbasics": {
@@ -4426,7 +4427,7 @@
           "regular_price": 1.99,
           "sale_price": 0.99,
           "is_on_sale": 1,
-          "valid_until": "2026-06-24",
+          "valid_until": "2026-07-01",
           "track_pricing": true,
           "external_name": "",
           "is_verified": true
@@ -4442,14 +4443,14 @@
           "external_name": "English Cucumber",
           "is_verified": true
         }
-      },
-      "units": 1
+      }
     },
     {
       "id": "regular-unmatched-1781982592923-8ucg3",
       "name": "Cheetos Crunchy Flamin Hot Cheese Snacks",
       "category": "Snacks & Beverages",
       "unit": "g",
+      "units": 285,
       "requires_scraping": true,
       "stores": {
         "foodbasics": {
@@ -4463,8 +4464,7 @@
           "external_name": "Cheetos Crunchy Flamin Hot Cheese Snacks",
           "is_verified": true
         }
-      },
-      "units": 285
+      }
     },
     {
       "id": "regular-unmatched-1781983447620-ki544",
@@ -4512,48 +4512,6 @@
           "valid_until": "",
           "track_pricing": false,
           "external_name": "Cheese",
-          "is_verified": false
-        }
-      }
-    },
-    {
-      "id": "regular-unmatched-1782220390308-fswmy",
-      "name": "Super Unobtainium Mega Cheese",
-      "category": "Dairy & Eggs",
-      "unit": "g",
-      "units": 400,
-      "requires_scraping": true,
-      "stores": {
-        "freshco": {
-          "url": "https://freshco.com/lactose-free-mozzarella-test-1782220383524",
-          "upc": "test-upc-freshco-1782220383524",
-          "regular_price": 6.99,
-          "sale_price": 5.49,
-          "is_on_sale": 1,
-          "valid_until": "",
-          "track_pricing": false,
-          "external_name": "Super Unobtainium Mega Cheese",
-          "is_verified": false
-        }
-      }
-    },
-    {
-      "id": "regular-unmatched-1782220615725-fea71",
-      "name": "Super Unobtainium Cheese",
-      "category": "Dairy & Eggs",
-      "unit": "g",
-      "units": 400,
-      "requires_scraping": true,
-      "stores": {
-        "freshco": {
-          "url": "https://freshco.com/lactose-free-mozzarella-test-1782220610243",
-          "upc": "test-upc-freshco-1782220610243",
-          "regular_price": 6.99,
-          "sale_price": 5.49,
-          "is_on_sale": 1,
-          "valid_until": "",
-          "track_pricing": false,
-          "external_name": "Super Unobtainium Cheese",
           "is_verified": false
         }
       }

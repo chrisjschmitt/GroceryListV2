@@ -73,9 +73,9 @@ export default function CatalogDrawer({
   // Available categories derived dynamically or using standard list
   const categories = ["All Items", "Produce", "Dairy", "Pantry", "Bakery", "Meat", "Other"];
 
-  // Filter catalog items
+  // Filter and sort catalog items
   const filteredItems = useMemo(() => {
-    return regularItems.filter((item) => {
+    const filtered = regularItems.filter((item) => {
       const nameMatch = item.name.toLowerCase().includes(searchQuery.toLowerCase());
       
       const itemCategory = item.category || "Other";
@@ -93,6 +93,21 @@ export default function CatalogDrawer({
 
       return nameMatch && categoryMatch;
     });
+
+    if (selectedCategory === "All Items") {
+      return [...filtered].sort((a, b) => {
+        const catA = (a.category || "Other").toLowerCase();
+        const catB = (b.category || "Other").toLowerCase();
+        if (catA !== catB) {
+          return catA.localeCompare(catB);
+        }
+        return a.name.toLowerCase().localeCompare(b.name.toLowerCase());
+      });
+    } else {
+      return [...filtered].sort((a, b) => {
+        return a.name.toLowerCase().localeCompare(b.name.toLowerCase());
+      });
+    }
   }, [regularItems, searchQuery, selectedCategory]);
 
   const handleAddToggle = async (item: RegularItem) => {
