@@ -21,6 +21,19 @@ interface VersionEntry {
 
 const VERSIONS: VersionEntry[] = [
   {
+    version: "1.9.31",
+    date: "June 2026",
+    type: "patch",
+    title: "Wishabi Flipp API Flyer Resolving",
+    changes: [
+      {
+        icon: <Zap className="w-4 h-4 text-emerald-500" />,
+        category: "Price Matching",
+        description: "Implemented a backend Express API proxy `/api/flipp/resolve` hitting the undocumented backflipp.wishabi.com search endpoint. Dynamically resolves precise flyer items (or merchant flyer pages) and opens them on Flipp.com, displaying exact flyer clippings directly to cashiers."
+      }
+    ]
+  },
+  {
     version: "1.9.30",
     date: "June 2026",
     type: "patch",
