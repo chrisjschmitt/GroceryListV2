@@ -21,6 +21,19 @@ interface VersionEntry {
 
 const VERSIONS: VersionEntry[] = [
   {
+    version: "1.9.34",
+    date: "June 2026",
+    type: "patch",
+    title: "Store Product Page Fallback",
+    changes: [
+      {
+        icon: <Zap className="w-4 h-4 text-emerald-500" />,
+        category: "Price Matching",
+        description: "Implemented a direct store product website page fallback. If no flyer match is found, the loading screen notifies the user and redirects to the official store catalog lookup URL."
+      }
+    ]
+  },
+  {
     version: "1.9.33",
     date: "June 2026",
     type: "patch",
