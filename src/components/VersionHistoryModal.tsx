@@ -21,6 +21,19 @@ interface VersionEntry {
 
 const VERSIONS: VersionEntry[] = [
   {
+    version: "1.9.35",
+    date: "June 2026",
+    type: "patch",
+    title: "List Search & Checked Auto-Sorting",
+    changes: [
+      {
+        icon: <Zap className="w-4 h-4 text-emerald-500" />,
+        category: "Lists & Sorting",
+        description: "Added a responsive search bar to filter shopping lists (optimized with 16px text-base inputs to prevent iOS auto-zoom). Checked items are automatically sorted to the bottom of the list."
+      }
+    ]
+  },
+  {
     version: "1.9.34",
     date: "June 2026",
     type: "patch",
