@@ -863,9 +863,9 @@ async function startServer() {
         if (merchantItems.length > 0) {
           const bestItem = merchantItems[0];
           if (bestItem.id) {
-            return res.json({ url: `https://flipp.com/item/${bestItem.id}?postal_code=${encodeURIComponent(postalCode)}` });
+            return res.json({ url: `https://flipp.com/item/${bestItem.id}?postal_code=${encodeURIComponent(postalCode)}`, isMatch: true });
           } else if (bestItem.flyer_id) {
-            return res.json({ url: `https://flipp.com/flyer/${bestItem.flyer_id}?postal_code=${encodeURIComponent(postalCode)}` });
+            return res.json({ url: `https://flipp.com/flyer/${bestItem.flyer_id}?postal_code=${encodeURIComponent(postalCode)}`, isMatch: false });
           }
         }
       }
@@ -897,9 +897,9 @@ async function startServer() {
             if (secMerchantItems.length > 0) {
               const bestSecItem = secMerchantItems[0];
               if (bestSecItem.id) {
-                return res.json({ url: `https://flipp.com/item/${bestSecItem.id}?postal_code=${encodeURIComponent(postalCode)}` });
+                return res.json({ url: `https://flipp.com/item/${bestSecItem.id}?postal_code=${encodeURIComponent(postalCode)}`, isMatch: true });
               } else if (bestSecItem.flyer_id) {
-                return res.json({ url: `https://flipp.com/flyer/${bestSecItem.flyer_id}?postal_code=${encodeURIComponent(postalCode)}` });
+                return res.json({ url: `https://flipp.com/flyer/${bestSecItem.flyer_id}?postal_code=${encodeURIComponent(postalCode)}`, isMatch: false });
               }
             }
           }
@@ -925,14 +925,14 @@ async function startServer() {
             return itMerchant.includes(targetMerchant) || targetMerchant.includes(itMerchant);
           });
           if (matchedStoreItem && matchedStoreItem.flyer_id) {
-            return res.json({ url: `https://flipp.com/flyer/${matchedStoreItem.flyer_id}?postal_code=${encodeURIComponent(postalCode)}` });
+            return res.json({ url: `https://flipp.com/flyer/${matchedStoreItem.flyer_id}?postal_code=${encodeURIComponent(postalCode)}`, isMatch: false });
           }
         }
       } catch (storeErr) {
         console.error("Error in fallback store flyer resolution:", storeErr);
       }
 
-      return res.json({ url: targetUrl });
+      return res.json({ url: targetUrl, isMatch: false });
     } catch (error: any) {
       console.error("Error in /api/flipp/resolve:", error);
       const storeName = req.query.storeName as string || "";

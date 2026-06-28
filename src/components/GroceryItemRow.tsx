@@ -72,7 +72,14 @@ function getFlippSearchUrl(storeName: string, itemName: string, configName?: str
 }
 
 export default function GroceryItemRow({ item, onToggle, onRemove, onUpdateQuantity, priceInfo, primaryStoreId }: GroceryItemRowProps) {
-  const openFlyerForStoreItem = (storeName: string, itemName: string, configName?: string, postalCode?: string, scrapedName?: string) => {
+  const openFlyerForStoreItem = (
+    storeName: string,
+    itemName: string,
+    configName?: string,
+    postalCode?: string,
+    scrapedName?: string,
+    storeUrl?: string
+  ) => {
     const newTab = window.open("about:blank", "_blank");
     if (!newTab) return;
     newTab.document.write(`
@@ -99,6 +106,7 @@ export default function GroceryItemRow({ item, onToggle, onRemove, onUpdateQuant
               border-radius: 1rem;
               border: 1px solid rgba(255, 255, 255, 0.08);
               box-shadow: 0 20px 25px -5px rgb(0 0 0 / 0.5);
+              width: 320px;
             }
             .spinner {
               border: 3px solid rgba(255, 255, 255, 0.1);
@@ -108,17 +116,20 @@ export default function GroceryItemRow({ item, onToggle, onRemove, onUpdateQuant
               height: 48px;
               animation: spin 0.8s linear infinite;
               margin: 0 auto 1.5rem;
+              transition: all 0.3s ease;
             }
             h1 {
               font-size: 1.25rem;
               font-weight: 700;
               margin: 0 0 0.5rem;
               letter-spacing: -0.025em;
+              transition: all 0.3s ease;
             }
             p {
               font-size: 0.875rem;
               color: #94a3b8;
               margin: 0;
+              transition: all 0.3s ease;
             }
             @keyframes spin {
               0% { transform: rotate(0deg); }
@@ -128,9 +139,9 @@ export default function GroceryItemRow({ item, onToggle, onRemove, onUpdateQuant
         </head>
         <body>
           <div class="container">
-            <div class="spinner"></div>
-            <h1>Locating Weekly Flyer</h1>
-            <p>Searching Flipp.com for local ${storeName.replace(/'/g, "\\'")} deals...</p>
+            <div id="spinner" class="spinner"></div>
+            <h1 id="status-title">Locating Weekly Flyer</h1>
+            <p id="status-desc">Searching Flipp.com for local ${storeName.replace(/'/g, "\\'")} deals...</p>
           </div>
         </body>
       </html>
@@ -144,17 +155,40 @@ export default function GroceryItemRow({ item, onToggle, onRemove, onUpdateQuant
       scrapedName: scrapedName || ""
     });
 
+    const handleRedirect = (targetUrl: string, isMatch: boolean) => {
+      if (isMatch || !storeUrl) {
+        newTab.location.href = targetUrl;
+      } else {
+        try {
+          const doc = newTab.document;
+          if (doc) {
+            const titleEl = doc.getElementById("status-title");
+            const descEl = doc.getElementById("status-desc");
+            const spinnerEl = doc.getElementById("spinner");
+            if (titleEl) titleEl.innerText = "Flyer Deal Not Found";
+            if (descEl) descEl.innerText = "This item is not in the active weekly flyer. Redirecting to the store product page...";
+            if (spinnerEl) spinnerEl.style.borderTopColor = "#f59e0b"; // Warning amber color
+          }
+        } catch (e) {
+          console.error("Error updating sub-tab DOM:", e);
+        }
+        setTimeout(() => {
+          newTab.location.href = storeUrl;
+        }, 2200);
+      }
+    };
+
     fetch("/api/flipp/resolve?" + qParams.toString())
       .then(r => r.json())
       .then(data => {
         if (data && data.url) {
-          newTab.location.href = data.url;
+          handleRedirect(data.url, !!data.isMatch);
         } else {
-          newTab.location.href = getFlippSearchUrl(storeName, itemName, configName, postalCode);
+          handleRedirect(getFlippSearchUrl(storeName, itemName, configName, postalCode), false);
         }
       })
       .catch(() => {
-        newTab.location.href = getFlippSearchUrl(storeName, itemName, configName, postalCode);
+        handleRedirect(getFlippSearchUrl(storeName, itemName, configName, postalCode), false);
       });
   };
 
@@ -399,7 +433,8 @@ export default function GroceryItemRow({ item, onToggle, onRemove, onUpdateQuant
                         item.name,
                         priceInfo?.config_name,
                         bestCompetitorPrice.postal_code || priceInfo?.postal_code,
-                        priceInfo?.item_name || bestCompetitorPrice.item_name
+                        priceInfo?.item_name || bestCompetitorPrice.item_name,
+                        bestCompetitorPrice.lookup_url || priceInfo?.lookup_url
                       );
                     }}
                     className="text-[9px] font-black uppercase bg-emerald-500 hover:bg-emerald-600 text-white border border-emerald-650 px-1.5 py-0.5 rounded shadow-[1px_1px_0px_rgba(0,0,0,1)] hover:shadow-none hover:translate-x-[1px] hover:translate-y-[1px] transition-all flex items-center gap-0.5 hover:underline cursor-pointer text-center text-xs"
