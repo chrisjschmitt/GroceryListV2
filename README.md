@@ -106,6 +106,32 @@ The merge process downloads the latest live production catalog, applies only the
 #### 5. Scraper Error & Block Handling
 If a URL fails to load or triggers a bot manager screen (e.g. Akamai blocking Your Independent Grocer deep-links), the script logs the status as `"ERROR"`. In this case, **no pricing updates** are written, and the link's `is_verified` state is automatically set to `false` (unchecked) so that it is excluded from future scrape cycles until manually re-evaluated.
 
+## Flipp Flyer Resolution Engine
+
+GroceryHub features a high-visibility, automated flyer matching engine that locates products or merchants on Flipp.com to show the cashier at checkout. It routes through a local backend proxy (`/api/flipp/resolve`) querying the undocumented internal Wishabi (Flipp) search endpoint.
+
+### Multi-Stage Resolution Workflow
+
+When a user clicks **Open Flyer ↗** on a price-matched item, the resolver performs the following multi-stage lookup:
+
+1. **Stage 1: Exact Item Lookup**
+   - Cleans the store name and target item (e.g. using `scrapedName` from the price match catalog, stripping trailing package sizes/weights/parentheticals).
+   - Queries Wishabi API (e.g., `q = Food Basics Selection Butter`).
+   - If a matching item is active in the merchant's regional flyer, it returns the exact flyer clipping:
+     `https://flipp.com/item/[flyer_item_id]?postal_code=[postal_code]`
+
+2. **Stage 2: Descriptor Stripping Fallback**
+   - If Stage 1 returns 0 results, the resolver strips common flavor/descriptive terms (e.g. `unsalted`, `salted`, `organic`, `fresh`, `frozen`, `sliced`, `whole`) and retries the query.
+   - For example, `Food Basics Selection Butter unsalted` simplifies to `Food Basics Selection Butter`, successfully finding the matching product.
+
+3. **Stage 3: Flyer Index Fallback**
+   - If specific item matching fails (e.g., the product isn't listed on the flyer), the resolver queries Wishabi for the merchant name alone (`q = Food Basics`).
+   - It extracts the active weekly flyer ID from the response (e.g. `7999820`) and redirects to the direct flyer landing page:
+     `https://flipp.com/flyer/[flyer_id]?postal_code=[postal_code]`
+
+4. **Stage 4: Generic Search Fallback**
+   - If everything else fails, the resolver defaults to a generic search results page query on Flipp.com.
+
 ---
 
 ## Scripts & Operations
