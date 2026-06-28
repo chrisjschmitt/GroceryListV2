@@ -361,6 +361,17 @@ export default function ListsTab() {
     return map;
   }, [store.prices]);
 
+  const [searchQuery, setSearchQuery] = useState("");
+
+  const filteredItems = useMemo(() => {
+    const q = searchQuery.trim().toLowerCase();
+    if (!q) return store.groceryItems;
+    return store.groceryItems.filter((item) =>
+      item.name.toLowerCase().includes(q) ||
+      (item.category || "").toLowerCase().includes(q)
+    );
+  }, [store.groceryItems, searchQuery]);
+
   const shoppingListNames = useMemo(
     () => new Set(store.groceryItems.map((i) => i.name.toLowerCase())),
     [store.groceryItems]
@@ -374,7 +385,7 @@ export default function ListsTab() {
       unassigned: { name: "No Price Checking Configured", items: [] }
     };
 
-    for (const item of store.groceryItems) {
+    for (const item of filteredItems) {
       const priceInfo = priceLookup.get(item.name.toLowerCase());
       if (priceInfo) {
         let bestStoreId = "";
@@ -408,9 +419,12 @@ export default function ListsTab() {
       }
     }
 
-    // Sort items within each store by category walkthrough order, then alphabetically by name
+    // Sort items within each store by checked status (unchecked first), category walkthrough order, then alphabetically by name
     for (const storeId in storeMap) {
       storeMap[storeId].items.sort((a, b) => {
+        if (a.checked !== b.checked) {
+          return a.checked ? 1 : -1;
+        }
         const idxA = getCategoryWalkthroughIndex(a.category || "");
         const idxB = getCategoryWalkthroughIndex(b.category || "");
         if (idxA !== idxB) return idxA - idxB;
@@ -421,20 +435,25 @@ export default function ListsTab() {
     return Object.entries(storeMap)
       .filter(([_, data]) => data.items.length > 0)
       .map(([id, data]) => ({ id, ...data }));
-  }, [store.groceryItems, priceLookup]);
+  }, [filteredItems, priceLookup]);
 
   // Group all items by category (for All Items view)
   const groupedByCategory = useMemo(() => {
     const categoriesMap: Record<string, GroceryItem[]> = {};
-    for (const item of store.groceryItems) {
+    for (const item of filteredItems) {
       const cat = item.category || "Other";
       if (!categoriesMap[cat]) categoriesMap[cat] = [];
       categoriesMap[cat].push(item);
     }
 
-    // Sort items alphabetically within each category
+    // Sort items alphabetically within each category, with checked items falling to the bottom
     for (const catName in categoriesMap) {
-      categoriesMap[catName].sort((a, b) => a.name.localeCompare(b.name));
+      categoriesMap[catName].sort((a, b) => {
+        if (a.checked !== b.checked) {
+          return a.checked ? 1 : -1;
+        }
+        return a.name.localeCompare(b.name);
+      });
     }
 
     return Object.entries(categoriesMap)
@@ -445,7 +464,7 @@ export default function ListsTab() {
         if (idxA !== idxB) return idxA - idxB;
         return a.name.localeCompare(b.name);
       });
-  }, [store.groceryItems]);
+  }, [filteredItems]);
 
   const activeGroups = viewMode === "byStore" ? groupedByStore : groupedByCategory;
 
@@ -511,6 +530,41 @@ export default function ListsTab() {
           onRefresh={store.refreshFromServer}
         />
       </div>
+
+      {/* Search Bar Container */}
+      {totalItems > 0 && (
+        <div className="relative w-full">
+          <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none">
+            <svg className="h-5 w-5 text-on-surface-variant/50" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+            </svg>
+          </div>
+          <input
+            type="text"
+            inputMode="search"
+            autoComplete="off"
+            autoCorrect="off"
+            autoCapitalize="none"
+            spellCheck={false}
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            placeholder="Search list items or categories..."
+            className="w-full pl-10 pr-10 py-2.5 bg-surface border border-outline/10 rounded-xl text-base font-bold placeholder-on-surface-variant/40 focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent transition-all shadow-xs text-on-surface"
+          />
+          {searchQuery && (
+            <button
+              type="button"
+              onClick={() => setSearchQuery("")}
+              className="absolute inset-y-0 right-0 pr-3.5 flex items-center text-on-surface-variant/50 hover:text-on-surface cursor-pointer"
+              aria-label="Clear search"
+            >
+              <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M6 18L18 6M6 6l12 12" />
+              </svg>
+            </button>
+          )}
+        </div>
+      )}
 
       {/* Shopping At Store Selector Card */}
       <div className="flex items-center justify-between gap-3 p-3.5 bg-surface border border-outline/10 rounded-xl shadow-xs">
@@ -578,7 +632,16 @@ export default function ListsTab() {
 
       {/* Dynamic Store / Category Groups */}
       {totalItems > 0 ? (
-        <div className="space-y-6">
+        filteredItems.length === 0 ? (
+          <div className="border border-outline-variant bg-surface rounded-xl flex flex-col items-center justify-center py-12 px-4 text-center">
+            <span className="text-3xl mb-3">🔍</span>
+            <h3 className="text-sm font-black uppercase text-on-surface">No matching items found</h3>
+            <p className="text-xs text-on-surface-variant max-w-xs mx-auto mt-1.5 leading-relaxed font-medium">
+              Try adjusting your search query or clear the search to view all items on your list.
+            </p>
+          </div>
+        ) : (
+          <div className="space-y-6">
           {activeGroups.map((group) => (
             <section key={group.id} className="space-y-3">
               {/* Store Title Bar */}
@@ -884,7 +947,7 @@ export default function ListsTab() {
             </section>
           ))}
         </div>
-      ) : (
+      ) ) : (
         /* Empty State */
         <div className="border-2 border-dashed border-outline-variant bg-surface rounded-xl flex flex-col items-center justify-center py-16 px-4 text-center mt-3">
           <span className="text-4xl mb-3">🛍</span>
