@@ -21,6 +21,19 @@ interface VersionEntry {
 
 const VERSIONS: VersionEntry[] = [
   {
+    version: "1.9.36",
+    date: "June 2026",
+    type: "patch",
+    title: "Flyer Loading Screen Mobile Scaling Fix",
+    changes: [
+      {
+        icon: <Zap className="w-4 h-4 text-emerald-500" />,
+        category: "Mobile Optimization",
+        description: "Added viewport meta tags and scaled up the loading page font size to 1.75rem (28px) so that text resolves correctly on mobile screens without zooming out."
+      }
+    ]
+  },
+  {
     version: "1.9.35",
     date: "June 2026",
     type: "patch",
