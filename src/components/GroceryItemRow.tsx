@@ -85,6 +85,8 @@ export default function GroceryItemRow({ item, onToggle, onRemove, onUpdateQuant
     newTab.document.write(`
       <html>
         <head>
+          <meta charset="utf-8">
+          <meta name="viewport" content="width=device-width, initial-scale=1.0">
           <title>Loading Flyer...</title>
           <style>
             body {
@@ -102,11 +104,13 @@ export default function GroceryItemRow({ item, onToggle, onRemove, onUpdateQuant
               text-align: center;
               background: rgba(30, 41, 59, 0.7);
               backdrop-filter: blur(12px);
-              padding: 2.5rem;
-              border-radius: 1rem;
+              padding: 2.5rem 1.75rem;
+              border-radius: 1.25rem;
               border: 1px solid rgba(255, 255, 255, 0.08);
               box-shadow: 0 20px 25px -5px rgb(0 0 0 / 0.5);
-              width: 320px;
+              width: 90%;
+              max-width: 360px;
+              box-sizing: border-box;
             }
             .spinner {
               border: 3px solid rgba(255, 255, 255, 0.1);
@@ -119,16 +123,18 @@ export default function GroceryItemRow({ item, onToggle, onRemove, onUpdateQuant
               transition: all 0.3s ease;
             }
             h1 {
-              font-size: 1.25rem;
-              font-weight: 700;
-              margin: 0 0 0.5rem;
-              letter-spacing: -0.025em;
+              font-size: 1.75rem;
+              font-weight: 800;
+              margin: 0 0 0.75rem;
+              letter-spacing: -0.03em;
+              line-height: 1.25;
               transition: all 0.3s ease;
             }
             p {
               font-size: 0.875rem;
               color: #94a3b8;
               margin: 0;
+              line-height: 1.4;
               transition: all 0.3s ease;
             }
             @keyframes spin {
