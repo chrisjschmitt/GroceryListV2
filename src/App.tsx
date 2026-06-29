@@ -13,6 +13,26 @@ export default function App() {
   const [activeTab, setActiveTab] = useState<"home" | "baskets" | "lists" | "profile">("home");
   const [isChangelogOpen, setIsChangelogOpen] = useState(false);
   const CURRENT_VERSION = packageJson.version;
+  const [isUpdating, setIsUpdating] = useState(false);
+  const [targetVersion, setTargetVersion] = useState("");
+
+  useEffect(() => {
+    if (navigator.onLine) {
+      fetch("/api/app-version")
+        .then((res) => res.json())
+        .then((data) => {
+          if (data && data.version && data.version !== CURRENT_VERSION) {
+            console.log(`New version available: ${data.version} (current: ${CURRENT_VERSION}). Downloading...`);
+            setTargetVersion(data.version);
+            setIsUpdating(true);
+            setTimeout(() => {
+              window.location.reload();
+            }, 1800);
+          }
+        })
+        .catch((err) => console.error("Error checking app version:", err));
+    }
+  }, [CURRENT_VERSION]);
 
   useEffect(() => {
     const handlePopState = () => {
@@ -24,6 +44,20 @@ export default function App() {
       window.removeEventListener("popstate", handlePopState);
     };
   }, []);
+
+  if (isUpdating) {
+    return (
+      <div className="fixed inset-0 bg-slate-950 text-white flex flex-col items-center justify-center z-50 px-6 text-center">
+        <div className="bg-slate-900 border border-white/10 rounded-2xl p-8 max-w-sm w-full shadow-2xl flex flex-col items-center">
+          <div className="w-12 h-12 border-4 border-emerald-500/20 border-t-emerald-500 rounded-full animate-spin mb-6"></div>
+          <h2 className="text-xl font-extrabold text-white mb-2">Downloading Update</h2>
+          <p className="text-sm text-slate-400">
+            A newer version of GroceryHub is available ({targetVersion}). Downloading assets and updating your application...
+          </p>
+        </div>
+      </div>
+    );
+  }
 
   if (currentPath === "/admin") {
     return <Admin />;

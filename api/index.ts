@@ -801,6 +801,20 @@ app.post("/api/append-grocery", async (req, res) => {
   }
 });
 
+// GET /api/app-version
+app.get("/api/app-version", (req, res) => {
+  try {
+    const packageJsonPath = path.join(process.cwd(), "package.json");
+    if (fs.existsSync(packageJsonPath)) {
+      const pkg = JSON.parse(fs.readFileSync(packageJsonPath, "utf-8"));
+      return res.json({ version: pkg.version || "1.0.0" });
+    }
+    return res.json({ version: "1.9.36" });
+  } catch (e) {
+    return res.json({ version: "1.9.36" });
+  }
+});
+
 // GET /api/flipp/resolve
 app.get("/api/flipp/resolve", async (req, res) => {
   try {
