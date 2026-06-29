@@ -21,6 +21,19 @@ interface VersionEntry {
 
 const VERSIONS: VersionEntry[] = [
   {
+    version: "1.9.37",
+    date: "June 2026",
+    type: "patch",
+    title: "Startup Version Checker & Downloader",
+    changes: [
+      {
+        icon: <Zap className="w-4 h-4 text-emerald-500" />,
+        category: "System Updates",
+        description: "Implemented a startup auto-update detector. If online, the app compares its client version against the server's build. If a mismatch is detected, the app displays a downloading update screen and reloads the page to grab the latest assets."
+      }
+    ]
+  },
+  {
     version: "1.9.36",
     date: "June 2026",
     type: "patch",
