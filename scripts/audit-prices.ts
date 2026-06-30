@@ -179,7 +179,17 @@ async function runAudit() {
     return;
   }
 
-  console.log("=== Starting Grocery Price Audit Scraper ===");
+  const storeArgIdx = args.indexOf("--store");
+  let filterStoreKey: string | null = null;
+  if (storeArgIdx !== -1 && storeArgIdx + 1 < args.length) {
+    filterStoreKey = args[storeArgIdx + 1].toLowerCase().trim();
+  }
+
+  if (filterStoreKey) {
+    console.log(`=== Starting Grocery Price Audit Scraper (Filtering Store: ${filterStoreKey}) ===`);
+  } else {
+    console.log("=== Starting Grocery Price Audit Scraper ===");
+  }
   console.log("1. Fetching Combined Catalog from MongoDB...");
   
   let catalog: any = null;
@@ -199,6 +209,9 @@ async function runAudit() {
           const s = details as any;
           const isVerified = s.is_verified === true || s.is_verified === 1 || String(s.is_verified) === "true";
           if (isVerified && s.url) {
+            if (filterStoreKey && storeKey.toLowerCase().trim() !== filterStoreKey) {
+              continue;
+            }
             s.url = normalizeStoreUrl(s.url);
             targetLinks.push({ item, storeKey, storeDetails: s });
           }
