@@ -568,39 +568,94 @@ app.post("/api/append-grocery", async (req, res) => {
       const lowerUrl = dbUrl.toLowerCase();
 
       let resolvedStoreId = data.store_id || req.body.store_id || existingStoreId;
-      if (!resolvedStoreId) {
+
+      // 1. Try to match the store using URL content and base URLs from catalog config
+      let matchedCatalogStoreId = "";
+      if (catalog.stores && typeof catalog.stores === "object") {
+        for (const [sId, sInfo] of Object.entries(catalog.stores) as [string, any][]) {
+          const cleanKey = sId.toLowerCase();
+          const storeDomain = sInfo.base_url ? normalizeUrl(sInfo.base_url) : "";
+          const cleanName = sInfo.store_name ? sInfo.store_name.toLowerCase() : "";
+
+          if (storeDomain && lowerUrl.includes(storeDomain)) {
+            matchedCatalogStoreId = sId;
+            break;
+          }
+          if (cleanKey.length > 3 && lowerUrl.includes(cleanKey)) {
+            matchedCatalogStoreId = sId;
+            break;
+          }
+          if (cleanName) {
+            const noSpace = cleanName.replace(/\s+/g, "");
+            const hyphenated = cleanName.replace(/\s+/g, "-");
+            if (noSpace.length > 3 && lowerUrl.includes(noSpace)) {
+              matchedCatalogStoreId = sId;
+              break;
+            }
+            if (hyphenated.length > 3 && lowerUrl.includes(hyphenated)) {
+              matchedCatalogStoreId = sId;
+              break;
+            }
+          }
+          // Specific brand keyword fallbacks (useful for Flipp flyers)
+          if (cleanKey.includes("canadiantire") && (lowerUrl.includes("canadiantire") || lowerUrl.includes("canadian-tire"))) {
+            matchedCatalogStoreId = sId;
+            break;
+          }
+          if (cleanKey.includes("foodbasics") && (lowerUrl.includes("foodbasics") || lowerUrl.includes("food-basics"))) {
+            matchedCatalogStoreId = sId;
+            break;
+          }
+          if (cleanKey.includes("independent") && (lowerUrl.includes("yourindependentgrocer") || lowerUrl.includes("independent-grocer"))) {
+            matchedCatalogStoreId = sId;
+            break;
+          }
+          if (cleanKey.includes("nofrills") && (lowerUrl.includes("nofrills") || lowerUrl.includes("no-frills"))) {
+            matchedCatalogStoreId = sId;
+            break;
+          }
+        }
+      }
+
+      if (matchedCatalogStoreId) {
+        resolvedStoreId = matchedCatalogStoreId;
+      }
+
+      // 2. Map input store ID to catalog stores if there's a substring match
+      if (resolvedStoreId && catalog.stores && typeof catalog.stores === "object") {
+        const lowerInputId = String(resolvedStoreId).toLowerCase();
+        for (const sId of Object.keys(catalog.stores)) {
+          const lowerCatalogId = sId.toLowerCase();
+          if (lowerCatalogId.includes(lowerInputId) || lowerInputId.includes(lowerCatalogId)) {
+            resolvedStoreId = sId;
+            break;
+          }
+        }
+      }
+
+      // 3. Fallbacks for common legacy stores if not resolved
+      if (!resolvedStoreId || resolvedStoreId === "unknown" || resolvedStoreId === "flipp") {
         if (lowerUrl.includes("metro.ca")) resolvedStoreId = "metro";
         else if (lowerUrl.includes("loblaws.ca")) resolvedStoreId = "loblaws";
         else if (lowerUrl.includes("nofrills.ca")) resolvedStoreId = "nofrills";
         else if (lowerUrl.includes("freshco")) resolvedStoreId = "freshco";
         else if (lowerUrl.includes("yourindependentgrocer")) resolvedStoreId = "yourindependentgrocer";
-        else resolvedStoreId = "7923194"; // foodbasics
+        else resolvedStoreId = "foodbasics";
       }
 
-      let resolvedStoreName = "Food Basics";
       const lowerStoreId = String(resolvedStoreId).toLowerCase();
-      if (lowerStoreId === "7923194" || lowerStoreId === "foodbasics") {
-        if (lowerUrl.includes("freshco")) {
-          resolvedStoreId = "freshco";
-          resolvedStoreName = "FreshCo";
-        } else if (lowerUrl.includes("yourindependentgrocer")) {
-          resolvedStoreId = "yourindependentgrocer";
-          resolvedStoreName = "Your Independent Grocer";
-        } else {
-          resolvedStoreName = "Food Basics";
-        }
-      } else if (lowerStoreId === "metro") {
-        resolvedStoreName = "Metro";
-      } else if (lowerStoreId === "loblaws") {
-        resolvedStoreName = "Loblaws";
-      } else if (lowerStoreId === "nofrills") {
-        resolvedStoreName = "No Frills";
-      } else if (lowerStoreId === "freshco" || lowerStoreId.includes("freshco")) {
-        resolvedStoreName = "FreshCo";
-      } else if (lowerStoreId === "yourindependentgrocer" || lowerStoreId.includes("yourindependentgrocer")) {
-        resolvedStoreName = "Your Independent Grocer";
-      } else {
-        resolvedStoreName = data.store_name || req.body.store_name || existingStoreName || "Food Basics";
+      const catalogStoreConfig = catalog.stores?.[lowerStoreId];
+      let resolvedStoreName = catalogStoreConfig?.store_name || data.store_name || req.body.store_name || existingStoreName;
+
+      if (!resolvedStoreName) {
+        if (lowerStoreId === "foodbasics" || lowerStoreId === "7923194") resolvedStoreName = "Food Basics";
+        else if (lowerStoreId === "metro") resolvedStoreName = "Metro";
+        else if (lowerStoreId === "loblaws") resolvedStoreName = "Loblaws";
+        else if (lowerStoreId === "nofrills") resolvedStoreName = "No Frills";
+        else if (lowerStoreId === "freshco") resolvedStoreName = "FreshCo";
+        else if (lowerStoreId === "yourindependentgrocer") resolvedStoreName = "Your Independent Grocer";
+        else if (lowerStoreId === "canadiantire") resolvedStoreName = "Canadian Tire";
+        else resolvedStoreName = resolvedStoreId;
       }
 
       correctedData.store_id = resolvedStoreId;
@@ -636,31 +691,95 @@ app.post("/api/append-grocery", async (req, res) => {
       const dbUrl = ensureHttps(data.lookup_url || data.url || data.raw_share_url || req.body.lookup_url || "");
       const lowerUrl = dbUrl.toLowerCase();
 
-      let resolvedStoreId = data.store_id || req.body.store_id || "7923194";
-      if (resolvedStoreId === "7923194" || resolvedStoreId === "foodbasics") {
+      let resolvedStoreId = data.store_id || req.body.store_id || "foodbasics";
+
+      // 1. Try to match the store using URL content and base URLs from catalog config
+      let matchedCatalogStoreId = "";
+      if (catalog.stores && typeof catalog.stores === "object") {
+        for (const [sId, sInfo] of Object.entries(catalog.stores) as [string, any][]) {
+          const cleanKey = sId.toLowerCase();
+          const storeDomain = sInfo.base_url ? normalizeUrl(sInfo.base_url) : "";
+          const cleanName = sInfo.store_name ? sInfo.store_name.toLowerCase() : "";
+
+          if (storeDomain && lowerUrl.includes(storeDomain)) {
+            matchedCatalogStoreId = sId;
+            break;
+          }
+          if (cleanKey.length > 3 && lowerUrl.includes(cleanKey)) {
+            matchedCatalogStoreId = sId;
+            break;
+          }
+          if (cleanName) {
+            const noSpace = cleanName.replace(/\s+/g, "");
+            const hyphenated = cleanName.replace(/\s+/g, "-");
+            if (noSpace.length > 3 && lowerUrl.includes(noSpace)) {
+              matchedCatalogStoreId = sId;
+              break;
+            }
+            if (hyphenated.length > 3 && lowerUrl.includes(hyphenated)) {
+              matchedCatalogStoreId = sId;
+              break;
+            }
+          }
+          // Specific brand keyword fallbacks (useful for Flipp flyers)
+          if (cleanKey.includes("canadiantire") && (lowerUrl.includes("canadiantire") || lowerUrl.includes("canadian-tire"))) {
+            matchedCatalogStoreId = sId;
+            break;
+          }
+          if (cleanKey.includes("foodbasics") && (lowerUrl.includes("foodbasics") || lowerUrl.includes("food-basics"))) {
+            matchedCatalogStoreId = sId;
+            break;
+          }
+          if (cleanKey.includes("independent") && (lowerUrl.includes("yourindependentgrocer") || lowerUrl.includes("independent-grocer"))) {
+            matchedCatalogStoreId = sId;
+            break;
+          }
+          if (cleanKey.includes("nofrills") && (lowerUrl.includes("nofrills") || lowerUrl.includes("no-frills"))) {
+            matchedCatalogStoreId = sId;
+            break;
+          }
+        }
+      }
+
+      if (matchedCatalogStoreId) {
+        resolvedStoreId = matchedCatalogStoreId;
+      }
+
+      // 2. Map input store ID to catalog stores if there's a substring match
+      if (resolvedStoreId && catalog.stores && typeof catalog.stores === "object") {
+        const lowerInputId = String(resolvedStoreId).toLowerCase();
+        for (const sId of Object.keys(catalog.stores)) {
+          const lowerCatalogId = sId.toLowerCase();
+          if (lowerCatalogId.includes(lowerInputId) || lowerInputId.includes(lowerCatalogId)) {
+            resolvedStoreId = sId;
+            break;
+          }
+        }
+      }
+
+      // 3. Fallbacks for common legacy stores if not resolved
+      if (!resolvedStoreId || resolvedStoreId === "unknown" || resolvedStoreId === "flipp") {
         if (lowerUrl.includes("metro.ca")) resolvedStoreId = "metro";
         else if (lowerUrl.includes("loblaws.ca")) resolvedStoreId = "loblaws";
         else if (lowerUrl.includes("nofrills.ca")) resolvedStoreId = "nofrills";
         else if (lowerUrl.includes("freshco")) resolvedStoreId = "freshco";
         else if (lowerUrl.includes("yourindependentgrocer")) resolvedStoreId = "yourindependentgrocer";
+        else resolvedStoreId = "foodbasics";
       }
 
-      let resolvedStoreName = "Food Basics";
       const lowerStoreId = String(resolvedStoreId).toLowerCase();
-      if (lowerStoreId === "7923194" || lowerStoreId === "foodbasics") {
-        resolvedStoreName = "Food Basics";
-      } else if (lowerStoreId === "metro") {
-        resolvedStoreName = "Metro";
-      } else if (lowerStoreId === "loblaws") {
-        resolvedStoreName = "Loblaws";
-      } else if (lowerStoreId === "nofrills") {
-        resolvedStoreName = "No Frills";
-      } else if (lowerStoreId === "freshco" || lowerStoreId.includes("freshco")) {
-        resolvedStoreName = "FreshCo";
-      } else if (lowerStoreId === "yourindependentgrocer" || lowerStoreId.includes("yourindependentgrocer")) {
-        resolvedStoreName = "Your Independent Grocer";
-      } else {
-        resolvedStoreName = data.store_name || req.body.store_name || "Food Basics";
+      const catalogStoreConfig = catalog.stores?.[lowerStoreId];
+      let resolvedStoreName = catalogStoreConfig?.store_name || data.store_name || req.body.store_name;
+
+      if (!resolvedStoreName) {
+        if (lowerStoreId === "foodbasics" || lowerStoreId === "7923194") resolvedStoreName = "Food Basics";
+        else if (lowerStoreId === "metro") resolvedStoreName = "Metro";
+        else if (lowerStoreId === "loblaws") resolvedStoreName = "Loblaws";
+        else if (lowerStoreId === "nofrills") resolvedStoreName = "No Frills";
+        else if (lowerStoreId === "freshco") resolvedStoreName = "FreshCo";
+        else if (lowerStoreId === "yourindependentgrocer") resolvedStoreName = "Your Independent Grocer";
+        else if (lowerStoreId === "canadiantire") resolvedStoreName = "Canadian Tire";
+        else resolvedStoreName = resolvedStoreId;
       }
 
       correctedData.store_id = resolvedStoreId;
@@ -715,24 +834,77 @@ app.post("/api/append-grocery", async (req, res) => {
             if (data.unit) catalogItem.unit = data.unit;
             if (data.units !== undefined) catalogItem.units = data.units !== null ? Number(data.units) : undefined;
 
-            const dbUrl = ensureHttps(priceDoc.lookup_url || priceDoc.url || priceDoc.raw_share_url || "");
             let fStoreKey = "foodbasics";
             const lowerUrl = dbUrl.toLowerCase();
-            if (lowerUrl.includes("metro.ca")) {
-              fStoreKey = "metro";
-            } else if (lowerUrl.includes("loblaws.ca")) {
-              fStoreKey = "loblaws";
-            } else if (lowerUrl.includes("nofrills.ca")) {
-              fStoreKey = "nofrills";
-            } else if (lowerUrl.includes("freshco")) {
-              fStoreKey = "freshco";
-            } else if (lowerUrl.includes("yourindependentgrocer")) {
-              fStoreKey = "yourindependentgrocer";
-            } else if (lowerUrl.includes("foodbasics")) {
-              fStoreKey = "foodbasics";
+
+            // Match using catalog store configuration
+            let matchedStoreKey = "";
+            if (freshCatalog.stores && typeof freshCatalog.stores === "object") {
+              for (const [sId, sInfo] of Object.entries(freshCatalog.stores) as [string, any][]) {
+                const cleanKey = sId.toLowerCase();
+                const storeDomain = sInfo.base_url ? normalizeUrl(sInfo.base_url) : "";
+                const cleanName = sInfo.store_name ? sInfo.store_name.toLowerCase() : "";
+
+                if (storeDomain && lowerUrl.includes(storeDomain)) {
+                  matchedStoreKey = sId;
+                  break;
+                }
+                if (cleanKey.length > 3 && lowerUrl.includes(cleanKey)) {
+                  matchedStoreKey = sId;
+                  break;
+                }
+                if (cleanName) {
+                  const noSpace = cleanName.replace(/\s+/g, "");
+                  const hyphenated = cleanName.replace(/\s+/g, "-");
+                  if (noSpace.length > 3 && lowerUrl.includes(noSpace)) {
+                    matchedStoreKey = sId;
+                    break;
+                  }
+                  if (hyphenated.length > 3 && lowerUrl.includes(hyphenated)) {
+                    matchedStoreKey = sId;
+                    break;
+                  }
+                }
+                // Specific brand keyword fallbacks (useful for Flipp flyers)
+                if (cleanKey.includes("canadiantire") && (lowerUrl.includes("canadiantire") || lowerUrl.includes("canadian-tire"))) {
+                  matchedStoreKey = sId;
+                  break;
+                }
+                if (cleanKey.includes("foodbasics") && (lowerUrl.includes("foodbasics") || lowerUrl.includes("food-basics"))) {
+                  matchedStoreKey = sId;
+                  break;
+                }
+                if (cleanKey.includes("independent") && (lowerUrl.includes("yourindependentgrocer") || lowerUrl.includes("independent-grocer"))) {
+                  matchedStoreKey = sId;
+                  break;
+                }
+                if (cleanKey.includes("nofrills") && (lowerUrl.includes("nofrills") || lowerUrl.includes("no-frills"))) {
+                  matchedStoreKey = sId;
+                  break;
+                }
+              }
+            }
+
+            if (matchedStoreKey) {
+              fStoreKey = matchedStoreKey;
             } else {
               const lowerId = String(priceDoc.store_id || "").toLowerCase();
-              if (lowerId === "metro") fStoreKey = "metro";
+              
+              // Map input store ID to catalog stores if there's a substring match
+              let mappedCatalogId = "";
+              if (freshCatalog.stores && typeof freshCatalog.stores === "object") {
+                for (const sId of Object.keys(freshCatalog.stores)) {
+                  const lowerCatalogId = sId.toLowerCase();
+                  if (lowerCatalogId.includes(lowerId) || lowerId.includes(lowerCatalogId)) {
+                    mappedCatalogId = sId;
+                    break;
+                  }
+                }
+              }
+
+              if (mappedCatalogId) {
+                fStoreKey = mappedCatalogId;
+              } else if (lowerId === "metro") fStoreKey = "metro";
               else if (lowerId === "loblaws") fStoreKey = "loblaws";
               else if (lowerId === "nofrills") fStoreKey = "nofrills";
               else if (lowerId === "freshco" || lowerId.includes("freshco")) fStoreKey = "freshco";

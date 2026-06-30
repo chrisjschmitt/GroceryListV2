@@ -21,6 +21,19 @@ interface VersionEntry {
 
 const VERSIONS: VersionEntry[] = [
   {
+    version: "1.9.38",
+    date: "June 2026",
+    type: "patch",
+    title: "Dynamic Store Ingestion & Metro Sync",
+    changes: [
+      {
+        icon: <Database className="w-4 h-4 text-emerald-500" />,
+        category: "Database & Ingestion",
+        description: "Migrated Metro product URLs across all 79 live catalog items. Enhanced the scraper API with dynamic catalog-based store matching to support custom stores like Canadian Tire without fallback names."
+      }
+    ]
+  },
+  {
     version: "1.9.37",
     date: "June 2026",
     type: "patch",
