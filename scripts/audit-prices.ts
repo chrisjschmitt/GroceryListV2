@@ -1,6 +1,6 @@
 import { chromium } from "playwright";
-import { list, put } from "@vercel/blob";
 import { GoogleGenAI, Type } from "@google/genai";
+import { blobGetCombinedCatalog, blobSetCombinedCatalog } from "../src/lib/db-store";
 import dotenv from "dotenv";
 import fs from "fs";
 import path from "path";
@@ -13,13 +13,7 @@ if (fs.existsSync(envPath)) {
   dotenv.config(); // fallback to default .env
 }
 
-const BLOB_TOKEN = process.env.BLOB_READ_WRITE_TOKEN;
 const GEMINI_KEY = process.env.GEMINI_API_KEY;
-
-if (!BLOB_TOKEN) {
-  console.error("Error: BLOB_READ_WRITE_TOKEN is not defined in environment variables.");
-  process.exit(1);
-}
 
 if (!GEMINI_KEY) {
   console.error("Error: GEMINI_API_KEY is not defined in environment variables.");
@@ -127,26 +121,11 @@ async function runAudit() {
 
     console.log(`Loaded ${updates.length} pricing update(s) from local cache.`);
 
-    // 2. Fetch the latest live catalog from Vercel Blob
-    console.log("Fetching the latest production catalog from Vercel Blob...");
+    // 2. Fetch the latest live catalog from MongoDB
+    console.log("Fetching the latest production catalog from MongoDB...");
     let liveCatalog: any = null;
     try {
-      const { blobs } = await list({ token: BLOB_TOKEN });
-      const targetBlob = blobs.find(b => b.pathname === "grocerylist/combined-catalog.json");
-      if (!targetBlob) {
-        throw new Error("combined-catalog.json was not found in Vercel Blob store.");
-      }
-      
-      let res = await fetch(targetBlob.url);
-      if (!res.ok) {
-        res = await fetch(targetBlob.url, {
-          headers: { Authorization: `Bearer ${BLOB_TOKEN}` }
-        });
-      }
-      if (!res.ok) {
-        throw new Error(`Failed to fetch live catalog: ${res.statusText}`);
-      }
-      liveCatalog = await res.json();
+      liveCatalog = await blobGetCombinedCatalog();
     } catch (err: any) {
       console.error("Error fetching live catalog:", err.message || String(err));
       process.exit(1);
@@ -188,17 +167,11 @@ async function runAudit() {
       }
     }
 
-    // 4. Upload the safely merged catalog to Vercel Blob
+    // 4. Upload the safely merged catalog to MongoDB
     try {
-      console.log(`Uploading safely merged catalog (${liveCatalog.items.length} total items, ${appliedCount} updated links) to private Vercel Blob...`);
-      await put("grocerylist/combined-catalog.json", JSON.stringify(liveCatalog, null, 2), {
-        access: "private",
-        addRandomSuffix: false,
-        allowOverwrite: true,
-        contentType: "application/json",
-        token: BLOB_TOKEN
-      });
-      console.log("\n[SUCCESS] Production combined-catalog.json successfully updated on Vercel Blob!");
+      console.log(`Uploading safely merged catalog (${liveCatalog.items.length} total items, ${appliedCount} updated links) to MongoDB...`);
+      await blobSetCombinedCatalog(liveCatalog);
+      console.log("\n[SUCCESS] Production catalog successfully updated in MongoDB!");
     } catch (err: any) {
       console.error("Error uploading catalog:", err.message || String(err));
       process.exit(1);
@@ -207,29 +180,11 @@ async function runAudit() {
   }
 
   console.log("=== Starting Grocery Price Audit Scraper ===");
-  console.log("1. Fetching Combined Catalog from Vercel Blob...");
+  console.log("1. Fetching Combined Catalog from MongoDB...");
   
   let catalog: any = null;
   try {
-    const { blobs } = await list({ token: BLOB_TOKEN });
-    const targetBlob = blobs.find(b => b.pathname === "grocerylist/combined-catalog.json");
-    if (!targetBlob) {
-      throw new Error("combined-catalog.json was not found in Vercel Blob store.");
-    }
-    console.log(`Found catalog blob at: ${targetBlob.url}`);
-    let res = await fetch(targetBlob.url);
-    if (!res.ok) {
-      console.log("Direct fetch failed or was unauthorized. Retrying with authorization token...");
-      res = await fetch(targetBlob.url, {
-        headers: {
-          Authorization: `Bearer ${BLOB_TOKEN}`
-        }
-      });
-    }
-    if (!res.ok) {
-      throw new Error(`Failed to fetch catalog from Vercel Blob: ${res.statusText} (${res.status})`);
-    }
-    catalog = await res.json();
+    catalog = await blobGetCombinedCatalog();
   } catch (err: any) {
     console.error("Error fetching Combined Catalog:", err.message || String(err));
     process.exit(1);
