@@ -383,6 +383,7 @@ async function runAudit() {
       const catalogValidUntil = storeDetails.valid_until ? String(storeDetails.valid_until).trim() : null;
       const catalogUnit = item.unit ? String(item.unit) : null;
       const catalogUnits = item.units != null ? Number(item.units) : null;
+      const catalogInFlyer = storeDetails.in_flyer === 1 || storeDetails.in_flyer === true;
 
       console.log(`   ├─ Catalog regular price: $${catalogRegular ?? "--"}`);
       console.log(`   ├─ Catalog sale price:    $${catalogSale ?? "--"} (On Sale: ${catalogIsOnSale ? "YES" : "NO"})`);
@@ -405,12 +406,14 @@ async function runAudit() {
           catalogValidUntil,
           catalogUnit,
           catalogUnits,
+          catalogInFlyer,
           geminiRegular: null,
           geminiSale: null,
           geminiIsOnSale: false,
           geminiValidUntil: null,
           geminiUnit: null,
           geminiUnits: null,
+          geminiInFlyer: false,
           screenshotFile: screenshotPath,
           status: "MATCH",
           discrepancies: []
@@ -491,12 +494,14 @@ async function runAudit() {
           catalogValidUntil,
           catalogUnit,
           catalogUnits,
+          catalogInFlyer,
           geminiRegular: null,
           geminiSale: null,
           geminiIsOnSale: false,
           geminiValidUntil: null,
           geminiUnit: null,
           geminiUnits: null,
+          geminiInFlyer: false,
           screenshotFile: screenshotPath,
           status: "MATCH",
           discrepancies: []
@@ -515,12 +520,14 @@ async function runAudit() {
           catalogValidUntil,
           catalogUnit,
           catalogUnits,
+          catalogInFlyer,
           geminiRegular: null,
           geminiSale: null,
           geminiIsOnSale: false,
           geminiValidUntil: null,
           geminiUnit: null,
           geminiUnits: null,
+          geminiInFlyer: false,
           screenshotFile: "",
           status: "ERROR",
           discrepancies: [],
