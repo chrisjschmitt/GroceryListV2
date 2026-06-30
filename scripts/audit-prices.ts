@@ -76,12 +76,14 @@ interface AuditResult {
   catalogValidUntil: string | null;
   catalogUnit: string | null;
   catalogUnits: number | null;
+  catalogInFlyer: boolean;
   geminiRegular: number | null;
   geminiSale: number | null;
   geminiIsOnSale: boolean;
   geminiValidUntil: string | null;
   geminiUnit: string | null;
   geminiUnits: number | null;
+  geminiInFlyer: boolean;
   screenshotFile: string;
   status: "MATCH" | "MISMATCH" | "ERROR";
   discrepancies: string[];
@@ -175,6 +177,9 @@ async function runAudit() {
           storeLink.sale_price = update.sale_price;
           storeLink.is_on_sale = update.is_on_sale;
           storeLink.valid_until = update.valid_until;
+          if (update.in_flyer !== undefined) {
+            storeLink.in_flyer = update.in_flyer;
+          }
           storeLink.is_verified = true; // Mark link as verified active
 
           // Update parent item's global unit and units if extracted
@@ -423,7 +428,7 @@ async function runAudit() {
       try {
         console.log(`   ├─ Navigating browser to URL...`);
         const startTime = Date.now();
-        await page.goto(storeDetails.url, { waitUntil: "load", timeout: 60000 });
+        const response = await page.goto(storeDetails.url, { waitUntil: "load", timeout: 60000 });
         const elapsed = ((Date.now() - startTime) / 1000).toFixed(1);
         console.log(`   ├─ Page loaded successfully in ${elapsed}s. Waiting 5s for dynamic content hydration...`);
         
@@ -441,11 +446,30 @@ async function runAudit() {
           }
         }
 
-        // Check for Access Denied / blocked pages
+        // Check for HTTP 404 status
+        const responseStatus = response ? response.status() : 200;
+        if (responseStatus === 404) {
+          throw new Error("Page not found (404 status).");
+        }
+
+        // Check for Access Denied / blocked pages or soft 404s
         const pageTitle = await page.title();
         const pageContent = await page.content();
+        
         if (pageTitle.includes("Access Denied") || pageContent.includes("Access Denied") || pageContent.includes("You don't have permission to access")) {
           throw new Error("Access Denied / blocked by bot manager.");
+        }
+
+        if (
+          pageTitle.includes("Page not found") || 
+          pageTitle.includes("Page non trouvée") || 
+          pageTitle.includes("404") ||
+          pageContent.includes("The page you requested could not be found") ||
+          pageContent.includes("La page que vous avez demandée est introuvable") ||
+          pageContent.includes("Product not found") ||
+          pageContent.includes("Produit introuvable")
+        ) {
+          throw new Error("Product page not found (404/Generic Error).");
         }
 
         // Dismiss cookie banners to ensure they do not cover prices or date details
@@ -530,6 +554,7 @@ async function runAudit() {
       const catalogValidUntil = storeDetails.valid_until ? String(storeDetails.valid_until).trim() : null;
       const catalogUnit = item.unit ? String(item.unit) : null;
       const catalogUnits = item.units != null ? Number(item.units) : null;
+      const catalogInFlyer = storeDetails.in_flyer === 1 || storeDetails.in_flyer === true;
 
       const hasScreenshot = fs.existsSync(screenshotPath);
       if (hasScreenshot) {
@@ -544,12 +569,14 @@ async function runAudit() {
           catalogValidUntil,
           catalogUnit,
           catalogUnits,
+          catalogInFlyer,
           geminiRegular: null,
           geminiSale: null,
           geminiIsOnSale: false,
           geminiValidUntil: null,
           geminiUnit: null,
           geminiUnits: null,
+          geminiInFlyer: false,
           screenshotFile: screenshotPath,
           status: "MATCH",
           discrepancies: []
@@ -566,12 +593,14 @@ async function runAudit() {
           catalogValidUntil,
           catalogUnit,
           catalogUnits,
+          catalogInFlyer,
           geminiRegular: null,
           geminiSale: null,
           geminiIsOnSale: false,
           geminiValidUntil: null,
           geminiUnit: null,
           geminiUnits: null,
+          geminiInFlyer: false,
           screenshotFile: "",
           status: "ERROR",
           discrepancies: [],
@@ -707,6 +736,56 @@ Extract regular price, sale price, sale status, flyer validity date, unit type, 
       }
       result.geminiValidUntil = valDate;
 
+      // Check if product is in the flyer if it is on sale
+      let inFlyer = false;
+      if (result.geminiIsOnSale) {
+        try {
+          const storeConfig = catalog?.stores?.[result.storeKey];
+          const postalCode = storeConfig?.postal_code || "K7H3C6";
+          const cleanStore = (storeConfig?.store_name || result.storeKey).replace(/perth/gi, "").trim();
+          
+          let cleanItem = result.itemName
+            .replace(/\s*\(\d+[^)]*\)/gi, "") 
+            .replace(/\s*-\s*\d+$/gi, "") 
+            .replace(/\s*-\s*\w+$/gi, "") 
+            .replace(/\s*\b\d+g\b/gi, "")    
+            .replace(/\s*\b\d+-pack\b/gi, "") 
+            .trim();
+          
+          const searchTerms = `${cleanStore} ${cleanItem}`.trim();
+          const cleanPostal = postalCode.replace(/\s/g, "").toUpperCase();
+          
+          const flippApiUrl = `https://backflipp.wishabi.com/flipp/items/search?locale=en-ca&postal_code=${encodeURIComponent(cleanPostal)}&q=${encodeURIComponent(searchTerms)}`;
+          
+          console.log(`   ├─ Querying Flipp flyer for "${searchTerms}" in "${cleanPostal}"...`);
+          const fetchResponse = await fetch(flippApiUrl, {
+            headers: {
+              "User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
+            }
+          });
+          
+          if (fetchResponse.ok) {
+            const data: any = await fetchResponse.json();
+            const items = data.items || [];
+            const merchantItems = items.filter((it: any) => {
+              const itMerchant = (it.merchant_name || "").toLowerCase();
+              const targetMerchant = cleanStore.toLowerCase();
+              return itMerchant.includes(targetMerchant) || targetMerchant.includes(itMerchant);
+            });
+            
+            if (merchantItems.length > 0) {
+              inFlyer = true;
+              console.log(`   ├─ [FLYER MATCH] Found in weekly flyer!`);
+            } else {
+              console.log(`   ├─ [FLYER MISMATCH] Not found in weekly flyer.`);
+            }
+          }
+        } catch (flyerErr: any) {
+          console.warn(`   ⚠️ Flyer check failed: ${flyerErr.message}`);
+        }
+      }
+      result.geminiInFlyer = inFlyer;
+
       const validUnits = ["g", "kg", "ml", "l", "lb", "unit", "count", "pack", "each", "pcs", "roll", "box", "bag", "can", "bunch", "dozen", "piece", "pieces", "pc", "lbs"];
       result.geminiUnit = parsed.unit ? String(parsed.unit).trim().toLowerCase() : null;
       if (result.geminiUnit && !validUnits.includes(result.geminiUnit)) {
@@ -733,6 +812,11 @@ Extract regular price, sale price, sale status, flyer validity date, unit type, 
       // Sale price check
       if (result.catalogSale !== result.geminiSale) {
         discrepancies.push(`Sale Price mismatch: Catalog has $${result.catalogSale ?? "--"}, Live has $${result.geminiSale ?? "--"}`);
+      }
+
+      // Flyer check
+      if (result.catalogInFlyer !== result.geminiInFlyer) {
+        discrepancies.push(`Flyer status mismatch: Catalog has ${result.catalogInFlyer ? "YES" : "NO"}, Live has ${result.geminiInFlyer ? "YES" : "NO"}`);
       }
 
       // Flyer expiration date check
@@ -808,6 +892,7 @@ Extract regular price, sale price, sale status, flyer validity date, unit type, 
           storeLink.sale_price = res.geminiSale;
           storeLink.is_on_sale = res.geminiIsOnSale ? 1 : 0;
           storeLink.valid_until = res.geminiValidUntil || "";
+          storeLink.in_flyer = res.geminiInFlyer ? 1 : 0;
           storeLink.is_verified = true; // Mark link as verified active
 
           // Update global unit and units size on parent catalog item
@@ -845,6 +930,7 @@ Extract regular price, sale price, sale status, flyer validity date, unit type, 
         valid_until: r.geminiValidUntil || "",
         unit: r.geminiUnit,
         units: r.geminiUnits,
+        in_flyer: r.geminiInFlyer ? 1 : 0,
         status: r.status,
         discrepancies: r.discrepancies
       }));
