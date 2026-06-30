@@ -27,7 +27,7 @@ import {
   blobSetCombinedCatalog,
   blobGetPurchaseLogs,
   blobSetPurchaseLogs,
-} from "../src/lib/blob-store.js";
+} from "../src/lib/db-store.js";
 
 const app = express();
 

@@ -37,7 +37,7 @@ import {
   blobSetCombinedCatalog,
   blobGetPurchaseLogs,
   blobSetPurchaseLogs,
-} from "./src/lib/blob-store";
+} from "./src/lib/db-store";
 import { RegularItem, PurchaseLogEntry } from "./src/lib/types";
 
 // Use standard memory storage for multer CSV upload
