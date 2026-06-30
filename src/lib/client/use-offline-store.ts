@@ -249,6 +249,34 @@ export function useOfflineStore(): OfflineStore {
     return () => document.removeEventListener("visibilitychange", handleVisibility);
   }, [pullAndUpdate, saveChanges, hasPendingChanges]);
 
+  // Auto-save changes with a debounce of 1.5 seconds if auto-save is enabled
+  useEffect(() => {
+    if (!hasPendingChanges) return;
+    if (!navigator.onLine) return;
+    if (!getAutoSaveEnabled()) return;
+
+    const timer = setTimeout(() => {
+      console.log("Auto-saving pending changes to server...");
+      saveChanges();
+    }, 1500);
+
+    return () => clearTimeout(timer);
+  }, [hasPendingChanges, saveChanges]);
+
+  // Warn user before leaving if there are unsaved pending changes
+  useEffect(() => {
+    const handleBeforeUnload = (e: BeforeUnloadEvent) => {
+      if (hasPendingChanges) {
+        e.preventDefault();
+        e.returnValue = "You have unsaved changes. Are you sure you want to leave?";
+        return e.returnValue;
+      }
+    };
+
+    window.addEventListener("beforeunload", handleBeforeUnload);
+    return () => window.removeEventListener("beforeunload", handleBeforeUnload);
+  }, [hasPendingChanges]);
+
   // Online/offline listeners
   useEffect(() => {
     const handleOnline = () => setIsOnline(true);

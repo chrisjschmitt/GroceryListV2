@@ -2,7 +2,8 @@ const AUTOSAVE_KEY = "grocerylist-autosave";
 
 export function getAutoSaveEnabled(): boolean {
   if (typeof window === "undefined") return false;
-  return localStorage.getItem(AUTOSAVE_KEY) === "true";
+  const val = localStorage.getItem(AUTOSAVE_KEY);
+  return val === null ? true : val === "true";
 }
 
 export function setAutoSaveEnabled(enabled: boolean): void {
