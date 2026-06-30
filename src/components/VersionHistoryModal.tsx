@@ -21,6 +21,19 @@ interface VersionEntry {
 
 const VERSIONS: VersionEntry[] = [
   {
+    version: "1.9.39",
+    date: "June 2026",
+    type: "patch",
+    title: "Vercel Blob to MongoDB Migration",
+    changes: [
+      {
+        icon: <Database className="w-4 h-4 text-emerald-500" />,
+        category: "Storage Migration",
+        description: "Migrated all JSON databases (Catalog, Stores, Grocery List, Purchase logs, Sync metadata) from Vercel Blob Storage to high-performance MongoDB Atlas collections. Eliminated the vestigial regular-items.json database."
+      }
+    ]
+  },
+  {
     version: "1.9.38",
     date: "June 2026",
     type: "patch",
