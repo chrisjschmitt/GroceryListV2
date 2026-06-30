@@ -12,7 +12,7 @@ if (fs.existsSync(envPath)) {
   dotenv.config();
 }
 
-const MONGO_URI = process.env.MONGODB_URI;
+const MONGO_URI = process.env.MONGODB_URI || "";
 
 if (!MONGO_URI) {
   console.error("Error: MONGODB_URI is not defined in environment variables.");
