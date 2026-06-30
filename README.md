@@ -15,7 +15,7 @@ GroceryHub is a smart, offline-first grocery list application designed to optimi
 - **Offline-First & Auto-Sync**: Uses local client storage (IndexedDB) to ensure your list works perfectly inside grocery stores with poor or no cellular reception. The engine automatically synchronizes changes with your MongoDB server once you are back online.
 - **Item Catalog**: Maintain a catalog of regular household items. Add them to your list with a single click, or manage custom items with quantities and units.
 - **Data Imports**: Import catalog inventory from CSV files or update pricing structures via JSON price sheets directly.
-- **Admin Portal**: Integrated `/admin` panel to check blob diagnostics, import local price databases, and manage sync metrics.
+- **Admin Portal**: Integrated `/admin` panel to check database diagnostics, import local price databases, and manage sync metrics.
 - **Progressive Web App (PWA)**: Optimized to be installed on mobile devices for native-like performance on the go.
 
 ---
@@ -80,31 +80,44 @@ npx tsx scripts/audit-prices.ts --setup
 This opens all major store homepages in tabs. Set your local store/zip code in the browser window, then return to your terminal and press `[ENTER]`. Playwright will store your cookies and configuration under `db-storage/playwright-profile/` for all subsequent runs.
 
 #### 2. Capture Screenshots (Default Mode)
-Capture screenshots of all target items:
+Capture screenshots of target items:
 ```bash
+# Capture screenshots for all stores
 npx tsx scripts/audit-prices.ts
+
+# Capture screenshots only for a specific store (e.g. Metro)
+npx tsx scripts/audit-prices.ts --store metro
 ```
 * **Performance Caching:** The script automatically skips navigation for items that already have a screenshot saved under `screenshots/`. If you want to force-capture a specific item, simply delete its screenshot file from the `screenshots/` directory and rerun this command.
+* **Anti-Blocking Stability:** Mimics human browsing behavior by introducing a randomized delay (3 to 7 seconds) between page navigations.
 
 #### 3. Analyze and Audit (`--analyze`)
 Process the screenshots and run Gemini vision auditing:
 ```bash
+# Analyze all captured screenshots
 npx tsx scripts/audit-prices.ts --analyze
+
+# Analyze only captured screenshots for a specific store (e.g. Metro)
+npx tsx scripts/audit-prices.ts --analyze --store metro
 ```
 This runs the Gemini 3.5 Flash multimodal API to extract regular prices, sale prices, flyer validity dates, and sale status. It outputs:
 * **`price_audit_report.md`**: A detailed comparison markdown dashboard.
 * **`db-storage/audit-pricing-updates.json`**: A delta cache containing only the price updates/unverified flags.
 * **`db-storage/combined-catalog-updated.json`**: A full backup copy of the updated catalog.
 
-#### 4. Deploy Updates to Production (`--apply`)
-Push the delta updates back into the live production catalog on Vercel Blob:
+#### 4. Automated Weekly Flyer Validation
+During the `--analyze` phase, if the Gemini API identifies that an item is actively on sale, the script automatically queries the Flipp/Wishabi flyer search API for the store's configured postal code (from the database) to verify if the product is featured in the merchant's active weekly flyer. It sets the `in_flyer` boolean indicator to `true` (otherwise `false`) in the database metadata so the frontend can display visual flyer badges.
+
+#### 5. Deploy Updates to Production (`--apply`)
+Push the delta updates back into the live production database on MongoDB Atlas:
 ```bash
 npx tsx scripts/audit-prices.ts --apply
 ```
-The merge process downloads the latest live production catalog, applies only the delta modifications (to prevent stomping on concurrent production changes), and uploads the merged catalog.
+The merge process downloads the latest live production catalog, applies only the delta modifications (to prevent stomping on concurrent changes), and saves it to MongoDB.
 
-#### 5. Scraper Error & Block Handling
-If a URL fails to load or triggers a bot manager screen (e.g. Akamai blocking Your Independent Grocer deep-links), the script logs the status as `"ERROR"`. In this case, **no pricing updates** are written, and the link's `is_verified` state is automatically set to `false` (unchecked) so that it is excluded from future scrape cycles until manually re-evaluated.
+#### 6. Scraper Error & Block Handling
+If a URL fails to load, returns an HTTP `404 Not Found` status, or triggers a bot manager screen/generic error (e.g. *"The page you requested could not be found"* or Akamai blocking), the script logs the status as `"ERROR"`. In this case, **no pricing updates** are written, and the link's `is_verified` state is automatically set to `false` (unchecked) when `--apply` is run, excluding it from future scrape cycles until manually re-evaluated and updated.
+* **Manual Verification Handler**: If the scraper encounters a Cloudflare puzzle/CAPTCHA, it plays a terminal beep sound and pauses. You can click the checkbox in the opened Chrome window and press `[ENTER]` in the terminal to resume navigation.
 
 ## Flipp Flyer Resolution Engine
 
