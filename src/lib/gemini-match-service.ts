@@ -38,6 +38,56 @@ export function checkMeasurementTypeMismatch(nameA: string, nameB: string): bool
   return false;
 }
 
+export function checkExplicitSizeMismatch(nameA: string, nameB: string): boolean {
+  const cleanA = nameA.toLowerCase();
+  const cleanB = nameB.toLowerCase();
+
+  const extractSizes = (str: string) => {
+    const sizes: { value: number; unit: string }[] = [];
+    
+    // Pattern 1: numbers followed by unit (g, kg, ml, l, lb, oz, pack, roll, pk, pcs, sheets)
+    const unitRegex = /(\d+(?:\.\d+)?)\s*(g|kg|ml|l|oz|lb|pack|rolls?|pk|pcs|sheets?|double rolls?)\b/g;
+    let match;
+    while ((match = unitRegex.exec(str)) !== null) {
+      sizes.push({ value: parseFloat(match[1]), unit: match[2].toLowerCase().replace(/s$/, "") });
+    }
+    
+    // Pattern 2: pack notation like "pack of 12"
+    const packOfRegex = /pack\s+of\s+(\d+)/g;
+    while ((match = packOfRegex.exec(str)) !== null) {
+      sizes.push({ value: parseFloat(match[1]), unit: "pack" });
+    }
+
+    // Pattern 3: standalone numbers at the end or separated by hyphen/space (like "Eggs - 18", "Eggs - 30")
+    const standaloneRegex = /(?:-\s*|\b)(\d+)\b/g;
+    while ((match = standaloneRegex.exec(str)) !== null) {
+      const val = parseFloat(match[1]);
+      if (val >= 2 && val <= 1000 && !sizes.some(s => s.value === val)) {
+        sizes.push({ value: val, unit: "count" });
+      }
+    }
+    
+    return sizes;
+  };
+
+  const sizesA = extractSizes(cleanA);
+  const sizesB = extractSizes(cleanB);
+
+  for (const sizeA of sizesA) {
+    const normUnitA = ["pack", "pk", "roll", "double roll", "count", "pcs"].includes(sizeA.unit) ? "pack" : sizeA.unit;
+    
+    for (const sizeB of sizesB) {
+      const normUnitB = ["pack", "pk", "roll", "double roll", "count", "pcs"].includes(sizeB.unit) ? "pack" : sizeB.unit;
+      
+      if (normUnitA === normUnitB && sizeA.value !== sizeB.value) {
+        return true; // Explicit size value mismatch!
+      }
+    }
+  }
+
+  return false;
+}
+
 export function cleanString(s: string): string {
   return s.trim().toLowerCase()
     .replace(/\blactose[- ]free\b/g, "lf")
@@ -152,6 +202,12 @@ export function runProgrammaticFallbackMatch(scrapedName: string, catalogItems: 
         score -= 15; // penalize
       }
 
+      // Check explicit package size/count mismatch
+      const hasSizeMismatch = checkExplicitSizeMismatch(scrapedName, item.name);
+      if (hasSizeMismatch) {
+        score -= 35; // severe penalty for pack/size mismatch!
+      }
+
       // Check product specificity keywords mismatch (e.g. crunchy vs smooth, lactose-free vs regular)
       const isCrunchyScraped = cleanScraped.includes("crunchy") || cleanScraped.includes("chunky");
       const isCrunchyCatalog = cleanCatalog.includes("crunchy") || cleanCatalog.includes("chunky");
@@ -169,6 +225,18 @@ export function runProgrammaticFallbackMatch(scrapedName: string, catalogItems: 
       const isLfCatalog = cleanCatalog.includes("lf");
       if (isLfScraped !== isLfCatalog) {
         score -= 30; // severe penalty
+      }
+
+      const isToiletScraped = cleanScraped.includes("toilet") || cleanScraped.includes("bathroom") || cleanScraped.includes("tissue");
+      const isToiletCatalog = cleanCatalog.includes("toilet") || cleanCatalog.includes("bathroom") || cleanCatalog.includes("tissue");
+      if (isToiletScraped !== isToiletCatalog) {
+        score -= 40; // severe penalty
+      }
+
+      const isTowelScraped = cleanScraped.includes("towel");
+      const isTowelCatalog = cleanCatalog.includes("towel");
+      if (isTowelScraped !== isTowelCatalog) {
+        score -= 40; // severe penalty
       }
 
       if (score > maxScore) {
@@ -444,6 +512,8 @@ For your match output, determine:
 1. "matched_id": The exact "id" of the single item in "catalogItems" that matches. Set to empty string "" if there is no high-quality match.
 2. "confidence": A score between 0 and 100 indicating match quality, adhering to these rules:
    - WEIGHT VS UNIT MEASUREMENT (WEIGHT-UNIT MISMATCH): Check if one product is measured by weight/size (e.g., avocados sold in a bag, 3lb, 454g) and the other is a single unit/piece (e.g., Avocado Each, Single Avocado, unit). If there is a unit style mismatch, PENALIZE the confidence severely, clamping it to a MAX of 60%.
+   - PACKAGE SIZE / QUANTITY MISMATCH (MAJOR PENALTY): Check if the package sizes or quantities are explicitly different (e.g., "12-pack" vs "3-pack", "12 double rolls" vs "3 rolls", "450g" vs "227g", "Eggs - 30" vs "Eggs - 18"). If they are explicitly different sizes or counts, PENALIZE the confidence severely, clamping it to a MAX of 45% or set "matched_id" to "".
+   - TOILET PAPER VS PAPER TOWELS (CRITICAL RULE): Toilet paper (or bathroom tissue/tissue) is NOT paper towels. They are completely different products. They must NEVER match. If one is toilet paper/tissue and the other is paper towels, you must set "matched_id" to "" and confidence to 0%.
    - BRAND SUBSTITUTION & TOLERANCE: Brand changes are minor conflicts. For example, Kraft Brand Crunchy Peanut Butter is a high-confidence substitute for No Name Crunchy Peanut Butter as long as critical product features (like crunchy peanut butter) are identical. Under this rule, do NOT penalize with more than a 15% deduction (keep confidence at a solid 80%-85%).
    - PRODUCT SPECIFICITY (MAJOR PENALTY): Critical attributes are non-negotiable. Mismatches such as crunchy vs smooth peanut butter, regular milk vs lactose-free milk, cottage cheese vs sour cream, fat-free vs whole fat constitute severe conflicts. These matches must be rejected (confidence < 45% or set "matched_id" to "").
    - EXACT SPELLING MATCH: If lowercase exact text matches, confidence is 100%. Plurals or simple spacing (e.g. Avocado vs Avocados) should be 95%.
@@ -607,6 +677,24 @@ export const TEST_CASES: MatchTestCase[] = [
     ],
     expectedDescription: "Lactose-Free milk vs Regular milk mismatch major penalty",
     expectedCondition: (res) => (res.matched_id !== "50" || res.confidence < 50)
+  },
+  {
+    id: "toilet_vs_towels",
+    scrapedName: "toilet paper",
+    catalogItems: [
+      { id: "80", name: "2-ply paper towels - 3-pack", category: "Health, Personal & Household", selected: false }
+    ],
+    expectedDescription: "Toilet paper vs Paper towels mismatch (critical boundary)",
+    expectedCondition: (res) => res.matched_id !== "80" || res.confidence < 45
+  },
+  {
+    id: "pack_count_mismatch",
+    scrapedName: "2-ply paper towels - 12-pack",
+    catalogItems: [
+      { id: "80", name: "2-ply paper towels - 3-pack", category: "Health, Personal & Household", selected: false }
+    ],
+    expectedDescription: "Pack count / size mismatch (3-pack vs 12-pack)",
+    expectedCondition: (res) => res.matched_id !== "80" || res.confidence < 50
   },
   {
     id: "absolutely_no_match",
