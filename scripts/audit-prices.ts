@@ -88,6 +88,33 @@ interface AuditResult {
   errorMessage?: string;
 }
 
+async function handleCloudflareChallenge(page: any): Promise<boolean> {
+  const pageTitle = await page.title();
+  const pageContent = await page.content();
+  const isChallenge = pageTitle.includes("Verify you are human") || 
+                      pageTitle.includes("Just a moment...") ||
+                      pageTitle.includes("Almost there") ||
+                      pageContent.includes("cf-challenge") ||
+                      pageContent.includes("Verify you are human");
+
+  if (isChallenge) {
+    console.warn("\n   ⚠️ [CLOUDFLARE CHALLENGE DETECTED]");
+    console.warn("   Please solve the verification challenge in the headful Chrome window.");
+    console.warn("   Once solved and the actual product page loads, return here and press [ENTER] to continue...");
+    
+    // Play a terminal beep sound
+    process.stdout.write("\x07");
+
+    await new Promise<void>((resolve) => {
+      process.stdin.once("data", () => {
+        resolve();
+      });
+    });
+    return true;
+  }
+  return false;
+}
+
 async function runAudit() {
   const args = process.argv.slice(2);
   const applyMode = args.includes("--apply");
@@ -386,6 +413,13 @@ async function runAudit() {
         continue;
       }
 
+      // Add human-like sleep before browser navigation to avoid triggering Cloudflare rate-limits
+      if (i > 0) {
+        const delay = Math.floor(Math.random() * 4000) + 3000; // 3 to 7 seconds random delay
+        console.log(`   ├─ Sleeping for ${(delay / 1000).toFixed(1)}s to mimic human behavior...`);
+        await page.waitForTimeout(delay);
+      }
+
       try {
         console.log(`   ├─ Navigating browser to URL...`);
         const startTime = Date.now();
@@ -395,6 +429,17 @@ async function runAudit() {
         
         // Wait for dynamic loads/hydration
         await page.waitForTimeout(5000);
+
+        // Check for Cloudflare challenge and wait for user resolution
+        while (true) {
+          const wasChallenge = await handleCloudflareChallenge(page);
+          if (wasChallenge) {
+            // Wait 5s for the page to settle after manual resolution
+            await page.waitForTimeout(5000);
+          } else {
+            break;
+          }
+        }
 
         // Check for Access Denied / blocked pages
         const pageTitle = await page.title();
