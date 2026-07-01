@@ -1050,6 +1050,7 @@ app.post("/api/append-grocery", async (req, res) => {
       await catalogWriteMutex;
     }
 
+    await blobUpdateSyncMeta("Tampermonkey-App-Append").catch(() => {});
     res.json({
       success: true,
       message: `Successfully synchronized pricing record under target key: ${finalKey}`,
@@ -1262,6 +1263,16 @@ app.put("/api/sync", async (req, res) => {
   } catch (error) {
     console.error("PUT /api/sync error:", error);
     res.status(500).json({ error: "Failed to update sync data", details: String(error) });
+  }
+});
+
+app.post("/api/sync/force-update", async (req, res) => {
+  try {
+    const syncMeta = await blobUpdateSyncMeta("Admin-Portal-Force");
+    res.json({ success: true, syncMeta });
+  } catch (err) {
+    console.error("Force update sync meta failed:", err);
+    res.status(500).json({ error: "Failed to force update sync meta" });
   }
 });
 
@@ -1618,6 +1629,7 @@ app.put("/api/catalog", async (req, res) => {
     }
 
     await blobSetCombinedCatalog(catalog);
+    await blobUpdateSyncMeta("Admin-Portal");
     res.json({ success: true, catalog });
   } catch (error: any) {
     console.error("PUT /api/catalog error:", error);

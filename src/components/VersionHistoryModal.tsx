@@ -21,6 +21,24 @@ interface VersionEntry {
 
 const VERSIONS: VersionEntry[] = [
   {
+    version: "1.9.46",
+    date: "July 2026",
+    type: "patch",
+    title: "Manual Cache Reset & Automatic Syncing",
+    changes: [
+      {
+        icon: <RefreshCw className="w-4 h-4 text-emerald-500" />,
+        category: "Admin Portal",
+        description: "Added a 'Reset Cache' action button in the Admin page catalog header that clears local IndexedDB catalog caches and forces a hard-refresh from the server."
+      },
+      {
+        icon: <Database className="w-4 h-4 text-indigo-500" />,
+        category: "Backend",
+        description: "Configured catalog saving (PUT /api/catalog) and matching (POST /api/append-grocery) routes to automatically trigger server-side sync metadata updates."
+      }
+    ]
+  },
+  {
     version: "1.9.45",
     date: "July 2026",
     type: "patch",

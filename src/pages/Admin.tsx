@@ -557,6 +557,37 @@ export default function AdminPage() {
     return false;
   };
 
+  const handleForceResetLocalCache = async () => {
+    if (!confirm("This will clear your local browser database cache and perform a hard-refresh from the server database. Proceed?")) {
+      return;
+    }
+    try {
+      setCatalogLoading(true);
+      
+      // 1. Force server-side sync meta update
+      await fetch("/api/sync/force-update", { method: "POST" }).catch(() => {});
+      
+      // 2. Clear IndexedDB
+      const { localClearRegularItems, localClearAllGroceryItems } = await import("../lib/client/local-db");
+      await localClearRegularItems().catch(() => {});
+      await localClearAllGroceryItems().catch(() => {});
+      
+      // 3. Clear localStorage sync keys
+      localStorage.removeItem("groceryscout_last_sync");
+      localStorage.removeItem("groceryscout_last_saved_by");
+      
+      showVisualMessage("Local cache cleared. Reloading page...");
+      setTimeout(() => {
+        window.location.reload();
+      }, 1000);
+    } catch (err) {
+      console.error("Failed to clear local cache:", err);
+      showVisualMessage("Failed to clear local cache: " + String(err));
+    } finally {
+      setCatalogLoading(false);
+    }
+  };
+
   const [isAddingCatalogItem, setIsAddingCatalogItem] = useState(false);
   const [visibleCatalogCount, setVisibleCatalogCount] = useState(30);
 
@@ -2574,6 +2605,16 @@ export default function AdminPage() {
                   className="text-xs font-black uppercase tracking-wider text-black bg-indigo-400 hover:bg-indigo-300 border-2 border-black px-3 py-1 shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] hover:shadow-none hover:translate-x-[1px] hover:translate-y-[1px] transition-all"
                 >
                   + Add Catalog Product
+                </button>
+                <button
+                  type="button"
+                  onClick={handleForceResetLocalCache}
+                  disabled={catalogLoading || pricesLoading || scrapeLoading}
+                  className="text-xs font-black uppercase tracking-wider text-rose-800 bg-rose-50 hover:bg-rose-100 border-2 border-black px-3 py-1 shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] hover:shadow-none hover:translate-x-[1px] hover:translate-y-[1px] transition-all flex items-center gap-1.5 cursor-pointer"
+                  title="Wipes browser database cache and forces server reload"
+                >
+                  <Trash2 className="w-3.5 h-3.5" />
+                  <span>Reset Cache</span>
                 </button>
                 <button
                   type="button"
