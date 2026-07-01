@@ -1,5 +1,5 @@
 import React from "react";
-import { X, Calendar, GitBranch, Sparkles, Database, Layout, Smartphone, Cloud, FileSpreadsheet, Trash2, Clock, Zap, RefreshCw } from "lucide-react";
+import { X, Calendar, GitBranch, Sparkles, Database, Layout, Smartphone, Cloud, FileSpreadsheet, Trash2, Clock, Zap, RefreshCw, Search } from "lucide-react";
 
 interface VersionHistoryModalProps {
   isOpen: boolean;
@@ -20,6 +20,19 @@ interface VersionEntry {
 }
 
 const VERSIONS: VersionEntry[] = [
+  {
+    version: "1.9.49",
+    date: "July 2026",
+    type: "patch",
+    title: "Version History Icon Import Fix",
+    changes: [
+      {
+        icon: <Zap className="w-4 h-4 text-emerald-500" />,
+        category: "Bug Fix",
+        description: "Imported the missing Search icon from lucide-react in VersionHistoryModal, resolving a fatal JS compilation error that caused a blank page on page load."
+      }
+    ]
+  },
   {
     version: "1.9.48",
     date: "July 2026",
