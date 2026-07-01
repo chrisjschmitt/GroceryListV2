@@ -21,6 +21,29 @@ interface VersionEntry {
 
 const VERSIONS: VersionEntry[] = [
   {
+    version: "1.9.41",
+    date: "July 2026",
+    type: "patch",
+    title: "Parent-Child Brand Rollups & Indicators",
+    changes: [
+      {
+        icon: <Sparkles className="w-4 h-4 text-emerald-500" />,
+        category: "Rollup Engine",
+        description: "Implemented server-side parent-child rollup aggregation to automatically select the cheapest brand price per store for generic items."
+      },
+      {
+        icon: <Zap className="w-4 h-4 text-emerald-500" />,
+        category: "UI Brand Indicators",
+        description: "Display identified brand names parenthetically next to store prices (e.g. Metro - Natrel) on the shopping list."
+      },
+      {
+        icon: <Layout className="w-4 h-4 text-emerald-500" />,
+        category: "Catalog Editor",
+        description: "Added parent item selection dropdown in Admin catalog manager to easily group child brands under parent generic categories."
+      }
+    ]
+  },
+  {
     version: "1.9.40",
     date: "June 2026",
     type: "patch",

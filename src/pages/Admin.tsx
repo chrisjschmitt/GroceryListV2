@@ -588,6 +588,7 @@ export default function AdminPage() {
       unit: item.unit || "unit",
       units: item.units !== undefined && item.units !== null ? item.units : "",
       requires_scraping: item.requires_scraping === true,
+      parent_id: item.parent_id || "",
       stores: sanitizedStores
     });
   };
@@ -606,6 +607,7 @@ export default function AdminPage() {
       unit: "unit",
       units: "",
       requires_scraping: false,
+      parent_id: "",
       stores: {}
     });
   };
@@ -694,6 +696,7 @@ export default function AdminPage() {
       unit: catalogItemForm.unit || "unit",
       units: catalogItemForm.units !== undefined && catalogItemForm.units !== null && catalogItemForm.units !== "" ? Number(catalogItemForm.units) : undefined,
       requires_scraping: !!catalogItemForm.requires_scraping,
+      parent_id: catalogItemForm.parent_id || undefined,
       stores: {} as Record<string, any>
     };
 
@@ -2780,6 +2783,30 @@ export default function AdminPage() {
                           className="w-full p-2 border-2 border-black font-medium text-xs text-black"
                         />
                       </div>
+                    </div>
+
+                    <div className="pt-2">
+                      <label className="block text-[10px] font-black uppercase text-gray-450 mb-1">
+                        Parent Generic Item (Optional)
+                      </label>
+                      <select
+                        value={catalogItemForm.parent_id || ""}
+                        onChange={(e) => setCatalogItemForm({ ...catalogItemForm, parent_id: e.target.value })}
+                        className="w-full p-2 border-2 border-black font-medium text-xs text-black bg-white cursor-pointer"
+                      >
+                        <option value="">None (Generic / Independent)</option>
+                        {catalog?.items
+                          ?.filter((item: any) => item.id !== catalogItemForm.id)
+                          ?.sort((a: any, b: any) => a.name.localeCompare(b.name))
+                          ?.map((item: any) => (
+                            <option key={item.id} value={item.id}>
+                              {item.name}
+                            </option>
+                          ))}
+                      </select>
+                      <p className="text-[9px] text-gray-400 mt-1 leading-normal">
+                        Link this brand variation to a parent generic item to automatically aggregate their prices and show cheapest brands on the grocery list.
+                      </p>
                     </div>
 
                     <div className="pt-2">

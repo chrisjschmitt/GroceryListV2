@@ -17,6 +17,21 @@ export function abbreviateStoreName(name: string): string {
   return name.substring(0, 2).toUpperCase();
 }
 
+export function extractBrandName(fullName: string): string {
+  if (!fullName) return "";
+  const words = fullName.split(/\s+/);
+  const brandWords = [];
+  for (const word of words) {
+    const lower = word.toLowerCase();
+    if (lower === "1%" || lower === "2%" || lower === "lf" || lower === "lactose" || lower === "free" || lower === "milk" || lower === "lactose-free" || lower === "cottage" || lower === "cheese" || lower === "yogurt") {
+      break;
+    }
+    brandWords.push(word);
+    if (brandWords.length >= 2) break;
+  }
+  return brandWords.join(" ") || words[0];
+}
+
 interface GroceryItemRowProps {
   key?: string | number;
   item: GroceryItem;
@@ -216,7 +231,8 @@ export default function GroceryItemRow({ item, onToggle, onRemove, onUpdateQuant
           onSale: storeData.is_on_sale === 1 || !!storeData.is_on_sale,
           lookup_url: storeData.lookup_url,
           valid_until: storeData.valid_until,
-          postal_code: storeData.postal_code || priceInfo.postal_code
+          postal_code: storeData.postal_code || priceInfo.postal_code,
+          brand_name: storeData.brand_name
         };
       }
     }
@@ -230,7 +246,8 @@ export default function GroceryItemRow({ item, onToggle, onRemove, onUpdateQuant
         onSale: priceInfo.is_on_sale === 1 || !!priceInfo.is_on_sale,
         lookup_url: priceInfo.lookup_url,
         valid_until: priceInfo.valid_until,
-        postal_code: priceInfo.postal_code
+        postal_code: priceInfo.postal_code,
+        brand_name: priceInfo.brand_name
       };
     }
 
@@ -249,7 +266,8 @@ export default function GroceryItemRow({ item, onToggle, onRemove, onUpdateQuant
             onSale: storeInfo.is_on_sale === 1 || !!storeInfo.is_on_sale,
             lookup_url: storeInfo.lookup_url || "",
             valid_until: storeInfo.valid_until,
-            postal_code: storeInfo.postal_code || priceInfo.postal_code
+            postal_code: storeInfo.postal_code || priceInfo.postal_code,
+            brand_name: storeInfo.brand_name
           };
         });
     }
@@ -377,8 +395,9 @@ export default function GroceryItemRow({ item, onToggle, onRemove, onUpdateQuant
               <span className={isExpired ? "text-amber-500 font-extrabold" : finalPrice.onSale ? "text-red-650" : "text-black"}>
                 <span className={isExpired ? "text-amber-500 font-black" : ""}>$</span>
                 {finalPrice.price.toFixed(2)}
-                <span className="text-gray-400 font-medium ml-1 lowercase text-[10px]">
-                  ({abbreviateStoreName(finalPrice.storeName || "")})
+                <span className="text-gray-400 font-medium ml-1 lowercase text-[10px]" title={finalPrice.brand_name ? `Brand: ${finalPrice.brand_name}` : undefined}>
+                  ({abbreviateStoreName(finalPrice.storeName || "")}
+                  {finalPrice.brand_name ? ` - ${extractBrandName(finalPrice.brand_name)}` : ""})
                 </span>
               </span>
               {item.quantity > 1 && (
@@ -406,8 +425,11 @@ export default function GroceryItemRow({ item, onToggle, onRemove, onUpdateQuant
                   {otherPrices.map((op) => {
                     const opExpired = op.onSale && op.valid_until && isSaleExpired(op.valid_until);
                     return (
-                      <span key={op.storeId} className="text-[9px] bg-gray-50 border border-gray-200 px-1 py-0.2 font-semibold text-gray-650 inline-flex items-center gap-0.5" title={`${op.storeName}${op.valid_until ? ` (valid until ${op.valid_until})` : ""}`}>
-                        <span>{abbreviateStoreName(op.storeName)}:</span>
+                      <span key={op.storeId} className="text-[9px] bg-gray-50 border border-gray-200 px-1 py-0.2 font-semibold text-gray-650 inline-flex items-center gap-0.5" title={`${op.storeName}${op.brand_name ? ` - Brand: ${op.brand_name}` : ""}${op.valid_until ? ` (valid until ${op.valid_until})` : ""}`}>
+                        <span>
+                          {abbreviateStoreName(op.storeName)}
+                          {op.brand_name ? ` (${extractBrandName(op.brand_name)})` : ""}:
+                        </span>
                         <span className={opExpired ? "text-amber-500 font-black" : ""}>$</span>
                         <span>{op.price.toFixed(2)}</span>
                         {op.onSale && (

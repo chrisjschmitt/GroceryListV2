@@ -315,7 +315,102 @@ async function startServer() {
       }
     }
 
-    return mergeMongoPrices(prices, catalogIdToKey, catalogIdToName);
+    const merged = await mergeMongoPrices(prices, catalogIdToKey, catalogIdToName);
+
+    // Perform Parent-Child Rollup Price Aggregation
+    try {
+      const parentToChildren: Record<string, any[]> = {};
+      for (const item of catalog.items || []) {
+        if (item.parent_id) {
+          if (!parentToChildren[item.parent_id]) {
+            parentToChildren[item.parent_id] = [];
+          }
+          parentToChildren[item.parent_id].push(item);
+        }
+      }
+
+      for (const [parentId, children] of Object.entries(parentToChildren)) {
+        const parentItem = (catalog.items || []).find((i: any) => i.id === parentId);
+        if (!parentItem) continue;
+
+        const parentKey = catalogIdToKey[parentId] || parentItem.id || `catalog-${parentItem.name.replace(/\s+/g, "-").toLowerCase()}`;
+        
+        // Seed parent's merged stores map with the parent's own (generic/unbranded) stores if any
+        const parentEntry = merged[parentKey] || { stores: {} };
+        const mergedStores = { ...(parentEntry.stores || {}) };
+
+        for (const childItem of children) {
+          const childKey = catalogIdToKey[childItem.id];
+          if (!childKey) continue;
+          
+          const childEntry = merged[childKey];
+          if (!childEntry || !childEntry.stores) continue;
+
+          for (const [storeId, childStoreInfo] of Object.entries(childEntry.stores) as [string, any][]) {
+            if (!childStoreInfo) continue;
+
+            const childPrice = (childStoreInfo.is_on_sale && childStoreInfo.sale_price !== null && childStoreInfo.sale_price !== undefined && !isSaleExpired(childStoreInfo.valid_until))
+              ? childStoreInfo.sale_price
+              : (childStoreInfo.regular_price || 0);
+
+            if (childPrice <= 0) continue;
+
+            const currentStoreInfo = mergedStores[storeId];
+            const currentPrice = currentStoreInfo
+              ? ((currentStoreInfo.is_on_sale && currentStoreInfo.sale_price !== null && currentStoreInfo.sale_price !== undefined && !isSaleExpired(currentStoreInfo.valid_until))
+                ? currentStoreInfo.sale_price
+                : (currentStoreInfo.regular_price || 0))
+              : Infinity;
+
+            if (childPrice < currentPrice) {
+              mergedStores[storeId] = {
+                ...childStoreInfo,
+                store_id: storeId,
+                brand_name: childItem.name
+              };
+            }
+          }
+        }
+
+        // Determine the best price info from all available stores for the parent
+        const storeKeys = Object.keys(mergedStores);
+        let lowestStoreKey = "";
+        let lowestPrice = Infinity;
+        for (const key of storeKeys) {
+          const s = mergedStores[key];
+          const p = (s.is_on_sale && s.sale_price !== null && s.sale_price !== undefined && !isSaleExpired(s.valid_until)) ? s.sale_price : (s.regular_price || 0);
+          if (p < lowestPrice && p > 0) {
+            lowestPrice = p;
+            lowestStoreKey = key;
+          }
+        }
+
+        if (lowestStoreKey) {
+          const bestStore = mergedStores[lowestStoreKey];
+          merged[parentKey] = {
+            item_name: parentItem.name,
+            config_name: parentItem.name,
+            store_name: bestStore.store_name,
+            postal_code: bestStore.postal_code,
+            store_id: bestStore.store_id,
+            regular_price: bestStore.regular_price,
+            sale_price: bestStore.sale_price,
+            is_on_sale: bestStore.is_on_sale,
+            last_updated: bestStore.last_updated || new Date().toISOString(),
+            lookup_url: bestStore.lookup_url || "",
+            valid_until: bestStore.valid_until || "",
+            track_pricing: bestStore.track_pricing !== undefined ? (bestStore.track_pricing ? 1 : 0) : 0,
+            external_name: bestStore.external_name || "",
+            brand_name: bestStore.brand_name || undefined,
+            stores: mergedStores
+          };
+        }
+      }
+    } catch (rollupErr) {
+      console.error("Error during parent-child rollup aggregation:", rollupErr);
+    }
+
+    return merged;
   }
 
   function extractUpcFromUrl(url: string): string | null {

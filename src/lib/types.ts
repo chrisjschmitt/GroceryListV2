@@ -11,6 +11,7 @@ export interface StorePrice {
   onSale: boolean;
   lookup_url?: string;
   valid_until?: string;
+  brand_name?: string;
 }
 
 export interface GroceryItem {
@@ -50,6 +51,7 @@ export interface StoreInfo {
   valid_until?: string;
   track_pricing?: number | boolean;
   external_name?: string;
+  brand_name?: string;
 }
 
 export interface PriceEntry {
@@ -66,6 +68,7 @@ export interface PriceEntry {
   valid_until?: string;
   track_pricing?: number | boolean;
   external_name?: string;
+  brand_name?: string;
   stores?: Record<string, StoreInfo>;
 }
 
@@ -115,6 +118,7 @@ export interface CombinedCatalogItem {
   unit: string;
   units?: number;
   requires_scraping: boolean;
+  parent_id?: string;
   stores: Record<string, CombinedStoreLink>;
   last_updated?: string;
 }
