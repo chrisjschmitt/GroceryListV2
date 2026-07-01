@@ -1419,15 +1419,35 @@ export default function AdminPage() {
 
   // Apply search filtering on catalog items
   const filteredCategories = (Object.entries(categories) as [string, any[]][]).reduce<Record<string, any[]>>((acc, [category, categoryItems]) => {
-    const matched = categoryItems.filter(item => 
-      item.name.toLowerCase().includes(catalogSearch.toLowerCase()) || 
-      category.toLowerCase().includes(catalogSearch.toLowerCase())
+    const query = catalogSearch.toLowerCase().trim();
+    
+    // First pass: Find items directly matching the search query
+    const directlyMatched = categoryItems.filter(item => 
+      item.name.toLowerCase().includes(query) || 
+      category.toLowerCase().includes(query)
     );
+
+    // Second pass: Include parents of matched children, and children of matched parents
+    const matchedIds = new Set(directlyMatched.map(item => item.id));
+    
+    const matched = categoryItems.filter(item => {
+      if (matchedIds.has(item.id)) return true;
+      
+      // If this is a parent of a matched child, include it
+      const hasMatchedChild = categoryItems.some(c => c.parent_id === item.id && matchedIds.has(c.id));
+      if (hasMatchedChild) return true;
+      
+      // If this is a child of a matched parent, include it
+      if (item.parent_id && matchedIds.has(item.parent_id)) return true;
+      
+      return false;
+    });
+
     if (matched.length > 0) {
       acc[category] = matched.sort((a, b) => a.name.localeCompare(b.name));
     }
     return acc;
-  }, {} as Record<string, RegularItem[]>);
+  }, {} as Record<string, any[]>);
 
   // Derive all unique store keys present in the catalog or defaults
   const allStoreKeys = useMemo(() => {

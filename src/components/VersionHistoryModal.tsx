@@ -21,6 +21,19 @@ interface VersionEntry {
 
 const VERSIONS: VersionEntry[] = [
   {
+    version: "1.9.48",
+    date: "July 2026",
+    type: "patch",
+    title: "Brand-Aware Search Filtering",
+    changes: [
+      {
+        icon: <Search className="w-4 h-4 text-emerald-500" />,
+        category: "Admin Portal",
+        description: "Updated search queries to automatically include parent items when a brand-specific child matches the query (and vice versa), ensuring parent-child boxes render during searches."
+      }
+    ]
+  },
+  {
     version: "1.9.47",
     date: "July 2026",
     type: "patch",
