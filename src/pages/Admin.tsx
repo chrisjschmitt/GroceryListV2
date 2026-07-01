@@ -2333,164 +2333,214 @@ export default function AdminPage() {
               <div className="space-y-6">
                 {Object.entries(filteredCategories)
                   .sort(([a], [b]) => getCategoryOrderIndex(a) - getCategoryOrderIndex(b))
-                  .map(([category, categoryItems]) => (
-                    <div key={category} className="bg-[#f9fafb] border-2 border-black p-4 shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] hover:-translate-x-[1px] hover:-translate-y-[1px] transition-all">
-                      
-                      {/* Catalog Category Header */}
-                      <div className="flex items-center justify-between mb-3.5 pb-1 border-b border-gray-200">
-                        <span className="text-xs font-black uppercase tracking-wider text-black">{category}</span>
-                        
-                        {addingToCategory === category ? (
-                          <div className="flex items-center gap-1 animate-fade-in">
+                  .map(([category, categoryItems]) => {
+                    const renderCatalogItem = (item: any, isChild: boolean = false) => {
+                      const isEditingThisItem = editingCatalogId === item.id;
+
+                      if (isEditingThisItem) {
+                        return (
+                          <div key={item.id} className="inline-flex items-center gap-1.5 px-2 py-1 bg-white border border-black shadow-[1.5px_1.5px_0px_0px_rgba(0,0,0,1)] text-black">
                             <input
                               type="text"
-                              value={newCatalogItemName}
-                              onChange={(e) => setNewCatalogItemName(e.target.value)}
-                              onKeyDown={(e) => { 
-                                if (e.key === "Enter") handleAddCatalogItem(category, newCatalogItemName);
-                                if (e.key === "Escape") setAddingToCategory(null);
+                              value={editCatalogName}
+                              onChange={(e) => setEditCatalogName(e.target.value)}
+                              onKeyDown={(e) => {
+                                if (e.key === "Enter") handleEditCatalogItemSubmit(item.id);
+                                if (e.key === "Escape") setEditingCatalogId(null);
                               }}
-                              placeholder="Type name and press Enter..."
-                              className="px-2 py-0.5 text-xs border border-black focus:outline-none font-bold text-black bg-white"
+                              className="text-xs outline-none bg-transparent font-bold border-b border-black text-black w-28 bg-white"
                               autoFocus
                             />
-                            <button
-                              onClick={() => handleAddCatalogItem(category, newCatalogItemName)}
-                              className="text-[10px] font-black uppercase text-emerald-800 bg-emerald-100 hover:bg-emerald-200 border border-emerald-500 px-1.5 py-0.5"
+                            <select
+                              value={editCatalogUnit}
+                              onChange={(e) => setEditCatalogUnit(e.target.value)}
+                              className="text-[10px] font-bold border border-black px-1 py-0.5 bg-white cursor-pointer text-black"
                             >
-                              Add
+                              {["unit", "g", "kg", "ml", "l", "lb", "oz", "gal", "dozen", "bunch", "bag", "can", "box", "pack"].map((u) => (
+                                <option key={u} value={u}>{u}</option>
+                              ))}
+                            </select>
+                            <input
+                              type="number"
+                              step="any"
+                              min="0"
+                              placeholder="Size"
+                              value={editCatalogUnits}
+                              onChange={(e) => {
+                                const val = e.target.value.trim();
+                                setEditCatalogUnits(val === "" ? "" : Number(val));
+                              }}
+                              onKeyDown={(e) => {
+                                if (e.key === "Enter") handleEditCatalogItemSubmit(item.id);
+                                if (e.key === "Escape") setEditingCatalogId(null);
+                              }}
+                              className="text-[10px] font-bold border border-black px-1 py-0.5 bg-white text-black w-12 focus:outline-none"
+                            />
+                            <button
+                              onClick={() => handleEditCatalogItemSubmit(item.id)}
+                              className="text-emerald-600 hover:text-emerald-800"
+                              title="Save Correction"
+                            >
+                              <Check className="w-3.5 h-3.5 stroke-[3]" />
                             </button>
                             <button
-                              onClick={() => { setAddingToCategory(null); setNewCatalogItemName(""); }}
-                              className="text-[10px] font-black uppercase text-red-800 bg-red-100 hover:bg-red-200 border border-red-500 px-1.5 py-0.5"
+                              onClick={() => setEditingCatalogId(null)}
+                              className="text-rose-600 hover:text-rose-800"
+                              title="Cancel"
                             >
-                              Cancel
+                              <X className="w-3.5 h-3.5 stroke-[3]" />
                             </button>
                           </div>
-                        ) : (
-                          <button
-                            onClick={() => setAddingToCategory(category)}
-                            className="bg-white hover:bg-emerald-50 transition-colors text-[10px] font-black uppercase border border-black px-2 py-0.5 shadow-[1px_1px_0px_0px_rgba(0,0,0,1)]"
-                          >
-                            + Quick Add
-                          </button>
-                        )}
-                      </div>
+                        );
+                      }
 
-                      {/* Display items as beautiful interactive badges */}
-                      <div className="flex flex-wrap gap-2">
-                        {categoryItems.map((item) => {
-                          const isEditingThisItem = editingCatalogId === item.id;
-
-                          if (isEditingThisItem) {
-                            return (
-                              <div key={item.id} className="inline-flex items-center gap-1.5 px-2 py-1 bg-white border border-black shadow-[1.5px_1.5px_0px_0px_rgba(0,0,0,1)] text-black">
-                                <input
-                                  type="text"
-                                  value={editCatalogName}
-                                  onChange={(e) => setEditCatalogName(e.target.value)}
-                                  onKeyDown={(e) => {
-                                    if (e.key === "Enter") handleEditCatalogItemSubmit(item.id);
-                                    if (e.key === "Escape") setEditingCatalogId(null);
-                                  }}
-                                  className="text-xs outline-none bg-transparent font-bold border-b border-black text-black w-28 bg-white"
-                                  autoFocus
-                                />
-                                <select
-                                  value={editCatalogUnit}
-                                  onChange={(e) => setEditCatalogUnit(e.target.value)}
-                                  className="text-[10px] font-bold border border-black px-1 py-0.5 bg-white cursor-pointer text-black"
-                                >
-                                  {["unit", "g", "kg", "ml", "l", "lb", "oz", "gal", "dozen", "bunch", "bag", "can", "box", "pack"].map((u) => (
-                                    <option key={u} value={u}>{u}</option>
-                                  ))}
-                                </select>
-                                <input
-                                  type="number"
-                                  step="any"
-                                  min="0"
-                                  placeholder="Size"
-                                  value={editCatalogUnits}
-                                  onChange={(e) => {
-                                    const val = e.target.value.trim();
-                                    setEditCatalogUnits(val === "" ? "" : Number(val));
-                                  }}
-                                  onKeyDown={(e) => {
-                                    if (e.key === "Enter") handleEditCatalogItemSubmit(item.id);
-                                    if (e.key === "Escape") setEditingCatalogId(null);
-                                  }}
-                                  className="text-[10px] font-bold border border-black px-1 py-0.5 bg-white text-black w-12 focus:outline-none"
-                                />
-                                <button
-                                  onClick={() => handleEditCatalogItemSubmit(item.id)}
-                                  className="text-emerald-600 hover:text-emerald-800"
-                                  title="Save Correction"
-                                >
-                                  <Check className="w-3.5 h-3.5 stroke-[3]" />
-                                </button>
-                                <button
-                                  onClick={() => setEditingCatalogId(null)}
-                                  className="text-rose-600 hover:text-rose-800"
-                                  title="Cancel"
-                                >
-                                  <X className="w-3.5 h-3.5 stroke-[3]" />
-                                </button>
-                              </div>
-                            );
-                          }
-
-                          return (
-                            <span
-                              key={item.id}
-                              className="inline-flex items-center gap-2 pl-2.5 pr-1.5 py-1 bg-white text-gray-800 text-xs font-bold border border-black shadow-[1.5px_1.5px_0px_0px_rgba(0,0,0,1)] group hover:bg-[#fee2e2]/10 transition-colors"
-                            >
-                              <span className="text-black inline-flex items-center gap-1.5 flex-wrap">
-                                <span>{item.name}</span>
-                                <span className="text-[10px] text-gray-400 font-normal italic">
-                                  ({item.units !== undefined && item.units !== null ? `${item.units} ${item.unit || "unit"}` : item.unit || "unit"})
-                                </span>
-                                {item.parent_id && (() => {
-                                  const parent = catalog?.items?.find((p: any) => p.id === item.parent_id);
-                                  return (
-                                    <span className="text-[9px] bg-indigo-50 text-indigo-700 border border-indigo-300 px-1.5 py-0.5 rounded font-extrabold" title={`Aggregates under parent: ${parent?.name || item.parent_id}`}>
-                                      Child of: {parent?.name || "Generic Parent"}
-                                    </span>
-                                  );
-                                })()}
-                                {(() => {
-                                  const childrenCount = catalog?.items?.filter((c: any) => c.parent_id === item.id).length || 0;
-                                  if (childrenCount > 0) {
-                                    return (
-                                      <span className="text-[9px] bg-emerald-50 text-emerald-705 border border-emerald-300 px-1.5 py-0.5 rounded font-extrabold">
-                                        Parent ({childrenCount} brand{childrenCount > 1 ? "s" : ""})
-                                      </span>
-                                    );
-                                  }
-                                  return null;
-                                })()}
-                              </span>
-                              <div className="flex items-center gap-1">
-                                <button
-                                  onClick={() => handleStartEditCatalog(item)}
-                                  className="text-gray-400 hover:text-[#059669] transition-colors p-0.5 mr-0.5 border border-transparent rounded hover:bg-gray-150"
-                                  title={`Rename/Edit ${item.name}`}
-                                >
-                                  <Edit2 className="w-3 h-3" />
-                                </button>
-                                <button
-                                  onClick={() => handleDeleteCatalogItem(item.id)}
-                                  className="text-gray-400 hover:text-[#991b1b] transition-colors p-0.5 border border-transparent rounded hover:bg-gray-150"
-                                  title={`Delete ${item.name}`}
-                                >
-                                  <Trash2 className="w-3 h-3" />
-                                </button>
-                              </div>
+                      return (
+                        <span
+                          key={item.id}
+                          className={`inline-flex items-center gap-2 pl-2.5 pr-1.5 py-1 text-xs font-bold border border-black shadow-[1.5px_1.5px_0px_0px_rgba(0,0,0,1)] group transition-colors ${
+                            isChild 
+                              ? "bg-indigo-50/20 text-gray-700 hover:bg-indigo-50/50 border-dashed" 
+                              : item.parent_id 
+                                ? "bg-indigo-50/20 text-gray-700 hover:bg-[#fee2e2]/10" 
+                                : "bg-white text-gray-850 hover:bg-[#fee2e2]/10"
+                          }`}
+                        >
+                          <span className="text-black inline-flex items-center gap-1.5 flex-wrap">
+                            <span>{item.name}</span>
+                            <span className="text-[10px] text-gray-400 font-normal italic">
+                              ({item.units !== undefined && item.units !== null ? `${item.units} ${item.unit || "unit"}` : item.unit || "unit"})
                             </span>
-                          );
-                        })}
+                            {isChild && (
+                              <span className="text-[8px] bg-indigo-100 text-indigo-850 px-1 py-0.2 rounded font-extrabold uppercase tracking-wider">
+                                Brand
+                              </span>
+                            )}
+                            {!isChild && (() => {
+                              const childrenCount = catalog?.items?.filter((c: any) => c.parent_id === item.id).length || 0;
+                              if (childrenCount > 0) {
+                                return (
+                                  <span className="text-[8px] bg-emerald-100 text-emerald-800 px-1.5 py-0.5 rounded font-black uppercase tracking-wider">
+                                    Parent Generic ({childrenCount} brand{childrenCount > 1 ? "s" : ""})
+                                  </span>
+                                );
+                              }
+                              return null;
+                            })()}
+                          </span>
+                          <div className="flex items-center gap-1">
+                            <button
+                              onClick={() => handleStartEditCatalog(item)}
+                              className="text-gray-400 hover:text-[#059669] transition-colors p-0.5 mr-0.5 border border-transparent rounded hover:bg-gray-150"
+                              title={`Rename/Edit ${item.name}`}
+                            >
+                              <Edit2 className="w-3 h-3" />
+                            </button>
+                            <button
+                              onClick={() => handleDeleteCatalogItem(item.id)}
+                              className="text-gray-400 hover:text-[#991b1b] transition-colors p-0.5 border border-transparent rounded hover:bg-gray-150"
+                              title={`Delete ${item.name}`}
+                            >
+                              <Trash2 className="w-3 h-3" />
+                            </button>
+                          </div>
+                        </span>
+                      );
+                    };
+
+                    return (
+                      <div key={category} className="bg-[#f9fafb] border-2 border-black p-4 shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] hover:-translate-x-[1px] hover:-translate-y-[1px] transition-all">
+                        
+                        {/* Catalog Category Header */}
+                        <div className="flex items-center justify-between mb-3.5 pb-1 border-b border-gray-200">
+                          <span className="text-xs font-black uppercase tracking-wider text-black">{category}</span>
+                          
+                          {addingToCategory === category ? (
+                            <div className="flex items-center gap-1 animate-fade-in">
+                              <input
+                                type="text"
+                                value={newCatalogItemName}
+                                onChange={(e) => setNewCatalogItemName(e.target.value)}
+                                onKeyDown={(e) => { 
+                                  if (e.key === "Enter") handleAddCatalogItem(category, newCatalogItemName);
+                                  if (e.key === "Escape") setAddingToCategory(null);
+                                }}
+                                placeholder="Type name and press Enter..."
+                                className="px-2 py-0.5 text-xs border border-black focus:outline-none font-bold text-black bg-white"
+                                autoFocus
+                              />
+                              <button
+                                onClick={() => handleAddCatalogItem(category, newCatalogItemName)}
+                                className="text-[10px] font-black uppercase text-emerald-800 bg-emerald-100 hover:bg-emerald-200 border border-emerald-500 px-1.5 py-0.5"
+                              >
+                                Add
+                              </button>
+                              <button
+                                onClick={() => { setAddingToCategory(null); setNewCatalogItemName(""); }}
+                                className="text-[10px] font-black uppercase text-red-800 bg-red-100 hover:bg-red-200 border border-red-500 px-1.5 py-0.5"
+                              >
+                                Cancel
+                              </button>
+                            </div>
+                          ) : (
+                            <button
+                              onClick={() => setAddingToCategory(category)}
+                              className="bg-white hover:bg-emerald-50 transition-colors text-[10px] font-black uppercase border border-black px-2 py-0.5 shadow-[1px_1px_0px_0px_rgba(0,0,0,1)]"
+                            >
+                              + Quick Add
+                            </button>
+                          )}
+                        </div>
+
+                        {/* Display items as beautiful interactive badges grouped by parent-child relationships */}
+                        <div className="space-y-3">
+                          {(() => {
+                            const parents = categoryItems.filter((i: any) => 
+                              categoryItems.some((c: any) => c.parent_id === i.id) && !i.parent_id
+                            );
+                            const independent = categoryItems.filter((i: any) => 
+                              !i.parent_id && !categoryItems.some((c: any) => c.parent_id === i.id)
+                            );
+                            const childrenMap = categoryItems.reduce<Record<string, any[]>>((acc, i: any) => {
+                              if (i.parent_id) {
+                                if (!acc[i.parent_id]) acc[i.parent_id] = [];
+                                acc[i.parent_id].push(i);
+                              }
+                              return acc;
+                            }, {});
+
+                            return (
+                              <>
+                                {/* 1. Parent Items with their Children nested */}
+                                {parents.map((parent: any) => {
+                                  const children = childrenMap[parent.id] || [];
+                                  return (
+                                    <div key={parent.id} className="border border-emerald-300 bg-emerald-50/5 p-2.5 rounded-md space-y-2.5">
+                                      <div className="flex items-center gap-2">
+                                        {renderCatalogItem(parent)}
+                                      </div>
+                                      {children.length > 0 && (
+                                        <div className="pl-6 border-l-2 border-emerald-300 flex flex-wrap gap-2 items-center">
+                                          <span className="text-[10px] text-emerald-600 font-extrabold uppercase mr-1">Brands:</span>
+                                          {children.map((child: any) => renderCatalogItem(child, true))}
+                                        </div>
+                                      )}
+                                    </div>
+                                  );
+                                })}
+
+                                {/* 2. Independent flat items */}
+                                {independent.length > 0 && (
+                                  <div className="flex flex-wrap gap-2 pt-1">
+                                    {independent.map((item: any) => renderCatalogItem(item))}
+                                  </div>
+                                )}
+                              </>
+                            );
+                          })()}
+                        </div>
                       </div>
-                    </div>
-                  ))}
+                    );
+                  })}
               </div>
             ) : (
               <div className="text-center py-10 border-2 border-dashed border-gray-300 bg-gray-50">

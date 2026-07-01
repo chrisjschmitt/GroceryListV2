@@ -21,6 +21,19 @@ interface VersionEntry {
 
 const VERSIONS: VersionEntry[] = [
   {
+    version: "1.9.45",
+    date: "July 2026",
+    type: "patch",
+    title: "Grouped Parent-Child Catalog Layout",
+    changes: [
+      {
+        icon: <Layout className="w-4 h-4 text-emerald-500" />,
+        category: "Admin Portal",
+        description: "Redesigned the catalog manager to visually nest and indent brand-specific child items inside green-bordered parent generic containers."
+      }
+    ]
+  },
+  {
     version: "1.9.44",
     date: "July 2026",
     type: "patch",
