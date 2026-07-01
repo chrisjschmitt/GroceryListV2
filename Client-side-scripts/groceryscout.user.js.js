@@ -1,7 +1,7 @@
 // ==UserScript==
-// @name         GroceryScout - 2.9.7 Normalized Canonical Exporter
+// @name         GroceryScout - 2.9.8 Normalized Canonical Exporter
 // @namespace    http://tampermonkey.net/
-// @version      2.9.7
+// @version      2.9.8
 // @description  Added Canadian Tire & Loblaws dairy product normalization
 // @author       You
 // @match        https://*.foodbasics.ca/*
@@ -120,6 +120,36 @@
 
     // Call on startup
     fetchCatalog();
+
+    function getProductTitle() {
+        // Try h1 elements first for SPAs (Loblaws/Independent Grocers) to bypass generic shell titles
+        const selectors = [
+            'h1[class*="product-name"]',
+            'h1[class*="title"]',
+            '.product-name',
+            '.product-title',
+            'h1'
+        ];
+        for (const selector of selectors) {
+            const element = document.querySelector(selector);
+            if (element && element.textContent) {
+                const txt = element.textContent.trim();
+                if (txt.length > 2 && !/^(my shop|shop online|your independent|loblaws|no frills|metro|food basics|freshco|walmart|canadian tire)/i.test(txt)) {
+                    return txt;
+                }
+            }
+        }
+        // Fallback to title and strip store suffix (e.g. "- My Shop" or "| My Shop")
+        let title = document.title || "";
+        const parts = title.split(/[|\-]/);
+        if (parts.length > 0) {
+            const candidate = parts[0].trim();
+            if (candidate && candidate.length > 2 && !/^(my shop|shop online)/i.test(candidate)) {
+                return candidate;
+            }
+        }
+        return title.split('|')[0].trim();
+    }
 
     // Helper to find closest lookup string based on product page content
     function determineConfigName(pageTitle) {
@@ -249,7 +279,7 @@
 
     function extractItemData() {
         const canonicalKey = getCanonicalKey(window.location.href);
-        const rawTitle = document.title.split('|')[0].trim();
+        const rawTitle = getProductTitle();
         const verifiedConfigName = findClosestCatalogMatch(rawTitle);
 
         const domain = window.location.hostname;
@@ -517,7 +547,7 @@
         const unitsInput = document.getElementById('gs-units');
         const unitSelect = document.getElementById('gs-unit');
 
-        const rawTitle = document.title.split('|')[0].trim();
+        const rawTitle = getProductTitle();
         categorySelect.value = determineCategory(rawTitle);
         const parsedSize = determineUnitAndSize(rawTitle);
         unitsInput.value = parsedSize.units;

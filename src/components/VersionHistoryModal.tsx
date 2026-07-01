@@ -21,6 +21,19 @@ interface VersionEntry {
 
 const VERSIONS: VersionEntry[] = [
   {
+    version: "1.9.43",
+    date: "July 2026",
+    type: "patch",
+    title: "Tampermonkey Title Extraction Fix",
+    changes: [
+      {
+        icon: <Zap className="w-4 h-4 text-emerald-500" />,
+        category: "Tampermonkey",
+        description: "Added getProductTitle() helper to read H1 DOM product name elements and discard generic shell titles (like 'My Shop') from SPAs."
+      }
+    ]
+  },
+  {
     version: "1.9.42",
     date: "July 2026",
     type: "patch",
