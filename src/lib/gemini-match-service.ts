@@ -88,6 +88,29 @@ export function checkExplicitSizeMismatch(nameA: string, nameB: string): boolean
   return false;
 }
 
+export function checkFatPercentageMismatch(nameA: string, nameB: string): boolean {
+  const cleanA = nameA.toLowerCase();
+  const cleanB = nameB.toLowerCase();
+
+  const getPercent = (str: string) => {
+    const match = str.match(/(\d+(?:\.\d+)?)\s*%/);
+    if (match) return parseFloat(match[1]);
+    
+    if (str.includes("skim")) return 0;
+    if (str.includes("whole")) return 3.25;
+    if (str.includes("homo") || str.includes("homogenized")) return 3.25;
+    return null;
+  };
+
+  const pctA = getPercent(cleanA);
+  const pctB = getPercent(cleanB);
+
+  if (pctA !== null && pctB !== null && pctA !== pctB) {
+    return true;
+  }
+  return false;
+}
+
 export function cleanString(s: string): string {
   return s.trim().toLowerCase()
     .replace(/\blactose[- ]free\b/g, "lf")
@@ -206,6 +229,12 @@ export function runProgrammaticFallbackMatch(scrapedName: string, catalogItems: 
       const hasSizeMismatch = checkExplicitSizeMismatch(scrapedName, item.name);
       if (hasSizeMismatch) {
         score -= 35; // severe penalty for pack/size mismatch!
+      }
+
+      // Check fat percentage mismatch
+      const hasPctMismatch = checkFatPercentageMismatch(scrapedName, item.name);
+      if (hasPctMismatch) {
+        score -= 40; // severe penalty for fat percentage mismatch!
       }
 
       // Check product specificity keywords mismatch (e.g. crunchy vs smooth, lactose-free vs regular)
@@ -516,6 +545,7 @@ For your match output, determine:
    - TOILET PAPER VS PAPER TOWELS (CRITICAL RULE): Toilet paper (or bathroom tissue/tissue) is NOT paper towels. They are completely different products. They must NEVER match. If one is toilet paper/tissue and the other is paper towels, you must set "matched_id" to "" and confidence to 0%.
    - BRAND SUBSTITUTION & TOLERANCE: Brand changes are minor conflicts. For example, Kraft Brand Crunchy Peanut Butter is a high-confidence substitute for No Name Crunchy Peanut Butter as long as critical product features (like crunchy peanut butter) are identical. Under this rule, do NOT penalize with more than a 15% deduction (keep confidence at a solid 80%-85%).
    - PRODUCT SPECIFICITY (MAJOR PENALTY): Critical attributes are non-negotiable. Mismatches such as crunchy vs smooth peanut butter, regular milk vs lactose-free milk, cottage cheese vs sour cream, fat-free vs whole fat constitute severe conflicts. These matches must be rejected (confidence < 45% or set "matched_id" to "").
+   - MILK FAT PERCENTAGE MISMATCH (MAJOR PENALTY): Milk fat percentages (e.g., 1%, 2%, 3.25%, skim, homogenized, whole) are non-negotiable. 1% milk must NEVER match 2% milk or 3.25% milk. If fat percentages are explicitly different, you must reject the match (confidence < 45% or set "matched_id" to "").
    - EXACT SPELLING MATCH: If lowercase exact text matches, confidence is 100%. Plurals or simple spacing (e.g. Avocado vs Avocados) should be 95%.
 3. "unit_match": True if measurement modes (weight vs unit) are compatible, false if one is weight and the other is single unit/piece.
 4. "brand_match": True if the brands match or are both generic/unspecified, false if different brands.

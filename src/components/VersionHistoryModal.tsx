@@ -21,6 +21,19 @@ interface VersionEntry {
 
 const VERSIONS: VersionEntry[] = [
   {
+    version: "1.9.42",
+    date: "July 2026",
+    type: "patch",
+    title: "Milk Percentage Mismatch Guard",
+    changes: [
+      {
+        icon: <Sparkles className="w-4 h-4 text-emerald-500" />,
+        category: "Matching Service",
+        description: "Implemented a non-negotiable milk fat percentage mismatch guard (1% vs 2% vs whole/skim) in the programmatic and Gemini matchers to avoid incorrect catalog mappings."
+      }
+    ]
+  },
+  {
     version: "1.9.41",
     date: "July 2026",
     type: "patch",
