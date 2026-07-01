@@ -385,10 +385,10 @@ export default function ListsTab() {
 
   // Group items by the store where they are cheapest
   const groupedByStore = useMemo(() => {
-    const storeMap: Record<string, { name: string; items: GroceryItem[] }> = {
-      foodbasics: { name: "Food Basics", items: [] },
-      metro: { name: "Metro", items: [] },
-      unassigned: { name: "No Price Checking Configured", items: [] }
+    const storeMap: Record<string, { name: string; items: GroceryItem[]; totalCost: number; totalSavings: number }> = {
+      foodbasics: { name: "Food Basics", items: [], totalCost: 0, totalSavings: 0 },
+      metro: { name: "Metro", items: [], totalCost: 0, totalSavings: 0 },
+      unassigned: { name: "No Price Checking Configured", items: [], totalCost: 0, totalSavings: 0 }
     };
 
     for (const item of filteredItems) {
@@ -396,6 +396,7 @@ export default function ListsTab() {
       if (priceInfo) {
         let bestStoreId = "";
         let bestPriceVal = Infinity;
+        let bestStoreInfo: any = null;
         
         if (priceInfo.stores && typeof priceInfo.stores === "object") {
           for (const [sId, sInfo] of Object.entries(priceInfo.stores) as [string, any][]) {
@@ -403,6 +404,7 @@ export default function ListsTab() {
             if (val !== null && val < bestPriceVal) {
               bestPriceVal = val;
               bestStoreId = sId;
+              bestStoreInfo = sInfo;
             }
           }
         } else {
@@ -410,15 +412,29 @@ export default function ListsTab() {
           if (val !== null) {
             bestPriceVal = val;
             bestStoreId = priceInfo.store_id || "foodbasics";
+            bestStoreInfo = priceInfo;
           }
         }
         
         const normStoreId = bestStoreId ? normalizeStoreKey(bestStoreId) : "unassigned";
-        if (storeMap[normStoreId]) {
-          storeMap[normStoreId].items.push(item);
-        } else {
-          const prettyName = priceInfo.stores?.[bestStoreId]?.store_name || bestStoreId;
-          storeMap[normStoreId] = { name: prettyName, items: [item] };
+        
+        if (!storeMap[normStoreId]) {
+          const prettyName = bestStoreInfo?.store_name || bestStoreId;
+          storeMap[normStoreId] = { name: prettyName, items: [], totalCost: 0, totalSavings: 0 };
+        }
+        
+        storeMap[normStoreId].items.push(item);
+
+        if (bestPriceVal !== Infinity && bestStoreInfo) {
+          const regularPrice = typeof bestStoreInfo.regular_price === "number"
+            ? bestStoreInfo.regular_price
+            : parseFloat(bestStoreInfo.regular_price) || bestPriceVal;
+          const onSale = bestStoreInfo.is_on_sale === 1 || !!bestStoreInfo.is_on_sale;
+          
+          storeMap[normStoreId].totalCost += bestPriceVal * item.quantity;
+          if (onSale && regularPrice > bestPriceVal) {
+            storeMap[normStoreId].totalSavings += (regularPrice - bestPriceVal) * item.quantity;
+          }
         }
       } else {
         storeMap.unassigned.items.push(item);
@@ -652,9 +668,20 @@ export default function ListsTab() {
             <section key={group.id} className="space-y-3">
               {/* Store Title Bar */}
               <div className="flex items-center justify-between pb-1 border-b border-outline/10">
-                <h3 className="text-sm font-extrabold text-secondary flex items-center gap-1.5">
+                <h3 className="text-sm font-extrabold text-secondary flex items-center gap-1.5 flex-wrap">
                   <span className="w-1.5 h-1.5 rounded-full bg-secondary"></span>
                   {group.name}
+                  {viewMode === "byStore" && group.id !== "unassigned" && (group as any).totalCost > 0 && (
+                    <span className="text-xs text-on-surface-variant font-bold ml-2">
+                      (${(group as any).totalCost.toFixed(2)} total
+                      {(group as any).totalSavings > 0 && (
+                        <span className="text-red-650 ml-1.5 font-extrabold">
+                          • save ${(group as any).totalSavings.toFixed(2)}
+                        </span>
+                      )}
+                      )
+                    </span>
+                  )}
                 </h3>
                 <span className="text-[10px] font-bold bg-secondary-container/20 text-secondary px-2.5 py-0.5 rounded-full">
                   {group.items.length} Item{group.items.length !== 1 ? "s" : ""}
