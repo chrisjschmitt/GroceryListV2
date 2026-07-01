@@ -1380,14 +1380,14 @@ export default function AdminPage() {
     .sort((a, b) => getCategoryOrderIndex(a as string) - getCategoryOrderIndex(b as string));
 
   // Group catalog items alphabetically
-  const categories = items.reduce<Record<string, RegularItem[]>>((acc, item) => {
+  const categories = items.reduce<Record<string, any[]>>((acc, item) => {
     if (!acc[item.category]) acc[item.category] = [];
     acc[item.category].push(item);
     return acc;
-  }, {} as Record<string, RegularItem[]>);
+  }, {} as Record<string, any[]>);
 
   // Apply search filtering on catalog items
-  const filteredCategories = (Object.entries(categories) as [string, RegularItem[]][]).reduce<Record<string, RegularItem[]>>((acc, [category, categoryItems]) => {
+  const filteredCategories = (Object.entries(categories) as [string, any[]][]).reduce<Record<string, any[]>>((acc, [category, categoryItems]) => {
     const matched = categoryItems.filter(item => 
       item.name.toLowerCase().includes(catalogSearch.toLowerCase()) || 
       category.toLowerCase().includes(catalogSearch.toLowerCase())
@@ -2444,11 +2444,30 @@ export default function AdminPage() {
                               key={item.id}
                               className="inline-flex items-center gap-2 pl-2.5 pr-1.5 py-1 bg-white text-gray-800 text-xs font-bold border border-black shadow-[1.5px_1.5px_0px_0px_rgba(0,0,0,1)] group hover:bg-[#fee2e2]/10 transition-colors"
                             >
-                              <span className="text-black">
-                                {item.name}
-                                <span className="text-[10px] text-gray-400 font-normal ml-1.5 italic">
+                              <span className="text-black inline-flex items-center gap-1.5 flex-wrap">
+                                <span>{item.name}</span>
+                                <span className="text-[10px] text-gray-400 font-normal italic">
                                   ({item.units !== undefined && item.units !== null ? `${item.units} ${item.unit || "unit"}` : item.unit || "unit"})
                                 </span>
+                                {item.parent_id && (() => {
+                                  const parent = catalog?.items?.find((p: any) => p.id === item.parent_id);
+                                  return (
+                                    <span className="text-[9px] bg-indigo-50 text-indigo-700 border border-indigo-300 px-1.5 py-0.5 rounded font-extrabold" title={`Aggregates under parent: ${parent?.name || item.parent_id}`}>
+                                      Child of: {parent?.name || "Generic Parent"}
+                                    </span>
+                                  );
+                                })()}
+                                {(() => {
+                                  const childrenCount = catalog?.items?.filter((c: any) => c.parent_id === item.id).length || 0;
+                                  if (childrenCount > 0) {
+                                    return (
+                                      <span className="text-[9px] bg-emerald-50 text-emerald-705 border border-emerald-300 px-1.5 py-0.5 rounded font-extrabold">
+                                        Parent ({childrenCount} brand{childrenCount > 1 ? "s" : ""})
+                                      </span>
+                                    );
+                                  }
+                                  return null;
+                                })()}
                               </span>
                               <div className="flex items-center gap-1">
                                 <button

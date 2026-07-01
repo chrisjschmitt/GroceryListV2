@@ -21,6 +21,19 @@ interface VersionEntry {
 
 const VERSIONS: VersionEntry[] = [
   {
+    version: "1.9.44",
+    date: "July 2026",
+    type: "patch",
+    title: "Catalog Parent-Child Visual Badges",
+    changes: [
+      {
+        icon: <Layout className="w-4 h-4 text-emerald-500" />,
+        category: "Admin Portal",
+        description: "Added visual parent/child badges in the Admin catalog item manager, displaying brand hierarchies (e.g. 'Child of: 1% Lactose Free Milk') at a glance."
+      }
+    ]
+  },
+  {
     version: "1.9.43",
     date: "July 2026",
     type: "patch",
