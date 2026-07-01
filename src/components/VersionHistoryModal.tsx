@@ -21,6 +21,19 @@ interface VersionEntry {
 
 const VERSIONS: VersionEntry[] = [
   {
+    version: "1.9.47",
+    date: "July 2026",
+    type: "patch",
+    title: "Catalog parent_id Serialization Fix",
+    changes: [
+      {
+        icon: <Database className="w-4 h-4 text-emerald-500" />,
+        category: "Database Storage",
+        description: "Fixed a critical bug in db-store.ts where parent_id fields were stripped out during MongoDB read (blobGetCombinedCatalog) and write (blobSetCombinedCatalog) operations."
+      }
+    ]
+  },
+  {
     version: "1.9.46",
     date: "July 2026",
     type: "patch",

@@ -358,6 +358,7 @@ export async function blobGetCombinedCatalog(): Promise<CombinedCatalog> {
         units: typeof i.units === "number" ? i.units : undefined,
         requires_scraping: typeof i.requires_scraping === "boolean" ? i.requires_scraping : false,
         stores: i.stores || {},
+        parent_id: i.parent_id,
       }));
 
       return { stores, items: mappedItems };
@@ -412,6 +413,7 @@ export async function blobSetCombinedCatalog(catalog: CombinedCatalog): Promise<
           units: item.units !== undefined ? item.units : null,
           requires_scraping: typeof item.requires_scraping === "boolean" ? item.requires_scraping : false,
           stores: item.stores || {},
+          parent_id: item.parent_id || null,
         }));
         await db.collection("catalog_items").insertMany(itemDocs);
       }
