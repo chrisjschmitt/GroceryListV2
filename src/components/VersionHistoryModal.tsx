@@ -21,6 +21,29 @@ interface VersionEntry {
 
 const VERSIONS: VersionEntry[] = [
   {
+    version: "1.9.40",
+    date: "June 2026",
+    type: "patch",
+    title: "Auto-Save, Match Guard & UI Totals",
+    changes: [
+      {
+        icon: <Zap className="w-4 h-4 text-emerald-500" />,
+        category: "Lists & UI Metrics",
+        description: "Implemented store total budget costs and sale savings calculations next to each store name under the By Store shopping list layout."
+      },
+      {
+        icon: <Cloud className="w-4 h-4 text-emerald-500" />,
+        category: "Client Auto-Save",
+        description: "Enabled auto-save by default and added background debounced auto-sync (1.5s delay) to server. Integrated beforeunload warnings to protect local changes from losing sync."
+      },
+      {
+        icon: <Sparkles className="w-4 h-4 text-emerald-500" />,
+        category: "Ingestion Matching",
+        description: "Added explicit packaging size/pack count mismatch checks and toilet paper vs paper towels specificity rules to prevent erroneous catalog matching during scraped item appends."
+      }
+    ]
+  },
+  {
     version: "1.9.39",
     date: "June 2026",
     type: "patch",
