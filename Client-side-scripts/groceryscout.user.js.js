@@ -1,8 +1,8 @@
 // ==UserScript==
-// @name         GroceryScout - 2.9.6 Normalized Canonical Exporter
+// @name         GroceryScout - 2.9.7 Normalized Canonical Exporter
 // @namespace    http://tampermonkey.net/
-// @version      2.9.6
-// @description  Added Canadian Tire
+// @version      2.9.7
+// @description  Added Canadian Tire & Loblaws dairy product normalization
 // @author       You
 // @match        https://*.foodbasics.ca/*
 // @match        https://foodbasics.ca/*
@@ -37,6 +37,7 @@
         "Yogurt LF 1% Natrel",
         "Chicken Breasts Boneless Skinless",
         "Milk LF 2%",
+        "Milk LF 1%",
         "Broccoli",
         "Butter unsalted",
         "Eggs - 18",
@@ -129,7 +130,8 @@
         if (lowerTitle.includes("natrel") && lowerTitle.includes("yogurt")) return "Yogurt LF 1% Natrel";
         if (lowerTitle.includes("chicken breast")) return "Chicken Breasts Boneless Skinless";
         if (lowerTitle.includes("ground chicken")) return "Ground chicken Lean 450g";
-        if (lowerTitle.includes("milk") && lowerTitle.includes("2%")) return "Milk LF 2%";
+        if ((lowerTitle.includes("milk") || lowerTitle.includes("dairy product")) && lowerTitle.includes("1%")) return "Milk LF 1%";
+        if ((lowerTitle.includes("milk") || lowerTitle.includes("dairy product")) && lowerTitle.includes("2%")) return "Milk LF 2%";
         if (lowerTitle.includes("butter")) return "Butter unsalted";
         if (lowerTitle.includes("egg") && lowerTitle.includes("18")) return "Eggs - 18";
         if (lowerTitle.includes("blueberr")) return "Blueberries - pint";
