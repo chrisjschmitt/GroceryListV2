@@ -1,5 +1,5 @@
 import React from "react";
-import { X, Calendar, GitBranch, Sparkles, Database, Layout, Smartphone, Cloud, FileSpreadsheet, Trash2, Clock, Zap, RefreshCw, Search } from "lucide-react";
+import { X, Calendar, GitBranch, Sparkles, Database, Layout, Smartphone, Cloud, FileSpreadsheet, Trash2, Clock, Zap, RefreshCw, Search, Tag } from "lucide-react";
 
 interface VersionHistoryModalProps {
   isOpen: boolean;
@@ -20,6 +20,19 @@ interface VersionEntry {
 }
 
 const VERSIONS: VersionEntry[] = [
+  {
+    version: "1.9.52",
+    date: "July 2026",
+    type: "patch",
+    title: "Grocery Checklist Sale Indicators",
+    changes: [
+      {
+        icon: <Tag className="w-4 h-4 text-rose-500" />,
+        category: "Checklist UI",
+        description: "Added sale and expired-sale indicators to the checklist view. Items on sale now highlight the price in red and display a SALE badge (or EXPIRED badge when applicable)."
+      }
+    ]
+  },
   {
     version: "1.9.51",
     date: "July 2026",

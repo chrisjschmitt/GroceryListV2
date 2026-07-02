@@ -4,6 +4,7 @@ import { GroceryItem, PriceEntry } from "@/lib/types";
 import { ChevronDown, ChevronUp, Trash2, Plus, Minus, ListPlus, ExternalLink, RefreshCw } from "lucide-react";
 import CatalogDrawer from "../../components/CatalogDrawer";
 import SyncIndicator from "../../components/SyncIndicator";
+import { isSaleExpired } from "../../components/GroceryItemRow";
 
 function normalizeStoreKey(storeId: string): string {
   if (!storeId) return "foodbasics";
@@ -739,6 +740,17 @@ export default function ListsTab() {
                   const displayPriceVal = primaryStorePrice !== null ? primaryStorePrice : cheapestPriceVal;
                   const showPriceMatch = primaryStorePrice !== null && cheapestPriceVal !== null && cheapestPriceVal < primaryStorePrice;
 
+                  // Determine if the displayed price is a sale price
+                  const sourceStoreInfo = (primaryStorePrice !== null)
+                    ? priceInfo?.stores?.[primaryStoreId?.toLowerCase() || ""]
+                    : bestCompetitorInfo;
+                  const isOnSale = sourceStoreInfo
+                    ? (sourceStoreInfo.is_on_sale === 1 || !!sourceStoreInfo.is_on_sale)
+                    : false;
+                  const isExpired = isOnSale && sourceStoreInfo?.valid_until
+                    ? isSaleExpired(sourceStoreInfo.valid_until)
+                    : false;
+
                   return (
                     <div
                       key={item.id}
@@ -852,19 +864,30 @@ export default function ListsTab() {
                         <div className="flex items-center gap-3 shrink-0 font-tnum ml-2">
                           {displayPriceVal !== null && (
                             <div className="text-right flex flex-col items-end">
-                              <span className={`text-sm font-extrabold ${showPriceMatch ? "text-amber-600" : "text-primary"}`}>
+                              <span className={`text-sm font-extrabold ${showPriceMatch ? "text-amber-600" : isExpired ? "text-amber-500" : isOnSale ? "text-red-650" : "text-primary"}`}>
                                 ${(displayPriceVal * item.quantity).toFixed(2)}
                               </span>
                               
-                              {(item.quantity > 1 || showPriceMatch) && (
+                              {(item.quantity > 1 || showPriceMatch || isOnSale) && (
                                 <div className="text-[9px] text-on-surface-variant font-medium flex flex-col items-end">
                                   {item.quantity > 1 && (
                                     <span>
                                       {item.quantity} × ${displayPriceVal.toFixed(2)}
                                     </span>
                                   )}
+                                  {isOnSale && (
+                                    isExpired ? (
+                                      <span className="text-[8px] bg-amber-100 text-amber-800 border border-amber-400 px-1 py-0.2 font-black mt-0.5 select-none uppercase rounded-sm">
+                                        Expired Sale
+                                      </span>
+                                    ) : (
+                                      <span className="text-[8px] bg-red-100 text-[#991b1b] border border-red-300 px-1 py-0.2 font-black mt-0.5 select-none uppercase rounded-sm">
+                                        Sale
+                                      </span>
+                                    )
+                                  )}
                                   {showPriceMatch && (
-                                    <span className="text-[8px] text-amber-600 font-bold uppercase">
+                                    <span className="text-[8px] text-amber-600 font-bold uppercase mt-0.5">
                                       Save ${( (displayPriceVal - cheapestPriceVal!) * item.quantity ).toFixed(2)}
                                     </span>
                                   )}
@@ -912,16 +935,24 @@ export default function ListsTab() {
                                 (Object.entries(priceInfo.stores) as [string, any][]).map(([storeId, storeInfo]) => {
                                   const activePrice = getStoreActivePrice(storeInfo);
                                   const isCheapest = activePrice === cheapestPriceVal;
+                                  const isStoreSale = storeInfo.is_on_sale === 1 || !!storeInfo.is_on_sale;
+                                  const isStoreExpired = isStoreSale && storeInfo.valid_until && isSaleExpired(storeInfo.valid_until);
                                   return (
                                     <div key={storeId} className="flex justify-between items-center text-xs">
                                       <span className="text-on-surface-variant font-medium">
                                         {storeInfo.store_name}
                                       </span>
                                       <div className="flex items-center gap-2">
-                                        {storeInfo.is_on_sale === 1 && (
-                                          <span className="bg-red-50 text-red-700 text-[9px] px-1 py-0.5 font-bold rounded-sm">
-                                            SALE
-                                          </span>
+                                        {isStoreSale && (
+                                          isStoreExpired ? (
+                                            <span className="bg-amber-50 text-amber-700 border border-amber-300 text-[9px] px-1 py-0.5 font-bold rounded-sm uppercase select-none">
+                                              EXPIRED
+                                            </span>
+                                          ) : (
+                                            <span className="bg-red-50 text-red-700 border border-red-200 text-[9px] px-1 py-0.5 font-bold rounded-sm uppercase select-none">
+                                              SALE
+                                            </span>
+                                          )
                                         )}
                                         <span className={`font-bold ${isCheapest ? "text-primary font-black" : "text-on-surface"}`}>
                                           {activePrice !== null ? `$${activePrice.toFixed(2)}` : "—"}
