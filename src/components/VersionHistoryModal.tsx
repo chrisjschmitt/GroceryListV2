@@ -21,6 +21,19 @@ interface VersionEntry {
 
 const VERSIONS: VersionEntry[] = [
   {
+    version: "1.9.60",
+    date: "July 2026",
+    type: "patch",
+    title: "Interactive Flyer Debugger Panel",
+    changes: [
+      {
+        icon: <Layout className="w-4 h-4 text-emerald-500" />,
+        category: "Flyer Debugger",
+        description: "Implemented an interactive Debugger Panel on the weekly flyer loader redirect page, displaying the store name, query terms, target postal code, and raw Flipp search API results with options to pause the redirect or submit custom queries."
+      }
+    ]
+  },
+  {
     version: "1.9.59",
     date: "July 2026",
     type: "patch",

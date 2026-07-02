@@ -133,21 +133,23 @@ export default function ListsTab() {
               flex-direction: column;
               align-items: center;
               justify-content: center;
-              height: 100vh;
+              min-height: 100vh;
               margin: 0;
               background-color: #0f172a;
               color: #f8fafc;
+              padding: 1.5rem;
+              box-sizing: border-box;
             }
             .container {
               text-align: center;
               background: rgba(30, 41, 59, 0.7);
               backdrop-filter: blur(12px);
-              padding: 2.5rem 1.75rem;
+              padding: 2rem 1.5rem;
               border-radius: 1.25rem;
               border: 1px solid rgba(255, 255, 255, 0.08);
               box-shadow: 0 20px 25px -5px rgb(0 0 0 / 0.5);
-              width: 90%;
-              max-width: 360px;
+              width: 100%;
+              max-width: 480px;
               box-sizing: border-box;
             }
             .spinner {
@@ -161,19 +163,17 @@ export default function ListsTab() {
               transition: all 0.3s ease;
             }
             h1 {
-              font-size: 1.75rem;
+              font-size: 1.5rem;
               font-weight: 800;
               margin: 0 0 0.75rem;
               letter-spacing: -0.03em;
               line-height: 1.25;
-              transition: all 0.3s ease;
             }
             p {
               font-size: 0.875rem;
               color: #94a3b8;
               margin: 0;
               line-height: 1.4;
-              transition: all 0.3s ease;
             }
             @keyframes spin {
               0% { transform: rotate(0deg); }
@@ -186,54 +186,201 @@ export default function ListsTab() {
             <div id="spinner" class="spinner"></div>
             <h1 id="status-title">Locating Weekly Flyer</h1>
             <p id="status-desc">Searching Flipp.com for local ${storeName.replace(/'/g, "\\'")} deals...</p>
+            
+            <button id="toggle-debug" style="margin-top: 1.5rem; background: transparent; border: 1px solid rgba(255,255,255,0.15); color: #94a3b8; font-size: 0.75rem; padding: 0.4rem 0.8rem; border-radius: 0.5rem; cursor: pointer; font-weight: 600; width: 100%;">
+              Show Debug Panel
+            </button>
+            
+            <div id="debug-panel" style="display: none; text-align: left; margin-top: 1.5rem; padding-top: 1.5rem; border-top: 1px solid rgba(255,255,255,0.1); width: 100%;">
+              <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.75rem;">
+                <h3 style="margin: 0; font-size: 0.875rem; font-weight: 700; color: #10b981;">Flyer Debugger</h3>
+                <button id="btn-pause" style="background: #334155; border: none; color: #f8fafc; font-size: 0.7rem; padding: 0.25rem 0.5rem; border-radius: 0.25rem; cursor: pointer; font-weight: 700;">Pause Redirect</button>
+              </div>
+              
+              <div style="font-size: 0.75rem; color: #cbd5e1; line-height: 1.5;">
+                <div style="margin-bottom: 0.4rem;"><strong>Store Name:</strong> <span id="debug-store"></span></div>
+                <div style="margin-bottom: 0.4rem;"><strong>Original Item:</strong> <span id="debug-item"></span></div>
+                <div style="margin-bottom: 0.4rem;"><strong>Clean Query:</strong> <span id="debug-query"></span></div>
+                <div style="margin-bottom: 0.4rem;"><strong>Postal Code:</strong> <span id="debug-postal"></span></div>
+                <div style="margin-bottom: 0.6rem;"><strong>Flipp API URL:</strong> <a id="debug-api-link" href="#" target="_blank" style="color: #3b82f6; text-decoration: underline; word-break: break-all;"></a></div>
+              </div>
+              
+              <div style="margin-top: 0.75rem;">
+                <div style="font-size: 0.75rem; font-weight: 700; margin-bottom: 0.4rem; color: #94a3b8;">Flipp Search Returns:</div>
+                <div id="debug-results" style="max-height: 180px; overflow-y: auto; background: #0f172a; padding: 0.6rem; border-radius: 0.375rem; font-family: monospace; font-size: 0.7rem; color: #cbd5e1; border: 1px solid rgba(255,255,255,0.05); line-height: 1.4;">
+                  Loading results...
+                </div>
+              </div>
+              
+              <div style="margin-top: 1rem; display: flex; gap: 0.25rem;">
+                <input id="input-custom-q" type="text" placeholder="Try custom query..." style="flex: 1; background: #0f172a; border: 1px solid rgba(255,255,255,0.15); border-radius: 0.25rem; padding: 0.35rem 0.5rem; color: #f8fafc; font-size: 0.75rem; outline: none;">
+                <button id="btn-custom-search" style="background: #10b981; border: none; color: white; border-radius: 0.25rem; padding: 0.35rem 0.75rem; font-size: 0.75rem; cursor: pointer; font-weight: 700;">Search</button>
+              </div>
+            </div>
           </div>
+
+          <script>
+            const storeName = "${storeName.replace(/'/g, "\\'")}";
+            const itemName = "${itemName.replace(/'/g, "\\'")}";
+            const configName = "${(configName || "").replace(/'/g, "\\'")}";
+            const postalCode = "${(postalCode || "K7H3C6").replace(/'/g, "\\'")}";
+            const scrapedName = "${(scrapedName || "").replace(/'/g, "\\'")}";
+            const storeUrl = "${(storeUrl || "").replace(/'/g, "\\'")}";
+            
+            let redirectPaused = false;
+            let redirectTimeout = null;
+            
+            document.getElementById('debug-store').innerText = storeName;
+            document.getElementById('debug-item').innerText = itemName;
+            document.getElementById('debug-postal').innerText = postalCode;
+            
+            document.getElementById('toggle-debug').addEventListener('click', () => {
+              const panel = document.getElementById('debug-panel');
+              if (panel.style.display === 'none') {
+                panel.style.display = 'block';
+                document.getElementById('toggle-debug').innerText = 'Hide Debug Panel';
+              } else {
+                panel.style.display = 'none';
+                document.getElementById('toggle-debug').innerText = 'Show Debug Panel';
+              }
+            });
+            
+            const btnPause = document.getElementById('btn-pause');
+            btnPause.addEventListener('click', () => {
+              redirectPaused = !redirectPaused;
+              if (redirectPaused) {
+                btnPause.innerText = 'Resume Redirect';
+                btnPause.style.background = '#10b981';
+                if (redirectTimeout) {
+                  clearTimeout(redirectTimeout);
+                  redirectTimeout = null;
+                }
+              } else {
+                btnPause.innerText = 'Pause Redirect';
+                btnPause.style.background = '#334155';
+              }
+            });
+            
+            function performLookup(customQ) {
+              const qParams = new URLSearchParams({
+                storeName: storeName,
+                itemName: itemName,
+                configName: configName,
+                postalCode: postalCode,
+                scrapedName: customQ || scrapedName
+              });
+              
+              const fetchUrl = "/api/flipp/resolve?" + qParams.toString();
+              
+              let cleanItem = customQ || scrapedName || configName || itemName;
+              cleanItem = cleanItem.replace(/lactancia/gi, "Lactantia");
+              
+              cleanItem = cleanItem
+                .replace(/\\s*\\b\\d+%\\b/g, "")
+                .replace(/\\s*\\b\\d+(?:g|l|ml|oz|kg|lb|pack)\\b/gi, "")
+                .replace(/\\s*\\(\\d+[^)]*\\)/gi, "")
+                .replace(/\\s*-\\s*\\d+$/gi, "")
+                .replace(/\\s*-\\s*\\w+$/gi, "")
+                .trim();
+                
+              const finalQuery = (storeName + " " + cleanItem).trim();
+              document.getElementById('debug-query').innerText = finalQuery;
+              
+              const targetPostal = postalCode.trim().toUpperCase().replace(/\\s/g, "");
+              const flippApiUrl = "https://backflipp.wishabi.com/flipp/items/search?locale=en-ca&postal_code=" + targetPostal + "&q=" + encodeURIComponent(finalQuery);
+              
+              const apiLink = document.getElementById('debug-api-link');
+              apiLink.href = flippApiUrl;
+              apiLink.innerText = flippApiUrl;
+              
+              document.getElementById('debug-results').innerText = "Querying Flipp API...";
+              
+              fetch(fetchUrl)
+                .then(r => r.json())
+                .then(data => {
+                  fetch(flippApiUrl)
+                    .then(fr => fr.json())
+                    .then(fData => {
+                      const items = fData.items || [];
+                      if (items.length === 0) {
+                        document.getElementById('debug-results').innerHTML = '<span style="color: #f87171;">No items found on Flipp for this query.</span>';
+                      } else {
+                        let html = "";
+                        items.forEach(it => {
+                          const isMerchantMatch = (it.merchant_name || "").toLowerCase().includes(storeName.toLowerCase()) || storeName.toLowerCase().includes((it.merchant_name || "").toLowerCase());
+                          const color = isMerchantMatch ? "#34d399" : "#94a3b8";
+                          html += '<div style="margin-bottom: 0.6rem; padding-bottom: 0.4rem; border-bottom: 1px solid rgba(255,255,255,0.03); color: ' + color + ';">' +
+                            '[' + it.merchant_name + '] <strong>' + it.name + '</strong><br/>' +
+                            'Price: ' + (it.price ? '$' + it.price : 'N/A') + ' | ' +
+                            '<a href="https://flipp.com/item/' + it.id + '?postal_code=' + postalCode + '" target="_blank" style="color: #3b82f6; text-decoration: underline; font-weight: bold;">Open Item ↗</a>' +
+                            '</div>';
+                        });
+                        document.getElementById('debug-results').innerHTML = html;
+                      }
+                    })
+                    .catch(err => {
+                      document.getElementById('debug-results').innerText = "Error loading raw Flipp results: " + err.message;
+                    });
+                    
+                  if (data && data.url) {
+                    if (data.isMatch) {
+                      document.getElementById('status-title').innerText = "Flyer Deal Found!";
+                      document.getElementById('status-desc').innerText = "Redirecting to flyer deal...";
+                      if (!redirectPaused) {
+                        redirectTimeout = setTimeout(() => {
+                          window.location.href = data.url;
+                        }, 1000);
+                      }
+                    } else {
+                      document.getElementById('status-title').innerText = "Opening Flyer Search";
+                      document.getElementById('status-desc').innerText = "Flyer deal not matched exactly. Opening fallback flyer search...";
+                      if (!redirectPaused) {
+                        redirectTimeout = setTimeout(() => {
+                          window.location.href = data.url;
+                        }, 1500);
+                      }
+                    }
+                  } else {
+                    document.getElementById('status-title').innerText = "No Match Found";
+                    document.getElementById('status-desc').innerText = "Redirecting to store page...";
+                    if (!redirectPaused && storeUrl) {
+                      redirectTimeout = setTimeout(() => {
+                        window.location.href = storeUrl;
+                      }, 2500);
+                    }
+                  }
+                })
+                .catch(err => {
+                  document.getElementById('debug-results').innerText = "API Error: " + err.message;
+                  document.getElementById('status-title').innerText = "Error Occurred";
+                  document.getElementById('status-desc').innerText = "Redirecting to Flipp search...";
+                  if (!redirectPaused) {
+                    redirectTimeout = setTimeout(() => {
+                      window.location.href = "https://flipp.com/search?q=" + encodeURIComponent(finalQuery) + "&postal_code=" + postalCode;
+                    }, 2500);
+                  }
+                });
+            }
+            
+            performLookup();
+            
+            document.getElementById('btn-custom-search').addEventListener('click', () => {
+              const customVal = document.getElementById('input-custom-q').value;
+              if (customVal.trim()) {
+                redirectPaused = true;
+                btnPause.innerText = 'Resume Redirect';
+                btnPause.style.background = '#10b981';
+                if (redirectTimeout) {
+                  clearTimeout(redirectTimeout);
+                  redirectTimeout = null;
+                }
+                performLookup(customVal);
+              }
+            });
+          </script>
         </body>
       </html>
     `);
-
-    const qParams = new URLSearchParams({
-      storeName: storeName || "",
-      itemName: itemName || "",
-      configName: configName || "",
-      postalCode: postalCode || "K7H3C6",
-      scrapedName: scrapedName || ""
-    });
-
-    const handleRedirect = (targetUrl: string, isMatch: boolean) => {
-      if (isMatch || !storeUrl) {
-        newTab.location.href = targetUrl;
-      } else {
-        try {
-          const doc = newTab.document;
-          if (doc) {
-            const titleEl = doc.getElementById("status-title");
-            const descEl = doc.getElementById("status-desc");
-            const spinnerEl = doc.getElementById("spinner");
-            if (titleEl) titleEl.innerText = "Flyer Deal Not Found";
-            if (descEl) descEl.innerText = "This item is not in the active weekly flyer. Redirecting to the store product page...";
-            if (spinnerEl) spinnerEl.style.borderTopColor = "#f59e0b"; // Warning amber color
-          }
-        } catch (e) {
-          console.error("Error updating sub-tab DOM:", e);
-        }
-        setTimeout(() => {
-          newTab.location.href = storeUrl;
-        }, 2200);
-      }
-    };
-
-    fetch("/api/flipp/resolve?" + qParams.toString())
-      .then(r => r.json())
-      .then(data => {
-        if (data && data.url) {
-          handleRedirect(data.url, !!data.isMatch);
-        } else {
-          handleRedirect(getFlippSearchUrl(storeName, itemName, configName, postalCode), false);
-        }
-      })
-      .catch(() => {
-        handleRedirect(getFlippSearchUrl(storeName, itemName, configName, postalCode), false);
-      });
   };
 
   useEffect(() => {
