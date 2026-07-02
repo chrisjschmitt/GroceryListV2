@@ -222,13 +222,20 @@ async function runAudit() {
   } else {
     console.log("=== Starting Grocery Price Audit Scraper ===");
   }
-  console.log("1. Fetching Combined Catalog from MongoDB...");
+  console.log("1. Loading Combined Catalog...");
   
   let catalog: any = null;
   try {
-    catalog = await blobGetCombinedCatalog();
+    const localCatalogPath = path.join(process.cwd(), "db-storage", "combined-catalog-updated.json");
+    if (fs.existsSync(localCatalogPath)) {
+      console.log("   Loading from local cache file db-storage/combined-catalog-updated.json...");
+      catalog = JSON.parse(fs.readFileSync(localCatalogPath, "utf8"));
+    } else {
+      console.log("   Fetching latest live catalog from MongoDB...");
+      catalog = await blobGetCombinedCatalog();
+    }
   } catch (err: any) {
-    console.error("Error fetching Combined Catalog:", err.message || String(err));
+    console.error("Error loading Combined Catalog:", err.message || String(err));
     process.exit(1);
   }
 
@@ -240,7 +247,8 @@ async function runAudit() {
         for (const [storeKey, details] of Object.entries(item.stores || {})) {
           const s = details as any;
           const isVerified = s.is_verified === true || s.is_verified === 1 || String(s.is_verified) === "true";
-          if (isVerified && s.url) {
+          const analyzeOnly = args.includes("--analyze");
+          if (s.url && (isVerified || analyzeOnly)) {
             if (filterStoreKey && storeKey.toLowerCase().trim() !== filterStoreKey) {
               continue;
             }
@@ -657,52 +665,58 @@ Analyze this screenshot for the product "${result.itemName}" at store "${result.
 Extract regular price, sale price, sale status, flyer validity date, unit type, and unit quantity.
 `;
 
-      const response = await ai.models.generateContent({
-        model: "gemini-3.5-flash",
-        contents: [
-          {
-            inlineData: {
-              data: base64Image,
-              mimeType: "image/png"
-            }
-          },
-          userPrompt
-        ],
-        config: {
-          systemInstruction,
-          responseMimeType: "application/json",
-          responseSchema: {
-            type: Type.OBJECT,
-            required: ["regular_price", "sale_price", "is_on_sale", "valid_until", "unit", "unit_quantity"],
-            properties: {
-              regular_price: {
-                type: Type.NUMBER,
-                description: "The standard regular price of the item, or null if not found."
-              },
-              sale_price: {
-                type: Type.NUMBER,
-                description: "The active sale price of the item, or null if not found."
-              },
-              is_on_sale: {
-                type: Type.BOOLEAN,
-                description: "Whether the item is currently discounted."
-              },
-              valid_until: {
-                type: Type.STRING,
-                description: " Flyer end date in format YYYY-MM-DD, or null if not found."
-              },
-              unit: {
-                type: Type.STRING,
-                description: "The measurement or packaging unit type (e.g., 'kg', 'g', 'ml', 'lb', 'unit', 'count', 'pack'), or null if not found."
-              },
-              unit_quantity: {
-                type: Type.NUMBER,
-                description: "The numeric size, weight, or quantity of units (e.g. 30 for 30 count, 3 for 3 units, 1 for per kg/lb, 450 for 450g), or null if not found."
+      // Wrap in a 15-second timeout
+      const response = await Promise.race([
+        ai.models.generateContent({
+          model: "gemini-3.5-flash",
+          contents: [
+            {
+              inlineData: {
+                data: base64Image,
+                mimeType: "image/png"
+              }
+            },
+            userPrompt
+          ],
+          config: {
+            systemInstruction,
+            responseMimeType: "application/json",
+            responseSchema: {
+              type: Type.OBJECT,
+              required: ["regular_price", "sale_price", "is_on_sale", "valid_until", "unit", "unit_quantity"],
+              properties: {
+                regular_price: {
+                  type: Type.NUMBER,
+                  description: "The standard regular price of the item, or null if not found."
+                },
+                sale_price: {
+                  type: Type.NUMBER,
+                  description: "The active sale price of the item, or null if not found."
+                },
+                is_on_sale: {
+                  type: Type.BOOLEAN,
+                  description: "Whether the item is currently discounted."
+                },
+                valid_until: {
+                  type: Type.STRING,
+                  description: " Flyer end date in format YYYY-MM-DD, or null if not found."
+                },
+                unit: {
+                  type: Type.STRING,
+                  description: "The measurement or packaging unit type (e.g., 'kg', 'g', 'ml', 'lb', 'unit', 'count', 'pack'), or null if not found."
+                },
+                unit_quantity: {
+                  type: Type.NUMBER,
+                  description: "The numeric size, weight, or quantity of units (e.g. 30 for 30 count, 3 for 3 units, 1 for per kg/lb, 450 for 450g), or null if not found."
+                }
               }
             }
           }
-        }
-      });
+        }),
+        new Promise<any>((_, reject) => 
+          setTimeout(() => reject(new Error("Gemini request timed out after 15 seconds")), 15000)
+        )
+      ]);
 
       const text = response.text || "{}";
       const parsed = JSON.parse(text);
@@ -884,9 +898,9 @@ Extract regular price, sale price, sale status, flyer validity date, unit type, 
       result.errorMessage = err.message || String(err);
     }
 
-    // Rate limiting delay (15 RPM limits)
+    // Rate limiting delay (1.5s to prevent rate limits)
     if (i < auditResults.length - 1) {
-      await new Promise(resolve => setTimeout(resolve, 4000));
+      await new Promise(resolve => setTimeout(resolve, 1500));
     }
   }
 

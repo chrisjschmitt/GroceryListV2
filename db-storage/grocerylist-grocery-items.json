@@ -1,0 +1,90 @@
+[
+  {
+    "id": "item-1782575156086-orwkhe9",
+    "name": "Ginger ale 12-pack",
+    "category": "Snacks & Beverages",
+    "quantity": 1,
+    "unit": "ml",
+    "checked": false,
+    "units": 4260
+  },
+  {
+    "id": "item-1782575170038-ai8hq3t",
+    "name": "RV Toilet Treatment Drop-Ins",
+    "category": "Health, Personal & Household",
+    "quantity": 1,
+    "unit": "unit",
+    "checked": false,
+    "units": 1
+  },
+  {
+    "id": "item-1782582407051-6n2s6oe",
+    "name": "Garbage bags 34l clear",
+    "category": "Health, Personal & Household",
+    "quantity": 1,
+    "unit": "l",
+    "checked": false,
+    "units": 35
+  },
+  {
+    "id": "item-1782596783019-4vrzi40",
+    "name": "Yellow onions",
+    "category": "Fresh Produce",
+    "quantity": 1,
+    "unit": "lb",
+    "checked": false,
+    "units": 2
+  },
+  {
+    "id": "item-1782831697371-ayd3mar",
+    "name": "Deodorant for men",
+    "category": "Health, Personal & Household",
+    "quantity": 1,
+    "unit": "g",
+    "checked": false,
+    "units": 85
+  },
+  {
+    "id": "item-1782831837281-5irnpm6",
+    "name": "Milk LF 1%",
+    "category": "Dairy & Eggs",
+    "quantity": 2,
+    "unit": "l",
+    "checked": false,
+    "units": 2
+  },
+  {
+    "id": "item-1782831887151-p9xla7i",
+    "name": "Fibreglass Screen",
+    "category": "Health, Personal & Household",
+    "quantity": 1,
+    "unit": "unit",
+    "checked": false,
+    "units": 1
+  },
+  {
+    "id": "item-1782848054941-y6i8jvj",
+    "name": "Water - distilled",
+    "category": "Pantry Staples",
+    "quantity": 2,
+    "unit": "unit",
+    "checked": false
+  },
+  {
+    "id": "item-1782856955078-59blbor",
+    "name": "Apples - honey crisp",
+    "category": "Fresh Produce",
+    "quantity": 1,
+    "unit": "lb",
+    "checked": false
+  },
+  {
+    "id": "item-1782856959480-4mx460i",
+    "name": "Avocados 6-pack",
+    "category": "Fresh Produce",
+    "quantity": 1,
+    "unit": "count",
+    "checked": false,
+    "units": 6
+  }
+]

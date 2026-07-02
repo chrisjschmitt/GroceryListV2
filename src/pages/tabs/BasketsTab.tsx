@@ -25,9 +25,10 @@ function normalizeStoreKey(storeId: string): string {
   if (lower.includes("metro")) return "metro";
   if (lower.includes("loblaws")) return "loblaws";
   if (lower.includes("nofrills")) return "nofrills";
-  if (lower.includes("freshco")) return "freshco";
+  if (lower.includes("freshco") || lower.includes("freschco") || lower.includes("fresco") || lower.includes("fresh co")) return "freshco";
   if (lower.includes("yourindependentgrocer")) return "yourindependentgrocer";
   if (lower === "7923194" || lower.includes("foodbasics") || lower.includes("food basics")) return "foodbasics";
+  if (lower.includes("walmart")) return "walmart";
   return lower;
 }
 
@@ -155,90 +156,132 @@ export default function BasketsTab({ onNavigateToLists }: BasketsTabProps) {
 
   // Baskets optimization totals calculation
   const optimization = useMemo(() => {
-    let foodbasicsTotal = 0;
-    let metroTotal = 0;
-    let splitTotal = 0;
+    // 1. Define all stores metadata
+    const STORE_METADATA: Record<string, { name: string; short: string; color: string; bgColor: string }> = {
+      foodbasics: { name: "Food Basics", short: "FB", color: "#1B5E20", bgColor: "#FFD54F" },
+      metro: { name: "Metro", short: "M", color: "#FFFFFF", bgColor: "#E53935" },
+      freshco: { name: "FreshCo", short: "FC", color: "#FFFFFF", bgColor: "#4CAF50" },
+      loblaws: { name: "Loblaws", short: "LB", color: "#FFFFFF", bgColor: "#FF6F00" },
+      nofrills: { name: "No Frills", short: "NF", color: "#000000", bgColor: "#FFFF00" },
+      yourindependentgrocer: { name: "Your Independent Grocer", short: "YIG", color: "#FFFFFF", bgColor: "#00acc1" },
+      walmart: { name: "Walmart", short: "WM", color: "#FFFFFF", bgColor: "#0071CE" }
+    };
 
-    const foodbasicsItems: { item: GroceryItem; price: number; savings: number; priceInfo?: PriceEntry }[] = [];
-    const metroItems: { item: GroceryItem; price: number; savings: number; priceInfo?: PriceEntry }[] = [];
+    // 2. We will compute totals for each store. To handle missing store prices fairly, we use a fallback price
+    // (the cheapest available price at any store for that item) when a specific store doesn't carry it.
+    const storeTotals: Record<string, number> = {};
+    const storeItemsLists: Record<string, { item: GroceryItem; price: number; savings: number; priceInfo?: PriceEntry }[]> = {};
     const untrackedItems: GroceryItem[] = [];
 
-    for (const item of store.groceryItems) {
+    // Initialize maps for all supported stores
+    for (const storeId of Object.keys(STORE_METADATA)) {
+      storeTotals[storeId] = 0;
+      storeItemsLists[storeId] = [];
+    }
+
+    // Identify which stores are active in the user's prices database
+    const activeStoreIds = new Set<string>();
+
+    // Pass 1: Parse item prices and assign to groups
+    const processedItems = store.groceryItems.map(item => {
       const priceInfo = priceLookup.get(item.name.toLowerCase());
-      
-      let basicsPrice: number | null = null;
-      let metroPrice: number | null = null;
+      const itemPrices: Record<string, number> = {};
 
       if (priceInfo) {
         if (priceInfo.stores && typeof priceInfo.stores === "object") {
-          const basicsInfo = priceInfo.stores["foodbasics"];
-          const metroInfo = priceInfo.stores["metro"];
-          basicsPrice = getStoreActivePrice(basicsInfo);
-          metroPrice = getStoreActivePrice(metroInfo);
+          for (const [sId, sInfo] of Object.entries(priceInfo.stores)) {
+            const normId = normalizeStoreKey(sId);
+            const p = getStoreActivePrice(sInfo);
+            if (p !== null && p > 0) {
+              itemPrices[normId] = p;
+              activeStoreIds.add(normId);
+            }
+          }
         } else {
           const p = getStoreActivePrice(priceInfo);
           const sId = normalizeStoreKey(priceInfo.store_id || "");
-          if (sId === "foodbasics") basicsPrice = p;
-          else if (sId === "metro") metroPrice = p;
+          if (p !== null && p > 0) {
+            itemPrices[sId] = p;
+            activeStoreIds.add(sId);
+          }
         }
       }
 
-      if (basicsPrice === null && metroPrice === null) {
+      return { item, priceInfo, itemPrices };
+    });
+
+    let splitTotal = 0;
+
+    for (const { item, priceInfo, itemPrices } of processedItems) {
+      const availableStoreIds = Object.keys(itemPrices);
+      
+      if (availableStoreIds.length === 0) {
         untrackedItems.push(item);
-      } else {
-        const basicsCost = (basicsPrice ?? metroPrice ?? 0) * item.quantity;
-        const metroCost = (metroPrice ?? basicsPrice ?? 0) * item.quantity;
+        continue;
+      }
 
-        foodbasicsTotal += basicsCost;
-        metroTotal += metroCost;
+      // Cheapest price for this item across all stores
+      const cheapestPrice = Math.min(...Object.values(itemPrices));
+      
+      // Determine which store offers the cheapest price
+      const bestStoreId = availableStoreIds.find(storeId => itemPrices[storeId] === cheapestPrice)!;
 
-        // Split optimization
-        if (basicsPrice !== null && metroPrice !== null) {
-          if (basicsPrice < metroPrice) {
-            splitTotal += basicsPrice * item.quantity;
-            foodbasicsItems.push({
-              item,
-              price: basicsPrice,
-              savings: (metroPrice - basicsPrice) * item.quantity,
-              priceInfo
-            });
-          } else if (metroPrice < basicsPrice) {
-            splitTotal += metroPrice * item.quantity;
-            metroItems.push({
-              item,
-              price: metroPrice,
-              savings: (basicsPrice - metroPrice) * item.quantity,
-              priceInfo
-            });
-          } else {
-            // Equal - assign to Food Basics by default
-            splitTotal += basicsPrice * item.quantity;
-            foodbasicsItems.push({ item, price: basicsPrice, savings: 0, priceInfo });
-          }
-        } else if (basicsPrice !== null) {
-          splitTotal += basicsPrice * item.quantity;
-          foodbasicsItems.push({ item, price: basicsPrice, savings: 0, priceInfo });
-        } else if (metroPrice !== null) {
-          splitTotal += metroPrice * item.quantity;
-          metroItems.push({ item, price: metroPrice, savings: 0, priceInfo });
+      // Add to split total
+      splitTotal += cheapestPrice * item.quantity;
+
+      // Update store totals
+      for (const storeId of Object.keys(STORE_METADATA)) {
+        // If the store carries the item, use its price. Otherwise, fall back to cheapestPrice (comparable benchmark)
+        const price = itemStorePrice(storeId, itemPrices, cheapestPrice);
+        storeTotals[storeId] += price * item.quantity;
+      }
+
+      // Calculate savings for splitting vs buying at the second cheapest store or average
+      const maxPrice = Math.max(...Object.values(itemPrices));
+      const savings = (maxPrice - cheapestPrice) * item.quantity;
+
+      storeItemsLists[bestStoreId].push({
+        item,
+        price: cheapestPrice,
+        savings,
+        priceInfo
+      });
+    }
+
+    // Helper to get item price or fallback
+    function itemStorePrice(storeKey: string, pricesMap: Record<string, number>, fallback: number): number {
+      return pricesMap[storeKey] !== undefined ? pricesMap[storeKey] : fallback;
+    }
+
+    // Find the cheapest single store among those that have at least one native price in the list
+    let singleStoreCheapest = "Food Basics";
+    let singleStoreCheapestTotal = Infinity;
+
+    for (const storeId of Object.keys(STORE_METADATA)) {
+      if (activeStoreIds.has(storeId)) {
+        const total = storeTotals[storeId];
+        if (total < singleStoreCheapestTotal) {
+          singleStoreCheapestTotal = total;
+          singleStoreCheapest = STORE_METADATA[storeId].name;
         }
       }
     }
 
-    const singleStoreCheapest = foodbasicsTotal <= metroTotal ? "Food Basics" : "Metro";
-    const singleStoreCheapestTotal = Math.min(foodbasicsTotal, metroTotal);
+    if (singleStoreCheapestTotal === Infinity) {
+      singleStoreCheapestTotal = 0;
+    }
+
     const splitSavings = Math.max(0, singleStoreCheapestTotal - splitTotal);
 
     return {
-      foodbasicsTotal,
-      metroTotal,
+      storeTotals,
       splitTotal,
       singleStoreCheapest,
       singleStoreCheapestTotal,
       splitSavings,
-      foodbasicsItems,
-      metroItems,
+      storeItemsLists,
       untrackedItems,
+      STORE_METADATA
     };
   }, [store.groceryItems, priceLookup]);
 
@@ -317,8 +360,7 @@ export default function BasketsTab({ onNavigateToLists }: BasketsTabProps) {
 
   return (
     <div className="space-y-4 pb-8 animate-fade-in">
-      
-      {/* Cheapest Single Store Card */}
+           {/* Cheapest Single Store Card */}
       <section className="bg-surface border border-outline-variant rounded-xl p-4 flex items-center justify-between gap-4 hover:shadow-xs transition-shadow">
         <div className="flex flex-col gap-1.5 flex-1 min-w-0">
           <div className="flex items-center gap-2 flex-wrap">
@@ -328,15 +370,20 @@ export default function BasketsTab({ onNavigateToLists }: BasketsTabProps) {
             <span className="text-[10px] text-on-surface-variant font-bold">Lowest Baseline</span>
           </div>
           <div className="flex items-center gap-3">
-            {optimization.singleStoreCheapest === "Food Basics" ? (
-              <div className="w-9 h-9 rounded-full bg-[#FFD54F] text-[#1B5E20] flex items-center justify-center font-black text-xs shrink-0 select-none border border-black/5">
-                FB
-              </div>
-            ) : (
-              <div className="w-9 h-9 rounded-full bg-[#E53935] text-white flex items-center justify-center font-black text-xs shrink-0 select-none border border-black/5">
-                M
-              </div>
-            )}
+            {(() => {
+              const matchedStoreKey = Object.keys(optimization.STORE_METADATA).find(
+                key => optimization.STORE_METADATA[key].name === optimization.singleStoreCheapest
+              ) || "foodbasics";
+              const meta = optimization.STORE_METADATA[matchedStoreKey];
+              return (
+                <div 
+                  className="w-9 h-9 rounded-full flex items-center justify-center font-black text-xs shrink-0 select-none border border-black/5"
+                  style={{ backgroundColor: meta.bgColor, color: meta.color }}
+                >
+                  {meta.short}
+                </div>
+              );
+            })()}
             <div>
               <h2 className="text-base font-extrabold text-on-surface leading-snug">
                 {optimization.singleStoreCheapest}
@@ -375,16 +422,25 @@ export default function BasketsTab({ onNavigateToLists }: BasketsTabProps) {
                 Save ${optimization.splitSavings.toFixed(2)} more
               </h3>
               <p className="text-xs font-semibold leading-relaxed text-on-primary-container/85">
-                By splitting your shopping between <span className="underline font-extrabold">Food Basics</span> and <span className="underline font-extrabold">Metro</span>.
+                By splitting your shopping between the cheapest local stores.
               </p>
               <div className="mt-3 pt-3 border-t border-on-primary-container/10 flex justify-between items-center">
                 <div className="flex -space-x-1.5">
-                  <div className="w-6 h-6 rounded-full bg-[#FFD54F] text-[#1B5E20] border-2 border-primary-container flex items-center justify-center font-black text-[9px] select-none shadow-xs">
-                    FB
-                  </div>
-                  <div className="w-6 h-6 rounded-full bg-[#E53935] text-white border-2 border-primary-container flex items-center justify-center font-black text-[9px] select-none shadow-xs">
-                    M
-                  </div>
+                  {(Object.entries(optimization.storeItemsLists) as [string, any][])
+                    .filter(([_, list]) => list.length > 0)
+                    .map(([storeId]) => {
+                      const meta = optimization.STORE_METADATA[storeId];
+                      return (
+                        <div 
+                          key={storeId}
+                          className="w-6 h-6 rounded-full border-2 border-primary-container flex items-center justify-center font-black text-[9px] select-none shadow-xs"
+                          style={{ backgroundColor: meta.bgColor, color: meta.color }}
+                          title={meta.name}
+                        >
+                          {meta.short}
+                        </div>
+                      );
+                    })}
                 </div>
                 <span className="text-xs font-bold font-tnum">${optimization.splitTotal.toFixed(2)} Total</span>
               </div>
@@ -408,247 +464,138 @@ export default function BasketsTab({ onNavigateToLists }: BasketsTabProps) {
           SPLIT BREAKDOWN
         </h3>
 
-        {/* Food Basics Split Items */}
-        {optimization.foodbasicsItems.length > 0 && (
-          <div className="bg-surface-container-lowest border border-outline-variant rounded-xl overflow-hidden shadow-2xs">
-            <div className="bg-surface-container-low px-4 py-2.5 flex justify-between items-center border-b border-outline-variant">
-              <div className="flex items-center gap-2">
-                <div className="w-5 h-5 rounded-full bg-[#FFD54F] text-[#1B5E20] flex items-center justify-center font-black text-[9px] select-none">FB</div>
-                <span className="text-xs font-extrabold text-on-surface">Food Basics Split</span>
-              </div>
-              <span className="text-xs font-extrabold font-tnum text-primary">
-                ${optimization.foodbasicsItems.reduce((acc, i) => acc + i.price * i.item.quantity, 0).toFixed(2)}
-              </span>
-            </div>
-            
-            <div className="divide-y divide-outline-variant">
-              {optimization.foodbasicsItems.map(({ item, price, savings, priceInfo }) => {
-                const isExpanded = expandedItems.has(item.id);
-                return (
-                  <div key={item.id} className="transition-colors">
-                    {/* Item header row */}
+        {(Object.entries(optimization.storeItemsLists) as [string, any][])
+          .filter(([_, list]) => list.length > 0)
+          .map(([storeId, itemsList]) => {
+            const meta = optimization.STORE_METADATA[storeId];
+            const storeCost = itemsList.reduce((acc, i) => acc + i.price * i.item.quantity, 0);
+            return (
+              <div key={storeId} className="bg-surface-container-lowest border border-outline-variant rounded-xl overflow-hidden shadow-2xs">
+                <div className="bg-surface-container-low px-4 py-2.5 flex justify-between items-center border-b border-outline-variant">
+                  <div className="flex items-center gap-2">
                     <div 
-                      onClick={() => toggleExpand(item.id)}
-                      className="p-3.5 flex justify-between items-center gap-3 cursor-pointer hover:bg-surface-container-low select-none"
+                      className="w-5 h-5 rounded-full flex items-center justify-center font-black text-[9px] select-none"
+                      style={{ backgroundColor: meta.bgColor, color: meta.color }}
                     >
-                      <div className="min-w-0 flex-1">
-                        <div className="flex items-center gap-2 min-w-0">
-                          <p className="text-xs font-bold text-on-surface truncate">{item.name}</p>
-                          <span className="text-[9px] bg-surface-container-low text-on-surface-variant font-bold px-1.5 py-0.5 rounded-sm shrink-0">
-                            {item.quantity}x
-                          </span>
+                      {meta.short}
+                    </div>
+                    <span className="text-xs font-extrabold text-on-surface">{meta.name} Split</span>
+                  </div>
+                  <span className="text-xs font-extrabold font-tnum text-primary">
+                    ${storeCost.toFixed(2)}
+                  </span>
+                </div>
+                
+                <div className="divide-y divide-outline-variant">
+                  {itemsList.map(({ item, price, savings, priceInfo }) => {
+                    const isExpanded = expandedItems.has(item.id);
+                    return (
+                      <div key={item.id} className="transition-colors">
+                        {/* Item header row */}
+                        <div 
+                          onClick={() => toggleExpand(item.id)}
+                          className="p-3.5 flex justify-between items-center gap-3 cursor-pointer hover:bg-surface-container-low select-none"
+                        >
+                          <div className="min-w-0 flex-1">
+                            <div className="flex items-center gap-2 min-w-0">
+                              <p className="text-xs font-bold text-on-surface truncate">{item.name}</p>
+                              <span className="text-[9px] bg-surface-container-low text-on-surface-variant font-bold px-1.5 py-0.5 rounded-sm shrink-0">
+                                {item.quantity}x
+                              </span>
+                            </div>
+                            {savings > 0 && (
+                              <span className="text-[9px] text-primary font-bold block mt-0.5">
+                                Save ${savings.toFixed(2)} here
+                              </span>
+                            )}
+                          </div>
+                          <div className="flex items-center gap-2 shrink-0 font-tnum">
+                            <span className="text-xs font-extrabold text-on-surface">
+                              ${(price * item.quantity).toFixed(2)}
+                            </span>
+                            {isExpanded ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
+                          </div>
                         </div>
-                        {savings > 0 && (
-                          <span className="text-[9px] text-primary font-bold block mt-0.5">
-                            Save ${savings.toFixed(2)} here
-                          </span>
+
+                        {/* Accordion panel */}
+                        {isExpanded && (
+                          <div className="px-4 pb-3.5 pt-0.5 bg-surface-container-lowest border-t border-outline/5 space-y-3">
+                            <div className="bg-surface-container-low p-3 rounded-lg border border-primary/10 mt-2 space-y-2">
+                              <div className="flex justify-between items-center text-[10px] font-black uppercase text-on-surface-variant border-b border-outline/5 pb-1">
+                                <span>Store Verification Link</span>
+                                <span>Price details</span>
+                              </div>
+                              
+                              {/* Retailer links */}
+                              {priceInfo?.stores && (
+                                <div className="space-y-1.5">
+                                  {Object.entries(priceInfo.stores).map(([sId, sInfo]: [string, any]) => {
+                                    const storePrice = getStoreActivePrice(sInfo);
+                                    const isBest = storePrice === price;
+                                    const sMeta = optimization.STORE_METADATA[normalizeStoreKey(sId)] || { name: sId };
+                                    return (
+                                      <div key={sId} className="flex justify-between items-center text-xs py-1">
+                                        {sInfo.lookup_url ? (
+                                          <a 
+                                            href={sInfo.lookup_url} 
+                                            target="_blank" 
+                                            rel="noreferrer" 
+                                            className="text-secondary hover:underline font-bold inline-flex items-center gap-1"
+                                            onClick={(e) => e.stopPropagation()}
+                                          >
+                                            <span>{sMeta.name}</span>
+                                            <ExternalLink size={10} />
+                                          </a>
+                                        ) : (
+                                          <span className="text-on-surface-variant font-semibold">
+                                            {sMeta.name}
+                                          </span>
+                                        )}
+                                        <div className="flex items-center gap-2">
+                                          <span className={`font-bold ${isBest ? "text-primary font-black" : "text-on-surface"}`}>
+                                            {storePrice !== null ? `$${storePrice.toFixed(2)}` : "—"}
+                                          </span>
+                                          {storePrice !== null && (
+                                            <button
+                                              type="button"
+                                              onClick={(e) => {
+                                                e.stopPropagation();
+                                                handleReportIncorrectPrice(item, sId, storePrice, sInfo.lookup_url || "");
+                                              }}
+                                              disabled={reportingIds.has(`${item.id}-${sId}`) || reportedIds.has(`${item.id}-${sId}`)}
+                                              className={`p-1 rounded transition-all select-none ${
+                                                reportedIds.has(`${item.id}-${sId}`)
+                                                  ? "text-emerald-600 bg-emerald-50 border border-emerald-200"
+                                                  : "text-on-surface-variant hover:text-red-600 hover:bg-red-50 border border-transparent hover:border-red-200"
+                                              }`}
+                                              title="Report incorrect price for this store"
+                                            >
+                                              {reportingIds.has(`${item.id}-${sId}`) ? (
+                                                <span className="animate-spin border border-current border-t-transparent rounded-full w-3.5 h-3.5 block"></span>
+                                              ) : reportedIds.has(`${item.id}-${sId}`) ? (
+                                                <Check size={12} className="stroke-[3.5px]" />
+                                              ) : (
+                                                <AlertTriangle size={12} />
+                                              )}
+                                            </button>
+                                          )}
+                                        </div>
+                                      </div>
+                                    );
+                                  })}
+                                </div>
+                              )}
+                            </div>
+                          </div>
                         )}
                       </div>
-                      <div className="flex items-center gap-2 shrink-0 font-tnum">
-                        <span className="text-xs font-extrabold text-on-surface">
-                          ${(price * item.quantity).toFixed(2)}
-                        </span>
-                        {isExpanded ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
-                      </div>
-                    </div>
-
-                    {/* Accordion panel */}
-                    {isExpanded && (
-                      <div className="px-4 pb-3.5 pt-0.5 bg-surface-container-lowest border-t border-outline/5 space-y-3">
-                        <div className="bg-surface-container-low p-3 rounded-lg border border-primary/10 mt-2 space-y-2">
-                          <div className="flex justify-between items-center text-[10px] font-black uppercase text-on-surface-variant border-b border-outline/5 pb-1">
-                            <span>Store Verification Link</span>
-                            <span>Price details</span>
-                          </div>
-                          
-                          {/* Retailer links */}
-                          {priceInfo?.stores && (
-                            <div className="space-y-1.5">
-                              {Object.entries(priceInfo.stores).map(([storeKey, sInfo]: [string, any]) => {
-                                const storePrice = getStoreActivePrice(sInfo);
-                                const isBest = storePrice === price;
-                                return (
-                                  <div key={storeKey} className="flex justify-between items-center text-xs py-1">
-                                    {sInfo.lookup_url ? (
-                                      <a 
-                                        href={sInfo.lookup_url} 
-                                        target="_blank" 
-                                        rel="noreferrer" 
-                                        className="text-secondary hover:underline font-bold inline-flex items-center gap-1"
-                                        onClick={(e) => e.stopPropagation()}
-                                      >
-                                        <span>{sInfo.store_name || storeKey}</span>
-                                        <ExternalLink size={10} />
-                                      </a>
-                                    ) : (
-                                      <span className="text-on-surface-variant font-semibold">
-                                        {sInfo.store_name || storeKey}
-                                      </span>
-                                    )}
-                                    <div className="flex items-center gap-2">
-                                      <span className={`font-bold ${isBest ? "text-primary font-black" : "text-on-surface"}`}>
-                                        {storePrice !== null ? `$${storePrice.toFixed(2)}` : "—"}
-                                      </span>
-                                      {storePrice !== null && (
-                                        <button
-                                          type="button"
-                                          onClick={(e) => {
-                                            e.stopPropagation();
-                                            handleReportIncorrectPrice(item, storeKey, storePrice, sInfo.lookup_url || "");
-                                          }}
-                                          disabled={reportingIds.has(`${item.id}-${storeKey}`) || reportedIds.has(`${item.id}-${storeKey}`)}
-                                          className={`p-1 rounded transition-all select-none ${
-                                            reportedIds.has(`${item.id}-${storeKey}`)
-                                              ? "text-emerald-600 bg-emerald-50 border border-emerald-200"
-                                              : "text-on-surface-variant hover:text-red-600 hover:bg-red-50 border border-transparent hover:border-red-200"
-                                          }`}
-                                          title="Report incorrect price for this store"
-                                        >
-                                          {reportingIds.has(`${item.id}-${storeKey}`) ? (
-                                            <span className="animate-spin border border-current border-t-transparent rounded-full w-3.5 h-3.5 block"></span>
-                                          ) : reportedIds.has(`${item.id}-${storeKey}`) ? (
-                                            <Check size={12} className="stroke-[3.5px]" />
-                                          ) : (
-                                            <AlertTriangle size={12} />
-                                          )}
-                                        </button>
-                                      )}
-                                    </div>
-                                  </div>
-                                );
-                              })}
-                            </div>
-                          )}
-                        </div>
-                      </div>
-                    )}
-                  </div>
-                );
-              })}
-            </div>
-          </div>
-        )}
-
-        {/* Metro Split Items */}
-        {optimization.metroItems.length > 0 && (
-          <div className="bg-surface-container-lowest border border-outline-variant rounded-xl overflow-hidden shadow-2xs">
-            <div className="bg-surface-container-low px-4 py-2.5 flex justify-between items-center border-b border-outline-variant">
-              <div className="flex items-center gap-2">
-                <div className="w-5 h-5 rounded-full bg-[#E53935] text-white flex items-center justify-center font-black text-[9px] select-none">M</div>
-                <span className="text-xs font-extrabold text-on-surface">Metro Split</span>
+                    );
+                  })}
+                </div>
               </div>
-              <span className="text-xs font-extrabold font-tnum text-primary">
-                ${optimization.metroItems.reduce((acc, i) => acc + i.price * i.item.quantity, 0).toFixed(2)}
-              </span>
-            </div>
-            
-            <div className="divide-y divide-outline-variant">
-              {optimization.metroItems.map(({ item, price, savings, priceInfo }) => {
-                const isExpanded = expandedItems.has(item.id);
-                return (
-                  <div key={item.id} className="transition-colors">
-                    {/* Item header row */}
-                    <div 
-                      onClick={() => toggleExpand(item.id)}
-                      className="p-3.5 flex justify-between items-center gap-3 cursor-pointer hover:bg-surface-container-low select-none"
-                    >
-                      <div className="min-w-0 flex-1">
-                        <div className="flex items-center gap-2 min-w-0">
-                          <p className="text-xs font-bold text-on-surface truncate">{item.name}</p>
-                          <span className="text-[9px] bg-surface-container-low text-on-surface-variant font-bold px-1.5 py-0.5 rounded-sm shrink-0">
-                            {item.quantity}x
-                          </span>
-                        </div>
-                        {savings > 0 && (
-                          <span className="text-[9px] text-primary font-bold block mt-0.5">
-                            Save ${savings.toFixed(2)} here
-                          </span>
-                        )}
-                      </div>
-                      <div className="flex items-center gap-2 shrink-0 font-tnum">
-                        <span className="text-xs font-extrabold text-on-surface">
-                          ${(price * item.quantity).toFixed(2)}
-                        </span>
-                        {isExpanded ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
-                      </div>
-                    </div>
-
-                    {/* Accordion panel */}
-                    {isExpanded && (
-                      <div className="px-4 pb-3.5 pt-0.5 bg-surface-container-lowest border-t border-outline/5 space-y-3">
-                        <div className="bg-surface-container-low p-3 rounded-lg border border-primary/10 mt-2 space-y-2">
-                          <div className="flex justify-between items-center text-[10px] font-black uppercase text-on-surface-variant border-b border-outline/5 pb-1">
-                            <span>Store Verification Link</span>
-                            <span>Price details</span>
-                          </div>
-                          
-                          {/* Retailer links */}
-                          {priceInfo?.stores && (
-                            <div className="space-y-1.5">
-                              {Object.entries(priceInfo.stores).map(([storeKey, sInfo]: [string, any]) => {
-                                const storePrice = getStoreActivePrice(sInfo);
-                                const isBest = storePrice === price;
-                                return (
-                                  <div key={storeKey} className="flex justify-between items-center text-xs py-1">
-                                    {sInfo.lookup_url ? (
-                                      <a 
-                                        href={sInfo.lookup_url} 
-                                        target="_blank" 
-                                        rel="noreferrer" 
-                                        className="text-secondary hover:underline font-bold inline-flex items-center gap-1"
-                                        onClick={(e) => e.stopPropagation()}
-                                      >
-                                        <span>{sInfo.store_name || storeKey}</span>
-                                        <ExternalLink size={10} />
-                                      </a>
-                                    ) : (
-                                      <span className="text-on-surface-variant font-semibold">
-                                        {sInfo.store_name || storeKey}
-                                      </span>
-                                    )}
-                                    <div className="flex items-center gap-2">
-                                      <span className={`font-bold ${isBest ? "text-primary font-black" : "text-on-surface"}`}>
-                                        {storePrice !== null ? `$${storePrice.toFixed(2)}` : "—"}
-                                      </span>
-                                      {storePrice !== null && (
-                                        <button
-                                          type="button"
-                                          onClick={(e) => {
-                                            e.stopPropagation();
-                                            handleReportIncorrectPrice(item, storeKey, storePrice, sInfo.lookup_url || "");
-                                          }}
-                                          disabled={reportingIds.has(`${item.id}-${storeKey}`) || reportedIds.has(`${item.id}-${storeKey}`)}
-                                          className={`p-1 rounded transition-all select-none ${
-                                            reportedIds.has(`${item.id}-${storeKey}`)
-                                              ? "text-emerald-600 bg-emerald-50 border border-emerald-200"
-                                              : "text-on-surface-variant hover:text-red-600 hover:bg-red-50 border border-transparent hover:border-red-200"
-                                          }`}
-                                          title="Report incorrect price for this store"
-                                        >
-                                          {reportingIds.has(`${item.id}-${storeKey}`) ? (
-                                            <span className="animate-spin border border-current border-t-transparent rounded-full w-3.5 h-3.5 block"></span>
-                                          ) : reportedIds.has(`${item.id}-${storeKey}`) ? (
-                                            <Check size={12} className="stroke-[3.5px]" />
-                                          ) : (
-                                            <AlertTriangle size={12} />
-                                          )}
-                                        </button>
-                                      )}
-                                    </div>
-                                  </div>
-                                );
-                              })}
-                            </div>
-                          )}
-                        </div>
-                      </div>
-                    )}
-                  </div>
-                );
-              })}
-            </div>
-          </div>
-        )}
+            );
+          })}
+      </div>
 
         {/* No Price Checking Configured Group */}
         {optimization.untrackedItems.length > 0 && (
@@ -680,7 +627,6 @@ export default function BasketsTab({ onNavigateToLists }: BasketsTabProps) {
             </div>
           </div>
         )}
-      </div>
 
       {/* Start Shopping Optimized Checkout Button */}
       <div className="pt-4">

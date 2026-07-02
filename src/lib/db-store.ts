@@ -12,6 +12,7 @@ import {
   StoreInfo,
   ScrapeItemConfig,
   ScrapeStoreItemLink,
+  ScrapeStoreConfig,
   PurchaseLogEntry
 } from "./types.js";
 import { standardizeCategory } from "./categories.js";
@@ -339,7 +340,7 @@ export async function blobGetCombinedCatalog(): Promise<CombinedCatalog> {
         db.collection("catalog_stores").find().toArray()
       ]);
       
-      const stores: Record<string, StoreInfo> = {};
+      const stores: Record<string, ScrapeStoreConfig> = {};
       for (const s of storesList) {
         stores[s._id] = {
           enabled: s.enabled,

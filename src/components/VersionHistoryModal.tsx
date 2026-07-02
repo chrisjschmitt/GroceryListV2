@@ -21,6 +21,29 @@ interface VersionEntry {
 
 const VERSIONS: VersionEntry[] = [
   {
+    version: "1.9.54",
+    date: "July 2026",
+    type: "patch",
+    title: "Generalised Store Optimization & Completed Price Audits",
+    changes: [
+      {
+        icon: <Layout className="w-4 h-4 text-emerald-500" />,
+        category: "Baskets Tab",
+        description: "Generalised the split shopping calculation and basket group lists to dynamically support all active database stores (FreshCo, Loblaws, No Frills, Walmart, etc.) rather than hardcoding only Food Basics and Metro."
+      },
+      {
+        icon: <Zap className="w-4 h-4 text-emerald-500" />,
+        category: "Home Tab",
+        description: "Updated the Home tab's Smart Tip Card and optimization logic to perform store comparison and savings estimates dynamically across all configured retailers."
+      },
+      {
+        icon: <Database className="w-4 h-4 text-emerald-500" />,
+        category: "Price Scraper",
+        description: "Completed the remaining Google Gemini image audits for all 213 store links and pushed the verified prices to the live production MongoDB."
+      }
+    ]
+  },
+  {
     version: "1.9.53",
     date: "July 2026",
     type: "patch",

@@ -26,9 +26,10 @@ function normalizeStoreKey(storeId: string): string {
   if (lower.includes("metro")) return "metro";
   if (lower.includes("loblaws")) return "loblaws";
   if (lower.includes("nofrills")) return "nofrills";
-  if (lower.includes("freshco")) return "freshco";
+  if (lower.includes("freshco") || lower.includes("freschco") || lower.includes("fresco") || lower.includes("fresh co")) return "freshco";
   if (lower.includes("yourindependentgrocer")) return "yourindependentgrocer";
   if (lower === "7923194" || lower.includes("foodbasics") || lower.includes("food basics")) return "foodbasics";
+  if (lower.includes("walmart")) return "walmart";
   return lower;
 }
 
@@ -419,59 +420,102 @@ export default function HomeTab() {
 
   // Active Grocery Basket cost optimizations
   const optimization = useMemo(() => {
-    let foodbasicsTotal = 0;
-    let metroTotal = 0;
+    const STORE_METADATA: Record<string, { name: string }> = {
+      foodbasics: { name: "Food Basics" },
+      metro: { name: "Metro" },
+      freshco: { name: "FreshCo" },
+      loblaws: { name: "Loblaws" },
+      nofrills: { name: "No Frills" },
+      yourindependentgrocer: { name: "Your Independent Grocer" },
+      walmart: { name: "Walmart" }
+    };
+
+    const storeTotals: Record<string, number> = {};
     let splitTotal = 0;
     let pricedCount = 0;
 
-    for (const item of store.groceryItems) {
+    for (const storeId of Object.keys(STORE_METADATA)) {
+      storeTotals[storeId] = 0;
+    }
+
+    const activeStoreIds = new Set<string>();
+
+    // Pass 1: Parse item prices
+    const processedItems = store.groceryItems.map(item => {
       const priceInfo = priceLookup.get(item.name.toLowerCase());
-      
-      let basicsPrice: number | null = null;
-      let metroPrice: number | null = null;
+      const itemPrices: Record<string, number> = {};
 
       if (priceInfo) {
         if (priceInfo.stores && typeof priceInfo.stores === "object") {
-          basicsPrice = getStoreActivePrice(priceInfo.stores["foodbasics"]);
-          metroPrice = getStoreActivePrice(priceInfo.stores["metro"]);
+          for (const [sId, sInfo] of Object.entries(priceInfo.stores)) {
+            const normId = normalizeStoreKey(sId);
+            const p = getStoreActivePrice(sInfo);
+            if (p !== null && p > 0) {
+              itemPrices[normId] = p;
+              activeStoreIds.add(normId);
+            }
+          }
         } else {
           const p = getStoreActivePrice(priceInfo);
           const sId = normalizeStoreKey(priceInfo.store_id || "");
-          if (sId === "foodbasics") basicsPrice = p;
-          else if (sId === "metro") metroPrice = p;
+          if (p !== null && p > 0) {
+            itemPrices[sId] = p;
+            activeStoreIds.add(sId);
+          }
         }
       }
 
-      if (basicsPrice !== null || metroPrice !== null) {
-        pricedCount++;
-        const basicsCost = (basicsPrice ?? metroPrice ?? 0) * item.quantity;
-        const metroCost = (metroPrice ?? basicsPrice ?? 0) * item.quantity;
+      return { item, itemPrices };
+    });
 
-        foodbasicsTotal += basicsCost;
-        metroTotal += metroCost;
+    for (const { item, itemPrices } of processedItems) {
+      const availableStoreIds = Object.keys(itemPrices);
+      
+      if (availableStoreIds.length === 0) {
+        continue;
+      }
 
-        if (basicsPrice !== null && metroPrice !== null) {
-          splitTotal += Math.min(basicsPrice, metroPrice) * item.quantity;
-        } else if (basicsPrice !== null) {
-          splitTotal += basicsPrice * item.quantity;
-        } else if (metroPrice !== null) {
-          splitTotal += metroPrice * item.quantity;
-        }
+      pricedCount++;
+
+      // Cheapest price for this item across all stores
+      const cheapestPrice = Math.min(...Object.values(itemPrices));
+      splitTotal += cheapestPrice * item.quantity;
+
+      // Update store totals
+      for (const storeId of Object.keys(STORE_METADATA)) {
+        const price = itemPrices[storeId] !== undefined ? itemPrices[storeId] : cheapestPrice;
+        storeTotals[storeId] += price * item.quantity;
       }
     }
 
-    const singleStoreCheapestTotal = Math.min(foodbasicsTotal, metroTotal);
+    // Find the cheapest and second cheapest single stores
+    const activeTotals = Object.entries(storeTotals)
+      .filter(([storeId]) => activeStoreIds.has(storeId))
+      .map(([storeId, total]) => ({ storeId, total }))
+      .sort((a, b) => a.total - b.total);
+
+    let cheapestStoreName = "Food Basics";
+    let singleStoreCheapestTotal = 0;
+    let alternativeTotal = 0;
+
+    if (activeTotals.length > 0) {
+      cheapestStoreName = STORE_METADATA[activeTotals[0].storeId].name;
+      singleStoreCheapestTotal = activeTotals[0].total;
+      alternativeTotal = activeTotals[1] ? activeTotals[1].total : activeTotals[0].total;
+    }
+
     const splitSavings = Math.max(0, singleStoreCheapestTotal - splitTotal);
-    const cheapestStoreName = foodbasicsTotal <= metroTotal ? "Food Basics" : "Metro";
-    
+    const storeSavings = Math.max(0, alternativeTotal - singleStoreCheapestTotal);
+
     return {
-      foodbasicsTotal,
-      metroTotal,
       splitTotal,
       splitSavings,
       pricedCount,
       totalCount: store.groceryItems.length,
       cheapestStore: cheapestStoreName,
+      singleStoreCheapestTotal,
+      storeSavings,
+      hasMultipleStores: activeTotals.length > 1
     };
   }, [store.groceryItems, priceLookup]);
 
@@ -640,11 +684,15 @@ export default function HomeTab() {
               "Add price-tracked items to compare store prices and see which store is cheaper."
             ) : optimization.splitSavings > 0 ? (
               <span>
-                Splitting your shopping list between <strong className="text-[#0d631b]">Food Basics</strong> and <strong className="text-[#4c56af]">Metro</strong> can save you <strong className="text-[#0d631b]">${optimization.splitSavings.toFixed(2)}</strong> today!
+                Splitting your shopping list between the cheapest stores can save you <strong className="text-[#0d631b]">${optimization.splitSavings.toFixed(2)}</strong> today!
               </span>
             ) : (
               <span>
-                Shopping entirely at <strong className="text-[#0d631b]">{optimization.cheapestStore}</strong> is currently your best option, saving you <strong className="text-[#0d631b]">${Math.abs(optimization.foodbasicsTotal - optimization.metroTotal).toFixed(2)}</strong> over the alternative.
+                Shopping entirely at <strong className="text-[#0d631b]">{optimization.cheapestStore}</strong> is currently your best option{optimization.hasMultipleStores && (
+                  <>
+                    , saving you <strong className="text-[#0d631b]">${optimization.storeSavings.toFixed(2)}</strong> over the alternative
+                  </>
+                )}.
               </span>
             )}
           </p>
