@@ -768,7 +768,10 @@ Extract regular price, sale price, sale status, flyer validity date, unit type, 
             .trim();
           
           const searchTerms = `${cleanStore} ${cleanItem}`.trim();
-          const cleanPostal = postalCode.replace(/\s/g, "").toUpperCase();
+          let cleanPostal = postalCode.replace(/\s/g, "").toUpperCase();
+          if (cleanStore === "FreshCo" && (cleanPostal === "K7H3C6" || cleanPostal === "K7A4S6")) {
+            cleanPostal = "K7C3Y4"; // Use Carleton Place postal code for FreshCo flyers
+          }
           
           const flippApiUrl = `https://backflipp.wishabi.com/flipp/items/search?locale=en-ca&postal_code=${encodeURIComponent(cleanPostal)}&q=${encodeURIComponent(searchTerms)}`;
           

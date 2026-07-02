@@ -21,6 +21,19 @@ interface VersionEntry {
 
 const VERSIONS: VersionEntry[] = [
   {
+    version: "1.9.51",
+    date: "July 2026",
+    type: "patch",
+    title: "FreshCo Postal Code Flyer Override",
+    changes: [
+      {
+        icon: <Cloud className="w-4 h-4 text-emerald-500" />,
+        category: "Flipp Resolver",
+        description: "Implemented a dynamic postal code override for FreshCo lookup queries to use Carleton Place (K7C3Y4) when the user's postal code is Perth (K7H3C6) or Smiths Falls (K7A4S6), since FreshCo flyers are not active in those postal codes."
+      }
+    ]
+  },
+  {
     version: "1.9.50",
     date: "July 2026",
     type: "patch",
