@@ -84,6 +84,7 @@ function getFlippSearchUrl(storeName: string, itemName: string, configName?: str
   if (configName) {
     queryItem = configName;
   }
+  queryItem = queryItem.replace(/lactancia/gi, "Lactantia");
   queryItem = queryItem
     .replace(/\s*-\s*\d+$/gi, "") 
     .replace(/\s*-\s*\w+$/gi, "") 
@@ -814,7 +815,7 @@ export default function ListsTab() {
                                         item.name,
                                         priceInfo?.config_name,
                                         bestCompetitorInfo?.postal_code || priceInfo?.postal_code,
-                                        priceInfo?.item_name || bestCompetitorInfo?.item_name,
+                                        bestCompetitorInfo?.brand_name || priceInfo?.brand_name || priceInfo?.item_name || bestCompetitorInfo?.item_name,
                                         bestCompetitorInfo?.lookup_url || priceInfo?.lookup_url
                                       );
                                     }}
@@ -987,7 +988,7 @@ export default function ListsTab() {
                                       item.name,
                                       priceInfo?.config_name,
                                       bestCompetitorInfo?.postal_code || priceInfo?.postal_code,
-                                      priceInfo?.item_name || bestCompetitorInfo?.item_name,
+                                      bestCompetitorInfo?.brand_name || priceInfo?.brand_name || priceInfo?.item_name || bestCompetitorInfo?.item_name,
                                       bestCompetitorInfo?.lookup_url || priceInfo?.lookup_url
                                     );
                                   }}

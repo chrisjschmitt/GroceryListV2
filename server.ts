@@ -1120,6 +1120,7 @@ async function startServer() {
       }
 
       let cleanItem = scrapedName || configName || itemName;
+      cleanItem = cleanItem.replace(/lactancia/gi, "Lactantia");
       cleanItem = cleanItem
         .replace(/\s*\(\d+[^)]*\)/gi, "") 
         .replace(/\s*-\s*\d+$/gi, "") 

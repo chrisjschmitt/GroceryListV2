@@ -21,6 +21,24 @@ interface VersionEntry {
 
 const VERSIONS: VersionEntry[] = [
   {
+    version: "1.9.58",
+    date: "July 2026",
+    type: "patch",
+    title: "Flyer Brand Search & Typo Normalizations",
+    changes: [
+      {
+        icon: <Search className="w-4 h-4 text-emerald-500" />,
+        category: "Flyer Search",
+        description: "Updated flyer query parameters to prioritize the brand name (e.g. 'Lactantia') over generic parent product names (e.g. '2% Lactose Free Milk') when matching items on Flipp, ensuring brand-specific flyer matches are found successfully."
+      },
+      {
+        icon: <RefreshCw className="w-4 h-4 text-emerald-500" />,
+        category: "Catalog & Normalization",
+        description: "Fixed the spelling of 'Lactancia' to 'Lactantia' in the database catalog, and added an automatic query correction rewrite for 'lactancia' -> 'Lactantia' in both frontend and backend flipp flyer resolvers."
+      }
+    ]
+  },
+  {
     version: "1.9.57",
     date: "July 2026",
     type: "patch",
