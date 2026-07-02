@@ -21,6 +21,19 @@ interface VersionEntry {
 
 const VERSIONS: VersionEntry[] = [
   {
+    version: "1.9.50",
+    date: "July 2026",
+    type: "patch",
+    title: "Flipp Resolver Store Name Mapping Fix",
+    changes: [
+      {
+        icon: <Search className="w-4 h-4 text-emerald-500" />,
+        category: "Flipp Resolver",
+        description: "Mapped variations of 'Fresco' (e.g. fresco, fresh co) to the official 'FreshCo' merchant name inside backend resolvers, ListsTab, GroceryItemRow, and the pricing scraper."
+      }
+    ]
+  },
+  {
     version: "1.9.49",
     date: "July 2026",
     type: "patch",

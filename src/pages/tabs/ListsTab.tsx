@@ -71,7 +71,7 @@ function getFlippSearchUrl(storeName: string, itemName: string, configName?: str
   else if (queryStore.toLowerCase().includes("your independent grocer")) queryStore = "Your Independent Grocer";
   else if (queryStore.toLowerCase().includes("loblaws")) queryStore = "Loblaws";
   else if (queryStore.toLowerCase().includes("metro")) queryStore = "Metro";
-  else if (queryStore.toLowerCase().includes("freshco")) queryStore = "FreshCo";
+  else if (queryStore.toLowerCase().includes("freshco") || queryStore.toLowerCase().includes("fresco") || queryStore.toLowerCase().includes("fresh co")) queryStore = "FreshCo";
   else if (queryStore.toLowerCase().includes("walmart")) queryStore = "Walmart";
 
   let queryItem = itemName || "";

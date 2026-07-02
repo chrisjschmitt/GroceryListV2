@@ -749,7 +749,15 @@ Extract regular price, sale price, sale status, flyer validity date, unit type, 
         try {
           const storeConfig = catalog?.stores?.[result.storeKey];
           const postalCode = storeConfig?.postal_code || "K7H3C6";
-          const cleanStore = (storeConfig?.store_name || result.storeKey).replace(/perth/gi, "").trim();
+          let cleanStore = (storeConfig?.store_name || result.storeKey).replace(/perth/gi, "").trim();
+          const lowerStore = cleanStore.toLowerCase();
+          if (lowerStore.includes("food basics") || lowerStore === "fb" || lowerStore === "foodbasics") cleanStore = "Food Basics";
+          else if (lowerStore.includes("no frills") || lowerStore === "nofrills" || lowerStore === "nf") cleanStore = "No Frills";
+          else if (lowerStore.includes("your independent grocer") || lowerStore === "yourindependentgrocer" || lowerStore === "yig") cleanStore = "Your Independent Grocer";
+          else if (lowerStore.includes("loblaws") || lowerStore === "loblaws" || lowerStore === "lb") cleanStore = "Loblaws";
+          else if (lowerStore.includes("metro") || lowerStore === "metro" || lowerStore === "mt") cleanStore = "Metro";
+          else if (lowerStore.includes("freshco") || lowerStore.includes("fresco") || lowerStore === "fc" || lowerStore.includes("fresh co")) cleanStore = "FreshCo";
+          else if (lowerStore.includes("walmart") || lowerStore === "walmart") cleanStore = "Walmart";
           
           let cleanItem = result.itemName
             .replace(/\s*\(\d+[^)]*\)/gi, "") 

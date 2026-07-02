@@ -1103,7 +1103,7 @@ app.get("/api/flipp/resolve", async (req, res) => {
     else if (lowerStore.includes("your independent grocer") || lowerStore === "yourindependentgrocer" || lowerStore === "yig") cleanStore = "Your Independent Grocer";
     else if (lowerStore.includes("loblaws") || lowerStore === "loblaws" || lowerStore === "lb") cleanStore = "Loblaws";
     else if (lowerStore.includes("metro") || lowerStore === "metro" || lowerStore === "mt") cleanStore = "Metro";
-    else if (lowerStore.includes("freshco") || lowerStore === "freshco" || lowerStore === "fc") cleanStore = "FreshCo";
+    else if (lowerStore.includes("freshco") || lowerStore.includes("fresco") || lowerStore === "fc" || lowerStore.includes("fresh co")) cleanStore = "FreshCo";
     else if (lowerStore.includes("walmart") || lowerStore === "walmart") cleanStore = "Walmart";
 
     let cleanItem = scrapedName || configName || itemName;
