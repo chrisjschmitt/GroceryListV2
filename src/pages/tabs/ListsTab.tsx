@@ -12,7 +12,7 @@ function normalizeStoreKey(storeId: string): string {
   if (lower.includes("metro")) return "metro";
   if (lower.includes("loblaws")) return "loblaws";
   if (lower.includes("nofrills")) return "nofrills";
-  if (lower.includes("freshco")) return "freshco";
+  if (lower.includes("freshco") || lower.includes("freschco") || lower.includes("fresco") || lower.includes("fresh co")) return "freshco";
   if (lower.includes("yourindependentgrocer")) return "yourindependentgrocer";
   if (lower === "7923194" || lower.includes("foodbasics") || lower.includes("food basics")) return "foodbasics";
   return lower;
@@ -72,7 +72,7 @@ function getFlippSearchUrl(storeName: string, itemName: string, configName?: str
   else if (queryStore.toLowerCase().includes("your independent grocer")) queryStore = "Your Independent Grocer";
   else if (queryStore.toLowerCase().includes("loblaws")) queryStore = "Loblaws";
   else if (queryStore.toLowerCase().includes("metro")) queryStore = "Metro";
-  else if (queryStore.toLowerCase().includes("freshco") || queryStore.toLowerCase().includes("fresco") || queryStore.toLowerCase().includes("fresh co")) queryStore = "FreshCo";
+  else if (queryStore.toLowerCase().includes("freshco") || queryStore.toLowerCase().includes("fresco") || queryStore.toLowerCase().includes("fresh co") || queryStore.toLowerCase().includes("freschco")) queryStore = "FreshCo";
   else if (queryStore.toLowerCase().includes("walmart")) queryStore = "Walmart";
 
   let queryItem = itemName || "";

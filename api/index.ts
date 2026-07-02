@@ -1101,7 +1101,7 @@ app.get("/api/flipp/resolve", async (req, res) => {
     if (lowerStore.includes("food basics") || lowerStore === "fb" || lowerStore === "foodbasics") cleanStore = "Food Basics";
     else if (lowerStore.includes("no frills") || lowerStore === "nofrills" || lowerStore === "nf") cleanStore = "No Frills";
     else if (lowerStore.includes("your independent grocer") || lowerStore === "yourindependentgrocer" || lowerStore === "yig") cleanStore = "Your Independent Grocer";
-    else if (lowerStore.includes("freshco") || lowerStore.includes("fresco") || lowerStore === "fc" || lowerStore.includes("fresh co")) cleanStore = "FreshCo";
+    else if (lowerStore.includes("freshco") || lowerStore.includes("fresco") || lowerStore === "fc" || lowerStore.includes("fresh co") || lowerStore.includes("freschco")) cleanStore = "FreshCo";
     else if (lowerStore.includes("walmart") || lowerStore === "walmart") cleanStore = "Walmart";
 
     let targetPostal = postalCode.trim().toUpperCase().replace(/\s/g, "");
@@ -1218,7 +1218,7 @@ app.get("/api/flipp/resolve", async (req, res) => {
     const postalCode = req.query.postalCode as string || "K7H3C6";
     let targetPostal = postalCode.trim().toUpperCase().replace(/\s/g, "");
     let cleanStore = storeName.trim().toLowerCase();
-    if (cleanStore.includes("freshco") || cleanStore.includes("fresco") || cleanStore.includes("fresh co")) {
+    if (cleanStore.includes("freshco") || cleanStore.includes("fresco") || cleanStore.includes("fresh co") || cleanStore.includes("freschco")) {
       if (targetPostal === "K7H3C6" || targetPostal === "K7A4S6") {
         targetPostal = "K7C3Y4";
       }

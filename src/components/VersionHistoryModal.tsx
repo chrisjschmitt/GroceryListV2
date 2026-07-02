@@ -21,6 +21,19 @@ interface VersionEntry {
 
 const VERSIONS: VersionEntry[] = [
   {
+    version: "1.9.53",
+    date: "July 2026",
+    type: "patch",
+    title: "Store Key Mismatch Spelling Fix",
+    changes: [
+      {
+        icon: <Search className="w-4 h-4 text-emerald-500" />,
+        category: "Flipp Resolver",
+        description: "Mapped misspelling of 'freschco' (with a 'c') to the official 'FreshCo' merchant name to enable correct flyer resolution for databases containing the misspelled store configuration."
+      }
+    ]
+  },
+  {
     version: "1.9.52",
     date: "July 2026",
     type: "patch",
