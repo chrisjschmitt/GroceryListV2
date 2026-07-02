@@ -167,6 +167,16 @@ export default function BasketsTab({ onNavigateToLists }: BasketsTabProps) {
       walmart: { name: "Walmart", short: "WM", color: "#FFFFFF", bgColor: "#0071CE" }
     };
 
+    const getStoreMeta = (storeId: string) => {
+      const canonical = normalizeStoreKey(storeId);
+      return STORE_METADATA[canonical] || {
+        name: storeId.charAt(0).toUpperCase() + storeId.slice(1),
+        short: storeId.slice(0, 2).toUpperCase(),
+        color: "#FFFFFF",
+        bgColor: "#757575"
+      };
+    };
+
     // 2. We will compute totals for each store. To handle missing store prices fairly, we use a fallback price
     // (the cheapest available price at any store for that item) when a specific store doesn't carry it.
     const storeTotals: Record<string, number> = {};
@@ -220,6 +230,16 @@ export default function BasketsTab({ onNavigateToLists }: BasketsTabProps) {
         continue;
       }
 
+      // Ensure any newly discovered unmapped stores are initialized in the list/total maps
+      for (const storeId of availableStoreIds) {
+        if (!storeItemsLists[storeId]) {
+          storeItemsLists[storeId] = [];
+        }
+        if (storeTotals[storeId] === undefined) {
+          storeTotals[storeId] = 0;
+        }
+      }
+
       // Cheapest price for this item across all stores
       const cheapestPrice = Math.min(...Object.values(itemPrices));
       
@@ -230,7 +250,7 @@ export default function BasketsTab({ onNavigateToLists }: BasketsTabProps) {
       splitTotal += cheapestPrice * item.quantity;
 
       // Update store totals
-      for (const storeId of Object.keys(STORE_METADATA)) {
+      for (const storeId of Object.keys(storeTotals)) {
         // If the store carries the item, use its price. Otherwise, fall back to cheapestPrice (comparable benchmark)
         const price = itemStorePrice(storeId, itemPrices, cheapestPrice);
         storeTotals[storeId] += price * item.quantity;
@@ -257,12 +277,12 @@ export default function BasketsTab({ onNavigateToLists }: BasketsTabProps) {
     let singleStoreCheapest = "Food Basics";
     let singleStoreCheapestTotal = Infinity;
 
-    for (const storeId of Object.keys(STORE_METADATA)) {
+    for (const storeId of Object.keys(storeTotals)) {
       if (activeStoreIds.has(storeId)) {
         const total = storeTotals[storeId];
         if (total < singleStoreCheapestTotal) {
           singleStoreCheapestTotal = total;
-          singleStoreCheapest = STORE_METADATA[storeId].name;
+          singleStoreCheapest = getStoreMeta(storeId).name;
         }
       }
     }
@@ -281,7 +301,7 @@ export default function BasketsTab({ onNavigateToLists }: BasketsTabProps) {
       splitSavings,
       storeItemsLists,
       untrackedItems,
-      STORE_METADATA
+      getStoreMeta
     };
   }, [store.groceryItems, priceLookup]);
 
@@ -371,10 +391,10 @@ export default function BasketsTab({ onNavigateToLists }: BasketsTabProps) {
           </div>
           <div className="flex items-center gap-3">
             {(() => {
-              const matchedStoreKey = Object.keys(optimization.STORE_METADATA).find(
-                key => optimization.STORE_METADATA[key].name === optimization.singleStoreCheapest
+              const matchedStoreKey = Object.keys(optimization.storeTotals).find(
+                key => optimization.getStoreMeta(key).name === optimization.singleStoreCheapest
               ) || "foodbasics";
-              const meta = optimization.STORE_METADATA[matchedStoreKey];
+              const meta = optimization.getStoreMeta(matchedStoreKey);
               return (
                 <div 
                   className="w-9 h-9 rounded-full flex items-center justify-center font-black text-xs shrink-0 select-none border border-black/5"
@@ -429,7 +449,7 @@ export default function BasketsTab({ onNavigateToLists }: BasketsTabProps) {
                   {(Object.entries(optimization.storeItemsLists) as [string, any][])
                     .filter(([_, list]) => list.length > 0)
                     .map(([storeId]) => {
-                      const meta = optimization.STORE_METADATA[storeId];
+                      const meta = optimization.getStoreMeta(storeId);
                       return (
                         <div 
                           key={storeId}
@@ -467,7 +487,7 @@ export default function BasketsTab({ onNavigateToLists }: BasketsTabProps) {
         {(Object.entries(optimization.storeItemsLists) as [string, any][])
           .filter(([_, list]) => list.length > 0)
           .map(([storeId, itemsList]) => {
-            const meta = optimization.STORE_METADATA[storeId];
+            const meta = optimization.getStoreMeta(storeId);
             const storeCost = itemsList.reduce((acc, i) => acc + i.price * i.item.quantity, 0);
             return (
               <div key={storeId} className="bg-surface-container-lowest border border-outline-variant rounded-xl overflow-hidden shadow-2xs">
@@ -532,7 +552,7 @@ export default function BasketsTab({ onNavigateToLists }: BasketsTabProps) {
                                   {Object.entries(priceInfo.stores).map(([sId, sInfo]: [string, any]) => {
                                     const storePrice = getStoreActivePrice(sInfo);
                                     const isBest = storePrice === price;
-                                    const sMeta = optimization.STORE_METADATA[normalizeStoreKey(sId)] || { name: sId };
+                                    const sMeta = optimization.getStoreMeta(sId);
                                     return (
                                       <div key={sId} className="flex justify-between items-center text-xs py-1">
                                         {sInfo.lookup_url ? (
