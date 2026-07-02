@@ -15,6 +15,8 @@ function normalizeStoreKey(storeId: string): string {
   if (lower.includes("freshco") || lower.includes("freschco") || lower.includes("fresco") || lower.includes("fresh co")) return "freshco";
   if (lower.includes("yourindependentgrocer")) return "yourindependentgrocer";
   if (lower === "7923194" || lower.includes("foodbasics") || lower.includes("food basics")) return "foodbasics";
+  if (lower.includes("walmart")) return "walmart";
+  if (lower.includes("costco")) return "costco";
   return lower;
 }
 
@@ -62,6 +64,8 @@ function abbreviateStoreName(name: string): string {
   if (normalized.includes("loblaws") || normalized === "loblaws") return "LB";
   if (normalized.includes("no frills") || normalized === "nofrills") return "NF";
   if (normalized.includes("your independent grocer") || normalized === "yourindependentgrocer") return "YIG";
+  if (normalized.includes("walmart")) return "WM";
+  if (normalized.includes("costco")) return "CC";
   return name.substring(0, 3).toUpperCase();
 }
 
@@ -74,6 +78,7 @@ function getFlippSearchUrl(storeName: string, itemName: string, configName?: str
   else if (queryStore.toLowerCase().includes("metro")) queryStore = "Metro";
   else if (queryStore.toLowerCase().includes("freshco") || queryStore.toLowerCase().includes("fresco") || queryStore.toLowerCase().includes("fresh co") || queryStore.toLowerCase().includes("freschco")) queryStore = "FreshCo";
   else if (queryStore.toLowerCase().includes("walmart")) queryStore = "Walmart";
+  else if (queryStore.toLowerCase().includes("costco")) queryStore = "Costco";
 
   let queryItem = itemName || "";
   if (configName) {
@@ -606,6 +611,8 @@ export default function ListsTab() {
           <option value="loblaws">Loblaws</option>
           <option value="nofrills">No Frills</option>
           <option value="yourindependentgrocer">Your Independent Grocer</option>
+          <option value="walmart">Walmart</option>
+          <option value="costco">Costco</option>
         </select>
       </div>
 

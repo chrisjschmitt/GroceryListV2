@@ -21,6 +21,24 @@ interface VersionEntry {
 
 const VERSIONS: VersionEntry[] = [
   {
+    version: "1.9.56",
+    date: "July 2026",
+    type: "patch",
+    title: "Costco & Walmart Selection & Stability Fixes",
+    changes: [
+      {
+        icon: <Layout className="w-4 h-4 text-emerald-500" />,
+        category: "Lists Tab",
+        description: "Added Costco and Walmart to the primary store selector options, key normalization, abbreviation mapping, and Flipp search URLs."
+      },
+      {
+        icon: <Layout className="w-4 h-4 text-emerald-500" />,
+        category: "Baskets Tab",
+        description: "Fixed a blank screen crash by dynamically initializing store totals and fallback metadata for custom or unmapped store configurations."
+      }
+    ]
+  },
+  {
     version: "1.9.54",
     date: "July 2026",
     type: "patch",
