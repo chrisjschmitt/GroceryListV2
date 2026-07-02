@@ -1122,11 +1122,11 @@ async function startServer() {
       let cleanItem = scrapedName || configName || itemName;
       cleanItem = cleanItem.replace(/lactancia/gi, "Lactantia");
       cleanItem = cleanItem
+        .replace(/\s*\b\d+%\b/g, "") 
+        .replace(/\s*\b\d+(?:g|l|ml|oz|kg|lb|pack)\b/gi, "") 
         .replace(/\s*\(\d+[^)]*\)/gi, "") 
         .replace(/\s*-\s*\d+$/gi, "") 
         .replace(/\s*-\s*\w+$/gi, "") 
-        .replace(/\s*\b\d+g\b/gi, "")    
-        .replace(/\s*\b\d+-pack\b/gi, "") 
         .trim();
 
       const searchTerms = `${cleanStore} ${cleanItem}`.trim();

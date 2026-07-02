@@ -21,6 +21,19 @@ interface VersionEntry {
 
 const VERSIONS: VersionEntry[] = [
   {
+    version: "1.9.59",
+    date: "July 2026",
+    type: "patch",
+    title: "Robust Flyer Query Unit & Percentage Stripping",
+    changes: [
+      {
+        icon: <Search className="w-4 h-4 text-emerald-500" />,
+        category: "Flyer Search",
+        description: "Updated the flipp query normalization engine to automatically strip out percentages (like 2% or 1%) and size units (like 2L, 500g) from query terms, enabling successful matches on generic modifier-free flyer descriptions."
+      }
+    ]
+  },
+  {
     version: "1.9.58",
     date: "July 2026",
     type: "patch",
