@@ -134,6 +134,9 @@ interface SaleItem {
   storeName: string;
   storeId: string;
   lookup_url?: string;
+  relevanceScore?: number;
+  badgeType?: "freq" | "recent" | "top" | "sale";
+  purchaseCount?: number;
 }
 
 export default function HomeTab() {
@@ -301,6 +304,47 @@ export default function HomeTab() {
 
       if (bestSaleStore) {
         seenNames.add(nameLower);
+        
+        // Calculate purchase metrics
+        const itemHistory = (store.purchaseLogs || []).filter(
+          (log) => log.name.toLowerCase() === nameLower
+        );
+        const purchaseCount = itemHistory.reduce((sum, log) => sum + (log.quantity || 1), 0);
+        
+        let daysSinceLastPurchase = Infinity;
+        if (itemHistory.length > 0) {
+          const latestLog = itemHistory.reduce((latest, current) => {
+            return new Date(current.timestamp).getTime() > new Date(latest.timestamp).getTime() ? current : latest;
+          }, itemHistory[0]);
+          const lastDate = new Date(latestLog.timestamp);
+          const diffMs = new Date().getTime() - lastDate.getTime();
+          daysSinceLastPurchase = Math.max(0, diffMs / (1000 * 60 * 60 * 24));
+        }
+
+        const savings = Math.max(0, bestSaleStore.regularPrice - bestSaleStore.salePrice);
+        
+        // Relevance score computation
+        let relevanceScore = 0;
+        let badgeType: "freq" | "recent" | "top" | "sale" = "sale";
+
+        if (purchaseCount > 0) {
+          relevanceScore += 1000;
+          relevanceScore += purchaseCount * 100;
+          const recencyBoost = Math.max(0, 100 - daysSinceLastPurchase * 2);
+          relevanceScore += recencyBoost;
+
+          if (purchaseCount >= 2) {
+            badgeType = "freq";
+          } else if (daysSinceLastPurchase <= 14) {
+            badgeType = "recent";
+          }
+        } else {
+          relevanceScore += savings * 10;
+          if (savings >= 1.50) {
+            badgeType = "top";
+          }
+        }
+
         list.push({
           id: ri.id,
           name: ri.name,
@@ -309,15 +353,20 @@ export default function HomeTab() {
           units: ri.units,
           regularPrice: bestSaleStore.regularPrice,
           salePrice: bestSaleStore.salePrice,
-          savings: Math.max(0, bestSaleStore.regularPrice - bestSaleStore.salePrice),
+          savings,
           storeName: bestSaleStore.storeName,
           storeId: bestSaleStore.storeId,
           lookup_url: bestSaleStore.lookup_url,
+          relevanceScore,
+          badgeType,
+          purchaseCount,
         });
       }
     }
-    return list;
-  }, [store.regularItems, priceLookup]);
+
+    // Sort by relevanceScore descending
+    return list.sort((a, b) => (b.relevanceScore || 0) - (a.relevanceScore || 0));
+  }, [store.regularItems, priceLookup, store.purchaseLogs]);
 
   // Trending Items calculations (Staples Basket regular items list)
   const trendingItems = useMemo(() => {
@@ -637,9 +686,31 @@ export default function HomeTab() {
                       {/* Item Details */}
                       <div className="flex flex-col justify-between py-0.5 flex-1 min-w-0">
                         <div className="space-y-1">
-                          <span className="bg-[#FFF9C4] text-amber-900 text-[9px] font-black px-2 py-0.5 rounded-full uppercase tracking-wider">
-                            Save ${(item.savings).toFixed(2)}
-                          </span>
+                          <div className="flex gap-1 flex-wrap">
+                            {item.badgeType === "freq" && (
+                              <span className="bg-[#E8F5E9] text-[#2E7D32] text-[8px] font-black px-1.5 py-0.5 rounded-full uppercase tracking-wider border border-[#C8E6C9] flex-shrink-0">
+                                🔥 Freq. Bought
+                              </span>
+                            )}
+                            {item.badgeType === "recent" && (
+                              <span className="bg-[#E3F2FD] text-[#1565C0] text-[8px] font-black px-1.5 py-0.5 rounded-full uppercase tracking-wider border border-[#BBDEFB] flex-shrink-0">
+                                🕒 Rec. Bought
+                              </span>
+                            )}
+                            {item.badgeType === "top" && (
+                              <span className="bg-[#FFE0B2] text-[#E65100] text-[8px] font-black px-1.5 py-0.5 rounded-full uppercase tracking-wider border border-[#FFD180] flex-shrink-0">
+                                💎 Top Deal
+                              </span>
+                            )}
+                            {item.badgeType === "sale" && (
+                              <span className="bg-[#FFF9C4] text-amber-900 text-[8px] font-black px-1.5 py-0.5 rounded-full uppercase tracking-wider border border-[#FFF59D] flex-shrink-0">
+                                🏷️ On Sale
+                              </span>
+                            )}
+                            <span className="bg-gray-100 text-gray-700 text-[8px] font-bold px-1.5 py-0.5 rounded-full uppercase tracking-wider flex-shrink-0">
+                              Save ${item.savings.toFixed(2)}
+                            </span>
+                          </div>
                           <h3 className="text-sm font-bold text-gray-900 truncate" title={item.name}>
                             {item.name}
                           </h3>
@@ -1036,9 +1107,27 @@ export default function HomeTab() {
                           <h4 className="text-xs font-bold text-gray-800 truncate" title={item.name}>
                             {item.name}
                           </h4>
-                          <div className="flex items-center gap-1.5 mt-1">
+                          <div className="flex flex-wrap items-center gap-1.5 mt-1">
                             <StoreLogo storeId={item.storeId} className="w-4 h-4" />
                             <span className="text-[10px] text-gray-400 font-bold uppercase">{item.storeName}</span>
+                            {item.badgeType === "freq" && (
+                              <span className="bg-[#E8F5E9] text-[#2E7D32] text-[8px] font-black px-1.5 py-0.2 rounded-full uppercase tracking-wider border border-[#C8E6C9] flex-shrink-0">
+                                🔥 Freq. Bought
+                              </span>
+                            )}
+                            {item.badgeType === "recent" && (
+                              <span className="bg-[#E3F2FD] text-[#1565C0] text-[8px] font-black px-1.5 py-0.2 rounded-full uppercase tracking-wider border border-[#BBDEFB] flex-shrink-0">
+                                🕒 Rec. Bought
+                              </span>
+                            )}
+                            {item.badgeType === "top" && (
+                              <span className="bg-[#FFE0B2] text-[#E65100] text-[8px] font-black px-1.5 py-0.2 rounded-full uppercase tracking-wider border border-[#FFD180] flex-shrink-0">
+                                💎 Top Deal
+                              </span>
+                            )}
+                            <span className="bg-gray-100 text-gray-700 text-[8px] font-bold px-1.5 py-0.2 rounded-full uppercase tracking-wider flex-shrink-0">
+                              Save ${item.savings.toFixed(2)}
+                            </span>
                           </div>
                         </div>
                       </div>

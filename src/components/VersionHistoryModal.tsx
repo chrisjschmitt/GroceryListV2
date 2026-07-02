@@ -21,6 +21,24 @@ interface VersionEntry {
 
 const VERSIONS: VersionEntry[] = [
   {
+    version: "1.9.57",
+    date: "July 2026",
+    type: "patch",
+    title: "Prioritize Purchase History in Deals Carousel",
+    changes: [
+      {
+        icon: <Zap className="w-4 h-4 text-emerald-500" />,
+        category: "Home Tab",
+        description: "Implemented a weighted scoring relevance algorithm that pulls purchase logs to float frequently and recently bought sale items to the front of the Staples on Sale carousel, with fallback to highest savings when no history is present."
+      },
+      {
+        icon: <Tag className="w-4 h-4 text-emerald-500" />,
+        category: "Deals UI",
+        description: "Added context-aware premium badges (Freq. Bought, Rec. Bought, Top Deal) to indicate purchase frequency and deal quality on sale items."
+      }
+    ]
+  },
+  {
     version: "1.9.56",
     date: "July 2026",
     type: "patch",
