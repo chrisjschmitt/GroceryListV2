@@ -21,6 +21,19 @@ interface VersionEntry {
 
 const VERSIONS: VersionEntry[] = [
   {
+    version: "1.9.64",
+    date: "July 2026",
+    type: "patch",
+    title: "Decimal Percentage & Non-Word Boundary Regex Fix",
+    changes: [
+      {
+        icon: <RefreshCw className="w-4 h-4 text-emerald-500" />,
+        category: "Flyer Search",
+        description: "Fixed word boundary issue in percent-stripping regex by removing the trailing word boundary check (since % is a non-word character) and added decimal percentage matching support."
+      }
+    ]
+  },
+  {
     version: "1.9.63",
     date: "July 2026",
     type: "patch",

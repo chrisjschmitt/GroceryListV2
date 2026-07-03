@@ -86,7 +86,7 @@ function getFlippSearchUrl(storeName: string, itemName: string, configName?: str
   }
   queryItem = queryItem.replace(/lactancia/gi, "Lactantia");
   queryItem = queryItem
-    .replace(/\s*\b\d+%\b/g, "") 
+    .replace(/\s*\b\d+(?:\.\d+)?%/g, "") 
     .replace(/\s*\b\d+(?:g|l|ml|oz|kg|lb|pack)\b/gi, "") 
     .replace(/\s*\(\d+[^)]*\)/gi, "") 
     .replace(/\s*-\s*\d+$/gi, "") 
@@ -304,7 +304,7 @@ export default function ListsTab() {
               cleanItem = cleanItem.replace(/lactancia/gi, "Lactantia");
               
               cleanItem = cleanItem
-                .replace(/\\s*\\b\\d+%\\b/g, "")
+                .replace(/\\s*\\b\\d+(?:\\.\\d+)?%/g, "")
                 .replace(/\\s*\\b\\d+(?:g|l|ml|oz|kg|lb|pack)\\b/gi, "")
                 .replace(/\\s*\\(\\d+[^)]*\\)/gi, "")
                 .replace(/\\s*-\\s*\\d+$/gi, "")
