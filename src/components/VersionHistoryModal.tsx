@@ -21,6 +21,19 @@ interface VersionEntry {
 
 const VERSIONS: VersionEntry[] = [
   {
+    version: "1.9.61",
+    date: "July 2026",
+    type: "patch",
+    title: "Deployment & Documentation Sync",
+    changes: [
+      {
+        icon: <FileSpreadsheet className="w-4 h-4 text-emerald-500" />,
+        category: "Documentation",
+        description: "Updated README.md documentation with detailed listings of the Staples on Sale Carousel Prioritization and the new Flyer Debugger Panel."
+      }
+    ]
+  },
+  {
     version: "1.9.60",
     date: "July 2026",
     type: "patch",

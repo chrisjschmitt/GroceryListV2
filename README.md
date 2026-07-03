@@ -13,6 +13,8 @@ GroceryHub is a smart, offline-first grocery list application designed to optimi
 - **Smart Basket Indices**: Automatically compares total basket costs across local stores (such as Food Basics and Metro) to flag the **Smart Choice**—the store offering the lowest overall cost or the highest number of lowest-price matches.
 - **Savings Estimator**: Dynamically calculates your potential savings based on active discounts (comparing regular prices against active sale prices) for the items in your basket.
 - **Offline-First & Auto-Sync**: Uses local client storage (IndexedDB) to ensure your list works perfectly inside grocery stores with poor or no cellular reception. The engine automatically synchronizes changes with your MongoDB server once you are back online.
+- **Prioritized Staples on Sale**: Floats frequently and recently purchased sale items to the front of the Home tab carousel using a decaying-weight purchase history relevance algorithm.
+- **Weekly Flyer Debugger**: Real-time interactive flyer lookup debugger panel displaying query terms, raw Flipp API returns, and custom search testing.
 - **Item Catalog**: Maintain a catalog of regular household items. Add them to your list with a single click, or manage custom items with quantities and units.
 - **Data Imports**: Import catalog inventory from CSV files or update pricing structures via JSON price sheets directly.
 - **Admin Portal**: Integrated `/admin` panel to check database diagnostics, import local price databases, and manage sync metrics.
