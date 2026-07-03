@@ -21,6 +21,19 @@ interface VersionEntry {
 
 const VERSIONS: VersionEntry[] = [
   {
+    version: "1.9.62",
+    date: "July 2026",
+    type: "patch",
+    title: "Always-Visible Flyer Debug Logs & Document Close Fix",
+    changes: [
+      {
+        icon: <Layout className="w-4 h-4 text-emerald-500" />,
+        category: "Flyer Search",
+        description: "Made the Flyer Debugger Panel visible by default on lookup redirection, and added a document.close() call to guarantee that the browser executes loading sub-tab JavaScript immediately."
+      }
+    ]
+  },
+  {
     version: "1.9.61",
     date: "July 2026",
     type: "patch",

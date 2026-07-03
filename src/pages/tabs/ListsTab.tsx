@@ -187,11 +187,7 @@ export default function ListsTab() {
             <h1 id="status-title">Locating Weekly Flyer</h1>
             <p id="status-desc">Searching Flipp.com for local ${storeName.replace(/'/g, "\\'")} deals...</p>
             
-            <button id="toggle-debug" style="margin-top: 1.5rem; background: transparent; border: 1px solid rgba(255,255,255,0.15); color: #94a3b8; font-size: 0.75rem; padding: 0.4rem 0.8rem; border-radius: 0.5rem; cursor: pointer; font-weight: 600; width: 100%;">
-              Show Debug Panel
-            </button>
-            
-            <div id="debug-panel" style="display: none; text-align: left; margin-top: 1.5rem; padding-top: 1.5rem; border-top: 1px solid rgba(255,255,255,0.1); width: 100%;">
+            <div id="debug-panel" style="text-align: left; margin-top: 1.5rem; padding-top: 1.5rem; border-top: 1px solid rgba(255,255,255,0.1); width: 100%;">
               <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.75rem;">
                 <h3 style="margin: 0; font-size: 0.875rem; font-weight: 700; color: #10b981;">Flyer Debugger</h3>
                 <button id="btn-pause" style="background: #334155; border: none; color: #f8fafc; font-size: 0.7rem; padding: 0.25rem 0.5rem; border-radius: 0.25rem; cursor: pointer; font-weight: 700;">Pause Redirect</button>
@@ -233,17 +229,6 @@ export default function ListsTab() {
             document.getElementById('debug-store').innerText = storeName;
             document.getElementById('debug-item').innerText = itemName;
             document.getElementById('debug-postal').innerText = postalCode;
-            
-            document.getElementById('toggle-debug').addEventListener('click', () => {
-              const panel = document.getElementById('debug-panel');
-              if (panel.style.display === 'none') {
-                panel.style.display = 'block';
-                document.getElementById('toggle-debug').innerText = 'Hide Debug Panel';
-              } else {
-                panel.style.display = 'none';
-                document.getElementById('toggle-debug').innerText = 'Show Debug Panel';
-              }
-            });
             
             const btnPause = document.getElementById('btn-pause');
             btnPause.addEventListener('click', () => {
@@ -381,6 +366,7 @@ export default function ListsTab() {
         </body>
       </html>
     `);
+    newTab.document.close();
   };
 
   useEffect(() => {
