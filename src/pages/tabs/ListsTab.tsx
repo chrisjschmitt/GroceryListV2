@@ -230,21 +230,64 @@ export default function ListsTab() {
             document.getElementById('debug-item').innerText = itemName;
             document.getElementById('debug-postal').innerText = postalCode;
             
+            let countdownInterval = null;
+            let redirectUrl = null;
+            let currentMessage = "";
+            let secondsRemaining = 12;
+
             const btnPause = document.getElementById('btn-pause');
+            
+            function updateCountdownText() {
+              if (redirectPaused) {
+                document.getElementById('status-desc').innerText = currentMessage + " (Redirect Paused)";
+              } else {
+                document.getElementById('status-desc').innerText = currentMessage + " in " + secondsRemaining + "s...";
+              }
+            }
+
             btnPause.addEventListener('click', () => {
               redirectPaused = !redirectPaused;
               if (redirectPaused) {
                 btnPause.innerText = 'Resume Redirect';
                 btnPause.style.background = '#10b981';
-                if (redirectTimeout) {
-                  clearTimeout(redirectTimeout);
-                  redirectTimeout = null;
+                document.getElementById('spinner').style.animationPlayState = 'paused';
+                if (countdownInterval) {
+                  clearInterval(countdownInterval);
+                  countdownInterval = null;
                 }
               } else {
                 btnPause.innerText = 'Pause Redirect';
                 btnPause.style.background = '#334155';
+                document.getElementById('spinner').style.animationPlayState = 'running';
+                startCountdownTimer();
               }
+              updateCountdownText();
             });
+
+            function startCountdown(url, message) {
+              redirectUrl = url;
+              currentMessage = message;
+              secondsRemaining = 12;
+              
+              if (countdownInterval) clearInterval(countdownInterval);
+              
+              if (!redirectPaused) {
+                startCountdownTimer();
+              }
+              updateCountdownText();
+            }
+
+            function startCountdownTimer() {
+              countdownInterval = setInterval(() => {
+                secondsRemaining--;
+                if (secondsRemaining <= 0) {
+                  clearInterval(countdownInterval);
+                  window.location.href = redirectUrl;
+                } else {
+                  updateCountdownText();
+                }
+              }, 1000);
+            }
             
             function performLookup(customQ) {
               const qParams = new URLSearchParams({
@@ -310,40 +353,20 @@ export default function ListsTab() {
                   if (data && data.url) {
                     if (data.isMatch) {
                       document.getElementById('status-title').innerText = "Flyer Deal Found!";
-                      document.getElementById('status-desc').innerText = "Redirecting to flyer deal...";
-                      if (!redirectPaused) {
-                        redirectTimeout = setTimeout(() => {
-                          window.location.href = data.url;
-                        }, 1000);
-                      }
+                      startCountdown(data.url, "Redirecting to flyer deal");
                     } else {
                       document.getElementById('status-title').innerText = "Opening Flyer Search";
-                      document.getElementById('status-desc').innerText = "Flyer deal not matched exactly. Opening fallback flyer search...";
-                      if (!redirectPaused) {
-                        redirectTimeout = setTimeout(() => {
-                          window.location.href = data.url;
-                        }, 1500);
-                      }
+                      startCountdown(data.url, "Flyer deal not matched. Opening fallback flyer search");
                     }
                   } else {
                     document.getElementById('status-title').innerText = "No Match Found";
-                    document.getElementById('status-desc').innerText = "Redirecting to store page...";
-                    if (!redirectPaused && storeUrl) {
-                      redirectTimeout = setTimeout(() => {
-                        window.location.href = storeUrl;
-                      }, 2500);
-                    }
+                    startCountdown(storeUrl || "https://flipp.com", "Redirecting to store page");
                   }
                 })
                 .catch(err => {
                   document.getElementById('debug-results').innerText = "API Error: " + err.message;
                   document.getElementById('status-title').innerText = "Error Occurred";
-                  document.getElementById('status-desc').innerText = "Redirecting to Flipp search...";
-                  if (!redirectPaused) {
-                    redirectTimeout = setTimeout(() => {
-                      window.location.href = "https://flipp.com/search?q=" + encodeURIComponent(finalQuery) + "&postal_code=" + postalCode;
-                    }, 2500);
-                  }
+                  startCountdown("https://flipp.com/search?q=" + encodeURIComponent(finalQuery) + "&postal_code=" + postalCode, "Redirecting to Flipp search");
                 });
             }
             
@@ -355,9 +378,10 @@ export default function ListsTab() {
                 redirectPaused = true;
                 btnPause.innerText = 'Resume Redirect';
                 btnPause.style.background = '#10b981';
-                if (redirectTimeout) {
-                  clearTimeout(redirectTimeout);
-                  redirectTimeout = null;
+                document.getElementById('spinner').style.animationPlayState = 'paused';
+                if (countdownInterval) {
+                  clearInterval(countdownInterval);
+                  countdownInterval = null;
                 }
                 performLookup(customVal);
               }

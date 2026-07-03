@@ -21,6 +21,19 @@ interface VersionEntry {
 
 const VERSIONS: VersionEntry[] = [
   {
+    version: "1.9.63",
+    date: "July 2026",
+    type: "patch",
+    title: "12-Second Visual Countdown Flyer Redirect",
+    changes: [
+      {
+        icon: <Clock className="w-4 h-4 text-emerald-500" />,
+        category: "Flyer Search",
+        description: "Added a 12-second live countdown timer to the flyer redirect loader, displaying real-time countdown progress and allowing you to pause/freeze the redirect to review debug logs."
+      }
+    ]
+  },
+  {
     version: "1.9.62",
     date: "July 2026",
     type: "patch",
