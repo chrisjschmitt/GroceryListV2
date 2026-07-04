@@ -21,6 +21,19 @@ interface VersionEntry {
 
 const VERSIONS: VersionEntry[] = [
   {
+    version: "1.9.67",
+    date: "July 2026",
+    type: "patch",
+    title: "Multivariable Flyer Item Scoring Engine",
+    changes: [
+      {
+        icon: <Search className="w-4 h-4 text-emerald-500" />,
+        category: "Flyer Search",
+        description: "Implemented a multivariable heuristic scoring algorithm in the resolver to rank search returns against the original detailed item description. Matches on brands, categories, and percentages (such as '1%' or '2%') are prioritized, preventing incorrect item highlight selection."
+      }
+    ]
+  },
+  {
     version: "1.9.66",
     date: "July 2026",
     type: "patch",

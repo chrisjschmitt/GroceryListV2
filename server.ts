@@ -1091,6 +1091,64 @@ async function startServer() {
     }
   });
 
+  function scoreFlippItem(flippName: string, originalName: string): number {
+    const f = flippName.toLowerCase();
+    const o = originalName.toLowerCase();
+    
+    let score = 0;
+    
+    // Exact phrase match boosts
+    const phrases = [
+      "lactose free milk",
+      "lactose free",
+      "lactose-free",
+      "lactose free cream",
+      "organic milk",
+      "purfiltre milk"
+    ];
+    phrases.forEach(phrase => {
+      if (o.includes(phrase) && f.includes(phrase)) {
+        score += 40;
+      }
+    });
+
+    // Split original name into words for keyword matching
+    const words = o.split(/\s+/).filter(w => w.length > 1 && !w.includes("%"));
+    words.forEach(w => {
+      if (f.includes(w)) {
+        score += 10;
+        if (["lactantia", "natrel", "milk", "cream", "butter"].includes(w)) {
+          score += 15;
+        }
+      }
+    });
+
+    // Conflicting product checks (e.g. original is milk, but flipp is cream or butter)
+    if (o.includes("milk") && f.includes("cream") && !o.includes("cream") && !f.includes("milk")) {
+      score -= 60;
+    }
+    if (o.includes("milk") && f.includes("butter") && !o.includes("butter")) {
+      score -= 60;
+    }
+    if (o.includes("cream") && f.includes("butter") && !o.includes("butter")) {
+      score -= 60;
+    }
+    
+    // Percentage match (e.g. 1%, 2%, 3.25%, skim, chocolate)
+    const percentages = ["1%", "2%", "3.25%", "3.8%", "skim", "chocolate"];
+    percentages.forEach(p => {
+      const oHas = o.includes(p);
+      const fHas = f.includes(p);
+      if (oHas && fHas) {
+        score += 60; // Direct match boost
+      } else if (!oHas && fHas) {
+        score -= 40; // Mismatch penalty
+      }
+    });
+
+    return score;
+  }
+
   // GET /api/flipp/resolve
   app.get("/api/flipp/resolve", async (req, res) => {
     try {
@@ -1150,6 +1208,12 @@ async function startServer() {
         });
 
         if (merchantItems.length > 0) {
+          const targetOriginalName = configName || itemName;
+          merchantItems.sort((a: any, b: any) => {
+            const scoreA = scoreFlippItem(a.name || "", targetOriginalName);
+            const scoreB = scoreFlippItem(b.name || "", targetOriginalName);
+            return scoreB - scoreA;
+          });
           const bestItem = merchantItems[0];
           if (bestItem.id && bestItem.flyer_id) {
             return res.json({ url: `https://flipp.com/flyer/${bestItem.flyer_id}?item_id=${bestItem.id}&postal_code=${encodeURIComponent(targetPostal)}`, isMatch: true });
@@ -1186,6 +1250,12 @@ async function startServer() {
             });
 
             if (secMerchantItems.length > 0) {
+              const targetOriginalName = configName || itemName;
+              secMerchantItems.sort((a: any, b: any) => {
+                const scoreA = scoreFlippItem(a.name || "", targetOriginalName);
+                const scoreB = scoreFlippItem(b.name || "", targetOriginalName);
+                return scoreB - scoreA;
+              });
               const bestSecItem = secMerchantItems[0];
               if (bestSecItem.id && bestSecItem.flyer_id) {
                 return res.json({ url: `https://flipp.com/flyer/${bestSecItem.flyer_id}?item_id=${bestSecItem.id}&postal_code=${encodeURIComponent(targetPostal)}`, isMatch: true });
