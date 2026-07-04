@@ -1296,7 +1296,7 @@ app.post("/api/flipp/add-item", async (req, res) => {
       matchedItem = {
         id: newId,
         name: finalItemName,
-        category: "Other",
+        category: categorizeItemByName(finalItemName),
         unit: "unit",
         requires_scraping: true,
         stores: {
@@ -1403,6 +1403,230 @@ app.post("/api/flipp/add-item", async (req, res) => {
     res.json({ success: false, message: `Error ${error.message || String(error)}` });
   }
 });
+
+function categorizeItemByName(itemName: string): string {
+  const name = itemName.toLowerCase();
+
+  // Produce
+  if (
+    name.includes("mushroom") ||
+    name.includes("onion") ||
+    name.includes("garlic") ||
+    name.includes("potato") ||
+    name.includes("carrot") ||
+    name.includes("tomato") ||
+    name.includes("pepper") ||
+    name.includes("salad") ||
+    name.includes("lettuce") ||
+    name.includes("cabbage") ||
+    name.includes("spinach") ||
+    name.includes("cucumber") ||
+    name.includes("celery") ||
+    name.includes("broccoli") ||
+    name.includes("cauliflower") ||
+    name.includes("zucchini") ||
+    name.includes("squash") ||
+    name.includes("berry") ||
+    name.includes("berries") ||
+    name.includes("strawberry") ||
+    name.includes("blueberry") ||
+    name.includes("raspberry") ||
+    name.includes("banana") ||
+    name.includes("apple") ||
+    name.includes("orange") ||
+    name.includes("lemon") ||
+    name.includes("lime") ||
+    name.includes("grape") ||
+    name.includes("melon") ||
+    name.includes("watermelon") ||
+    name.includes("avocado") ||
+    name.includes("peach") ||
+    name.includes("plum") ||
+    name.includes("pear") ||
+    name.includes("herb") ||
+    name.includes("parsley") ||
+    name.includes("cilantro") ||
+    name.includes("basil") ||
+    name.includes("fruit") ||
+    name.includes("vegetable")
+  ) {
+    return "Fresh Produce";
+  }
+
+  // Dairy & Eggs
+  if (
+    name.includes("milk") ||
+    name.includes("cream") ||
+    name.includes("cheese") ||
+    name.includes("yogurt") ||
+    name.includes("butter") ||
+    name.includes("margarine") ||
+    name.includes("egg") ||
+    name.includes("sour cream") ||
+    name.includes("cottage cheese") ||
+    name.includes("kefir") ||
+    name.includes("dairy")
+  ) {
+    return "Dairy & Eggs";
+  }
+
+  // Bakery & Breads
+  if (
+    name.includes("bread") ||
+    name.includes("bun") ||
+    name.includes("roll") ||
+    name.includes("bagel") ||
+    name.includes("tortilla") ||
+    name.includes("pita") ||
+    name.includes("croissant") ||
+    name.includes("muffin") ||
+    name.includes("cake") ||
+    name.includes("pastry") ||
+    name.includes("pie") ||
+    name.includes("cookie") ||
+    name.includes("donut") ||
+    name.includes("danish") ||
+    name.includes("baguette") ||
+    name.includes("bakery")
+  ) {
+    return "Bakery & Breads";
+  }
+
+  // Meat & Seafood
+  if (
+    name.includes("chicken") ||
+    name.includes("beef") ||
+    name.includes("pork") ||
+    name.includes("turkey") ||
+    name.includes("bacon") ||
+    name.includes("sausage") ||
+    name.includes("ham") ||
+    name.includes("steak") ||
+    name.includes("chop") ||
+    name.includes("rib") ||
+    name.includes("salmon") ||
+    name.includes("shrimp") ||
+    name.includes("fish") ||
+    name.includes("tuna") ||
+    name.includes("seafood") ||
+    name.includes("meat") ||
+    name.includes("lamb") ||
+    name.includes("veal") ||
+    name.includes("burger")
+  ) {
+    return "Meat & Seafood";
+  }
+
+  // Frozen Foods
+  if (
+    name.includes("frozen") ||
+    name.includes("ice cream") ||
+    name.includes("gelato") ||
+    name.includes("sorbet") ||
+    name.includes("waffle") ||
+    name.includes("pizza")
+  ) {
+    return "Frozen Foods";
+  }
+
+  // Snacks & Beverages
+  if (
+    name.includes("chip") ||
+    name.includes("cracker") ||
+    name.includes("pretzel") ||
+    name.includes("popcorn") ||
+    name.includes("nut") ||
+    name.includes("seed") ||
+    name.includes("candy") ||
+    name.includes("chocolate") ||
+    name.includes("gummy") ||
+    name.includes("soda") ||
+    name.includes("pop") ||
+    name.includes("juice") ||
+    name.includes("water") ||
+    name.includes("tea") ||
+    name.includes("coffee") ||
+    name.includes("drink") ||
+    name.includes("beverage") ||
+    name.includes("coke") ||
+    name.includes("pepsi")
+  ) {
+    return "Snacks & Beverages";
+  }
+
+  // Health, Personal & Household
+  if (
+    name.includes("soap") ||
+    name.includes("shampoo") ||
+    name.includes("conditioner") ||
+    name.includes("toothpaste") ||
+    name.includes("toothbrush") ||
+    name.includes("tissue") ||
+    name.includes("toilet paper") ||
+    name.includes("napkin") ||
+    name.includes("detergent") ||
+    name.includes("cleaner") ||
+    name.includes("trash bag") ||
+    name.includes("foil") ||
+    name.includes("wrap") ||
+    name.includes("vitamin") ||
+    name.includes("supplement") ||
+    name.includes("medicine") ||
+    name.includes("lotion") ||
+    name.includes("cream") ||
+    name.includes("deodorant")
+  ) {
+    return "Health, Personal & Household";
+  }
+
+  // Pantry Staples
+  if (
+    name.includes("mayo") ||
+    name.includes("dressing") ||
+    name.includes("sauce") ||
+    name.includes("oil") ||
+    name.includes("vinegar") ||
+    name.includes("spice") ||
+    name.includes("salt") ||
+    name.includes("pepper") ||
+    name.includes("flour") ||
+    name.includes("sugar") ||
+    name.includes("rice") ||
+    name.includes("pasta") ||
+    name.includes("noodle") ||
+    name.includes("cereal") ||
+    name.includes("oat") ||
+    name.includes("soup") ||
+    name.includes("can") ||
+    name.includes("canned") ||
+    name.includes("bean") ||
+    name.includes("honey") ||
+    name.includes("syrup") ||
+    name.includes("spread") ||
+    name.includes("peanut butter") ||
+    name.includes("jam") ||
+    name.includes("jelly") ||
+    name.includes("ketchup") ||
+    name.includes("mustard") ||
+    name.includes("relish") ||
+    name.includes("salsa") ||
+    name.includes("taco") ||
+    name.includes("seasoning") ||
+    name.includes("marinade") ||
+    name.includes("extract") ||
+    name.includes("baking") ||
+    name.includes("yeast") ||
+    name.includes("starch") ||
+    name.includes("broth") ||
+    name.includes("stock") ||
+    name.includes("bouillon") ||
+    name.includes("gravy")
+  ) {
+    return "Pantry Staples";
+  }
+
+  return "Other";
+}
 
 function scoreCatalogMatch(catalogName: string, flippName: string): number {
   const c = catalogName.toLowerCase().replace(/[^a-z0-9\s]/g, "").trim();
