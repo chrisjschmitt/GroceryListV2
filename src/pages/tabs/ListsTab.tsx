@@ -337,10 +337,13 @@ export default function ListsTab() {
                         items.forEach(it => {
                           const isMerchantMatch = (it.merchant_name || "").toLowerCase().includes(storeName.toLowerCase()) || storeName.toLowerCase().includes((it.merchant_name || "").toLowerCase());
                           const color = isMerchantMatch ? "#34d399" : "#94a3b8";
+                          const itemUrl = it.flyer_id
+                            ? 'https://flipp.com/flyer/' + it.flyer_id + '?item_id=' + it.id + '&postal_code=' + postalCode
+                            : 'https://flipp.com/item/' + it.id + '?postal_code=' + postalCode;
                           html += '<div style="margin-bottom: 0.6rem; padding-bottom: 0.4rem; border-bottom: 1px solid rgba(255,255,255,0.03); color: ' + color + ';">' +
                             '[' + it.merchant_name + '] <strong>' + it.name + '</strong><br/>' +
                             'Price: ' + (it.price ? '$' + it.price : 'N/A') + ' | ' +
-                            '<a href="https://flipp.com/item/' + it.id + '?postal_code=' + postalCode + '" target="_blank" style="color: #3b82f6; text-decoration: underline; font-weight: bold;">Open Item ↗</a>' +
+                            '<a href="' + itemUrl + '" target="_blank" style="color: #3b82f6; text-decoration: underline; font-weight: bold;">Open Item ↗</a>' +
                             '</div>';
                         });
                         document.getElementById('debug-results').innerHTML = html;

@@ -1151,7 +1151,9 @@ async function startServer() {
 
         if (merchantItems.length > 0) {
           const bestItem = merchantItems[0];
-          if (bestItem.id) {
+          if (bestItem.id && bestItem.flyer_id) {
+            return res.json({ url: `https://flipp.com/flyer/${bestItem.flyer_id}?item_id=${bestItem.id}&postal_code=${encodeURIComponent(targetPostal)}`, isMatch: true });
+          } else if (bestItem.id) {
             return res.json({ url: `https://flipp.com/item/${bestItem.id}?postal_code=${encodeURIComponent(targetPostal)}`, isMatch: true });
           } else if (bestItem.flyer_id) {
             return res.json({ url: `https://flipp.com/flyer/${bestItem.flyer_id}?postal_code=${encodeURIComponent(targetPostal)}`, isMatch: false });
@@ -1185,7 +1187,9 @@ async function startServer() {
 
             if (secMerchantItems.length > 0) {
               const bestSecItem = secMerchantItems[0];
-              if (bestSecItem.id) {
+              if (bestSecItem.id && bestSecItem.flyer_id) {
+                return res.json({ url: `https://flipp.com/flyer/${bestSecItem.flyer_id}?item_id=${bestSecItem.id}&postal_code=${encodeURIComponent(targetPostal)}`, isMatch: true });
+              } else if (bestSecItem.id) {
                 return res.json({ url: `https://flipp.com/item/${bestSecItem.id}?postal_code=${encodeURIComponent(targetPostal)}`, isMatch: true });
               } else if (bestSecItem.flyer_id) {
                 return res.json({ url: `https://flipp.com/flyer/${bestSecItem.flyer_id}?postal_code=${encodeURIComponent(targetPostal)}`, isMatch: false });

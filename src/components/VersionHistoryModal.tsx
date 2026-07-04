@@ -21,6 +21,19 @@ interface VersionEntry {
 
 const VERSIONS: VersionEntry[] = [
   {
+    version: "1.9.66",
+    date: "July 2026",
+    type: "patch",
+    title: "Flyer-Direct Item Highlight URL Format",
+    changes: [
+      {
+        icon: <Layout className="w-4 h-4 text-emerald-500" />,
+        category: "Flyer Search",
+        description: "Updated Flipp target link resolver to prefer the flyer-direct highlighting format (flipp.com/flyer/:flyer_id?item_id=:item_id) instead of standard item URLs, forcing the browser to correctly highlight the item inside the flyer."
+      }
+    ]
+  },
+  {
     version: "1.9.65",
     date: "July 2026",
     type: "patch",
