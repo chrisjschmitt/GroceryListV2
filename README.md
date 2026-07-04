@@ -2,9 +2,9 @@
 <img width="1200" height="475" alt="GHBanner" src="https://ai.google.dev/static/site-assets/images/share-ais-513315318.png" />
 </div>
 
-# GroceryHub — Intelligent Grocery List
+# BasketWise — Intelligent Grocery List
 
-GroceryHub is a smart, offline-first grocery list application designed to optimize your shopping trips, minimize costs, and maximize savings. It automatically tracks item availability and compares prices across multiple local grocery chains to help you make informed decisions on where to shop.
+BasketWise is a smart, offline-first grocery list application designed to optimize your shopping trips, minimize costs, and maximize savings. It automatically tracks item availability and compares prices across multiple local grocery chains to help you make informed decisions on where to shop.
 
 ---
 
@@ -24,7 +24,7 @@ GroceryHub is a smart, offline-first grocery list application designed to optimi
 
 ## Installation & Setup
 
-Follow these steps to set up and run GroceryHub locally on your machine.
+Follow these steps to set up and run BasketWise locally on your machine.
 
 ### 1. Prerequisites
 
@@ -123,7 +123,7 @@ If a URL fails to load, returns an HTTP `404 Not Found` status, or triggers a bo
 
 ## Flipp Flyer Resolution Engine
 
-GroceryHub features a high-visibility, automated flyer matching engine that locates products or merchants on Flipp.com to show the cashier at checkout. It routes through a local backend proxy (`/api/flipp/resolve`) querying the undocumented internal Wishabi (Flipp) search endpoint.
+BasketWise features a high-visibility, automated flyer matching engine that locates products or merchants on Flipp.com to show the cashier at checkout. It routes through a local backend proxy (`/api/flipp/resolve`) querying the undocumented internal Wishabi (Flipp) search endpoint.
 
 ### Multi-Stage Resolution Workflow
 

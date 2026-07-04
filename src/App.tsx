@@ -52,7 +52,7 @@ export default function App() {
           <div className="w-12 h-12 border-4 border-emerald-500/20 border-t-emerald-500 rounded-full animate-spin mb-6"></div>
           <h2 className="text-xl font-extrabold text-white mb-2">Downloading Update</h2>
           <p className="text-sm text-slate-400">
-            A newer version of GroceryHub is available ({targetVersion}). Downloading assets and updating your application...
+            A newer version of BasketWise is available ({targetVersion}). Downloading assets and updating your application...
           </p>
         </div>
       </div>

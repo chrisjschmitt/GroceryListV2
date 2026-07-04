@@ -24,7 +24,7 @@
   <path d="M 200 265 L 228 295 L 285 225" fill="none" stroke="#000000" stroke-width="22" stroke-linecap="round" stroke-linejoin="round" />
   <path d="M 200 265 L 228 295 L 285 225" fill="none" stroke="#FFFFFF" stroke-width="12" stroke-linecap="round" stroke-linejoin="round" />
   
-  <!-- Accent badge "G" representing GroceryHub -->
+  <!-- Accent badge "B" representing BasketWise -->
   <circle cx="390" cy="110" r="36" fill="#3B82F6" stroke="#000000" stroke-width="10" />
-  <text x="390" y="122" font-family="system-ui, -apple-system, sans-serif" font-weight="900" font-size="34" fill="#FFFFFF" text-anchor="middle">G</text>
+  <text x="390" y="122" font-family="system-ui, -apple-system, sans-serif" font-weight="900" font-size="34" fill="#FFFFFF" text-anchor="middle">B</text>
 </svg>

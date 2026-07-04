@@ -18,7 +18,7 @@ export default function Home() {
             </span>
             <div className="flex items-baseline gap-2">
               <h1 className="text-4xl font-extrabold tracking-tighter">
-                GroceryHub<span className="text-emerald-600">.</span>
+                BasketWise<span className="text-emerald-600">.</span>
               </h1>
             </div>
             <div className="flex items-center gap-2 mt-1.5">

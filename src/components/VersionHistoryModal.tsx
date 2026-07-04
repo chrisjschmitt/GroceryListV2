@@ -21,6 +21,19 @@ interface VersionEntry {
 
 const VERSIONS: VersionEntry[] = [
   {
+    version: "1.9.65",
+    date: "July 2026",
+    type: "patch",
+    title: "Application Rebranding to BasketWise",
+    changes: [
+      {
+        icon: <Tag className="w-4 h-4 text-emerald-500" />,
+        category: "Rebranding",
+        description: "Rebranded the application name from 'GroceryHub' to 'BasketWise' across the user interface headers, page title, manifest configs, and favicon vector badges."
+      }
+    ]
+  },
+  {
     version: "1.9.64",
     date: "July 2026",
     type: "patch",
@@ -1511,7 +1524,7 @@ const VERSIONS: VersionEntry[] = [
     version: "1.0.0",
     date: "May 2026",
     type: "major",
-    title: "GroceryHub Core Launch",
+    title: "BasketWise Core Launch",
     changes: [
       {
         icon: <Database className="w-4 h-4 text-indigo-600" />,

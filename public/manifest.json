@@ -1,6 +1,6 @@
 {
-  "name": "GroceryHub",
-  "short_name": "GroceryHub",
+  "name": "BasketWise",
+  "short_name": "BasketWise",
   "description": "A modern offline-first grocery shopping list with real-time price comparison.",
   "start_url": "/",
   "display": "standalone",
