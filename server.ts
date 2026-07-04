@@ -1284,12 +1284,30 @@ async function startServer() {
         isNewItem = true;
         const cleanedTitle = toTitleCase(cleanName(rawItemName));
         finalItemName = cleanedTitle || toTitleCase(rawItemName);
+
+        const catalogItems = (catalog.items || []).map((item: any) => ({
+          id: item.id,
+          name: item.name,
+          category: item.category,
+          selected: false,
+          unit: item.unit,
+          units: item.units
+        }));
+
+        let matchResult: any = null;
+        try {
+          matchResult = await evaluateGeminiMatch(finalItemName, catalogItems);
+        } catch (err) {
+          console.warn("[Flipp Ingestion] Gemini matching service not available:", err);
+        }
+
+        const proposedCategory = matchResult?.proposed_new_item?.category || categorizeItemByName(finalItemName);
         
         const newId = `regular-unmatched-${Date.now()}-${Math.random().toString(36).substring(2, 7)}`;
         matchedItem = {
           id: newId,
           name: finalItemName,
-          category: categorizeItemByName(finalItemName),
+          category: proposedCategory,
           unit: "unit",
           requires_scraping: true,
           stores: {
