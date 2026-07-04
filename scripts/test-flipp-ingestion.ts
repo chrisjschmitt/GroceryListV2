@@ -123,6 +123,41 @@ const toTitleCase = (str: string): string => {
   }).join(' ');
 };
 
+const scoreCatalogMatch = (catalogName: string, flippName: string): number => {
+  const c = catalogName.toLowerCase().replace(/[^a-z0-9\s]/g, "").trim();
+  const f = flippName.toLowerCase().replace(/[^a-z0-9\s]/g, "").trim();
+
+  if (c === f) return 100; // Exact match
+
+  const cWords = c.split(/\s+/).filter(w => w.length > 1);
+  const fWords = f.split(/\s+/).filter(w => w.length > 1);
+
+  if (cWords.length === 0 || fWords.length === 0) return 0;
+
+  // Count matching words
+  let matches = 0;
+  for (const cw of cWords) {
+    // Handle singular/plural basic match (e.g. mushroom vs mushrooms, apple vs apples)
+    const singularCw = cw.endsWith("s") && cw.length > 3 ? cw.slice(0, -1) : cw;
+    const matched = fWords.some(fw => {
+      const singularFw = fw.endsWith("s") && fw.length > 3 ? fw.slice(0, -1) : fw;
+      return fw === cw || singularFw === singularCw || fw === singularCw || singularFw === cw;
+    });
+    if (matched) {
+      matches++;
+    }
+  }
+
+  if (matches === 0) return 0;
+
+  const overlapRatio = matches / cWords.length;
+  if (overlapRatio < 1.0) {
+    return overlapRatio * 70; // Partial match
+  }
+
+  return 85 + (cWords.length * 2);
+};
+
 // Ingestion Logic Core function for simulation
 async function runIngestionTest(url: string, quantity: number): Promise<string> {
   // Extract item ID
@@ -239,6 +274,18 @@ async function runIngestionTest(url: string, quantity: number): Promise<string> 
     matchedItem = (mockCatalog.items || []).find((item: any) => 
       cleanName(item.name) === targetClean
     );
+  }
+
+  if (!matchedItem) {
+    const scoredCandidates = (mockCatalog.items || []).map((item: any) => {
+      const score = scoreCatalogMatch(item.name, rawItemName);
+      return { item, score };
+    }).filter(c => c.score >= 80);
+
+    if (scoredCandidates.length > 0) {
+      scoredCandidates.sort((a, b) => b.score - a.score);
+      matchedItem = scoredCandidates[0].item;
+    }
   }
 
   let isNewItem = false;
