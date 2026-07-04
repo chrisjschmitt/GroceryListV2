@@ -1091,6 +1091,292 @@ async function startServer() {
     }
   });
 
+  // Handle preflight for flipp/add-item
+  app.options("/api/flipp/add-item", (req, res) => {
+    res.setHeader("Access-Control-Allow-Origin", "*");
+    res.setHeader("Access-Control-Allow-Headers", "Content-Type, X-GroceryScout-Token");
+    res.setHeader("Access-Control-Allow-Methods", "POST, OPTIONS");
+    res.status(204).end();
+  });
+
+  // POST /api/flipp/add-item
+  app.post("/api/flipp/add-item", async (req, res) => {
+    res.setHeader("Access-Control-Allow-Origin", "*");
+    res.setHeader("Access-Control-Allow-Headers", "Content-Type, X-GroceryScout-Token");
+    res.setHeader("Access-Control-Allow-Methods", "POST, OPTIONS");
+
+    // Security check
+    const token = req.headers["x-groceryscout-token"];
+    const secretToken = process.env.GROCERY_SECRET_TOKEN || 
+                        process.env.Grocery_SECRET_TOKEN || 
+                        process.env.grocery_secret_token;
+    if (!secretToken || token !== secretToken) {
+      res.status(401).json({ error: "Unauthorized: Missing or invalid secure authentication credentials" });
+      return;
+    }
+
+    try {
+      const { url, quantity: rawQuantity } = req.body;
+      if (!url || typeof url !== "string") {
+        res.status(400).json({ error: "Error: 'url' parameter must be a valid string." });
+        return;
+      }
+      const quantity = typeof rawQuantity === "number" && rawQuantity > 0 ? rawQuantity : 1;
+
+      // Extract item ID
+      const match = url.match(/\/item\/(\d+)/);
+      if (!match) {
+        res.status(400).json({ error: "Error: Invalid Flipp item URL structure." });
+        return;
+      }
+      const itemId = match[1];
+
+      // Fetch Flipp details
+      const flippApiUrl = `https://backflipp.wishabi.com/flipp/items/${itemId}`;
+      console.log(`[Flipp Ingestion] Fetching item details from Flipp API: ${flippApiUrl}`);
+      const flippRes = await fetch(flippApiUrl, {
+        headers: {
+          "User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
+        }
+      });
+
+      if (!flippRes.ok) {
+        res.status(502).json({ error: `Error: Failed to fetch item details from Flipp API. Status: ${flippRes.status}` });
+        return;
+      }
+
+      const flippData: any = await flippRes.json();
+      if (!flippData || !flippData.item) {
+        res.status(404).json({ error: "Error: Item not found in Flipp database." });
+        return;
+      }
+
+      const fItem = flippData.item;
+      const rawMerchant = fItem.merchant || "";
+      const rawItemName = fItem.name || "";
+      const saleVal = typeof fItem.current_price === "number" 
+        ? fItem.current_price 
+        : (fItem.current_price ? parseFloat(String(fItem.current_price).replace(/[^0-9.]/g, "")) : null);
+      const regVal = typeof fItem.original_price === "number" 
+        ? fItem.original_price 
+        : (fItem.original_price ? parseFloat(String(fItem.original_price).replace(/[^0-9.]/g, "")) : null);
+      const validTo = fItem.valid_to || "";
+
+      // Normalize merchant to Store ID
+      const normalizeMerchantToStoreId = (mName: string): string | null => {
+        const m = mName.toLowerCase().trim();
+        if (m.includes("food basics") || m.includes("foodbasics")) return "foodbasics";
+        if (m === "metro") return "metro";
+        if (m.includes("freshco") || m.includes("fresh co")) return "freshco";
+        if (m.includes("no frills") || m.includes("nofrills")) return "nofrills";
+        if (m === "walmart") return "walmart";
+        if (m === "loblaws") return "loblaws";
+        if (m.includes("independent grocer") || m === "yourindependentgrocer") return "yourindependentgrocer";
+        if (m.includes("canadian tire") || m.includes("canadiantire")) return "canadiantire";
+        return null;
+      };
+
+      const storeId = normalizeMerchantToStoreId(rawMerchant);
+      if (!storeId) {
+        res.status(200).json({ success: false, message: "Store not setup for this item" });
+        return;
+      }
+
+      // Read catalog configuration
+      const catalog = await blobGetCombinedCatalog();
+      if (!catalog.stores || !catalog.stores[storeId]) {
+        res.status(200).json({ success: false, message: "Store not setup for this item" });
+        return;
+      }
+
+      // Name cleaning and title casing helpers
+      const cleanName = (n: string): string => {
+        return n.toLowerCase()
+                .replace(/\b\d+(?:g|kg|ml|l|oz|lb|s|'s|pk|pack|pcs|pieces)\b/gi, "")
+                .replace(/\b(selected varieties|product of canada|each|weekly ad)\b/gi, "")
+                .replace(/\s+/g, " ")
+                .trim();
+      };
+
+      const toTitleCase = (str: string): string => {
+        return str.toLowerCase().split(' ').map(word => {
+          return word.charAt(0).toUpperCase() + word.slice(1);
+        }).join(' ');
+      };
+
+      // Search matching item in catalog
+      let matchedItem = (catalog.items || []).find((item: any) => {
+        return Object.values(item.stores || {}).some((s: any) => 
+          s && (s.flipp_url === url || s.url === url || String(s.upc) === String(itemId))
+        );
+      });
+
+      if (!matchedItem) {
+        matchedItem = (catalog.items || []).find((item: any) => 
+          item.name.toLowerCase() === rawItemName.toLowerCase()
+        );
+      }
+
+      if (!matchedItem) {
+        const targetClean = cleanName(rawItemName);
+        matchedItem = (catalog.items || []).find((item: any) => 
+          cleanName(item.name) === targetClean
+        );
+      }
+
+      let isNewItem = false;
+      let priceUpdated = false;
+      let finalItemName = "";
+
+      const formattedExpiry = validTo ? validTo.split("T")[0] : "";
+
+      if (matchedItem) {
+        finalItemName = matchedItem.name;
+        // Verify store pricing link
+        const existingStore = matchedItem.stores?.[storeId];
+        if (!existingStore) {
+          priceUpdated = true; // store pricing is newly configured, treat as "price updated"
+          if (!matchedItem.stores) matchedItem.stores = {};
+          matchedItem.stores[storeId] = {
+            url: url,
+            flipp_url: url,
+            upc: itemId,
+            regular_price: regVal !== null ? regVal : saleVal,
+            sale_price: saleVal,
+            is_on_sale: 1,
+            valid_until: formattedExpiry,
+            in_flyer: 1,
+            is_verified: true,
+            track_pricing: true
+          };
+        } else {
+          // Compare pricing
+          const matchesPricing = existingStore.sale_price === saleVal && existingStore.regular_price === (regVal !== null ? regVal : existingStore.regular_price);
+          if (!matchesPricing || existingStore.flipp_url !== url) {
+            priceUpdated = true;
+            matchedItem.stores[storeId] = {
+              ...existingStore,
+              flipp_url: url,
+              regular_price: regVal !== null ? regVal : (existingStore.regular_price !== undefined && existingStore.regular_price !== null ? existingStore.regular_price : saleVal),
+              sale_price: saleVal,
+              is_on_sale: 1,
+              valid_until: formattedExpiry || existingStore.valid_until,
+              in_flyer: 1,
+              is_verified: true,
+              track_pricing: true
+            };
+          }
+        }
+      } else {
+        isNewItem = true;
+        const cleanedTitle = toTitleCase(cleanName(rawItemName));
+        finalItemName = cleanedTitle || toTitleCase(rawItemName);
+        
+        const newId = `regular-unmatched-${Date.now()}-${Math.random().toString(36).substring(2, 7)}`;
+        matchedItem = {
+          id: newId,
+          name: finalItemName,
+          category: "Other",
+          unit: "unit",
+          requires_scraping: true,
+          stores: {
+            [storeId]: {
+              url: url,
+              flipp_url: url,
+              upc: itemId,
+              regular_price: regVal !== null ? regVal : saleVal,
+              sale_price: saleVal,
+              is_on_sale: 1,
+              valid_until: formattedExpiry,
+              in_flyer: 1,
+              is_verified: true,
+              track_pricing: true
+            }
+          }
+        };
+        if (!catalog.items) catalog.items = [];
+        catalog.items.push(matchedItem);
+      }
+
+      // Persist Catalog updates if anything changed
+      if (isNewItem || priceUpdated) {
+        await blobSetCombinedCatalog(catalog);
+        console.log(`[Flipp Ingestion] Persisted catalog updates for item: ${finalItemName}`);
+
+        // Sync MongoDB prices collection
+        try {
+          const { db } = await getMongoDatabase();
+          const pricesCollection = db.collection("prices");
+          const storeConfig = matchedItem.stores[storeId];
+          await pricesCollection.updateOne(
+            { _id: itemId },
+            {
+              $set: {
+                _id: itemId,
+                store_id: storeId,
+                store_name: catalog.stores[storeId]?.store_name || rawMerchant,
+                config_name: finalItemName,
+                item_name: finalItemName,
+                matched_catalog_id: matchedItem.id,
+                regular_price: storeConfig.regular_price,
+                sale_price: storeConfig.sale_price,
+                is_on_sale: true,
+                valid_until: storeConfig.valid_until,
+                flipp_url: url,
+                url: storeConfig.url || url,
+                upc: itemId,
+                synchronized_at: new Date()
+              }
+            },
+            { upsert: true }
+          );
+          console.log(`[Flipp Ingestion] Synced MongoDB prices collection for item ID: ${itemId}`);
+        } catch (dbErr: any) {
+          console.warn(`[Flipp Ingestion] MongoDB sync warning: ${dbErr.message}`);
+        }
+      }
+
+      // Update Shopping list (groceryItems)
+      const groceryItems = await blobGetGroceryItems();
+      const existingListItem = groceryItems.find(i => i.name.toLowerCase().trim() === finalItemName.toLowerCase().trim());
+      if (existingListItem) {
+        existingListItem.quantity += quantity;
+      } else {
+        const newListItem: any = {
+          id: `item-${Date.now()}-${Math.random().toString(36).slice(2, 9)}`,
+          name: finalItemName,
+          category: matchedItem.category || "Other",
+          quantity: quantity,
+          unit: matchedItem.unit || "unit",
+          units: matchedItem.units,
+          checked: false,
+          prices: [],
+          bestPrice: undefined,
+          createdAt: new Date().toISOString()
+        };
+        groceryItems.push(newListItem);
+      }
+      await blobSetGroceryItems(groceryItems);
+      await blobUpdateSyncMeta("Flipp-Ingestion-API").catch(() => {});
+
+      // Build return messages
+      let responseMsg = "";
+      if (isNewItem) {
+        responseMsg = `Item ${finalItemName} and added to catalog and shopping list`;
+      } else if (priceUpdated) {
+        responseMsg = `Item ${finalItemName} added to grocery list (price updated)`;
+      } else {
+        responseMsg = `Item ${finalItemName} added to grocery list`;
+      }
+
+      console.log(`[Flipp Ingestion] Ingestion complete: "${responseMsg}"`);
+      res.json({ success: true, message: responseMsg });
+    } catch (error: any) {
+      console.error("[Flipp Ingestion] Ingestion Error:", error);
+      res.json({ success: false, message: `Error ${error.message || String(error)}` });
+    }
+  });
+
   function scoreFlippItem(flippName: string, originalName: string): number {
     const f = flippName.toLowerCase();
     const o = originalName.toLowerCase();

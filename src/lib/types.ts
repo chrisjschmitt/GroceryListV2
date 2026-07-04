@@ -109,6 +109,8 @@ export interface CombinedStoreLink {
   track_pricing?: boolean;
   external_name?: string;
   is_verified?: boolean;
+  flipp_url?: string;
+  in_flyer?: number;
 }
 
 export interface CombinedCatalogItem {

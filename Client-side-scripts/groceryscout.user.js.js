@@ -20,6 +20,8 @@
 // @match        https://canadiantire.ca/*
 // @match        https://*.flipp.ca/*
 // @match        https://flipp.ca/*
+// @match        https://*.flipp.com/*
+// @match        https://flipp.com/*
 // @match        https://*.yourindependentgrocer.ca/*
 // @match        https://yourindependentgrocer.ca/*
 // @connect      ais-dev-kynlhucnvvzplwokihj56s-569102779948.us-west2.run.app
@@ -30,6 +32,75 @@
 
 (function () {
     'use strict';
+
+    const isFlipp = window.location.hostname.includes("flipp.ca") || window.location.hostname.includes("flipp.com");
+
+    if (isFlipp) {
+        // Flipp Ingestion UI flow: floating action button in the bottom right corner
+        const flippBtn = document.createElement('button');
+        flippBtn.innerHTML = '⚡ Add to BasketWise';
+        flippBtn.style = 'position:fixed; bottom:30px; right:30px; z-index:999999; background:#10b981; color:white; padding:14px 20px; border-radius:10px; font-family:system-ui, -apple-system, sans-serif; font-weight:bold; border:none; box-shadow:0 4px 14px rgba(0,0,0,0.3); cursor:pointer; font-size:14px; display:none;';
+        document.body.appendChild(flippBtn);
+
+        // Check URL periodically for item detail pages
+        setInterval(() => {
+            const isItemPage = window.location.href.includes("/item/");
+            flippBtn.style.display = isItemPage ? 'block' : 'none';
+        }, 1000);
+
+        flippBtn.onclick = function() {
+            const rawQuantity = prompt("Enter quantity to add to Shopping List:", "1");
+            if (rawQuantity === null) return; // User cancelled
+            const quantity = parseInt(rawQuantity);
+            if (isNaN(quantity) || quantity <= 0) {
+                alert("Invalid quantity. Please enter a positive number.");
+                return;
+            }
+
+            flippBtn.disabled = true;
+            flippBtn.innerHTML = '⏳ Adding...';
+
+            GM_xmlhttpRequest({
+                method: "POST",
+                url: "https://grocery-list-v2-navy.vercel.app/api/flipp/add-item",
+                headers: {
+                    "Content-Type": "application/json",
+                    "X-GroceryScout-Token": "GroceryHub2026"
+                },
+                data: JSON.stringify({
+                    url: window.location.href,
+                    quantity: quantity
+                }),
+                onload: function(response) {
+                    flippBtn.disabled = false;
+                    flippBtn.innerHTML = '⚡ Add to BasketWise';
+                    console.log("[Flipp Ingestion Client] Status:", response.status);
+                    console.log("[Flipp Ingestion Client] Response:", response.responseText);
+                    
+                    try {
+                        const resData = JSON.parse(response.responseText);
+                        if (resData && resData.message) {
+                            alert(resData.message);
+                        } else if (resData && resData.error) {
+                            alert(resData.error);
+                        } else {
+                            alert("Successfully sent item to list.");
+                        }
+                    } catch (e) {
+                        alert(response.responseText || "Sent item to BasketWise List.");
+                    }
+                },
+                onerror: function(err) {
+                    flippBtn.disabled = false;
+                    flippBtn.innerHTML = '⚡ Add to BasketWise';
+                    alert("Error communicating with BasketWise server: " + (err.message || String(err)));
+                }
+            });
+        };
+
+        // Exit immediately so retailer page hooks are not run on Flipp
+        return;
+    }
 
     // 1. Strict Mapping Dictionary matching regular-items.json EXACTLY (as fallback)
     let CANONICAL_NAMES = [

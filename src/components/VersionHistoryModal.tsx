@@ -21,6 +21,29 @@ interface VersionEntry {
 
 const VERSIONS: VersionEntry[] = [
   {
+    version: "1.9.68",
+    date: "July 2026",
+    type: "minor",
+    title: "Add Items Directly from Flipp Flyer Page",
+    changes: [
+      {
+        icon: <Zap className="w-4 h-4 text-emerald-500" />,
+        category: "Flyer Ingestion",
+        description: "Implemented backend API POST /api/flipp/add-item supporting direct flyer item extraction, store normalization, catalog auditing/creation, quantity aggregation, and shopping list integration."
+      },
+      {
+        icon: <Layout className="w-4 h-4 text-emerald-500" />,
+        category: "Flyer Ingestion",
+        description: "Extended openFlyerForStoreItem on frontend lists tab to bypass query resolution entirely and open direct Flipp URLs when active and unexpired."
+      },
+      {
+        icon: <Smartphone className="w-4 h-4 text-emerald-500" />,
+        category: "TamperMonkey Script",
+        description: "Updated the unified GroceryScout UserScript to support flipp.com matches and inject a floating 'Add to BasketWise' button on Flipp item detail views."
+      }
+    ]
+  },
+  {
     version: "1.9.67",
     date: "July 2026",
     type: "patch",

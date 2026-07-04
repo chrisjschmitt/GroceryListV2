@@ -116,8 +116,22 @@ export default function ListsTab() {
     configName?: string,
     postalCode?: string,
     scrapedName?: string,
-    storeUrl?: string
+    storeUrl?: string,
+    flippUrl?: string,
+    validUntil?: string
   ) => {
+    // Check if we have an active, non-expired flipp_url in the database
+    const isSaleExpired = (dateStr?: string): boolean => {
+      if (!dateStr) return false;
+      const today = new Date().toISOString().split("T")[0];
+      return dateStr < today;
+    };
+
+    if (flippUrl && (!validUntil || !isSaleExpired(validUntil))) {
+      window.open(flippUrl, "_blank");
+      return;
+    }
+
     const newTab = window.open("about:blank", "_blank");
     if (!newTab) return;
     newTab.document.write(`
@@ -976,7 +990,9 @@ export default function ListsTab() {
                                         priceInfo?.config_name,
                                         bestCompetitorInfo?.postal_code || priceInfo?.postal_code,
                                         bestCompetitorInfo?.brand_name || priceInfo?.brand_name || priceInfo?.item_name || bestCompetitorInfo?.item_name,
-                                        bestCompetitorInfo?.lookup_url || priceInfo?.lookup_url
+                                        bestCompetitorInfo?.lookup_url || priceInfo?.lookup_url,
+                                        bestCompetitorInfo?.flipp_url || priceInfo?.flipp_url,
+                                        bestCompetitorInfo?.valid_until || priceInfo?.valid_until
                                       );
                                     }}
                                     className="text-[8px] font-black uppercase bg-emerald-600 hover:bg-emerald-700 text-white border border-emerald-500 px-1 py-0.2 rounded-sm shadow-[0.5px_0.5px_0px_rgba(0,0,0,0.1)] flex items-center gap-0.5 hover:underline cursor-pointer text-center"
@@ -1149,7 +1165,9 @@ export default function ListsTab() {
                                       priceInfo?.config_name,
                                       bestCompetitorInfo?.postal_code || priceInfo?.postal_code,
                                       bestCompetitorInfo?.brand_name || priceInfo?.brand_name || priceInfo?.item_name || bestCompetitorInfo?.item_name,
-                                      bestCompetitorInfo?.lookup_url || priceInfo?.lookup_url
+                                      bestCompetitorInfo?.lookup_url || priceInfo?.lookup_url,
+                                      bestCompetitorInfo?.flipp_url || priceInfo?.flipp_url,
+                                      bestCompetitorInfo?.valid_until || priceInfo?.valid_until
                                     );
                                   }}
                                   className="flex items-center gap-1.5 px-3 py-1.5 bg-emerald-50 hover:bg-emerald-100 border border-emerald-250 text-emerald-700 rounded-md transition-colors font-bold text-xs"

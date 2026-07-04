@@ -1,0 +1,399 @@
+// scripts/test-flipp-ingestion.ts
+import { CombinedCatalog, GroceryItem } from "./src/lib/types";
+
+// Mock Combined Catalog data
+let mockCatalog: CombinedCatalog = {
+  stores: {
+    "foodbasics": {
+      enabled: true,
+      store_name: "Food Basics",
+      base_url: "https://www.foodbasics.ca",
+      postal_code: "K7H3C6",
+      store_id: "Food Basics"
+    },
+    "metro": {
+      enabled: true,
+      store_name: "Metro Perth",
+      base_url: "https://www.metro.ca",
+      postal_code: "K7H3C6",
+      store_id: "metro"
+    }
+  },
+  items: [
+    {
+      id: "catalog-exists-matching",
+      name: "White Cremini Mushrooms",
+      category: "Fresh Produce",
+      unit: "unit",
+      requires_scraping: true,
+      stores: {
+        "foodbasics": {
+          url: "https://foodbasics.ca/mushrooms",
+          flipp_url: "https://flipp.com/en-ca/perth-on/item/999002-food-basics-weekly-ad",
+          upc: "999002",
+          regular_price: 2.99,
+          sale_price: 1.99,
+          is_on_sale: 1,
+          valid_until: "2026-07-10",
+          track_pricing: true,
+          external_name: "WHITE CREMINI MUSHROOMS",
+          is_verified: true,
+          in_flyer: 1
+        }
+      }
+    },
+    {
+      id: "catalog-exists-mismatched",
+      name: "Cashmere Tissue",
+      category: "Household",
+      unit: "unit",
+      requires_scraping: true,
+      stores: {
+        "foodbasics": {
+          url: "https://foodbasics.ca/cashmere",
+          flipp_url: "https://flipp.com/en-ca/perth-on/item/999003-food-basics-weekly-ad",
+          upc: "999003",
+          regular_price: 2.99,
+          sale_price: 1.99, // old price
+          is_on_sale: 1,
+          valid_until: "2026-07-01", // old expiry
+          track_pricing: true,
+          external_name: "CASHMERE TISSUE",
+          is_verified: true,
+          in_flyer: 1
+        }
+      }
+    },
+    {
+      id: "catalog-exists-no-store",
+      name: "Purfiltre Milk 2%",
+      category: "Dairy",
+      unit: "unit",
+      requires_scraping: true,
+      stores: {
+        "foodbasics": {
+          url: "https://foodbasics.ca/purfiltre",
+          flipp_url: "https://flipp.com/en-ca/perth-on/item/999004-food-basics-weekly-ad",
+          upc: "999004",
+          regular_price: 5.99,
+          sale_price: 4.99,
+          is_on_sale: 1,
+          valid_until: "2026-07-10",
+          track_pricing: true,
+          external_name: "Purfiltre Milk 2%",
+          is_verified: true,
+          in_flyer: 1
+        }
+        // "metro" is missing store configuration
+      }
+    }
+  ]
+};
+
+// Mock Grocery List data
+let mockGroceryItems: GroceryItem[] = [];
+
+// URL Normalizer to ignore query parameters and protocols
+const normalizeUrl = (u: string): string => {
+  if (!u) return "";
+  let norm = u.toLowerCase().trim();
+  norm = norm.replace(/^https?:\/\//, "").replace(/^www\./, "");
+  const qIdx = norm.indexOf("?");
+  if (qIdx !== -1) {
+    norm = norm.substring(0, qIdx);
+  }
+  if (norm.endsWith("/")) {
+    norm = norm.slice(0, -1);
+  }
+  return norm;
+};
+
+// Name cleaning and title casing helpers
+const cleanName = (n: string): string => {
+  return n.toLowerCase()
+          .replace(/\b\d+(?:g|kg|ml|l|oz|lb|s|'s|pk|pack|pcs|pieces)\b/gi, "")
+          .replace(/\b(selected varieties|product of canada|each|weekly ad)\b/gi, "")
+          .replace(/\s+/g, " ")
+          .trim();
+};
+
+const toTitleCase = (str: string): string => {
+  return str.toLowerCase().split(' ').map(word => {
+    return word.charAt(0).toUpperCase() + word.slice(1);
+  }).join(' ');
+};
+
+// Ingestion Logic Core function for simulation
+async function runIngestionTest(url: string, quantity: number): Promise<string> {
+  // Extract item ID
+  const match = url.match(/\/item\/(\d+)/);
+  if (!match) {
+    throw new Error("Error: Invalid Flipp item URL structure.");
+  }
+  const itemId = match[1];
+
+  // Fetch Flipp details via Mocked Fetch Database
+  let flippData: any = null;
+  if (itemId === "999001") {
+    flippData = {
+      item: {
+        id: 999001,
+        merchant: "Sears Store",
+        name: "Unsupported Item",
+        current_price: 10.99,
+        original_price: null,
+        valid_to: "2026-07-10T23:59:59-04:00"
+      }
+    };
+  } else if (itemId === "999002") {
+    flippData = {
+      item: {
+        id: 999002,
+        merchant: "Food Basics",
+        name: "WHITE CREMINI MUSHROOMS",
+        current_price: 1.99,
+        original_price: 2.99,
+        valid_to: "2026-07-10T23:59:59-04:00"
+      }
+    };
+  } else if (itemId === "999003") {
+    flippData = {
+      item: {
+        id: 999003,
+        merchant: "Food Basics",
+        name: "CASHMERE TISSUE",
+        current_price: 1.49, // Updated sale price
+        original_price: 2.99,
+        valid_to: "2026-07-10T23:59:59-04:00"
+      }
+    };
+  } else if (itemId === "999004") {
+    flippData = {
+      item: {
+        id: 999004,
+        merchant: "Metro", // Metropolitan area store
+        name: "Purfiltre Milk 2%",
+        current_price: 4.88,
+        original_price: 5.99,
+        valid_to: "2026-07-10T23:59:59-04:00"
+      }
+    };
+  } else if (itemId === "999005") {
+    flippData = {
+      item: {
+        id: 999005,
+        merchant: "Food Basics",
+        name: "NATREL ORGANIC MILK 1%",
+        current_price: 5.49,
+        original_price: 6.49,
+        valid_to: "2026-07-10T23:59:59-04:00"
+      }
+    };
+  }
+
+  if (!flippData || !flippData.item) {
+    throw new Error("Error: Item not found in Flipp database.");
+  }
+
+  const fItem = flippData.item;
+  const rawMerchant = fItem.merchant || "";
+  const rawItemName = fItem.name || "";
+  const saleVal = fItem.current_price;
+  const regVal = fItem.original_price;
+  const validTo = fItem.valid_to || "";
+
+  // Normalize merchant to Store ID
+  const normalizeMerchantToStoreId = (mName: string): string | null => {
+    const m = mName.toLowerCase().trim();
+    if (m.includes("food basics") || m.includes("foodbasics")) return "foodbasics";
+    if (m === "metro") return "metro";
+    if (m.includes("freshco") || m.includes("fresh co")) return "freshco";
+    if (m.includes("no frills") || m.includes("nofrills")) return "nofrills";
+    if (m === "walmart") return "walmart";
+    if (m === "loblaws") return "loblaws";
+    if (m.includes("independent grocer") || m === "yourindependentgrocer") return "yourindependentgrocer";
+    if (m.includes("canadian tire") || m.includes("canadiantire")) return "canadiantire";
+    return null;
+  };
+
+  const storeId = normalizeMerchantToStoreId(rawMerchant);
+  if (!storeId || !mockCatalog.stores[storeId]) {
+    return "Store not setup for this item";
+  }
+
+  // Search matching item in catalog
+  let matchedItem = (mockCatalog.items || []).find((item: any) => {
+    return Object.values(item.stores || {}).some((s: any) => 
+      s && (normalizeUrl(s.flipp_url) === normalizeUrl(url) || normalizeUrl(s.url) === normalizeUrl(url) || String(s.upc) === String(itemId))
+    );
+  });
+
+  if (!matchedItem) {
+    matchedItem = (mockCatalog.items || []).find((item: any) => 
+      item.name.toLowerCase() === rawItemName.toLowerCase()
+    );
+  }
+
+  if (!matchedItem) {
+    const targetClean = cleanName(rawItemName);
+    matchedItem = (mockCatalog.items || []).find((item: any) => 
+      cleanName(item.name) === targetClean
+    );
+  }
+
+  let isNewItem = false;
+  let priceUpdated = false;
+  let finalItemName = "";
+
+  const formattedExpiry = validTo ? validTo.split("T")[0] : "";
+
+  if (matchedItem) {
+    finalItemName = matchedItem.name;
+    const existingStore = matchedItem.stores?.[storeId];
+    if (!existingStore) {
+      priceUpdated = true;
+      if (!matchedItem.stores) matchedItem.stores = {};
+      matchedItem.stores[storeId] = {
+        url: url,
+        flipp_url: url,
+        upc: itemId,
+        regular_price: regVal !== null ? regVal : saleVal,
+        sale_price: saleVal,
+        is_on_sale: 1,
+        valid_until: formattedExpiry,
+        in_flyer: 1,
+        is_verified: true,
+        track_pricing: true
+      };
+    } else {
+      const matchesPricing = existingStore.sale_price === saleVal && existingStore.regular_price === (regVal !== null ? regVal : existingStore.regular_price);
+      const matchesUrl = normalizeUrl(existingStore.flipp_url) === normalizeUrl(url);
+      if (!matchesPricing || !matchesUrl) {
+        priceUpdated = true;
+        matchedItem.stores[storeId] = {
+          ...existingStore,
+          flipp_url: url,
+          regular_price: regVal !== null ? regVal : (existingStore.regular_price !== undefined && existingStore.regular_price !== null ? existingStore.regular_price : saleVal),
+          sale_price: saleVal,
+          is_on_sale: 1,
+          valid_until: formattedExpiry || existingStore.valid_until,
+          in_flyer: 1,
+          is_verified: true,
+          track_pricing: true
+        };
+      }
+    }
+  } else {
+    isNewItem = true;
+    const cleanedTitle = toTitleCase(cleanName(rawItemName));
+    finalItemName = cleanedTitle || toTitleCase(rawItemName);
+    
+    const newId = `regular-unmatched-${Date.now()}`;
+    matchedItem = {
+      id: newId,
+      name: finalItemName,
+      category: "Other",
+      unit: "unit",
+      requires_scraping: true,
+      stores: {
+        [storeId]: {
+          url: url,
+          flipp_url: url,
+          upc: itemId,
+          regular_price: regVal !== null ? regVal : saleVal,
+          sale_price: saleVal,
+          is_on_sale: 1,
+          valid_until: formattedExpiry,
+          in_flyer: 1,
+          is_verified: true,
+          track_pricing: true
+        }
+      }
+    };
+    if (!mockCatalog.items) mockCatalog.items = [];
+    mockCatalog.items.push(matchedItem);
+  }
+
+  // Update mock shopping list
+  const existingListItem = mockGroceryItems.find(i => i.name.toLowerCase().trim() === finalItemName.toLowerCase().trim());
+  if (existingListItem) {
+    existingListItem.quantity += quantity;
+  } else {
+    const newListItem: any = {
+      id: `item-${Date.now()}`,
+      name: finalItemName,
+      category: matchedItem.category || "Other",
+      quantity: quantity,
+      unit: matchedItem.unit || "unit",
+      units: matchedItem.units,
+      checked: false,
+      prices: [],
+      bestPrice: undefined,
+      createdAt: new Date().toISOString()
+    };
+    mockGroceryItems.push(newListItem);
+  }
+
+  if (isNewItem) {
+    return `Item ${finalItemName} and added to catalog and shopping list`;
+  } else if (priceUpdated) {
+    return `Item ${finalItemName} added to grocery list (price updated)`;
+  } else {
+    return `Item ${finalItemName} added to grocery list`;
+  }
+}
+
+// Verification Test suite
+async function runTests() {
+  console.log("=== STARTING FLIPP INGESTION UNIT TESTS ===\n");
+  
+  // Scenario 1: Attempting to add an item for which the store has not yet been configured
+  const res1 = await runIngestionTest("https://flipp.com/en-ca/perth-on/item/999001-sears-ad?postal_code=K7H3C6", 1);
+  console.log(`Scenario 1 (Unsupported Store):`);
+  console.log(`  Expected: "Store not setup for this item"`);
+  console.log(`  Actual:   "${res1}"`);
+  console.log(res1 === "Store not setup for this item" ? "  ✅ PASS" : "  ❌ FAIL");
+  console.log();
+
+  // Scenario 2: Adding an item to the shopping list for which the item exists, and the pricing matches
+  const res2 = await runIngestionTest("https://flipp.com/en-ca/perth-on/item/999002-food-basics-weekly-ad?postal_code=K7H3C6", 1);
+  console.log(`Scenario 2 (Exact Pricing Match):`);
+  console.log(`  Expected: "Item White Cremini Mushrooms added to grocery list"`);
+  console.log(`  Actual:   "${res2}"`);
+  console.log(res2 === "Item White Cremini Mushrooms added to grocery list" ? "  ✅ PASS" : "  ❌ FAIL");
+  console.log(`  List Quantity: ${mockGroceryItems.find(i => i.name === "White Cremini Mushrooms")?.quantity}`);
+  console.log();
+
+  // Scenario 3: Adding an item to the shopping list for which the item exists, but the store pricing doesn't match
+  const res3 = await runIngestionTest("https://flipp.com/en-ca/perth-on/item/999003-food-basics-weekly-ad?postal_code=K7H3C6", 2);
+  console.log(`Scenario 3 (Mismatched Pricing Update):`);
+  console.log(`  Expected: "Item Cashmere Tissue added to grocery list (price updated)"`);
+  console.log(`  Actual:   "${res3}"`);
+  console.log(res3 === "Item Cashmere Tissue added to grocery list (price updated)" ? "  ✅ PASS" : "  ❌ FAIL");
+  console.log(`  List Quantity: ${mockGroceryItems.find(i => i.name === "Cashmere Tissue")?.quantity}`);
+  console.log(`  New Sale Price: ${mockCatalog.items.find(i => i.name === "Cashmere Tissue")?.stores["foodbasics"]?.sale_price}`);
+  console.log();
+
+  // Scenario 4: Adding an item to the shopping list for which the item exists, but there is no store pricing configured
+  const res4 = await runIngestionTest("https://flipp.com/en-ca/perth-on/item/999004-metro-weekly-ad?postal_code=K7H3C6", 1);
+  console.log(`Scenario 4 (No Store Pricing Configured):`);
+  console.log(`  Expected: "Item Purfiltre Milk 2% added to grocery list (price updated)"`);
+  console.log(`  Actual:   "${res4}"`);
+  console.log(res4 === "Item Purfiltre Milk 2% added to grocery list (price updated)" ? "  ✅ PASS" : "  ❌ FAIL");
+  console.log(`  Metro Sale Price Created: ${mockCatalog.items.find(i => i.name === "Purfiltre Milk 2%")?.stores["metro"]?.sale_price}`);
+  console.log();
+
+  // Scenario 5: Adding an item in the shopping list for which the item does not exist, is created, with store pricing added
+  const res5 = await runIngestionTest("https://flipp.com/en-ca/perth-on/item/999005-food-basics-weekly-ad?postal_code=K7H3C6", 3);
+  console.log(`Scenario 5 (Brand New Item Created):`);
+  console.log(`  Expected: "Item Natrel Organic Milk 1% and added to catalog and shopping list"`);
+  console.log(`  Actual:   "${res5}"`);
+  console.log(res5 === "Item Natrel Organic Milk 1% and added to catalog and shopping list" ? "  ✅ PASS" : "  ❌ FAIL");
+  console.log(`  Newly Created Catalog Entry:`, JSON.stringify(mockCatalog.items.find(i => i.name === "Natrel Organic Milk 1%"), null, 2));
+  console.log(`  New Item List Quantity: ${mockGroceryItems.find(i => i.name === "Natrel Organic Milk 1%")?.quantity}`);
+  console.log();
+
+  console.log("=== TESTS COMPLETE ===");
+}
+
+runTests();
