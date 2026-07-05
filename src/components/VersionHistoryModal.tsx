@@ -21,6 +21,29 @@ interface VersionEntry {
 
 const VERSIONS: VersionEntry[] = [
   {
+    version: "2.0.0",
+    date: "July 2026",
+    type: "major",
+    title: "Multi-Product Flyer Ingestion & Expired Price Safeguards",
+    changes: [
+      {
+        icon: <Sparkles className="w-4 h-4 text-emerald-500" />,
+        category: "Flyer Ingestion",
+        description: "Implemented Gemini-driven multi-product parsing to automatically split conjoined flyer items (e.g. brands and alternative items) and add them separately."
+      },
+      {
+        icon: <Database className="w-4 h-4 text-emerald-500" />,
+        category: "Catalog Matching",
+        description: "Added a name similarity safety check to avoid name collisions on URL/UPC match and implemented MongoDB compound keys for split flyer items."
+      },
+      {
+        icon: <RefreshCw className="w-4 h-4 text-emerald-500" />,
+        category: "Pricing & Catalog Drawer",
+        description: "Implemented automatic stale fallback price expiration verification, hiding expired unmatched flyer items from the catalog drawer."
+      }
+    ]
+  },
+  {
     version: "1.9.68",
     date: "July 2026",
     type: "minor",

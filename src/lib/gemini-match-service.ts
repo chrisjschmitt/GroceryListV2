@@ -801,3 +801,92 @@ export async function runAllMatchingTests(): Promise<{
     results
   };
 }
+
+export async function splitMultiProductDescription(rawItemName: string): Promise<string[]> {
+  const lower = rawItemName.toLowerCase();
+  
+  // Quick pre-check: only invoke Gemini if there are likely multiple items separated by conjunctions.
+  const containsConjunction = lower.includes(" or ") || lower.includes(" and ") || lower.includes(",") || lower.includes("/");
+  if (!containsConjunction) {
+    return [rawItemName];
+  }
+
+  const apiKey = process.env.GEMINI_API_KEY;
+  if (!apiKey || apiKey === "MY_GEMINI_API_KEY" || apiKey.trim() === "") {
+    return fallbackRegexSplit(rawItemName);
+  }
+
+  try {
+    if (!geminiClientCache) {
+      geminiClientCache = new GoogleGenAI({
+        apiKey,
+        httpOptions: {
+          headers: {
+            "User-Agent": "aistudio-build"
+          }
+        }
+      });
+    }
+
+    const systemInstruction = `
+You are a grocery catalog parsing specialist.
+Your task is to analyze a raw grocery flyer description (which might contain multiple distinct products offered as alternatives under the same flyer item) and split it into an array of individual, fully-expanded, clean product names.
+
+Rules:
+1. Expansion: If the items share a shared prefix or suffix brand/category descriptor, you MUST expand each name fully so it stands alone.
+   Examples:
+   - "KAWARTHA OR SHAW'S ICE CREAM" -> ["Kawartha Ice Cream", "Shaw's Ice Cream"]
+   - "NATREL ORGANIC FINE-FILTERED OR LACTANTIA LACTOSE FREE MILK" -> ["Natrel Organic Fine-Filtered Milk", "Lactantia Lactose Free Milk"]
+   - "KRAFT SALAD DRESSING, DIANA OR BULL'S EYE BBQ SAUCE" -> ["Kraft Salad Dressing", "Diana BBQ Sauce", "Bull's Eye BBQ Sauce"]
+   - "COCA-COLA OR PEPSI SOFT DRINKS" -> ["Coca-Cola Soft Drinks", "Pepsi Soft Drinks"]
+   - "LACTANTIA PURFILTRE MILK, LACTOSE FREE CREAM" -> ["Lactantia Purfiltre Milk", "Lactantia Lactose Free Cream"]
+2. If the string contains only ONE single product description, return an array with that single string.
+3. Clean the text: Strip N/A pricing tags, parenthetical codes, or raw flyer layout jargon.
+4. Output Format: Return a JSON array of strings.
+`;
+
+    const response = await geminiClientCache.models.generateContent({
+      model: "gemini-2.5-flash",
+      contents: [
+        {
+          role: "user",
+          parts: [
+            {
+              text: `description: "${rawItemName}"`
+            }
+          ]
+        }
+      ],
+      config: {
+        systemInstruction,
+        responseMimeType: "application/json",
+        responseSchema: {
+          type: Type.ARRAY,
+          items: {
+            type: Type.STRING
+          },
+          description: "An array of fully-qualified individual product name strings."
+        }
+      }
+    });
+
+    const text = response.text || "";
+    const parsed = JSON.parse(text);
+    if (Array.isArray(parsed) && parsed.length > 0) {
+      return parsed.map(n => n.trim());
+    }
+  } catch (err) {
+    console.error("[Gemini Split] Error splitting product:", err);
+  }
+
+  return fallbackRegexSplit(rawItemName);
+}
+
+function fallbackRegexSplit(rawItemName: string): string[] {
+  const parts = rawItemName.split(/\s+or\s+/i);
+  if (parts.length > 1) {
+    return parts.map(p => p.trim());
+  }
+  return [rawItemName];
+}
+

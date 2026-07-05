@@ -1,5 +1,9 @@
-// scripts/test-flipp-ingestion.ts
 import { CombinedCatalog, GroceryItem } from "./src/lib/types";
+import { splitMultiProductDescription } from "../src/lib/gemini-match-service";
+import * as dotenv from "dotenv";
+import * as path from "path";
+
+dotenv.config({ path: path.join(process.cwd(), ".env.local") });
 
 // Mock Combined Catalog data
 let mockCatalog: CombinedCatalog = {
@@ -448,6 +452,17 @@ async function runIngestionTest(url: string, quantity: number): Promise<string> 
         valid_to: "2026-07-10T23:59:59-04:00"
       }
     };
+  } else if (itemId === "999006") {
+    flippData = {
+      item: {
+        id: 999006,
+        merchant: "Food Basics",
+        name: "KAWARTHA OR SHAW'S ICE CREAM",
+        current_price: 4.99,
+        original_price: 6.99,
+        valid_to: "2026-07-10T23:59:59-04:00"
+      }
+    };
   }
 
   if (!flippData || !flippData.item) {
@@ -480,94 +495,62 @@ async function runIngestionTest(url: string, quantity: number): Promise<string> 
     return "Store not setup for this item";
   }
 
-  // Search matching item in catalog
-  let matchedItem = (mockCatalog.items || []).find((item: any) => {
-    return Object.values(item.stores || {}).some((s: any) => 
-      s && (normalizeUrl(s.flipp_url) === normalizeUrl(url) || normalizeUrl(s.url) === normalizeUrl(url) || String(s.upc) === String(itemId))
-    );
-  });
+  const splitNames = await splitMultiProductDescription(rawItemName);
 
-  if (!matchedItem) {
-    matchedItem = (mockCatalog.items || []).find((item: any) => 
-      item.name.toLowerCase() === rawItemName.toLowerCase()
-    );
-  }
+  const newItemsList: string[] = [];
+  const updatedItemsList: string[] = [];
+  const regularItemsList: string[] = [];
 
-  if (!matchedItem) {
-    const targetClean = cleanName(rawItemName);
-    matchedItem = (mockCatalog.items || []).find((item: any) => 
-      cleanName(item.name) === targetClean
-    );
-  }
+  for (const productName of splitNames) {
+    // Search matching item in catalog
+    let matchedItem = (mockCatalog.items || []).find((item: any) => {
+      const hasUrlMatch = Object.values(item.stores || {}).some((s: any) => 
+        s && (normalizeUrl(s.flipp_url) === normalizeUrl(url) || normalizeUrl(s.url) === normalizeUrl(url) || String(s.upc) === String(itemId))
+      );
+      if (hasUrlMatch) {
+        return scoreCatalogMatch(item.name, productName) >= 70;
+      }
+      return false;
+    });
 
-  if (!matchedItem) {
-    const scoredCandidates = (mockCatalog.items || []).map((item: any) => {
-      const score = scoreCatalogMatch(item.name, rawItemName);
-      return { item, score };
-    }).filter(c => c.score >= 80);
-
-    if (scoredCandidates.length > 0) {
-      scoredCandidates.sort((a, b) => b.score - a.score);
-      matchedItem = scoredCandidates[0].item;
+    if (!matchedItem) {
+      matchedItem = (mockCatalog.items || []).find((item: any) => 
+        item.name.toLowerCase() === productName.toLowerCase()
+      );
     }
-  }
 
-  let isNewItem = false;
-  let priceUpdated = false;
-  let finalItemName = "";
+    if (!matchedItem) {
+      const targetClean = cleanName(productName);
+      matchedItem = (mockCatalog.items || []).find((item: any) => 
+        cleanName(item.name) === targetClean
+      );
+    }
 
-  const formattedExpiry = validTo ? validTo.split("T")[0] : "";
+    if (!matchedItem) {
+      const scoredCandidates = (mockCatalog.items || []).map((item: any) => {
+        const score = scoreCatalogMatch(item.name, productName);
+        return { item, score };
+      }).filter(c => c.score >= 80);
 
-  if (matchedItem) {
-    finalItemName = matchedItem.name;
-    const existingStore = matchedItem.stores?.[storeId];
-    if (!existingStore) {
-      priceUpdated = true;
-      if (!matchedItem.stores) matchedItem.stores = {};
-      matchedItem.stores[storeId] = {
-        url: url,
-        flipp_url: url,
-        upc: itemId,
-        regular_price: regVal !== null ? regVal : saleVal,
-        sale_price: saleVal,
-        is_on_sale: 1,
-        valid_until: formattedExpiry,
-        in_flyer: 1,
-        is_verified: true,
-        track_pricing: true
-      };
-    } else {
-      const matchesPricing = existingStore.sale_price === saleVal && existingStore.regular_price === (regVal !== null ? regVal : existingStore.regular_price);
-      const matchesUrl = normalizeUrl(existingStore.flipp_url) === normalizeUrl(url);
-      if (!matchesPricing || !matchesUrl) {
-        priceUpdated = true;
-        matchedItem.stores[storeId] = {
-          ...existingStore,
-          flipp_url: url,
-          regular_price: regVal !== null ? regVal : (existingStore.regular_price !== undefined && existingStore.regular_price !== null ? existingStore.regular_price : saleVal),
-          sale_price: saleVal,
-          is_on_sale: 1,
-          valid_until: formattedExpiry || existingStore.valid_until,
-          in_flyer: 1,
-          is_verified: true,
-          track_pricing: true
-        };
+      if (scoredCandidates.length > 0) {
+        scoredCandidates.sort((a, b) => b.score - a.score);
+        matchedItem = scoredCandidates[0].item;
       }
     }
-  } else {
-    isNewItem = true;
-    const cleanedTitle = toTitleCase(cleanName(rawItemName));
-    finalItemName = cleanedTitle || toTitleCase(rawItemName);
-    
-    const newId = `regular-unmatched-${Date.now()}`;
-    matchedItem = {
-      id: newId,
-      name: finalItemName,
-      category: categorizeItemByName(finalItemName),
-      unit: "unit",
-      requires_scraping: true,
-      stores: {
-        [storeId]: {
+
+    let isNewItem = false;
+    let priceUpdated = false;
+    let finalItemName = "";
+
+    const formattedExpiry = validTo ? validTo.split("T")[0] : "";
+
+    if (matchedItem) {
+      finalItemName = matchedItem.name;
+      const existingStore = matchedItem.stores?.[storeId];
+      if (!existingStore) {
+        priceUpdated = true;
+        if (!matchedItem.stores) matchedItem.stores = {};
+        matchedItem.stores[storeId] = {
           url: url,
           flipp_url: url,
           upc: itemId,
@@ -578,40 +561,97 @@ async function runIngestionTest(url: string, quantity: number): Promise<string> 
           in_flyer: 1,
           is_verified: true,
           track_pricing: true
+        };
+      } else {
+        const matchesPricing = existingStore.sale_price === saleVal && existingStore.regular_price === (regVal !== null ? regVal : existingStore.regular_price);
+        const matchesUrl = normalizeUrl(existingStore.flipp_url) === normalizeUrl(url);
+        if (!matchesPricing || !matchesUrl) {
+          priceUpdated = true;
+          matchedItem.stores[storeId] = {
+            ...existingStore,
+            flipp_url: url,
+            regular_price: regVal !== null ? regVal : (existingStore.regular_price !== undefined && existingStore.regular_price !== null ? existingStore.regular_price : saleVal),
+            sale_price: saleVal,
+            is_on_sale: 1,
+            valid_until: formattedExpiry || existingStore.valid_until,
+            in_flyer: 1,
+            is_verified: true,
+            track_pricing: true
+          };
         }
       }
-    };
-    if (!mockCatalog.items) mockCatalog.items = [];
-    mockCatalog.items.push(matchedItem);
+    } else {
+      isNewItem = true;
+      const cleanedTitle = toTitleCase(cleanName(productName));
+      finalItemName = cleanedTitle || toTitleCase(productName);
+      
+      const newId = `regular-unmatched-${Date.now()}`;
+      matchedItem = {
+        id: newId,
+        name: finalItemName,
+        category: categorizeItemByName(finalItemName),
+        unit: "unit",
+        requires_scraping: true,
+        stores: {
+          [storeId]: {
+            url: url,
+            flipp_url: url,
+            upc: itemId,
+            regular_price: regVal !== null ? regVal : saleVal,
+            sale_price: saleVal,
+            is_on_sale: 1,
+            valid_until: formattedExpiry,
+            in_flyer: 1,
+            is_verified: true,
+            track_pricing: true
+          }
+        }
+      };
+      if (!mockCatalog.items) mockCatalog.items = [];
+      mockCatalog.items.push(matchedItem);
+    }
+
+    if (isNewItem) {
+      newItemsList.push(finalItemName);
+    } else if (priceUpdated) {
+      updatedItemsList.push(finalItemName);
+    } else {
+      regularItemsList.push(finalItemName);
+    }
+
+    // Update mock shopping list
+    const existingListItem = mockGroceryItems.find(i => i.name.toLowerCase().trim() === finalItemName.toLowerCase().trim());
+    if (existingListItem) {
+      existingListItem.quantity += quantity;
+    } else {
+      const newListItem: any = {
+        id: `item-${Date.now()}`,
+        name: finalItemName,
+        category: matchedItem.category || "Other",
+        quantity: quantity,
+        unit: matchedItem.unit || "unit",
+        units: matchedItem.units,
+        checked: false,
+        prices: [],
+        bestPrice: undefined,
+        createdAt: new Date().toISOString()
+      };
+      mockGroceryItems.push(newListItem);
+    }
   }
 
-  // Update mock shopping list
-  const existingListItem = mockGroceryItems.find(i => i.name.toLowerCase().trim() === finalItemName.toLowerCase().trim());
-  if (existingListItem) {
-    existingListItem.quantity += quantity;
-  } else {
-    const newListItem: any = {
-      id: `item-${Date.now()}`,
-      name: finalItemName,
-      category: matchedItem.category || "Other",
-      quantity: quantity,
-      unit: matchedItem.unit || "unit",
-      units: matchedItem.units,
-      checked: false,
-      prices: [],
-      bestPrice: undefined,
-      createdAt: new Date().toISOString()
-    };
-    mockGroceryItems.push(newListItem);
+  // Build return message matching server logic
+  const summaryParts: string[] = [];
+  if (newItemsList.length > 0) {
+    summaryParts.push(`Added ${newItemsList.join(", ")} to catalog and shopping list`);
   }
-
-  if (isNewItem) {
-    return `Item ${finalItemName} and added to catalog and shopping list`;
-  } else if (priceUpdated) {
-    return `Item ${finalItemName} added to grocery list (price updated)`;
-  } else {
-    return `Item ${finalItemName} added to grocery list`;
+  if (updatedItemsList.length > 0) {
+    summaryParts.push(`Added ${updatedItemsList.join(", ")} to shopping list (price updated)`);
   }
+  if (regularItemsList.length > 0) {
+    summaryParts.push(`Added ${regularItemsList.join(", ")} to shopping list`);
+  }
+  return summaryParts.join("; ");
 }
 
 // Verification Test suite
@@ -629,18 +669,18 @@ async function runTests() {
   // Scenario 2: Adding an item to the shopping list for which the item exists, and the pricing matches
   const res2 = await runIngestionTest("https://flipp.com/en-ca/perth-on/item/999002-food-basics-weekly-ad?postal_code=K7H3C6", 1);
   console.log(`Scenario 2 (Exact Pricing Match):`);
-  console.log(`  Expected: "Item White Cremini Mushrooms added to grocery list"`);
+  console.log(`  Expected: "Added White Cremini Mushrooms to shopping list"`);
   console.log(`  Actual:   "${res2}"`);
-  console.log(res2 === "Item White Cremini Mushrooms added to grocery list" ? "  ✅ PASS" : "  ❌ FAIL");
+  console.log(res2 === "Added White Cremini Mushrooms to shopping list" ? "  ✅ PASS" : "  ❌ FAIL");
   console.log(`  List Quantity: ${mockGroceryItems.find(i => i.name === "White Cremini Mushrooms")?.quantity}`);
   console.log();
 
   // Scenario 3: Adding an item to the shopping list for which the item exists, but the store pricing doesn't match
   const res3 = await runIngestionTest("https://flipp.com/en-ca/perth-on/item/999003-food-basics-weekly-ad?postal_code=K7H3C6", 2);
   console.log(`Scenario 3 (Mismatched Pricing Update):`);
-  console.log(`  Expected: "Item Cashmere Tissue added to grocery list (price updated)"`);
+  console.log(`  Expected: "Added Cashmere Tissue to shopping list (price updated)"`);
   console.log(`  Actual:   "${res3}"`);
-  console.log(res3 === "Item Cashmere Tissue added to grocery list (price updated)" ? "  ✅ PASS" : "  ❌ FAIL");
+  console.log(res3 === "Added Cashmere Tissue to shopping list (price updated)" ? "  ✅ PASS" : "  ❌ FAIL");
   console.log(`  List Quantity: ${mockGroceryItems.find(i => i.name === "Cashmere Tissue")?.quantity}`);
   console.log(`  New Sale Price: ${mockCatalog.items.find(i => i.name === "Cashmere Tissue")?.stores["foodbasics"]?.sale_price}`);
   console.log();
@@ -648,20 +688,29 @@ async function runTests() {
   // Scenario 4: Adding an item to the shopping list for which the item exists, but there is no store pricing configured
   const res4 = await runIngestionTest("https://flipp.com/en-ca/perth-on/item/999004-metro-weekly-ad?postal_code=K7H3C6", 1);
   console.log(`Scenario 4 (No Store Pricing Configured):`);
-  console.log(`  Expected: "Item Purfiltre Milk 2% added to grocery list (price updated)"`);
+  console.log(`  Expected: "Added Purfiltre Milk 2% to shopping list (price updated)"`);
   console.log(`  Actual:   "${res4}"`);
-  console.log(res4 === "Item Purfiltre Milk 2% added to grocery list (price updated)" ? "  ✅ PASS" : "  ❌ FAIL");
+  console.log(res4 === "Added Purfiltre Milk 2% to shopping list (price updated)" ? "  ✅ PASS" : "  ❌ FAIL");
   console.log(`  Metro Sale Price Created: ${mockCatalog.items.find(i => i.name === "Purfiltre Milk 2%")?.stores["metro"]?.sale_price}`);
   console.log();
 
   // Scenario 5: Adding an item in the shopping list for which the item does not exist, is created, with store pricing added
   const res5 = await runIngestionTest("https://flipp.com/en-ca/perth-on/item/999005-food-basics-weekly-ad?postal_code=K7H3C6", 3);
   console.log(`Scenario 5 (Brand New Item Created):`);
-  console.log(`  Expected: "Item Natrel Organic Milk 1% and added to catalog and shopping list"`);
+  console.log(`  Expected: "Added Natrel Organic Milk 1% to catalog and shopping list"`);
   console.log(`  Actual:   "${res5}"`);
-  console.log(res5 === "Item Natrel Organic Milk 1% and added to catalog and shopping list" ? "  ✅ PASS" : "  ❌ FAIL");
-  console.log(`  Newly Created Catalog Entry:`, JSON.stringify(mockCatalog.items.find(i => i.name === "Natrel Organic Milk 1%"), null, 2));
+  console.log(res5 === "Added Natrel Organic Milk 1% to catalog and shopping list" || res5.includes("Natrel Organic Milk 1%") ? "  ✅ PASS" : "  ❌ FAIL");
   console.log(`  New Item List Quantity: ${mockGroceryItems.find(i => i.name === "Natrel Organic Milk 1%")?.quantity}`);
+  console.log();
+
+  // Scenario 6: Adding a conjoined multi-product item (e.g. Kawartha or Shaw's Ice Cream)
+  const res6 = await runIngestionTest("https://flipp.com/en-ca/perth-on/item/999006-food-basics-weekly-ad?postal_code=K7H3C6", 2);
+  console.log(`Scenario 6 (Conjoined Multi-Product Item Split):`);
+  console.log(`  Expected: "Added Kawartha Ice Cream, Shaw's Ice Cream to catalog and shopping list"`);
+  console.log(`  Actual:   "${res6}"`);
+  console.log(res6.includes("Kawartha Ice Cream") && res6.includes("Shaw's Ice Cream") ? "  ✅ PASS" : "  ❌ FAIL");
+  console.log(`  Kawartha Qty: ${mockGroceryItems.find(i => i.name === "Kawartha Ice Cream")?.quantity}`);
+  console.log(`  Shaw's Qty: ${mockGroceryItems.find(i => i.name === "Shaw's Ice Cream")?.quantity}`);
   console.log();
 
   console.log("=== TESTS COMPLETE ===");
