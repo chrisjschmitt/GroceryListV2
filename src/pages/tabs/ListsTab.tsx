@@ -264,7 +264,7 @@ export default function ListsTab() {
             let countdownInterval = null;
             let redirectUrl = null;
             let currentMessage = "";
-            let secondsRemaining = 12;
+            let secondsRemaining = 3;
 
             const btnPause = document.getElementById('btn-pause');
             
@@ -298,7 +298,7 @@ export default function ListsTab() {
             function startCountdown(url, message) {
               redirectUrl = url;
               currentMessage = message;
-              secondsRemaining = 12;
+              secondsRemaining = 3;
               
               if (countdownInterval) clearInterval(countdownInterval);
               

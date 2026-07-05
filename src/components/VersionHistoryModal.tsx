@@ -21,6 +21,19 @@ interface VersionEntry {
 
 const VERSIONS: VersionEntry[] = [
   {
+    version: "2.0.5",
+    date: "July 2026",
+    type: "patch",
+    title: "Flyer Redirect Duration Reduction",
+    changes: [
+      {
+        icon: <Clock className="w-4 h-4 text-emerald-500" />,
+        category: "Flyer Redirection",
+        description: "Reduced the auto-redirect countdown timer for flyer search resolution from 12 seconds to 3 seconds for faster lookup transitions."
+      }
+    ]
+  },
+  {
     version: "2.0.4",
     date: "July 2026",
     type: "patch",
