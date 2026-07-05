@@ -21,6 +21,19 @@ interface VersionEntry {
 
 const VERSIONS: VersionEntry[] = [
   {
+    version: "2.0.1",
+    date: "July 2026",
+    type: "patch",
+    title: "Flyer Ingestion Duplicate URL Fix",
+    changes: [
+      {
+        icon: <Database className="w-4 h-4 text-emerald-500" />,
+        category: "Catalog Validation",
+        description: "Bypassed flyer link uniqueness check to allow split multi-product deals to share the same Flipp clipping URL."
+      }
+    ]
+  },
+  {
     version: "2.0.0",
     date: "July 2026",
     type: "major",
