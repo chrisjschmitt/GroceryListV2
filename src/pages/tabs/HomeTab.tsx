@@ -57,7 +57,15 @@ function getStoreActivePrice(storeInfo: any): number | null {
   if (hasSale) {
     return typeof storeInfo.sale_price === "number" ? storeInfo.sale_price : parseFloat(storeInfo.sale_price) || null;
   }
-  return typeof storeInfo.regular_price === "number" ? storeInfo.regular_price : parseFloat(storeInfo.regular_price) || null;
+  
+  if (hasReg) {
+    const regPrice = typeof storeInfo.regular_price === "number" ? storeInfo.regular_price : parseFloat(storeInfo.regular_price) || 0;
+    const salePrice = typeof storeInfo.sale_price === "number" ? storeInfo.sale_price : parseFloat(storeInfo.sale_price) || 0;
+    if (regPrice > 0 && regPrice !== salePrice) {
+      return regPrice;
+    }
+  }
+  return null;
 }
 
 const PRODUCT_IMAGES: Record<string, string> = {
