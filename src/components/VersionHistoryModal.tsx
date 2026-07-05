@@ -1,5 +1,5 @@
 import React from "react";
-import { X, Calendar, GitBranch, Sparkles, Database, Layout, Smartphone, Cloud, FileSpreadsheet, Trash2, Clock, Zap, RefreshCw, Search, Tag, ExternalLink } from "lucide-react";
+import { X, Calendar, GitBranch, Sparkles, Database, Layout, Smartphone, Cloud, FileSpreadsheet, Trash2, Clock, Zap, RefreshCw, Search, Tag, ExternalLink, HelpCircle } from "lucide-react";
 
 interface VersionHistoryModalProps {
   isOpen: boolean;
@@ -20,6 +20,19 @@ interface VersionEntry {
 }
 
 const VERSIONS: VersionEntry[] = [
+  {
+    version: "2.0.8",
+    date: "July 2026",
+    type: "patch",
+    title: "Introductory Help Screen Addition",
+    changes: [
+      {
+        icon: <HelpCircle className="w-4 h-4 text-emerald-500" />,
+        category: "Help Screen",
+        description: "Created a modern Help Overlay screen displaying clear explanations of key app features like flyer ingestion, multi-product splitting, competitor price matching, and offline PWA functionality."
+      }
+    ]
+  },
   {
     version: "2.0.7",
     date: "July 2026",

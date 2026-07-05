@@ -5,13 +5,15 @@ import BasketsTab from "./pages/tabs/BasketsTab";
 import ListsTab from "./pages/tabs/ListsTab";
 import ProfileTab from "./pages/tabs/ProfileTab";
 import VersionHistoryModal from "./components/VersionHistoryModal";
+import HelpModal from "./components/HelpModal";
 import packageJson from "../package.json";
-import { Home, ShoppingBasket, ListTodo, User, Settings2 } from "lucide-react";
+import { Home, ShoppingBasket, ListTodo, User, Settings2, HelpCircle } from "lucide-react";
 
 export default function App() {
   const [currentPath, setCurrentPath] = useState(window.location.pathname);
   const [activeTab, setActiveTab] = useState<"home" | "baskets" | "lists" | "profile">("home");
   const [isChangelogOpen, setIsChangelogOpen] = useState(false);
+  const [isHelpOpen, setIsHelpOpen] = useState(false);
   const CURRENT_VERSION = packageJson.version;
   const [isUpdating, setIsUpdating] = useState(false);
   const [targetVersion, setTargetVersion] = useState("");
@@ -106,6 +108,15 @@ export default function App() {
             v{CURRENT_VERSION}
           </button>
 
+          {/* Help Button */}
+          <button
+            onClick={() => setIsHelpOpen(true)}
+            className="p-2 text-on-surface-variant hover:text-primary transition-colors hover:bg-surface-container-low rounded-md cursor-pointer"
+            title="Help / Instructions"
+          >
+            <HelpCircle size={18} />
+          </button>
+
           {/* Admin shortcut */}
           <a
             href="/admin"
@@ -181,6 +192,12 @@ export default function App() {
         isOpen={isChangelogOpen}
         onClose={() => setIsChangelogOpen(false)}
         currentVersion={CURRENT_VERSION}
+      />
+
+      {/* Help Modal */}
+      <HelpModal
+        isOpen={isHelpOpen}
+        onClose={() => setIsHelpOpen(false)}
       />
     </div>
   );
