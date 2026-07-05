@@ -120,14 +120,7 @@ export default function ListsTab() {
     flippUrl?: string,
     validUntil?: string
   ) => {
-    // Check if we have an active, non-expired flipp_url in the database
-    const isSaleExpired = (dateStr?: string): boolean => {
-      if (!dateStr) return false;
-      const today = new Date().toISOString().split("T")[0];
-      return dateStr < today;
-    };
-
-    if (flippUrl && (!validUntil || !isSaleExpired(validUntil))) {
+    if (flippUrl) {
       window.open(flippUrl, "_blank");
       return;
     }
