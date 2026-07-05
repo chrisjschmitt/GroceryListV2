@@ -1,5 +1,5 @@
 import React from "react";
-import { X, Calendar, GitBranch, Sparkles, Database, Layout, Smartphone, Cloud, FileSpreadsheet, Trash2, Clock, Zap, RefreshCw, Search, Tag, ExternalLink, HelpCircle } from "lucide-react";
+import { X, Calendar, GitBranch, Sparkles, Database, Layout, Smartphone, Cloud, FileSpreadsheet, Trash2, Clock, Zap, RefreshCw, Search, Tag, ExternalLink, HelpCircle, Plus } from "lucide-react";
 
 interface VersionHistoryModalProps {
   isOpen: boolean;
@@ -20,6 +20,19 @@ interface VersionEntry {
 }
 
 const VERSIONS: VersionEntry[] = [
+  {
+    version: "2.1.0",
+    date: "July 2026",
+    type: "minor",
+    title: "Inline Custom Item Catalog Builder",
+    changes: [
+      {
+        icon: <Plus className="w-4 h-4 text-emerald-500" />,
+        category: "Catalog Drawer",
+        description: "Implemented inline Custom Item Creator when search queries produce no catalog matches. Includes editable fields for Name, Category select dropdown, and Quantity counters."
+      }
+    ]
+  },
   {
     version: "2.0.9",
     date: "July 2026",

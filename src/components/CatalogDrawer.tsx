@@ -10,6 +10,7 @@ interface CatalogDrawerProps {
   priceLookup: Map<string, PriceEntry>;
   onAdd: (item: RegularItem) => Promise<void>;
   onRemove: (name: string) => Promise<void>;
+  onCustomAdd: (name: string, category: string, quantity: number) => Promise<void>;
 }
 
 // --- Helper Functions for Store Keys ---
@@ -68,10 +69,17 @@ export default function CatalogDrawer({
   priceLookup,
   onAdd,
   onRemove,
+  onCustomAdd,
 }: CatalogDrawerProps) {
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedCategory, setSelectedCategory] = useState("All Items");
   const [addingIds, setAddingIds] = useState<Set<string>>(new Set());
+  
+  // Custom item addition state
+  const [showAddCustomForm, setShowAddCustomForm] = useState(false);
+  const [customName, setCustomName] = useState("");
+  const [customCategory, setCustomCategory] = useState("Other");
+  const [customQty, setCustomQty] = useState(1);
   
   // Expanded dropdown & reporting states
   const [expandedItemPrices, setExpandedItemPrices] = useState<Set<string>>(new Set());
@@ -284,11 +292,111 @@ export default function CatalogDrawer({
 
         {/* Products Grid Area */}
         <div className="flex-1 overflow-y-auto p-4">
-          {filteredItems.length === 0 ? (
-            <div className="text-center py-16 text-on-surface-variant">
-              <span className="text-4xl block mb-2">🔍</span>
-              <h3 className="font-bold text-sm">No items found</h3>
-              <p className="text-xs opacity-75 mt-1">Try checking your search terms or filters</p>
+          {showAddCustomForm ? (
+            <div className="bg-surface border-2 border-black rounded-2xl p-5 shadow-[4px_4px_0px_rgba(0,0,0,1)] space-y-4 max-w-sm mx-auto">
+              <h3 className="text-base font-black uppercase tracking-wider text-primary">Add Custom Item</h3>
+              
+              {/* Item Name Input */}
+              <div className="space-y-1.5">
+                <label className="text-xs font-black uppercase text-on-surface-variant">Item Name</label>
+                <input
+                  type="text"
+                  value={customName}
+                  onChange={(e) => setCustomName(e.target.value)}
+                  placeholder="e.g. Organic Avocados"
+                  className="w-full h-11 px-4 bg-surface-container-low border-2 border-black rounded-lg text-sm font-bold focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent transition-all"
+                />
+              </div>
+
+              {/* Category Select Dropdown */}
+              <div className="space-y-1.5">
+                <label className="text-xs font-black uppercase text-on-surface-variant">Category</label>
+                <select
+                  value={customCategory}
+                  onChange={(e) => setCustomCategory(e.target.value)}
+                  className="w-full h-11 px-4 bg-surface-container-low border-2 border-black rounded-lg text-sm font-bold focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent transition-all"
+                >
+                  {categories.filter(c => c !== "All Items").map((cat) => (
+                    <option key={cat} value={cat}>{cat}</option>
+                  ))}
+                </select>
+              </div>
+
+              {/* Quantity Counter */}
+              <div className="space-y-1.5">
+                <label className="text-xs font-black uppercase text-on-surface-variant block">Quantity</label>
+                <div className="flex items-center border-2 border-black bg-surface rounded-lg overflow-hidden w-32">
+                  <button
+                    type="button"
+                    onClick={() => setCustomQty(prev => Math.max(1, prev - 1))}
+                    className="px-3 py-2 hover:bg-surface-container-low text-primary font-extrabold border-r-2 border-black transition-colors"
+                  >
+                    -
+                  </button>
+                  <span className="flex-1 text-center text-sm font-black font-tnum select-none">
+                    {customQty}
+                  </span>
+                  <button
+                    type="button"
+                    onClick={() => setCustomQty(prev => prev + 1)}
+                    className="px-3 py-2 hover:bg-surface-container-low text-primary font-extrabold border-l-2 border-black transition-colors"
+                  >
+                    +
+                  </button>
+                </div>
+              </div>
+
+              {/* Action Buttons */}
+              <div className="flex justify-end gap-3 pt-2">
+                <button
+                  type="button"
+                  onClick={() => setShowAddCustomForm(false)}
+                  className="px-4 py-2 border-2 border-black font-black text-xs uppercase rounded-lg hover:bg-surface-container-low transition-colors"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="button"
+                  onClick={async () => {
+                    if (!customName.trim()) return;
+                    await onCustomAdd(customName.trim(), customCategory, customQty);
+                    // Reset and close
+                    setShowAddCustomForm(false);
+                    setSearchQuery("");
+                    onClose();
+                  }}
+                  className="px-4 py-2 bg-emerald-500 text-black hover:bg-emerald-600 font-black text-xs uppercase rounded-lg border-2 border-black shadow-[2px_2px_0px_rgba(0,0,0,1)] hover:shadow-none hover:translate-x-[1px] hover:translate-y-[1px] transition-all cursor-pointer"
+                >
+                  Add Item
+                </button>
+              </div>
+            </div>
+          ) : filteredItems.length === 0 ? (
+            <div className="text-center py-16 text-on-surface-variant space-y-4">
+              <div>
+                <span className="text-4xl block mb-2">🔍</span>
+                <h3 className="font-bold text-sm">No items found</h3>
+                <p className="text-xs opacity-75 mt-1">Try checking your search terms or filters</p>
+              </div>
+              {searchQuery.trim() !== "" && (
+                <div className="border border-outline/10 p-4 rounded-xl bg-surface-container-low max-w-xs mx-auto space-y-3">
+                  <p className="text-xs font-bold leading-relaxed">
+                    Would you like to add <strong className="text-primary">"{searchQuery}"</strong> to your list?
+                  </p>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setCustomName(searchQuery.trim());
+                      setCustomCategory(selectedCategory !== "All Items" ? selectedCategory : "Other");
+                      setCustomQty(1);
+                      setShowAddCustomForm(true);
+                    }}
+                    className="w-full py-2 bg-primary text-on-primary hover:bg-primary-container font-black text-xs uppercase rounded-lg border border-black shadow-[2px_2px_0px_rgba(0,0,0,1)] hover:shadow-none hover:translate-x-[1px] hover:translate-y-[1px] transition-all cursor-pointer"
+                  >
+                    Create Custom Item
+                  </button>
+                </div>
+              )}
             </div>
           ) : (
             <div className="space-y-2 pb-8">

@@ -722,6 +722,13 @@ export default function ListsTab() {
     await store.removeGroceryItemByName(name);
   };
 
+  const handleCustomAdd = async (name: string, category: string, quantity: number) => {
+    // Add to catalog so it is saved for future browsing
+    await store.addRegularItem(name, category);
+    // Add to active shopping list with specified quantity
+    await store.addGroceryItem(name, quantity, "unit", category);
+  };
+
   return (
     <div className="space-y-6 pb-12">
       {/* List Header */}
@@ -1281,6 +1288,7 @@ export default function ListsTab() {
         priceLookup={priceLookup}
         onAdd={handleAddFromCatalog}
         onRemove={handleRemoveFromCatalog}
+        onCustomAdd={handleCustomAdd}
       />
     </div>
   );
