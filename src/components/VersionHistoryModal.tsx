@@ -21,6 +21,19 @@ interface VersionEntry {
 
 const VERSIONS: VersionEntry[] = [
   {
+    version: "2.0.2",
+    date: "July 2026",
+    type: "patch",
+    title: "Catalog Registry Manager Source Filtering",
+    changes: [
+      {
+        icon: <Search className="w-4 h-4 text-emerald-500" />,
+        category: "Registry Manager",
+        description: "Added a 'Source' dropdown filter in the Combined Catalog Registry Manager UI to view items added via Flipp (unmatched flyer clips) vs. standard catalog items."
+      }
+    ]
+  },
+  {
     version: "2.0.1",
     date: "July 2026",
     type: "patch",

@@ -420,6 +420,7 @@ export default function AdminPage() {
   const [catalogTrackedFilter, setCatalogTrackedFilter] = useState("all");
   const [catalogVerifiedFilter, setCatalogVerifiedFilter] = useState("all");
   const [catalogStoreFilter, setCatalogStoreFilter] = useState("all");
+  const [catalogSourceFilter, setCatalogSourceFilter] = useState("all");
 
   const [editingCatalogItem, setEditingCatalogItem] = useState<any>(null);
   const [editCatIsCustom, setEditCatIsCustom] = useState(false);
@@ -1480,6 +1481,8 @@ export default function AdminPage() {
     }
 
     if (catalogStoreFilter !== "all" && (!item.stores || !item.stores[catalogStoreFilter])) return false;
+    if (catalogSourceFilter === "flipp" && !String(item.id).startsWith("regular-unmatched-")) return false;
+    if (catalogSourceFilter === "catalog" && String(item.id).startsWith("regular-unmatched-")) return false;
 
     if (catalogScrapedFilter === "scraped" && !item.requires_scraping) return false;
     if (catalogScrapedFilter === "not-scraped" && item.requires_scraping) return false;
@@ -2709,7 +2712,7 @@ export default function AdminPage() {
                 )}
               </div>
 
-              <div className="grid grid-cols-2 sm:grid-cols-5 gap-2 w-full">
+              <div className="grid grid-cols-2 sm:grid-cols-6 gap-2 w-full">
                 <div>
                   <label className="block text-[9px] font-black uppercase text-gray-400 mb-0.5">Store</label>
                   <select
@@ -2790,6 +2793,22 @@ export default function AdminPage() {
                     <option value="all">All Verification</option>
                     <option value="verified">Verified Links</option>
                     <option value="not-verified">Unverified Links</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label className="block text-[9px] font-black uppercase text-gray-400 mb-0.5">Source</label>
+                  <select
+                    value={catalogSourceFilter}
+                    onChange={(e) => {
+                      setCatalogSourceFilter(e.target.value);
+                      setVisibleCatalogCount(30);
+                    }}
+                    className="py-1.5 px-2 border-2 border-black bg-white font-black text-[11px] uppercase tracking-wider leading-relaxed text-black w-full text-xs"
+                  >
+                    <option value="all">All Sources</option>
+                    <option value="flipp">Added via Flipp</option>
+                    <option value="catalog">Standard Catalog</option>
                   </select>
                 </div>
               </div>
