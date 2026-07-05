@@ -93,8 +93,15 @@ export default function GroceryItemRow({ item, onToggle, onRemove, onUpdateQuant
     configName?: string,
     postalCode?: string,
     scrapedName?: string,
-    storeUrl?: string
+    storeUrl?: string,
+    flippUrl?: string,
+    validUntil?: string
   ) => {
+    if (flippUrl) {
+      window.open(flippUrl, "_blank");
+      return;
+    }
+
     const newTab = window.open("about:blank", "_blank");
     if (!newTab) return;
     newTab.document.write(`
@@ -230,6 +237,7 @@ export default function GroceryItemRow({ item, onToggle, onRemove, onUpdateQuant
           price: pVal,
           onSale: storeData.is_on_sale === 1 || !!storeData.is_on_sale,
           lookup_url: storeData.lookup_url,
+          flipp_url: storeData.flipp_url,
           valid_until: storeData.valid_until,
           postal_code: storeData.postal_code || priceInfo.postal_code,
           brand_name: storeData.brand_name
@@ -245,6 +253,7 @@ export default function GroceryItemRow({ item, onToggle, onRemove, onUpdateQuant
         price: rawPrice,
         onSale: priceInfo.is_on_sale === 1 || !!priceInfo.is_on_sale,
         lookup_url: priceInfo.lookup_url,
+        flipp_url: priceInfo.flipp_url,
         valid_until: priceInfo.valid_until,
         postal_code: priceInfo.postal_code,
         brand_name: priceInfo.brand_name
@@ -265,6 +274,7 @@ export default function GroceryItemRow({ item, onToggle, onRemove, onUpdateQuant
             price: pVal,
             onSale: storeInfo.is_on_sale === 1 || !!storeInfo.is_on_sale,
             lookup_url: storeInfo.lookup_url || "",
+            flipp_url: storeInfo.flipp_url,
             valid_until: storeInfo.valid_until,
             postal_code: storeInfo.postal_code || priceInfo.postal_code,
             brand_name: storeInfo.brand_name
@@ -462,11 +472,37 @@ export default function GroceryItemRow({ item, onToggle, onRemove, onUpdateQuant
                         priceInfo?.config_name,
                         bestCompetitorPrice.postal_code || priceInfo?.postal_code,
                         priceInfo?.item_name || bestCompetitorPrice.item_name,
-                        bestCompetitorPrice.lookup_url || priceInfo?.lookup_url
+                        bestCompetitorPrice.lookup_url || priceInfo?.lookup_url,
+                        bestCompetitorPrice.flipp_url || priceInfo?.flipp_url,
+                        bestCompetitorPrice.valid_until || priceInfo?.valid_until
                       );
                     }}
                     className="text-[9px] font-black uppercase bg-emerald-500 hover:bg-emerald-600 text-white border border-emerald-650 px-1.5 py-0.5 rounded shadow-[1px_1px_0px_rgba(0,0,0,1)] hover:shadow-none hover:translate-x-[1px] hover:translate-y-[1px] transition-all flex items-center gap-0.5 hover:underline cursor-pointer text-center text-xs"
                     title={`Open flyer for ${bestCompetitorPrice.storeName}`}
+                  >
+                    Open Flyer ↗
+                  </button>
+                </span>
+              )}
+              {!bestCompetitorPrice && finalPrice && (finalPrice.flipp_url || finalPrice.lookup_url) && (
+                <span className="inline-flex flex-wrap items-center gap-1.5 ml-2 normal-case">
+                  <button
+                    type="button"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      openFlyerForStoreItem(
+                        finalPrice.storeName,
+                        item.name,
+                        priceInfo?.config_name,
+                        finalPrice.postal_code || priceInfo?.postal_code,
+                        priceInfo?.item_name || finalPrice.item_name,
+                        finalPrice.lookup_url || priceInfo?.lookup_url,
+                        finalPrice.flipp_url || priceInfo?.flipp_url,
+                        finalPrice.valid_until || priceInfo?.valid_until
+                      );
+                    }}
+                    className="text-[9px] font-black uppercase bg-emerald-500 hover:bg-emerald-600 text-white border border-emerald-650 px-1.5 py-0.5 rounded shadow-[1px_1px_0px_rgba(0,0,0,1)] hover:shadow-none hover:translate-x-[1px] hover:translate-y-[1px] transition-all flex items-center gap-0.5 hover:underline cursor-pointer text-center text-xs"
+                    title={`Open flyer/link for ${finalPrice.storeName}`}
                   >
                     Open Flyer ↗
                   </button>

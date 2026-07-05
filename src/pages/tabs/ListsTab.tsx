@@ -1028,6 +1028,30 @@ export default function ListsTab() {
                                   </button>
                                 </div>
                               )}
+                              {!showPriceMatch && sourceStoreInfo && (sourceStoreInfo.flipp_url || sourceStoreInfo.lookup_url) && !item.checked && (
+                                <div className="flex items-center gap-1 shrink-0 select-none" onClick={(e) => e.stopPropagation()}>
+                                  <button
+                                    type="button"
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      openFlyerForStoreItem(
+                                        primaryStoreId || "Food Basics",
+                                        item.name,
+                                        priceInfo?.config_name,
+                                        sourceStoreInfo?.postal_code || priceInfo?.postal_code,
+                                        sourceStoreInfo?.brand_name || priceInfo?.brand_name || priceInfo?.item_name || sourceStoreInfo?.item_name,
+                                        sourceStoreInfo?.lookup_url || priceInfo?.lookup_url,
+                                        sourceStoreInfo?.flipp_url || priceInfo?.flipp_url,
+                                        sourceStoreInfo?.valid_until || priceInfo?.valid_until
+                                      );
+                                    }}
+                                    className="text-[8px] font-black uppercase bg-emerald-600 hover:bg-emerald-700 text-white border border-emerald-500 px-1 py-0.2 rounded-sm shadow-[0.5px_0.5px_0px_rgba(0,0,0,0.1)] flex items-center gap-0.5 hover:underline cursor-pointer text-center"
+                                    title={`Open flyer/link for ${primaryStoreId || "Food Basics"}`}
+                                  >
+                                    Open Flyer ↗
+                                  </button>
+                                </div>
+                              )}
                             </div>
                           </div>
                         </div>

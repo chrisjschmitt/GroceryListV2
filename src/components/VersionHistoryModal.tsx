@@ -21,6 +21,19 @@ interface VersionEntry {
 
 const VERSIONS: VersionEntry[] = [
   {
+    version: "2.0.7",
+    date: "July 2026",
+    type: "patch",
+    title: "Primary Store Flyer Button Fix",
+    changes: [
+      {
+        icon: <Tag className="w-4 h-4 text-emerald-500" />,
+        category: "Flyer Navigation",
+        description: "Fixed flyer link buttons in the shopping list view and grocery item rows to render for the primary selected store when it offers the lowest price (which otherwise suppresses competitor price match badges)."
+      }
+    ]
+  },
+  {
     version: "2.0.6",
     date: "July 2026",
     type: "patch",
