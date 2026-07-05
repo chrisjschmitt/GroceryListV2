@@ -389,18 +389,23 @@ export default function ListsTab() {
                       document.getElementById('status-title').innerText = "Flyer Deal Found!";
                       startCountdown(data.url, "Redirecting to flyer deal");
                     } else {
-                      document.getElementById('status-title').innerText = "Opening Flyer Search";
-                      startCountdown(data.url, "Flyer deal not matched. Opening fallback flyer search");
+                      if (storeUrl) {
+                        document.getElementById('status-title').innerText = "Opening Grocery Store Link";
+                        startCountdown(storeUrl, "Flyer deal not found. Redirecting to grocery store item link");
+                      } else {
+                        document.getElementById('status-title').innerText = "Opening Flyer Search";
+                        startCountdown(data.url, "Flyer deal not matched. Opening fallback flyer search");
+                      }
                     }
                   } else {
                     document.getElementById('status-title').innerText = "No Match Found";
-                    startCountdown(storeUrl || "https://flipp.com", "Redirecting to store page");
+                    startCountdown(storeUrl || "https://flipp.com", storeUrl ? "Redirecting to grocery store item link" : "Redirecting to store page");
                   }
                 })
                 .catch(err => {
                   document.getElementById('debug-results').innerText = "API Error: " + err.message;
                   document.getElementById('status-title').innerText = "Error Occurred";
-                  startCountdown("https://flipp.com/search?q=" + encodeURIComponent(finalQuery) + "&postal_code=" + postalCode, "Redirecting to Flipp search");
+                  startCountdown(storeUrl || ("https://flipp.com/search?q=" + encodeURIComponent(finalQuery) + "&postal_code=" + postalCode), storeUrl ? "Error occurred. Redirecting to grocery store item link" : "Redirecting to Flipp search");
                 });
             }
             

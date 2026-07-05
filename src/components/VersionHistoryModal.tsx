@@ -21,6 +21,19 @@ interface VersionEntry {
 
 const VERSIONS: VersionEntry[] = [
   {
+    version: "2.0.6",
+    date: "July 2026",
+    type: "patch",
+    title: "Flyer Search Fallback to Grocery URL",
+    changes: [
+      {
+        icon: <Tag className="w-4 h-4 text-emerald-500" />,
+        category: "Flyer Redirection",
+        description: "Modified flyer redirection logic to default to the configured grocery store item URL if the flyer clip is not found or matched on Flipp."
+      }
+    ]
+  },
+  {
     version: "2.0.5",
     date: "July 2026",
     type: "patch",
