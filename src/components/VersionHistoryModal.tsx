@@ -21,6 +21,19 @@ interface VersionEntry {
 
 const VERSIONS: VersionEntry[] = [
   {
+    version: "2.0.9",
+    date: "July 2026",
+    type: "patch",
+    title: "Brand Asset & PWA Icon Refresh",
+    changes: [
+      {
+        icon: <Sparkles className="w-4 h-4 text-emerald-500" />,
+        category: "Branding",
+        description: "Redesigned the application's logo assets and favicon.svg with a premium emerald-to-blue gradient look, wire basket grid, and checkmark illustration. Renamed project configurations to BasketWise."
+      }
+    ]
+  },
+  {
     version: "2.0.8",
     date: "July 2026",
     type: "patch",

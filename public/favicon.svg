@@ -1,30 +1,48 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="100%" height="100%">
-  <!-- Neo-brutalist background card with thick borders and flat offset shadow -->
-  <rect x="36" y="36" width="440" height="440" rx="40" fill="#000000" />
-  <rect x="24" y="24" width="440" height="440" rx="40" fill="#10B981" stroke="#000000" stroke-width="12" />
-  
-  <!-- Sticker styled grocery bag with solid flat offset shadow -->
-  <path d="M 180 170 L 320 170 L 340 400 L 160 400 Z" fill="#000000" />
-  <path d="M 168 158 L 308 158 L 328 388 L 148 388 Z" fill="#FBBF24" stroke="#000000" stroke-width="12" stroke-linejoin="round" />
-  
-  <!-- Bag handle -->
-  <path d="M 208 158 C 208 118, 268 118, 268 158" fill="none" stroke="#000000" stroke-width="12" stroke-linecap="round" />
-  
-  <!-- Produce poking out of the bag -->
-  <!-- Bold Red Apple -->
-  <circle cx="205" cy="142" r="38" fill="#EF4444" stroke="#000000" stroke-width="10" />
-  <!-- Apple Leaf -->
-  <path d="M 205 104 Q 218 88 226 104" fill="#10B981" stroke="#000000" stroke-width="8" stroke-linecap="round" />
-  
-  <!-- Fresh Green Veggie Leafs -->
-  <path d="M 270 140 L 290 85 L 310 140" fill="#F97316" stroke="#000000" stroke-width="10" stroke-linejoin="round" />
-  <path d="M 290 85 L 285 55 M 290 85 L 295 50 M 290 85 L 308 60" fill="none" stroke="#22C55E" stroke-width="10" stroke-linecap="round" />
-  
-  <!-- High contrast big White Checkmark on the bag for completion -->
-  <path d="M 200 265 L 228 295 L 285 225" fill="none" stroke="#000000" stroke-width="22" stroke-linecap="round" stroke-linejoin="round" />
-  <path d="M 200 265 L 228 295 L 285 225" fill="none" stroke="#FFFFFF" stroke-width="12" stroke-linecap="round" stroke-linejoin="round" />
-  
-  <!-- Accent badge "B" representing BasketWise -->
-  <circle cx="390" cy="110" r="36" fill="#3B82F6" stroke="#000000" stroke-width="10" />
-  <text x="390" y="122" font-family="system-ui, -apple-system, sans-serif" font-weight="900" font-size="34" fill="#FFFFFF" text-anchor="middle">B</text>
+  <!-- Definitions for gradients and shadows -->
+  <defs>
+    <linearGradient id="bgGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#10B981" />
+      <stop offset="100%" stop-color="#0693E3" />
+    </linearGradient>
+    <linearGradient id="basketGrad" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#FFFFFF" />
+      <stop offset="100%" stop-color="#E2E8F0" />
+    </linearGradient>
+    <filter id="dropShadow" x="-10%" y="-10%" width="130%" height="130%">
+      <feDropShadow dx="12" dy="12" stdDeviation="0" flood-color="#000000" flood-opacity="1" />
+    </filter>
+  </defs>
+
+  <!-- Outer background container with thick neo-brutalist black border and flat shadow -->
+  <rect x="24" y="24" width="464" height="464" rx="96" fill="url(#bgGrad)" stroke="#000000" stroke-width="14" filter="url(#dropShadow)" />
+
+  <!-- Modern stylized shopping basket -->
+  <!-- Back handle arcs -->
+  <path d="M 170 230 C 170 120, 342 120, 342 230" fill="none" stroke="#000000" stroke-width="20" stroke-linecap="round" />
+  <path d="M 180 230 C 180 140, 332 140, 332 230" fill="none" stroke="url(#basketGrad)" stroke-width="12" stroke-linecap="round" />
+
+  <!-- Main basket body -->
+  <path d="M 120 230 L 392 230 L 352 420 L 160 420 Z" fill="#000000" />
+  <path d="M 128 238 L 384 238 L 348 406 L 164 406 Z" fill="url(#basketGrad)" stroke="#000000" stroke-width="10" stroke-linejoin="round" />
+
+  <!-- Grid patterns inside the basket to make it look like a wire basket -->
+  <path d="M 190 238 L 190 406 M 256 238 L 256 406 M 322 238 L 322 406" fill="none" stroke="#000000" stroke-width="8" stroke-linecap="round" />
+  <path d="M 144 290 L 368 290 M 154 348 L 358 348" fill="none" stroke="#000000" stroke-width="8" stroke-linecap="round" />
+
+  <!-- Giant vibrant Checkmark representing completion, overlapping the basket -->
+  <!-- Checkmark shadow -->
+  <path d="M 210 320 L 250 360 L 380 210" fill="none" stroke="#000000" stroke-width="26" stroke-linecap="round" stroke-linejoin="round" />
+  <!-- Checkmark body -->
+  <path d="M 210 320 L 250 360 L 380 210" fill="none" stroke="#10B981" stroke-width="16" stroke-linecap="round" stroke-linejoin="round" />
+  <!-- Checkmark inner highlight -->
+  <path d="M 210 320 L 250 360 L 380 210" fill="none" stroke="#A7F3D0" stroke-width="6" stroke-linecap="round" stroke-linejoin="round" />
+
+  <!-- Apple sticking out on the left -->
+  <circle cx="150" cy="205" r="32" fill="#EF4444" stroke="#000000" stroke-width="8" />
+  <path d="M 144 175 Q 152 165 160 173" fill="none" stroke="#22C55E" stroke-width="6" stroke-linecap="round" />
+
+  <!-- Carrot sticking out on the right -->
+  <path d="M 330 220 L 375 160 L 390 175 Z" fill="#F97316" stroke="#000000" stroke-width="8" stroke-linejoin="round" />
+  <path d="M 375 160 L 390 135 M 380 165 L 402 148" fill="none" stroke="#22C55E" stroke-width="6" stroke-linecap="round" />
 </svg>
