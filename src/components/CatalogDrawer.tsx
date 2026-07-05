@@ -84,6 +84,16 @@ export default function CatalogDrawer({
   // Filter and sort catalog items
   const filteredItems = useMemo(() => {
     const filtered = regularItems.filter((item) => {
+      // Hide unmatched flyer items that no longer have any active/valid prices (expired sale and no distinct regular price)
+      if (item.id.startsWith("regular-unmatched-")) {
+        const hasActivePrice = Object.values(item.stores || {}).some((storeInfo: any) => {
+          return getStoreActivePrice(storeInfo) !== null;
+        });
+        if (!hasActivePrice) {
+          return false;
+        }
+      }
+
       const nameMatch = item.name.toLowerCase().includes(searchQuery.toLowerCase());
       
       const itemCategory = item.category || "Other";

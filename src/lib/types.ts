@@ -38,6 +38,7 @@ export interface RegularItem {
   selected: boolean;
   unit?: string;
   units?: number;
+  stores?: Record<string, any>;
 }
 
 export interface StoreInfo {
