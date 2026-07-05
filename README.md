@@ -14,11 +14,37 @@ BasketWise is a smart, offline-first grocery list application designed to optimi
 - **Savings Estimator**: Dynamically calculates your potential savings based on active discounts (comparing regular prices against active sale prices) for the items in your basket.
 - **Offline-First & Auto-Sync**: Uses local client storage (IndexedDB) to ensure your list works perfectly inside grocery stores with poor or no cellular reception. The engine automatically synchronizes changes with your MongoDB server once you are back online.
 - **Prioritized Staples on Sale**: Floats frequently and recently purchased sale items to the front of the Home tab carousel using a decaying-weight purchase history relevance algorithm.
+- **Multi-Product Flyer Ingestion**: Intelligently identifies and splits conjoined brand/product listings on Flipp (e.g. *"Kraft Dressing, Diana or Bull's Eye BBQ Sauce"*) into distinct items using **Gemini 2.5 Flash**, adding each separately to the catalog/shopping list.
+- **Pricing Expiry Safeguards**: Automatically detects expired sale fallback prices (when regular price equals sale price) and invalidates them (showing as "N/A"), hiding expired flyer-only items from the catalog drawer.
 - **Weekly Flyer Debugger**: Real-time interactive flyer lookup debugger panel displaying query terms, raw Flipp API returns, and custom search testing.
 - **Item Catalog**: Maintain a catalog of regular household items. Add them to your list with a single click, or manage custom items with quantities and units.
 - **Data Imports**: Import catalog inventory from CSV files or update pricing structures via JSON price sheets directly.
 - **Admin Portal**: Integrated `/admin` panel to check database diagnostics, import local price databases, and manage sync metrics.
 - **Progressive Web App (PWA)**: Optimized to be installed on mobile devices for native-like performance on the go.
+
+---
+
+## Client-Side Integration (Tampermonkey for Safari)
+
+To clip items directly from Flyer pages (Flipp.com) or supported grocery merchant sites (Food Basics, Metro, Walmart, FreshCo, Loblaws, No Frills, Your Independent Grocer, Canadian Tire) into your grocery list, install the companion user script:
+
+### 1. Install Tampermonkey for Safari
+1. Open the Mac App Store and search for **Tampermonkey** (available as a Safari extension).
+2. Download and install the application.
+3. Open Safari and navigate to **Settings...** (or **Preferences...**) > **Extensions**.
+4. Check the box next to **Tampermonkey** to enable it.
+5. Grant Tampermonkey permission to access the websites by selecting "Always Allow on Every Website" (this is required to inject the "Add to BasketWise" button on target grocer sites).
+
+### 2. Install the User Script
+1. Click the Tampermonkey icon in your Safari toolbar and select **Create a new script...** or go to the **Dashboard**.
+2. Open the file [groceryscout.user.js.js](file:///Users/christopherschmitt/Library/Mobile%2520Documents/com~apple~CloudDocs/GroceryHub/Code/GroceryListV2/Client-side-scripts/groceryscout.user.js.js) in your text editor.
+3. Copy the entire contents of the script.
+4. Delete any template code in the Tampermonkey editor, paste the script content, and save it by pressing **Cmd + S** or selecting **File** > **Save**.
+
+### 3. Verify Integration
+1. Open Safari and go to **[Flipp.com](https://flipp.com)** or a grocery merchant site.
+2. Select any product clipping or detail view.
+3. You will see a floating green **Add to BasketWise** button in the bottom-right corner. Click it to immediately ingest the product's details and active sale price directly into your grocery list!
 
 ---
 
