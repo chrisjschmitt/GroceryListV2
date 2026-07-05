@@ -76,6 +76,10 @@ export function validateUniqueUrls(catalog: CombinedCatalog): void {
           if (link && link.url) {
             const normUrl = normalizeUrl(link.url);
             if (normUrl) {
+              // Flipp flyer URLs are shared by conjoined/multi-product deals. Don't enforce uniqueness on them.
+              if (normUrl.includes("flipp.com") || normUrl.includes("flipp.ca")) {
+                continue;
+              }
               const duplicateOwner = seenUrls.get(normUrl);
               if (duplicateOwner && duplicateOwner !== item.name) {
                 throw new Error(`Duplicate URL detected: URL for "${item.name}" (${storeKey}) is already registered on product "${duplicateOwner}".`);
