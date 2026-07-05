@@ -205,6 +205,7 @@ export default function HomeTab() {
               sale_price: existing.sale_price,
               is_on_sale: existing.is_on_sale,
               lookup_url: existing.lookup_url,
+              flipp_url: existing.flipp_url,
               valid_until: existing.valid_until,
             });
           }
@@ -223,6 +224,7 @@ export default function HomeTab() {
               sale_price: entry.sale_price,
               is_on_sale: entry.is_on_sale,
               lookup_url: entry.lookup_url,
+              flipp_url: entry.flipp_url,
               valid_until: entry.valid_until,
             });
           }
@@ -248,6 +250,7 @@ export default function HomeTab() {
               sale_price: entry.sale_price,
               is_on_sale: entry.is_on_sale,
               lookup_url: entry.lookup_url,
+              flipp_url: entry.flipp_url,
               valid_until: entry.valid_until,
             };
           }

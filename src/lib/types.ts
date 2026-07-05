@@ -10,6 +10,7 @@ export interface StorePrice {
   price: number;
   onSale: boolean;
   lookup_url?: string;
+  flipp_url?: string;
   valid_until?: string;
   brand_name?: string;
 }
@@ -49,6 +50,7 @@ export interface StoreInfo {
   sale_price: number | null;
   is_on_sale: number;
   lookup_url?: string;
+  flipp_url?: string;
   valid_until?: string;
   track_pricing?: number | boolean;
   external_name?: string;
@@ -66,6 +68,7 @@ export interface PriceEntry {
   is_on_sale: number;
   last_updated: string;
   lookup_url?: string;
+  flipp_url?: string;
   valid_until?: string;
   track_pricing?: number | boolean;
   external_name?: string;

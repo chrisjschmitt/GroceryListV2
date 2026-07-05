@@ -1,5 +1,5 @@
 import React from "react";
-import { X, Calendar, GitBranch, Sparkles, Database, Layout, Smartphone, Cloud, FileSpreadsheet, Trash2, Clock, Zap, RefreshCw, Search, Tag } from "lucide-react";
+import { X, Calendar, GitBranch, Sparkles, Database, Layout, Smartphone, Cloud, FileSpreadsheet, Trash2, Clock, Zap, RefreshCw, Search, Tag, ExternalLink } from "lucide-react";
 
 interface VersionHistoryModalProps {
   isOpen: boolean;
@@ -20,6 +20,19 @@ interface VersionEntry {
 }
 
 const VERSIONS: VersionEntry[] = [
+  {
+    version: "2.0.4",
+    date: "July 2026",
+    type: "patch",
+    title: "Preserve Direct Flipp Flyer Links",
+    changes: [
+      {
+        icon: <ExternalLink className="w-4 h-4 text-emerald-500" />,
+        category: "Flyer Navigation",
+        description: "Fixed a bug in price mapping where the flipp_url property was omitted during single-store entry fallback parsing, ensuring that direct flyer links open the configured item clipping on Flipp."
+      }
+    ]
+  },
   {
     version: "2.0.3",
     date: "July 2026",
