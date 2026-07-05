@@ -21,6 +21,19 @@ interface VersionEntry {
 
 const VERSIONS: VersionEntry[] = [
   {
+    version: "2.0.3",
+    date: "July 2026",
+    type: "patch",
+    title: "Catalog Editor Flipp URL Support",
+    changes: [
+      {
+        icon: <Layout className="w-4 h-4 text-emerald-500" />,
+        category: "Catalog Editor",
+        description: "Added a dedicated Flipp Flyer URL field in the Admin Edit Catalog Entry form to inspect or edit flipp URLs mapped to specific stores."
+      }
+    ]
+  },
+  {
     version: "2.0.2",
     date: "July 2026",
     type: "patch",

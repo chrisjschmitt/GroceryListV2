@@ -649,6 +649,7 @@ export default function AdminPage() {
       const updatedStores = { ...prev.stores };
       const defaultStoreObj = {
         url: "",
+        flipp_url: "",
         upc: "",
         regular_price: "",
         sale_price: "",
@@ -3074,6 +3075,29 @@ export default function AdminPage() {
                               );
                             })()}
                           </div>
+                        </div>
+
+                        <div>
+                          <div className="flex items-center justify-between mb-1 mt-1">
+                            <label className="block text-[9px] font-bold text-gray-500 uppercase">Flipp Flyer URL</label>
+                            {catalogItemForm.stores?.[selectedCatalogStore]?.flipp_url && (
+                              <a
+                                href={catalogItemForm.stores[selectedCatalogStore].flipp_url}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="inline-flex items-center gap-1 text-[9px] text-green-700 bg-green-50 border border-green-200 px-1 py-0.5 font-bold hover:bg-green-100 uppercase"
+                              >
+                                Test/Visit Flipp URL ↗
+                              </a>
+                            )}
+                          </div>
+                          <input
+                            type="text"
+                            value={catalogItemForm.stores?.[selectedCatalogStore]?.flipp_url || ""}
+                            onChange={(e) => handleStoreFieldChange("flipp_url", e.target.value)}
+                            placeholder="e.g. https://flipp.com/en-ca/.../item/..."
+                            className="w-full p-1.5 border border-black font-medium text-xs text-black"
+                          />
                         </div>
 
                         <div className="grid grid-cols-2 gap-2">
