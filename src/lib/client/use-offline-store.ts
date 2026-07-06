@@ -33,13 +33,24 @@ export function areGroceryItemsEqual(local: GroceryItem[], server: GroceryItem[]
   for (const item of local) {
     const sItem = server.find((s) => s.id === item.id);
     if (!sItem) return false;
+
+    // Normalize potential undefined/null fields to prevent comparison mismatches
+    const localUnits = item.units === null || item.units === undefined ? undefined : item.units;
+    const serverUnits = sItem.units === null || sItem.units === undefined ? undefined : sItem.units;
+
+    const localUnit = item.unit === null || item.unit === undefined ? "unit" : item.unit;
+    const serverUnit = sItem.unit === null || sItem.unit === undefined ? "unit" : sItem.unit;
+
+    const localCategory = item.category === null || item.category === undefined ? "Other" : item.category;
+    const serverCategory = sItem.category === null || sItem.category === undefined ? "Other" : sItem.category;
+
     if (
       item.name !== sItem.name ||
-      item.category !== sItem.category ||
+      localCategory !== serverCategory ||
       item.quantity !== sItem.quantity ||
-      item.unit !== sItem.unit ||
+      localUnit !== serverUnit ||
       item.checked !== sItem.checked ||
-      item.units !== sItem.units
+      localUnits !== serverUnits
     ) {
       return false;
     }
@@ -52,9 +63,13 @@ export function areRegularItemsEqual(local: RegularItem[], server: RegularItem[]
   for (const item of local) {
     const sItem = server.find((s) => s.id === item.id);
     if (!sItem) return false;
+
+    const localCategory = item.category === null || item.category === undefined ? "Other" : item.category;
+    const serverCategory = sItem.category === null || sItem.category === undefined ? "Other" : sItem.category;
+
     if (
       item.name !== sItem.name ||
-      item.category !== sItem.category ||
+      localCategory !== serverCategory ||
       item.selected !== sItem.selected
     ) {
       return false;
