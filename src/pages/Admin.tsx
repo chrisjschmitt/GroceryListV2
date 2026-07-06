@@ -103,7 +103,6 @@ const getNormalizedStoreKey = (storeId: string) => {
 };
 
 import { isSaleExpired } from "@/lib/price-utils";
-const isSaleExpiredAdmin = isSaleExpired;
 
 const storeNames: Record<string, string> = {
   foodbasics: "Food Basics",
@@ -1478,7 +1477,7 @@ export default function AdminPage() {
     if (catalogScrapedFilter === "not-scraped" && item.requires_scraping) return false;
 
     const anyOnSale = Object.values(item.stores || {}).some((s: any) => {
-      const isExp = s.valid_until && isSaleExpiredAdmin(s.valid_until);
+      const isExp = s.valid_until && isSaleExpired(s.valid_until);
       return (s.is_on_sale === 1 || s.is_on_sale === true) && !isExp;
     });
     if (catalogSaleFilter === "sale" && !anyOnSale) return false;
@@ -2663,7 +2662,7 @@ export default function AdminPage() {
                 <span className="text-[10px] font-bold text-amber-600 uppercase tracking-wider block">Currently On Sale</span>
                 <span className="text-xl font-black text-amber-800">
                   {catalog ? catalog.items.filter((item: any) => 
-                    Object.values(item.stores || {}).some((s: any) => (s.is_on_sale === 1 || s.is_on_sale === true) && !(s.valid_until && isSaleExpiredAdmin(s.valid_until)))
+                    Object.values(item.stores || {}).some((s: any) => (s.is_on_sale === 1 || s.is_on_sale === true) && !(s.valid_until && isSaleExpired(s.valid_until)))
                   ).length : 0}
                 </span>
               </div>
@@ -3256,7 +3255,7 @@ export default function AdminPage() {
                                 <div className="flex flex-wrap gap-2">
                                   {storeKeys.map((storeKey) => {
                                     const sInfo = item.stores[storeKey];
-                                    const isPromo = (sInfo.is_on_sale === 1 || sInfo.is_on_sale === true) && !(sInfo.valid_until && isSaleExpiredAdmin(sInfo.valid_until));
+                                    const isPromo = (sInfo.is_on_sale === 1 || sInfo.is_on_sale === true) && !(sInfo.valid_until && isSaleExpired(sInfo.valid_until));
                                     const isTracked = sInfo.track_pricing === true || sInfo.track_pricing === 1;
                                     const isVerified = sInfo.is_verified === true || sInfo.is_verified === 1;
                                     const hasUrl = !!sInfo.url;
