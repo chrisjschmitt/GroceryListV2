@@ -21,6 +21,24 @@ interface VersionEntry {
 
 const VERSIONS: VersionEntry[] = [
   {
+    version: "2.3.0",
+    date: "July 2026",
+    type: "minor",
+    title: "Offline Sync Refinements & Central Pricing Utilities",
+    changes: [
+      {
+        icon: <Database className="w-4 h-4 text-emerald-500" />,
+        category: "Sync & Reconciliation",
+        description: "Resolved startup sync conflicts, toggle transaction race conditions, stale closures in saveChanges(), and ensured robust try/finally state tracking on push/pull operations."
+      },
+      {
+        icon: <Tag className="w-4 h-4 text-[#4c56af]" />,
+        category: "Pricing Utilities",
+        description: "Centralized all price parsing, sale flag determinations, and sale expiry checks into a unified module (src/lib/price-utils.ts), fixing HomeTab optimization card crashes on Canadian Tire store keys."
+      }
+    ]
+  },
+  {
     version: "2.2.0",
     date: "July 2026",
     type: "minor",
