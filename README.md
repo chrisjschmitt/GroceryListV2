@@ -24,22 +24,32 @@ BasketWise is a smart, offline-first grocery list application designed to optimi
 
 ---
 
-## Client-Side Integration (Tampermonkey for Safari)
+## Companion User Script (Tampermonkey & Userscripts)
 
-To clip items directly from Flyer pages (Flipp.com) or supported grocery merchant sites (Food Basics, Metro, Walmart, FreshCo, Loblaws, No Frills, Your Independent Grocer, Canadian Tire) into your grocery list, install the companion user script:
+To clip items directly from Flyer pages (Flipp.com) or supported grocery merchant sites (Food Basics, Metro, Walmart, FreshCo, Loblaws, No Frills, Your Independent Grocer, Canadian Tire) into your grocery list, install the companion user script.
 
-### 1. Install Tampermonkey for Safari
+### 1. Install a User Script Manager
+
+Choose one of the following script managers for Safari:
+
+#### Option A: Tampermonkey for Safari (macOS)
 1. Open the Mac App Store and search for **Tampermonkey** (available as a Safari extension).
 2. Download and install the application.
 3. Open Safari and navigate to **Settings...** (or **Preferences...**) > **Extensions**.
 4. Check the box next to **Tampermonkey** to enable it.
-5. Grant Tampermonkey permission to access the websites by selecting "Always Allow on Every Website" (this is required to inject the "Add to BasketWise" button on target grocer sites).
+5. Grant Tampermonkey permission to access the websites by selecting "Always Allow on Every Website" (required to inject action buttons on target grocer sites).
+
+#### Option B: Userscripts for Safari (macOS & iOS)
+1. Open the App Store and search for **Userscripts** (by quoid).
+2. Download and install the application.
+3. Enable **Userscripts** under Safari > Settings > Extensions.
+4. Set a custom user scripts directory in the extension panel (e.g. inside iCloud Drive or local Documents).
 
 ### 2. Install the User Script
-1. Click the Tampermonkey icon in your Safari toolbar and select **Create a new script...** or go to the **Dashboard**.
-2. Open the file [groceryscout.user.js.js](file:///Users/christopherschmitt/Library/Mobile%2520Documents/com~apple~CloudDocs/GroceryHub/Code/GroceryListV2/Client-side-scripts/groceryscout.user.js.js) in your text editor.
-3. Copy the entire contents of the script.
-4. Delete any template code in the Tampermonkey editor, paste the script content, and save it by pressing **Cmd + S** or selecting **File** > **Save**.
+1. Open your script manager dashboard (or save the script inside your Userscripts folder).
+2. Create a new user script.
+3. Copy the entire contents of the file [groceryscout.user.js.js](file:///Users/christopherschmitt/Library/Mobile%2520Documents/com~apple~CloudDocs/GroceryHub/Code/GroceryListV2/Client-side-scripts/groceryscout.user.js.js).
+4. Paste the script content into the editor and save it.
 
 ### 3. Configure Ingestion Credentials
 On your first use, when you attempt to add an item (or on initial load), the script will prompt you to enter:

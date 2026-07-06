@@ -1,7 +1,7 @@
 // ==UserScript==
-// @name         GroceryScout - 2.10.0 Normalized Canonical Exporter
+// @name         GroceryScout - 2.11.0 Normalized Canonical Exporter
 // @namespace    http://tampermonkey.net/
-// @version      2.10.0
+// @version      2.11.0
 // @description  Added Canadian Tire & Loblaws dairy product normalization
 // @author       You
 // @match        https://*.foodbasics.ca/*
@@ -334,14 +334,26 @@
                     }
                 });
             };
+
+            // Check if Safari Userscripts and token is missing, prompt immediately
+            if (isUserscripts() && !storageCache.token) {
+                await ensureToken(true);
+            }
         } else {
             // Call on startup
             fetchCatalog();
             createSettingsButton(110, 220); // bottom: 110px, right: 220px (next to blue sendBtn)
+
+            // Check if Safari Userscripts and token is missing, prompt immediately
+            if (isUserscripts() && !storageCache.token) {
+                await ensureToken(true);
+            }
         }
     }
 
     init();
+
+    if (isFlipp) return;
 
     function getProductTitle() {
         // Try h1 elements first for SPAs (Loblaws/Independent Grocers) to bypass generic shell titles
