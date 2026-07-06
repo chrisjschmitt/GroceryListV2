@@ -46,9 +46,9 @@ On your first use, when you attempt to add an item (or on initial load), the scr
 1. **GROCERY_SECRET_TOKEN**: A secure, secret authentication token that matches the `GROCERY_SECRET_TOKEN` configured in your backend `.env.local` environment file.
 2. **API Base URL** (Optional): The base URL of your BasketWise server. It defaults to the production endpoint `https://grocery-list-v2-navy.vercel.app`. If you are developing locally, you can change this to `http://localhost:3000`.
 
-**Note**: To change or reset these credentials at any time, click the Tampermonkey extension icon in your browser toolbar, find **GroceryScout**, and select:
-- **Set/Update Ingestion Token**
-- **Set/Update API Base URL**
+**Note**: To change or reset these credentials at any time:
+- **Tampermonkey**: Click the Tampermonkey extension icon in your browser toolbar, find **GroceryScout**, and select **Set/Update Ingestion Token** or **Set/Update API Base URL**.
+- **Safari Userscripts**: Click the small floating gear button (**⚙️ Settings**) rendered directly next to the main green/blue action buttons on supported pages.
 
 ### 4. Verify Integration
 1. Open Safari and go to **[Flipp.com](https://flipp.com)** or a grocery merchant site.

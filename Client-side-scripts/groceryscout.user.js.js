@@ -31,50 +31,143 @@
 // @grant        GM_getValue
 // @grant        GM_setValue
 // @grant        GM_registerMenuCommand
+// @grant        GM.getValue
+// @grant        GM.setValue
 // ==/UserScript==
 
 (function () {
     'use strict';
 
-    function getApiBase() {
-        let apiBase = GM_getValue("basketwise_api_base");
-        if (!apiBase) {
-            apiBase = "https://grocery-list-v2-navy.vercel.app";
-            GM_setValue("basketwise_api_base", apiBase);
-        }
-        return apiBase.replace(/\/$/, "");
+    const DEFAULT_API_BASE = "https://grocery-list-v2-navy.vercel.app";
+    const STORAGE_KEYS = {
+        apiBase: "basketwise_api_base",
+        token: "GROCERY_SECRET_TOKEN",
+    };
+
+    // In-memory cache after async load (Userscripts cannot do sync storage reads)
+    const storageCache = {
+        apiBase: null,
+        token: null,
+        initialized: false,
+    };
+
+    function isUserscripts() {
+        return typeof GM !== "undefined" && typeof GM.getValue === "function";
     }
 
-    function getToken() {
-        let token = GM_getValue("GROCERY_SECRET_TOKEN");
-        if (!token) {
-            token = prompt("Please enter your GROCERY_SECRET_TOKEN to authenticate with BasketWise:");
-            if (token) {
-                token = token.trim();
-                GM_setValue("GROCERY_SECRET_TOKEN", token);
-            } else {
-                alert("BasketWise Ingestion Token is required. Operation aborted.");
-                return null;
-            }
+    function isTampermonkey() {
+        return typeof GM_getValue === "function" && typeof GM_setValue === "function";
+    }
+
+    async function storageGet(key) {
+        if (isUserscripts()) {
+            return await GM.getValue(key);
         }
-        return token;
+        if (isTampermonkey()) {
+            return GM_getValue(key);
+        }
+        return null;
+    }
+
+    async function storageSet(key, value) {
+        if (isUserscripts()) {
+            await GM.setValue(key, value);
+            return;
+        }
+        if (isTampermonkey()) {
+            GM_setValue(key, value);
+            return;
+        }
+    }
+
+    async function loadStorageCache() {
+        if (storageCache.initialized) return;
+        let apiBase = await storageGet(STORAGE_KEYS.apiBase);
+        if (!apiBase) {
+            apiBase = DEFAULT_API_BASE;
+            await storageSet(STORAGE_KEYS.apiBase, apiBase);
+        }
+        storageCache.apiBase = String(apiBase).replace(/\/$/, "");
+        storageCache.token = (await storageGet(STORAGE_KEYS.token)) || null;
+        if (storageCache.token) storageCache.token = String(storageCache.token).trim();
+        storageCache.initialized = true;
+    }
+
+    function getApiBaseSync() {
+        return storageCache.apiBase || DEFAULT_API_BASE;
+    }
+
+    async function ensureToken(promptIfMissing) {
+        await loadStorageCache();
+        if (storageCache.token) return storageCache.token;
+
+        if (!promptIfMissing) return null;
+
+        const entered = prompt(
+            "BasketWise: Enter your GROCERY_SECRET_TOKEN\n(same value as server .env.local / Vercel):",
+            ""
+        );
+        if (!entered || !entered.trim()) {
+            alert("BasketWise Ingestion Token is required. Operation aborted.");
+            return null;
+        }
+        storageCache.token = entered.trim();
+        await storageSet(STORAGE_KEYS.token, storageCache.token);
+        return storageCache.token;
+    }
+
+    async function configureSettingsMenu() {
+        await loadStorageCache();
+        
+        const currentToken = storageCache.token || "";
+        const newToken = prompt("BasketWise: Enter new GROCERY_SECRET_TOKEN:", currentToken);
+        if (newToken !== null) {
+            storageCache.token = newToken.trim();
+            await storageSet(STORAGE_KEYS.token, storageCache.token);
+        }
+
+        const currentBase = storageCache.apiBase || DEFAULT_API_BASE;
+        const newBase = prompt("BasketWise: Enter new API Base URL:", currentBase);
+        if (newBase !== null) {
+            storageCache.apiBase = newBase.trim().replace(/\/$/, "");
+            await storageSet(STORAGE_KEYS.apiBase, storageCache.apiBase);
+        }
+        
+        alert("BasketWise settings updated successfully!");
+    }
+
+    function createSettingsButton(bottomPx, rightPx) {
+        const btn = document.createElement('button');
+        btn.innerHTML = '⚙️';
+        btn.title = 'BasketWise Settings';
+        btn.style = `position:fixed; bottom:${bottomPx}px; right:${rightPx}px; z-index:999999; background:#475569; color:white; width:36px; height:36px; border-radius:50%; font-family:system-ui; font-size:16px; border:none; box-shadow:0 4px 10px rgba(0,0,0,0.3); cursor:pointer; display:flex; align-items:center; justify-content:center;`;
+        btn.onclick = async function(e) {
+            e.stopPropagation();
+            await configureSettingsMenu();
+        };
+        document.body.appendChild(btn);
+        return btn;
     }
 
     if (typeof GM_registerMenuCommand !== "undefined") {
-        GM_registerMenuCommand("Set/Update Ingestion Token", function() {
-            const currentToken = GM_getValue("GROCERY_SECRET_TOKEN") || "";
+        GM_registerMenuCommand("Set/Update Ingestion Token", async function() {
+            await loadStorageCache();
+            const currentToken = storageCache.token || "";
             const newToken = prompt("Enter new GROCERY_SECRET_TOKEN:", currentToken);
             if (newToken !== null) {
-                GM_setValue("GROCERY_SECRET_TOKEN", newToken.trim());
+                storageCache.token = newToken.trim();
+                await storageSet(STORAGE_KEYS.token, storageCache.token);
                 alert("Token updated successfully!");
             }
         });
 
-        GM_registerMenuCommand("Set/Update API Base URL", function() {
-            const currentBase = GM_getValue("basketwise_api_base") || "https://grocery-list-v2-navy.vercel.app";
-            const newBase = prompt("Enter new API Base URL (e.g. http://localhost:3000 or production URL):", currentBase);
+        GM_registerMenuCommand("Set/Update API Base URL", async function() {
+            await loadStorageCache();
+            const currentBase = storageCache.apiBase || DEFAULT_API_BASE;
+            const newBase = prompt("Enter new API Base URL (e.g. http://localhost:3000):", currentBase);
             if (newBase !== null) {
-                GM_setValue("basketwise_api_base", newBase.trim());
+                storageCache.apiBase = newBase.trim().replace(/\/$/, "");
+                await storageSet(STORAGE_KEYS.apiBase, storageCache.apiBase);
                 alert("API Base URL updated successfully!");
             }
         });
@@ -82,85 +175,13 @@
 
     const isFlipp = window.location.hostname.includes("flipp.ca") || window.location.hostname.includes("flipp.com");
 
-    if (isFlipp) {
-        // Flipp Ingestion UI flow: floating action button in the bottom right corner
-        const flippBtn = document.createElement('button');
-        flippBtn.innerHTML = '⚡ Add to BasketWise';
-        flippBtn.style = 'position:fixed; bottom:30px; right:30px; z-index:999999; background:#10b981; color:white; padding:14px 20px; border-radius:10px; font-family:system-ui, -apple-system, sans-serif; font-weight:bold; border:none; box-shadow:0 4px 14px rgba(0,0,0,0.3); cursor:pointer; font-size:14px; display:none;';
-        document.body.appendChild(flippBtn);
-
-        // Check URL periodically for item detail pages
-        setInterval(() => {
-            const isItemPage = window.location.href.includes("/item/");
-            flippBtn.style.display = isItemPage ? 'block' : 'none';
-        }, 1000);
-
-        flippBtn.onclick = function() {
-            const rawQuantity = prompt("Enter quantity to add to Shopping List:", "1");
-            if (rawQuantity === null) return; // User cancelled
-            const quantity = parseInt(rawQuantity);
-            if (isNaN(quantity) || quantity <= 0) {
-                alert("Invalid quantity. Please enter a positive number.");
-                return;
-            }
-
-            const token = getToken();
-            if (!token) return;
-
-            flippBtn.disabled = true;
-            flippBtn.innerHTML = '⏳ Adding...';
-
-            GM_xmlhttpRequest({
-                method: "POST",
-                url: getApiBase() + "/api/flipp/add-item",
-                headers: {
-                    "Content-Type": "application/json",
-                    "X-GroceryScout-Token": token
-                },
-                data: JSON.stringify({
-                    url: window.location.href,
-                    quantity: quantity
-                }),
-                onload: function(response) {
-                    flippBtn.disabled = false;
-                    flippBtn.innerHTML = '⚡ Add to BasketWise';
-                    console.log("[Flipp Ingestion Client] Status:", response.status);
-                    console.log("[Flipp Ingestion Client] Response:", response.responseText);
-                    
-                    try {
-                        const resData = JSON.parse(response.responseText);
-                        if (resData && resData.message) {
-                            alert(resData.message);
-                        } else if (resData && resData.error) {
-                            alert(resData.error);
-                        } else {
-                            alert("Successfully sent item to list.");
-                        }
-                    } catch (e) {
-                        alert(response.responseText || "Sent item to BasketWise List.");
-                    }
-                },
-                onerror: function(err) {
-                    flippBtn.disabled = false;
-                    flippBtn.innerHTML = '⚡ Add to BasketWise';
-                    alert("Error communicating with BasketWise server: " + (err.message || String(err)));
-                }
-            });
-        };
-
-        // Exit immediately so retailer page hooks are not run on Flipp
-        return;
-    }
-
-    // 1. Strict Mapping Dictionary matching regular-items.json EXACTLY (as fallback)
-    let CANONICAL_NAMES = [
-        "2% lactose free cottage cheese",
-        "Yogurt LF 1% Natrel",
-        "Chicken Breasts Boneless Skinless",
-        "Milk LF 2%",
+    const CANONICAL_NAMES = [
         "Milk LF 1%",
-        "Broccoli",
+        "Milk LF 2%",
         "Butter unsalted",
+        "Yogurt LF 1% Natrel",
+        "2% lactose free cottage cheese",
+        "Chicken Breasts Boneless Skinless",
         "Eggs - 18",
         "Blueberries - pint",
         "Strawberries 454g",
@@ -169,7 +190,8 @@
         "Raspberries",
         "Olives",
         "Decaf coffee",
-        "LF Ice cream"
+        "LF Ice cream",
+        "Broccoli"
     ];
 
     let catalogItems = CANONICAL_NAMES.map(name => ({ name, id: null }));
@@ -216,14 +238,13 @@
     function fetchCatalog() {
         GM_xmlhttpRequest({
             method: "GET",
-            url: getApiBase() + "/api/regular-items",
+            url: getApiBaseSync() + "/api/regular-items",
             onload: function (response) {
                 if (response.status === 200) {
                     try {
                         const parsed = JSON.parse(response.responseText);
                         if (parsed && Array.isArray(parsed.items) && parsed.items.length > 0) {
                             catalogItems = parsed.items;
-                            CANONICAL_NAMES = parsed.items.map(item => item.name);
                             console.log("GroceryScout: Successfully loaded " + catalogItems.length + " catalog items from API.");
                         }
                     } catch (e) {
@@ -239,8 +260,88 @@
         });
     }
 
-    // Call on startup
-    fetchCatalog();
+    async function init() {
+        await loadStorageCache();
+
+        if (isFlipp) {
+            // Flipp Ingestion UI flow: floating action button in the bottom right corner
+            const flippBtn = document.createElement('button');
+            flippBtn.innerHTML = '⚡ Add to BasketWise';
+            flippBtn.style = 'position:fixed; bottom:30px; right:30px; z-index:999999; background:#10b981; color:white; padding:14px 20px; border-radius:10px; font-family:system-ui, -apple-system, sans-serif; font-weight:bold; border:none; box-shadow:0 4px 14px rgba(0,0,0,0.3); cursor:pointer; font-size:14px; display:none;';
+            document.body.appendChild(flippBtn);
+
+            const settingsBtn = createSettingsButton(30, 220);
+            settingsBtn.style.display = 'none';
+
+            // Check URL periodically for item detail pages
+            setInterval(() => {
+                const isItemPage = window.location.href.includes("/item/");
+                flippBtn.style.display = isItemPage ? 'block' : 'none';
+                settingsBtn.style.display = isItemPage ? 'flex' : 'none';
+            }, 1000);
+
+            flippBtn.onclick = async function() {
+                const rawQuantity = prompt("Enter quantity to add to Shopping List:", "1");
+                if (rawQuantity === null) return; // User cancelled
+                const quantity = parseInt(rawQuantity);
+                if (isNaN(quantity) || quantity <= 0) {
+                    alert("Invalid quantity. Please enter a positive number.");
+                    return;
+                }
+
+                const token = await ensureToken(true);
+                if (!token) return;
+
+                flippBtn.disabled = true;
+                flippBtn.innerHTML = '⏳ Adding...';
+
+                GM_xmlhttpRequest({
+                    method: "POST",
+                    url: getApiBaseSync() + "/api/flipp/add-item",
+                    headers: {
+                        "Content-Type": "application/json",
+                        "X-GroceryScout-Token": token
+                    },
+                    data: JSON.stringify({
+                        url: window.location.href,
+                        quantity: quantity
+                    }),
+                    onload: function(response) {
+                        flippBtn.disabled = false;
+                        flippBtn.innerHTML = '⚡ Add to BasketWise';
+                        console.log("[Flipp Ingestion Client] Status:", response.status);
+                        console.log("[Flipp Ingestion Client] Response:", response.responseText);
+                        
+                        try {
+                            const resObj = JSON.parse(response.responseText);
+                            if (response.status === 200) {
+                                alert("Success: Item added to shopping list!");
+                            } else {
+                                alert("Error: " + (resObj.error || "Failed to add item."));
+                            }
+                        } catch (e) {
+                            if (response.status === 200) {
+                                alert("Success: Item added to shopping list!");
+                            } else {
+                                alert("Failed to add item. Server returned status " + response.status);
+                            }
+                        }
+                    },
+                    onerror: function(err) {
+                        flippBtn.disabled = false;
+                        flippBtn.innerHTML = '⚡ Add to BasketWise';
+                        alert("Error: Network request failed.");
+                    }
+                });
+            };
+        } else {
+            // Call on startup
+            fetchCatalog();
+            createSettingsButton(110, 220); // bottom: 110px, right: 220px (next to blue sendBtn)
+        }
+    }
+
+    init();
 
     function getProductTitle() {
         // Try h1 elements first for SPAs (Loblaws/Independent Grocers) to bypass generic shell titles
@@ -522,8 +623,8 @@
 
     document.body.appendChild(modal);
 
-    function sendPayload(payload, submitBtn, cancelBtn, callback) {
-        const token = getToken();
+    async function sendPayload(payload, submitBtn, cancelBtn, callback) {
+        const token = await ensureToken(true);
         if (!token) {
             if (submitBtn) {
                 submitBtn.innerHTML = 'Submit';
@@ -558,7 +659,7 @@
 
         GM_xmlhttpRequest({
             method: "POST",
-            url: getApiBase() + "/api/append-grocery",
+            url: getApiBaseSync() + "/api/append-grocery",
             headers: {
                 "Content-Type": "application/json",
                 "X-GroceryScout-Token": token
