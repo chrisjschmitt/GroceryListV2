@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback, useRef, useMemo } from "react";
 import { GroceryItem, RegularItem, PriceData, PriceEntry, PurchaseLogEntry } from "../types";
 import {
   localGetGroceryItems,
+  localSetGroceryItems,
   localAddGroceryItem,
   localUpdateGroceryItem,
   localRemoveGroceryItem,
@@ -13,14 +14,65 @@ import {
   localClearRegularItems,
   localRemoveRegularItem,
   localGetPurchaseLogs,
+  localSetPurchaseLogs,
   localAddPurchaseLogs,
+  localToggleGroceryItem,
+  localUpdateGroceryItemQuantity,
+  localToggleRegularItem,
+  setLastSyncTime,
 } from "./local-db";
-import { pullFromServer, pushDirtyToServer, syncAllToServer, SyncStatus, DirtyFlag } from "./sync";
+import { pullFromServer, pushDirtyToServer, syncAllToServer, SyncStatus, DirtyFlag, fetchFromServer } from "./sync";
 import { parseCsv } from "../csv-parser";
 import { getDeviceName } from "./device-name";
 import { getAutoSaveEnabled } from "./settings";
 
 const POLL_INTERVAL = 60000;
+
+export function areGroceryItemsEqual(local: GroceryItem[], server: GroceryItem[]): boolean {
+  if (local.length !== server.length) return false;
+  for (const item of local) {
+    const sItem = server.find((s) => s.id === item.id);
+    if (!sItem) return false;
+    if (
+      item.name !== sItem.name ||
+      item.category !== sItem.category ||
+      item.quantity !== sItem.quantity ||
+      item.unit !== sItem.unit ||
+      item.checked !== sItem.checked ||
+      item.units !== sItem.units
+    ) {
+      return false;
+    }
+  }
+  return true;
+}
+
+export function areRegularItemsEqual(local: RegularItem[], server: RegularItem[]): boolean {
+  if (local.length !== server.length) return false;
+  for (const item of local) {
+    const sItem = server.find((s) => s.id === item.id);
+    if (!sItem) return false;
+    if (
+      item.name !== sItem.name ||
+      item.category !== sItem.category ||
+      item.selected !== sItem.selected
+    ) {
+      return false;
+    }
+  }
+  return true;
+}
+
+export function mergePurchaseLogs(localLogs: PurchaseLogEntry[], serverLogs: PurchaseLogEntry[]): PurchaseLogEntry[] {
+  const merged = [...localLogs];
+  for (const sLog of serverLogs) {
+    if (!merged.some(l => l.id === sLog.id)) {
+      merged.push(sLog);
+    }
+  }
+  return merged.sort((a, b) => new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime());
+}
+
 
 export interface OfflineStore {
   groceryItems: GroceryItem[];
@@ -65,40 +117,15 @@ export function useOfflineStoreState(): OfflineStore {
   const [serverRegularItems, setServerRegularItems] = useState<RegularItem[]>([]);
 
   const isGroceryItemsDifferent = useMemo(() => {
-    if (groceryItems.length !== serverGroceryItems.length) return true;
-    for (const item of groceryItems) {
-      const sItem = serverGroceryItems.find((s) => s.id === item.id);
-      if (!sItem) return true;
-      if (
-        item.name !== sItem.name ||
-        item.category !== sItem.category ||
-        item.quantity !== sItem.quantity ||
-        item.unit !== sItem.unit ||
-        item.checked !== sItem.checked
-      ) {
-        return true;
-      }
-    }
-    return false;
+    return !areGroceryItemsEqual(groceryItems, serverGroceryItems);
   }, [groceryItems, serverGroceryItems]);
 
   const isRegularItemsDifferent = useMemo(() => {
-    if (regularItems.length !== serverRegularItems.length) return true;
-    for (const item of regularItems) {
-      const sItem = serverRegularItems.find((s) => s.id === item.id);
-      if (!sItem) return true;
-      if (
-        item.name !== sItem.name ||
-        item.category !== sItem.category ||
-        item.selected !== sItem.selected
-      ) {
-        return true;
-      }
-    }
-    return false;
+    return !areRegularItemsEqual(regularItems, serverRegularItems);
   }, [regularItems, serverRegularItems]);
 
   const dirtyRef = useRef<Set<DirtyFlag>>(new Set());
+  const saveQueuePromiseRef = useRef<Promise<void>>(Promise.resolve());
 
   // We check dirtyRef instead of comparing with server logs because logs only append
   const hasPendingChanges = useMemo(() => {
@@ -115,30 +142,47 @@ export function useOfflineStoreState(): OfflineStore {
     dirtyRef.current.add(flag);
   }, []);
 
-  const saveChanges = useCallback(async () => {
-    const toFlush = new Set<DirtyFlag>();
-    if (isGroceryItemsDifferent) toFlush.add("grocery");
-    if (isRegularItemsDifferent) toFlush.add("regular");
-    if (dirtyRef.current.has("purchaseLogs")) toFlush.add("purchaseLogs");
-    if (toFlush.size === 0) return;
+  const saveChanges = useCallback(() => {
+    const nextPromise = saveQueuePromiseRef.current.then(async () => {
+      const currentGrocery = await localGetGroceryItems();
+      const currentRegular = await localGetRegularItems();
 
-    if (!navigator.onLine) {
+      const isGroceryDiff = !areGroceryItemsEqual(currentGrocery, serverGroceryItems);
+      const isRegularDiff = !areRegularItemsEqual(currentRegular, serverRegularItems);
+
+      const toFlush = new Set<DirtyFlag>();
+      if (isGroceryDiff) toFlush.add("grocery");
+      if (isRegularDiff) toFlush.add("regular");
+      if (dirtyRef.current.has("purchaseLogs")) toFlush.add("purchaseLogs");
+
+      if (toFlush.size === 0) return;
+
+      if (!navigator.onLine) {
+        setSyncStatus("offline");
+        return;
+      }
+
+      setSyncStatus("syncing");
+      const result = await pushDirtyToServer(toFlush);
+
+      if (result.success) {
+        const freshGrocery = await localGetGroceryItems();
+        const freshRegular = await localGetRegularItems();
+        setServerGroceryItems(freshGrocery);
+        setServerRegularItems(freshRegular);
+        dirtyRef.current.clear();
+        markSynced(getDeviceName());
+      } else {
+        setSyncStatus("offline");
+      }
+    }).catch((err) => {
+      console.error("Error during saveChanges execution:", err);
       setSyncStatus("offline");
-      return;
-    }
+    });
 
-    setSyncStatus("syncing");
-    const result = await pushDirtyToServer(toFlush);
-
-    if (result.success) {
-      setServerGroceryItems(JSON.parse(JSON.stringify(groceryItems)));
-      setServerRegularItems(JSON.parse(JSON.stringify(regularItems)));
-      dirtyRef.current.clear();
-      markSynced(getDeviceName());
-    } else {
-      setSyncStatus("offline");
-    }
-  }, [isGroceryItemsDifferent, isRegularItemsDifferent, groceryItems, regularItems, markSynced]);
+    saveQueuePromiseRef.current = nextPromise;
+    return nextPromise;
+  }, [serverGroceryItems, serverRegularItems, markSynced]);
 
   const pullAndUpdate = useCallback(async () => {
     if (!navigator.onLine || hasPendingChanges) return;
@@ -193,27 +237,49 @@ export function useOfflineStoreState(): OfflineStore {
 
       setSyncStatus("syncing");
       try {
-        const serverData = await pullFromServer();
+        const serverData = await fetchFromServer();
 
-        if (serverData) {
-          setGroceryItems(serverData.groceryItems);
-          setRegularItems(serverData.regularItems);
-          setPrices(serverData.prices);
-          setPurchaseLogs(serverData.purchaseLogs);
-          setServerGroceryItems(JSON.parse(JSON.stringify(serverData.groceryItems)));
-          setServerRegularItems(JSON.parse(JSON.stringify(serverData.regularItems)));
-          markSynced(serverData.syncMeta?.lastSavedBy || undefined);
-        } else if (localGrocery.length > 0 || localRegular.length > 0) {
+        if (serverData === null) {
+          setSyncStatus("offline");
+          return;
+        }
+
+        // Always set prices on successful fetch regardless of push/pull path
+        setPrices(serverData.prices);
+
+        const hasLocalData = localGrocery.length > 0 || localRegular.length > 0;
+        const groceryDiffer = !areGroceryItemsEqual(localGrocery, serverData.groceryItems);
+        const regularDiffer = !areRegularItemsEqual(localRegular, serverData.regularItems);
+
+        if (hasLocalData && (groceryDiffer || regularDiffer)) {
+          // Push local state via syncAllToServer, do NOT overwrite local items
           const result = await syncAllToServer();
           if (result.success) {
             setServerGroceryItems(JSON.parse(JSON.stringify(localGrocery)));
             setServerRegularItems(JSON.parse(JSON.stringify(localRegular)));
+            
+            // Merge server purchaseLogs into local DB and state so we don't lose server-only logs
+            const mergedLogs = mergePurchaseLogs(localLogs, serverData.purchaseLogs);
+            await localSetPurchaseLogs(mergedLogs);
+            setPurchaseLogs(mergedLogs);
+            
             markSynced(getDeviceName());
           } else {
             setSyncStatus("offline");
           }
         } else {
-          markSynced();
+          // Write server items/logs to IndexedDB and update React state from server
+          await localSetGroceryItems(serverData.groceryItems);
+          await localSetRegularItems(serverData.regularItems);
+          await localSetPurchaseLogs(serverData.purchaseLogs);
+          await setLastSyncTime(Date.now());
+
+          setGroceryItems(serverData.groceryItems);
+          setRegularItems(serverData.regularItems);
+          setPurchaseLogs(serverData.purchaseLogs);
+          setServerGroceryItems(JSON.parse(JSON.stringify(serverData.groceryItems)));
+          setServerRegularItems(JSON.parse(JSON.stringify(serverData.regularItems)));
+          markSynced(serverData.syncMeta?.lastSavedBy || undefined);
         }
       } catch (syncErr) {
         console.error("Failed server reconciliation on mount:", syncErr);
@@ -374,30 +440,21 @@ export function useOfflineStoreState(): OfflineStore {
   }, [prices, markDirty]);
 
   const toggleGroceryItem = useCallback(async (id: string) => {
-    setGroceryItems((prev) =>
-      prev.map((i) => (i.id === id ? { ...i, checked: !i.checked } : i))
-    );
-
-    const items = await localGetGroceryItems();
-    const item = items.find((i) => i.id === id);
-    if (item) {
-      await localUpdateGroceryItem({ ...item, checked: !item.checked });
-    }
-
+    setGroceryItems((prev) => {
+      const item = prev.find((i) => i.id === id);
+      const targetChecked = item ? !item.checked : false;
+      localToggleGroceryItem(id, targetChecked).catch(console.error);
+      return prev.map((i) => (i.id === id ? { ...i, checked: targetChecked } : i));
+    });
     markDirty("grocery");
   }, [markDirty]);
 
   const updateGroceryItemQuantity = useCallback(async (id: string, quantity: number) => {
-    setGroceryItems((prev) =>
-      prev.map((i) => (i.id === id ? { ...i, quantity: Math.max(1, quantity) } : i))
-    );
-
-    const items = await localGetGroceryItems();
-    const item = items.find((i) => i.id === id);
-    if (item) {
-      await localUpdateGroceryItem({ ...item, quantity: Math.max(1, quantity) });
-    }
-
+    const targetQuantity = Math.max(1, quantity);
+    setGroceryItems((prev) => {
+      localUpdateGroceryItemQuantity(id, targetQuantity).catch(console.error);
+      return prev.map((i) => (i.id === id ? { ...i, quantity: targetQuantity } : i));
+    });
     markDirty("grocery");
   }, [markDirty]);
 
@@ -451,16 +508,12 @@ export function useOfflineStoreState(): OfflineStore {
   }, [markDirty]);
 
   const toggleRegularItem = useCallback(async (id: string) => {
-    setRegularItems((prev) =>
-      prev.map((i) => (i.id === id ? { ...i, selected: !i.selected } : i))
-    );
-
-    const items = await localGetRegularItems();
-    const item = items.find((i) => i.id === id);
-    if (item) {
-      await localUpdateRegularItem({ ...item, selected: !item.selected });
-    }
-
+    setRegularItems((prev) => {
+      const item = prev.find((i) => i.id === id);
+      const targetSelected = item ? !item.selected : false;
+      localToggleRegularItem(id, targetSelected).catch(console.error);
+      return prev.map((i) => (i.id === id ? { ...i, selected: targetSelected } : i));
+    });
     markDirty("regular");
   }, [markDirty]);
 

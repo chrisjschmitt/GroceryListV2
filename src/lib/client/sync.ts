@@ -71,7 +71,7 @@ export interface PullResult {
   purchaseLogs: PurchaseLogEntry[];
 }
 
-export async function pullFromServer(): Promise<PullResult | null> {
+export async function fetchFromServer(): Promise<PullResult | null> {
   if (!navigator.onLine) return null;
 
   try {
@@ -85,33 +85,41 @@ export async function pullFromServer(): Promise<PullResult | null> {
     const prices: PriceData = data.prices || {};
     const purchaseLogs: PurchaseLogEntry[] = data.purchaseLogs || [];
 
-    try {
-      await localSetGroceryItems(groceryItems);
-    } catch (err) {
-      console.warn("Failed to write groceryItems to local IndexedDB:", err);
-    }
-
-    try {
-      await localSetRegularItems(regularItems);
-    } catch (err) {
-      console.warn("Failed to write regularItems to local IndexedDB:", err);
-    }
-
-    try {
-      await localSetPurchaseLogs(purchaseLogs);
-    } catch (err) {
-      console.warn("Failed to write purchaseLogs to local IndexedDB:", err);
-    }
-
-    try {
-      await setLastSyncTime(Date.now());
-    } catch (err) {
-      console.warn("Failed to update last sync time in local IndexedDB:", err);
-    }
-
     return { groceryItems, regularItems, syncMeta, prices, purchaseLogs };
   } catch (err) {
-    console.error("Failed to pull from server:", err);
+    console.error("Failed to fetch from server:", err);
     return null;
   }
 }
+
+export async function pullFromServer(): Promise<PullResult | null> {
+  const result = await fetchFromServer();
+  if (!result) return null;
+
+  try {
+    await localSetGroceryItems(result.groceryItems);
+  } catch (err) {
+    console.warn("Failed to write groceryItems to local IndexedDB:", err);
+  }
+
+  try {
+    await localSetRegularItems(result.regularItems);
+  } catch (err) {
+    console.warn("Failed to write regularItems to local IndexedDB:", err);
+  }
+
+  try {
+    await localSetPurchaseLogs(result.purchaseLogs);
+  } catch (err) {
+    console.warn("Failed to write purchaseLogs to local IndexedDB:", err);
+  }
+
+  try {
+    await setLastSyncTime(Date.now());
+  } catch (err) {
+    console.warn("Failed to update last sync time in local IndexedDB:", err);
+  }
+
+  return result;
+}
+

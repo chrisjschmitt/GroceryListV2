@@ -49,8 +49,11 @@ export default function SyncIndicator({
 
   const handleSave = async () => {
     setSaving(true);
-    await onSave();
-    setSaving(false);
+    try {
+      await onSave();
+    } finally {
+      setSaving(false);
+    }
   };
 
   const handleRefresh = async () => {

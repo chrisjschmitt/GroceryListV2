@@ -159,3 +159,37 @@ export async function localAddPurchaseLogs(newLogs: PurchaseLogEntry[]): Promise
   }
   await tx.done;
 }
+
+export async function localToggleGroceryItem(id: string, targetChecked: boolean): Promise<void> {
+  const db = await getLocalDb();
+  const tx = db.transaction("groceryItems", "readwrite");
+  const item = await tx.store.get(id);
+  if (item) {
+    item.checked = targetChecked;
+    await tx.store.put(item);
+  }
+  await tx.done;
+}
+
+export async function localUpdateGroceryItemQuantity(id: string, targetQuantity: number): Promise<void> {
+  const db = await getLocalDb();
+  const tx = db.transaction("groceryItems", "readwrite");
+  const item = await tx.store.get(id);
+  if (item) {
+    item.quantity = targetQuantity;
+    await tx.store.put(item);
+  }
+  await tx.done;
+}
+
+export async function localToggleRegularItem(id: string, targetSelected: boolean): Promise<void> {
+  const db = await getLocalDb();
+  const tx = db.transaction("regularItems", "readwrite");
+  const item = await tx.store.get(id);
+  if (item) {
+    item.selected = targetSelected;
+    await tx.store.put(item);
+  }
+  await tx.done;
+}
+
