@@ -41,7 +41,16 @@ To clip items directly from Flyer pages (Flipp.com) or supported grocery merchan
 3. Copy the entire contents of the script.
 4. Delete any template code in the Tampermonkey editor, paste the script content, and save it by pressing **Cmd + S** or selecting **File** > **Save**.
 
-### 3. Verify Integration
+### 3. Configure Ingestion Credentials
+On your first use, when you attempt to add an item (or on initial load), the script will prompt you to enter:
+1. **GROCERY_SECRET_TOKEN**: A secure, secret authentication token that matches the `GROCERY_SECRET_TOKEN` configured in your backend `.env.local` environment file.
+2. **API Base URL** (Optional): The base URL of your BasketWise server. It defaults to the production endpoint `https://grocery-list-v2-navy.vercel.app`. If you are developing locally, you can change this to `http://localhost:3000`.
+
+**Note**: To change or reset these credentials at any time, click the Tampermonkey extension icon in your browser toolbar, find **GroceryScout**, and select:
+- **Set/Update Ingestion Token**
+- **Set/Update API Base URL**
+
+### 4. Verify Integration
 1. Open Safari and go to **[Flipp.com](https://flipp.com)** or a grocery merchant site.
 2. Select any product clipping or detail view.
 3. You will see a floating green **Add to BasketWise** button in the bottom-right corner. Click it to immediately ingest the product's details and active sale price directly into your grocery list!
@@ -74,11 +83,14 @@ npm install
    ```bash
    cp .env.example .env.local
    ```
-2. Open `.env.local` and configure the following variables:
+2. Open `.env.local` and configure the variables defined in `.env.example`:
    - `GEMINI_API_KEY`: Your Google Gemini API Key.
    - `APP_URL`: The local endpoint URL, typically `http://localhost:3000`.
    - `GROCERY_SECRET_TOKEN`: A secure, secret token used to validate incoming database payloads or webhooks.
    - `MONGODB_URI`: The connection string for your MongoDB database.
+
+> [!WARNING]
+> **Token Rotation Warning**: The initial placeholder token `"GroceryHub2026"` has been deprecated and removed. If your database or configuration still uses this old token, please rotate it immediately to a new unique string in both Vercel and your local `.env.local` settings, and update your Tampermonkey userscript storage accordingly.
 
 ### 4. Run the Development Server
 

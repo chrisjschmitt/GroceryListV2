@@ -10,7 +10,11 @@ if (fs.existsSync(envPath)) {
   dotenv.config();
 }
 
-const secretToken = process.env.GROCERY_SECRET_TOKEN || "GroceryHub2026";
+const secretToken = process.env.GROCERY_SECRET_TOKEN;
+if (!secretToken) {
+  console.error("ERROR: GROCERY_SECRET_TOKEN is not set in environment or .env.local!");
+  process.exit(1);
+}
 
 async function runTest() {
   const timestamp = Date.now();

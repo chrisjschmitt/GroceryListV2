@@ -1,7 +1,7 @@
 // ==UserScript==
-// @name         GroceryScout - 2.9.8 Normalized Canonical Exporter
+// @name         GroceryScout - 2.10.0 Normalized Canonical Exporter
 // @namespace    http://tampermonkey.net/
-// @version      2.9.8
+// @version      2.10.0
 // @description  Added Canadian Tire & Loblaws dairy product normalization
 // @author       You
 // @match        https://*.foodbasics.ca/*
@@ -28,10 +28,57 @@
 // @connect      grocery-list-v2-navy.vercel.app
 // @connect      *
 // @grant        GM_xmlhttpRequest
+// @grant        GM_getValue
+// @grant        GM_setValue
+// @grant        GM_registerMenuCommand
 // ==/UserScript==
 
 (function () {
     'use strict';
+
+    function getApiBase() {
+        let apiBase = GM_getValue("basketwise_api_base");
+        if (!apiBase) {
+            apiBase = "https://grocery-list-v2-navy.vercel.app";
+            GM_setValue("basketwise_api_base", apiBase);
+        }
+        return apiBase.replace(/\/$/, "");
+    }
+
+    function getToken() {
+        let token = GM_getValue("GROCERY_SECRET_TOKEN");
+        if (!token) {
+            token = prompt("Please enter your GROCERY_SECRET_TOKEN to authenticate with BasketWise:");
+            if (token) {
+                token = token.trim();
+                GM_setValue("GROCERY_SECRET_TOKEN", token);
+            } else {
+                alert("BasketWise Ingestion Token is required. Operation aborted.");
+                return null;
+            }
+        }
+        return token;
+    }
+
+    if (typeof GM_registerMenuCommand !== "undefined") {
+        GM_registerMenuCommand("Set/Update Ingestion Token", function() {
+            const currentToken = GM_getValue("GROCERY_SECRET_TOKEN") || "";
+            const newToken = prompt("Enter new GROCERY_SECRET_TOKEN:", currentToken);
+            if (newToken !== null) {
+                GM_setValue("GROCERY_SECRET_TOKEN", newToken.trim());
+                alert("Token updated successfully!");
+            }
+        });
+
+        GM_registerMenuCommand("Set/Update API Base URL", function() {
+            const currentBase = GM_getValue("basketwise_api_base") || "https://grocery-list-v2-navy.vercel.app";
+            const newBase = prompt("Enter new API Base URL (e.g. http://localhost:3000 or production URL):", currentBase);
+            if (newBase !== null) {
+                GM_setValue("basketwise_api_base", newBase.trim());
+                alert("API Base URL updated successfully!");
+            }
+        });
+    }
 
     const isFlipp = window.location.hostname.includes("flipp.ca") || window.location.hostname.includes("flipp.com");
 
@@ -57,15 +104,18 @@
                 return;
             }
 
+            const token = getToken();
+            if (!token) return;
+
             flippBtn.disabled = true;
             flippBtn.innerHTML = '⏳ Adding...';
 
             GM_xmlhttpRequest({
                 method: "POST",
-                url: "https://grocery-list-v2-navy.vercel.app/api/flipp/add-item",
+                url: getApiBase() + "/api/flipp/add-item",
                 headers: {
                     "Content-Type": "application/json",
-                    "X-GroceryScout-Token": "GroceryHub2026"
+                    "X-GroceryScout-Token": token
                 },
                 data: JSON.stringify({
                     url: window.location.href,
@@ -166,7 +216,7 @@
     function fetchCatalog() {
         GM_xmlhttpRequest({
             method: "GET",
-            url: "https://grocery-list-v2-navy.vercel.app/api/regular-items",
+            url: getApiBase() + "/api/regular-items",
             onload: function (response) {
                 if (response.status === 200) {
                     try {
@@ -473,6 +523,26 @@
     document.body.appendChild(modal);
 
     function sendPayload(payload, submitBtn, cancelBtn, callback) {
+        const token = getToken();
+        if (!token) {
+            if (submitBtn) {
+                submitBtn.innerHTML = 'Submit';
+                submitBtn.disabled = false;
+                submitBtn.style.opacity = '1';
+            }
+            if (cancelBtn) {
+                cancelBtn.disabled = false;
+                cancelBtn.style.opacity = '1';
+            }
+            if (sendBtn) {
+                sendBtn.innerHTML = '📥 Forward to App';
+                sendBtn.disabled = false;
+                sendBtn.style.opacity = '1';
+                sendBtn.style.background = '#0284c7';
+            }
+            return;
+        }
+
         if (submitBtn) {
             submitBtn.innerHTML = 'Connecting...';
             submitBtn.disabled = true;
@@ -488,10 +558,10 @@
 
         GM_xmlhttpRequest({
             method: "POST",
-            url: "https://grocery-list-v2-navy.vercel.app/api/append-grocery",
+            url: getApiBase() + "/api/append-grocery",
             headers: {
                 "Content-Type": "application/json",
-                "X-GroceryScout-Token": "GroceryHub2026"
+                "X-GroceryScout-Token": token
             },
             data: JSON.stringify(payload),
             onload: function (response) {
