@@ -38,6 +38,7 @@ import {
   blobGetPurchaseLogs,
   blobSetPurchaseLogs,
 } from "./src/lib/db-store";
+import { resolveStorePostalCode } from "./src/lib/flipp-postal";
 import { RegularItem, PurchaseLogEntry } from "./src/lib/types";
 
 // Use standard memory storage for multer CSV upload
@@ -1768,17 +1769,26 @@ async function startServer() {
 
   // GET /api/flipp/resolve
   app.get("/api/flipp/resolve", async (req, res) => {
+    const storeName = req.query.storeName as string || "";
+    const itemName = req.query.itemName as string || "";
+    const configName = req.query.configName as string || "";
+    const scrapedName = req.query.scrapedName as string || "";
+    const postalCode = req.query.postalCode as string || "K7H3C6";
+
+    if (!storeName || !itemName) {
+      return res.status(400).json({ error: "Missing required query parameters: storeName and itemName" });
+    }
+
+    let targetPostal = "K7H3C6";
     try {
-      const storeName = req.query.storeName as string;
-      const itemName = req.query.itemName as string;
-      const configName = req.query.configName as string;
-      const scrapedName = req.query.scrapedName as string;
-      const postalCode = req.query.postalCode as string || "K7H3C6";
+      const catalog = await blobGetCombinedCatalog();
+      targetPostal = resolveStorePostalCode(storeName, postalCode, catalog.stores);
+    } catch (err) {
+      console.error("Error retrieving catalog for postal code lookup:", err);
+      targetPostal = postalCode ? postalCode.trim().toUpperCase().replace(/\s/g, "") : "K7H3C6";
+    }
 
-      if (!storeName || !itemName) {
-        return res.status(400).json({ error: "Missing required query parameters: storeName and itemName" });
-      }
-
+    try {
       let cleanStore = storeName.trim();
       const lowerStore = cleanStore.toLowerCase();
       if (lowerStore.includes("food basics") || lowerStore === "fb" || lowerStore === "foodbasics") cleanStore = "Food Basics";
@@ -1788,11 +1798,6 @@ async function startServer() {
       else if (lowerStore.includes("metro") || lowerStore === "metro" || lowerStore === "mt") cleanStore = "Metro";
       else if (lowerStore.includes("freshco") || lowerStore.includes("fresco") || lowerStore === "fc" || lowerStore.includes("fresh co") || lowerStore.includes("freschco")) cleanStore = "FreshCo";
       else if (lowerStore.includes("walmart") || lowerStore === "walmart") cleanStore = "Walmart";
-
-      let targetPostal = postalCode.trim().toUpperCase().replace(/\s/g, "");
-      if (cleanStore === "FreshCo" && (targetPostal === "K7H3C6" || targetPostal === "K7A4S6")) {
-        targetPostal = "K7C3Y4"; // Use Carleton Place postal code for FreshCo flyers
-      }
 
       let cleanItem = scrapedName || configName || itemName;
       cleanItem = cleanItem.replace(/lactancia/gi, "Lactantia");
@@ -1833,11 +1838,11 @@ async function startServer() {
           });
           const bestItem = merchantItems[0];
           if (bestItem.id && bestItem.flyer_id) {
-            return res.json({ url: `https://flipp.com/flyer/${bestItem.flyer_id}?item_id=${bestItem.id}&postal_code=${encodeURIComponent(targetPostal)}`, isMatch: true });
+            return res.json({ url: `https://flipp.com/flyer/${bestItem.flyer_id}?item_id=${bestItem.id}&postal_code=${encodeURIComponent(targetPostal)}`, isMatch: true, resolvedPostal: targetPostal });
           } else if (bestItem.id) {
-            return res.json({ url: `https://flipp.com/item/${bestItem.id}?postal_code=${encodeURIComponent(targetPostal)}`, isMatch: true });
+            return res.json({ url: `https://flipp.com/item/${bestItem.id}?postal_code=${encodeURIComponent(targetPostal)}`, isMatch: true, resolvedPostal: targetPostal });
           } else if (bestItem.flyer_id) {
-            return res.json({ url: `https://flipp.com/flyer/${bestItem.flyer_id}?postal_code=${encodeURIComponent(targetPostal)}`, isMatch: false });
+            return res.json({ url: `https://flipp.com/flyer/${bestItem.flyer_id}?postal_code=${encodeURIComponent(targetPostal)}`, isMatch: false, resolvedPostal: targetPostal });
           }
         }
       }
@@ -1875,11 +1880,11 @@ async function startServer() {
               });
               const bestSecItem = secMerchantItems[0];
               if (bestSecItem.id && bestSecItem.flyer_id) {
-                return res.json({ url: `https://flipp.com/flyer/${bestSecItem.flyer_id}?item_id=${bestSecItem.id}&postal_code=${encodeURIComponent(targetPostal)}`, isMatch: true });
+                return res.json({ url: `https://flipp.com/flyer/${bestSecItem.flyer_id}?item_id=${bestSecItem.id}&postal_code=${encodeURIComponent(targetPostal)}`, isMatch: true, resolvedPostal: targetPostal });
               } else if (bestSecItem.id) {
-                return res.json({ url: `https://flipp.com/item/${bestSecItem.id}?postal_code=${encodeURIComponent(targetPostal)}`, isMatch: true });
+                return res.json({ url: `https://flipp.com/item/${bestSecItem.id}?postal_code=${encodeURIComponent(targetPostal)}`, isMatch: true, resolvedPostal: targetPostal });
               } else if (bestSecItem.flyer_id) {
-                return res.json({ url: `https://flipp.com/flyer/${bestSecItem.flyer_id}?postal_code=${encodeURIComponent(targetPostal)}`, isMatch: false });
+                return res.json({ url: `https://flipp.com/flyer/${bestSecItem.flyer_id}?postal_code=${encodeURIComponent(targetPostal)}`, isMatch: false, resolvedPostal: targetPostal });
               }
             }
           }
@@ -1905,28 +1910,18 @@ async function startServer() {
             return itMerchant.includes(targetMerchant) || targetMerchant.includes(itMerchant);
           });
           if (matchedStoreItem && matchedStoreItem.flyer_id) {
-            return res.json({ url: `https://flipp.com/flyer/${matchedStoreItem.flyer_id}?postal_code=${encodeURIComponent(targetPostal)}`, isMatch: false });
+            return res.json({ url: `https://flipp.com/flyer/${matchedStoreItem.flyer_id}?postal_code=${encodeURIComponent(targetPostal)}`, isMatch: false, resolvedPostal: targetPostal });
           }
         }
       } catch (storeErr) {
         console.error("Error in fallback store flyer resolution:", storeErr);
       }
 
-      return res.json({ url: targetUrl, isMatch: false });
+      return res.json({ url: targetUrl, isMatch: false, resolvedPostal: targetPostal });
     } catch (error: any) {
       console.error("Error in /api/flipp/resolve:", error);
-      const storeName = req.query.storeName as string || "";
-      const itemName = req.query.itemName as string || "";
-      const postalCode = req.query.postalCode as string || "K7H3C6";
-      let targetPostal = postalCode.trim().toUpperCase().replace(/\s/g, "");
-      let cleanStore = storeName.trim().toLowerCase();
-      if (cleanStore.includes("freshco") || cleanStore.includes("fresco") || cleanStore.includes("fresh co") || cleanStore.includes("freschco")) {
-        if (targetPostal === "K7H3C6" || targetPostal === "K7A4S6") {
-          targetPostal = "K7C3Y4";
-        }
-      }
       const fallbackUrl = `https://flipp.com/search?q=${encodeURIComponent(storeName + " " + itemName)}&postal_code=${encodeURIComponent(targetPostal)}`;
-      return res.json({ url: fallbackUrl });
+      return res.json({ url: fallbackUrl, resolvedPostal: targetPostal });
     }
   });
 
