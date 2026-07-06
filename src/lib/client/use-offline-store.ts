@@ -142,6 +142,27 @@ export function useOfflineStoreState(): OfflineStore {
   const dirtyRef = useRef<Set<DirtyFlag>>(new Set());
   const saveQueuePromiseRef = useRef<Promise<void>>(Promise.resolve());
 
+  const groceryItemsRef = useRef<GroceryItem[]>(groceryItems);
+  const regularItemsRef = useRef<RegularItem[]>(regularItems);
+  const serverGroceryItemsRef = useRef<GroceryItem[]>(serverGroceryItems);
+  const serverRegularItemsRef = useRef<RegularItem[]>(serverRegularItems);
+
+  useEffect(() => {
+    groceryItemsRef.current = groceryItems;
+  }, [groceryItems]);
+
+  useEffect(() => {
+    regularItemsRef.current = regularItems;
+  }, [regularItems]);
+
+  useEffect(() => {
+    serverGroceryItemsRef.current = serverGroceryItems;
+  }, [serverGroceryItems]);
+
+  useEffect(() => {
+    serverRegularItemsRef.current = serverRegularItems;
+  }, [serverRegularItems]);
+
   // We check dirtyRef instead of comparing with server logs because logs only append
   const hasPendingChanges = useMemo(() => {
     return isGroceryItemsDifferent || isRegularItemsDifferent || dirtyRef.current.has("purchaseLogs");
@@ -159,11 +180,26 @@ export function useOfflineStoreState(): OfflineStore {
 
   const saveChanges = useCallback(() => {
     const nextPromise = saveQueuePromiseRef.current.then(async () => {
-      const currentGrocery = await localGetGroceryItems();
-      const currentRegular = await localGetRegularItems();
+      const reactGrocery = groceryItemsRef.current;
+      const reactRegular = regularItemsRef.current;
+      const snapServerGrocery = serverGroceryItemsRef.current;
+      const snapServerRegular = serverRegularItemsRef.current;
 
-      const isGroceryDiff = !areGroceryItemsEqual(currentGrocery, serverGroceryItems);
-      const isRegularDiff = !areRegularItemsEqual(currentRegular, serverRegularItems);
+      let currentGrocery = await localGetGroceryItems();
+      let currentRegular = await localGetRegularItems();
+
+      // If React state differs from IDB, write state to IDB
+      if (!areGroceryItemsEqual(reactGrocery, currentGrocery)) {
+        await localSetGroceryItems(reactGrocery);
+        currentGrocery = reactGrocery;
+      }
+      if (!areRegularItemsEqual(reactRegular, currentRegular)) {
+        await localSetRegularItems(reactRegular);
+        currentRegular = reactRegular;
+      }
+
+      const isGroceryDiff = !areGroceryItemsEqual(currentGrocery, snapServerGrocery);
+      const isRegularDiff = !areRegularItemsEqual(currentRegular, snapServerRegular);
 
       const toFlush = new Set<DirtyFlag>();
       if (isGroceryDiff) toFlush.add("grocery");
@@ -183,8 +219,13 @@ export function useOfflineStoreState(): OfflineStore {
       if (result.success) {
         const freshGrocery = await localGetGroceryItems();
         const freshRegular = await localGetRegularItems();
+        
+        // Update both React state and refs for serverGroceryItems / serverRegularItems
         setServerGroceryItems(freshGrocery);
         setServerRegularItems(freshRegular);
+        serverGroceryItemsRef.current = freshGrocery;
+        serverRegularItemsRef.current = freshRegular;
+
         dirtyRef.current.clear();
         markSynced(getDeviceName());
       } else {
@@ -197,7 +238,7 @@ export function useOfflineStoreState(): OfflineStore {
 
     saveQueuePromiseRef.current = nextPromise;
     return nextPromise;
-  }, [serverGroceryItems, serverRegularItems, markSynced]);
+  }, [markSynced]);
 
   const pullAndUpdate = useCallback(async () => {
     if (!navigator.onLine || hasPendingChanges) return;

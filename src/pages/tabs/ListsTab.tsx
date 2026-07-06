@@ -1,4 +1,4 @@
-import { useState, useMemo, useEffect } from "react";
+import { useState, useMemo, useEffect, useCallback } from "react";
 import { useOfflineStore } from "@/lib/client/offline-store-context";
 import { GroceryItem, PriceEntry } from "@/lib/types";
 import { ChevronDown, ChevronUp, Trash2, Plus, Minus, ListPlus, ExternalLink, RefreshCw } from "lucide-react";
@@ -83,6 +83,15 @@ export default function ListsTab() {
   const [primaryStoreId, setPrimaryStoreId] = useState<string | null>(() => {
     return localStorage.getItem("primaryStoreId") || null;
   });
+  const [isSaving, setIsSaving] = useState(false);
+  const handleSaveChanges = useCallback(async () => {
+    setIsSaving(true);
+    try {
+      await store.saveChanges();
+    } finally {
+      setIsSaving(false);
+    }
+  }, [store]);
 
   const openFlyerForStoreItem = (
     storeName: string,
@@ -690,14 +699,15 @@ export default function ListsTab() {
           </p>
         </div>
 
-        {store.hasPendingChanges && (
+        {(store.hasPendingChanges || isSaving) && (
           <button
-            onClick={store.saveChanges}
-            className="flex items-center gap-1.5 px-3 py-1.5 bg-amber-500 hover:bg-amber-600 text-black text-xs font-bold rounded-lg border border-black shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] hover:shadow-none hover:translate-x-px hover:translate-y-px transition-all"
+            onClick={handleSaveChanges}
+            disabled={isSaving}
+            className={`flex items-center gap-1.5 px-3 py-1.5 bg-amber-500 hover:bg-amber-600 text-black text-xs font-bold rounded-lg border border-black shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] hover:shadow-none hover:translate-x-px hover:translate-y-px transition-all ${isSaving ? 'opacity-75 cursor-not-allowed' : ''}`}
             title="Save pending changes to database"
           >
-            <RefreshCw size={14} className="animate-spin" />
-            <span>Save Changes</span>
+            <RefreshCw size={14} className={isSaving ? "animate-spin" : ""} />
+            <span>{isSaving ? "Saving..." : "Save Changes"}</span>
           </button>
         )}
       </div>
@@ -710,7 +720,7 @@ export default function ListsTab() {
           lastSynced={store.lastSynced}
           hasPendingChanges={store.hasPendingChanges}
           lastSavedBy={store.lastSavedBy}
-          onSave={store.saveChanges}
+          onSave={handleSaveChanges}
           onRefresh={store.refreshFromServer}
         />
       </div>
@@ -1228,7 +1238,7 @@ export default function ListsTab() {
         onClose={async () => {
           setIsCatalogOpen(false);
           if (store.hasPendingChanges) {
-            await store.saveChanges();
+            await handleSaveChanges();
           }
         }}
         regularItems={store.regularItems}

@@ -50,11 +50,20 @@ export async function pushDirtyToServer(dirty: Set<DirtyFlag>): Promise<{ succes
       body: JSON.stringify(payload),
     });
 
-    if (!res.ok) return { success: false };
+    if (!res.ok) {
+      try {
+        const bodyText = await res.text();
+        console.error(`PUT /api/sync failed: status = ${res.status}, body = ${bodyText}`);
+      } catch (err) {
+        console.error(`PUT /api/sync failed: status = ${res.status} (unable to read body: ${err})`);
+      }
+      return { success: false };
+    }
 
     await setLastSyncTime(Date.now());
     return { success: true };
-  } catch {
+  } catch (err) {
+    console.error("PUT /api/sync encountered an exception:", err);
     return { success: false };
   }
 }
