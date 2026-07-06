@@ -20,55 +20,7 @@ import {
   ChevronUp
 } from "lucide-react";
 
-function isSaleExpiredLocal(validUntil?: string | null): boolean {
-  if (!validUntil) return false;
-  const expiryDate = new Date(validUntil);
-  if (isNaN(expiryDate.getTime())) return false;
-  
-  const now = new Date();
-  if (/^\d{4}-\d{2}-\d{2}$/.test(validUntil.trim())) {
-    const [y, m, d] = validUntil.trim().split("-").map(Number);
-    const targetDate = new Date(y, m - 1, d, 23, 59, 59, 999);
-    return now > targetDate;
-  }
-  return now > expiryDate;
-}
-
-function getStoreActivePrice(storeInfo: any): number | null {
-  if (!storeInfo) return null;
-  
-  const isSaleExpired = (dateStr?: string): boolean => {
-    if (!dateStr) return false;
-    const expiryDate = new Date(dateStr);
-    if (isNaN(expiryDate.getTime())) return false;
-    const now = new Date();
-    if (/^\d{4}-\d{2}-\d{2}$/.test(dateStr.trim())) {
-      const [y, m, d] = dateStr.trim().split("-").map(Number);
-      const targetDate = new Date(y, m - 1, d, 23, 59, 59, 999);
-      return now > targetDate;
-    }
-    return now > expiryDate;
-  };
-
-  const hasReg = storeInfo.regular_price !== null && storeInfo.regular_price !== undefined && storeInfo.regular_price > 0;
-  const hasSale = storeInfo.is_on_sale && storeInfo.sale_price !== null && storeInfo.sale_price !== undefined && storeInfo.sale_price > 0;
-  if (!hasReg && !hasSale) return null;
-  
-  const isExpired = hasSale && storeInfo.valid_until && isSaleExpired(storeInfo.valid_until);
-
-  if (hasSale && !isExpired) {
-    return typeof storeInfo.sale_price === "number" ? storeInfo.sale_price : parseFloat(storeInfo.sale_price) || null;
-  }
-  
-  if (hasReg) {
-    const regPrice = typeof storeInfo.regular_price === "number" ? storeInfo.regular_price : parseFloat(storeInfo.regular_price) || 0;
-    const salePrice = typeof storeInfo.sale_price === "number" ? storeInfo.sale_price : parseFloat(storeInfo.sale_price) || 0;
-    if (regPrice > 0 && regPrice !== salePrice) {
-      return regPrice;
-    }
-  }
-  return null;
-}
+import { isSaleExpired, getStoreActivePrice, normalizeStoreKey, isOnSaleFlag, parsePrice } from "@/lib/price-utils";
 
 interface RegularItemsListProps {
   items: RegularItem[];
@@ -492,8 +444,8 @@ export default function RegularItemsList({
                                       const activeP = getStoreActivePrice(storeInfo);
                                       if (activeP === null) return null;
                                       const isLowest = checkIfLowestPriceForEntry(price, storeId);
-                                      const storeExpired = storeInfo.is_on_sale && storeInfo.valid_until && isSaleExpiredLocal(storeInfo.valid_until);
-                                      const hasActiveSale = storeInfo.is_on_sale === 1;
+                                      const storeExpired = isOnSaleFlag(storeInfo.is_on_sale) && storeInfo.valid_until && isSaleExpired(storeInfo.valid_until);
+                                      const hasActiveSale = isOnSaleFlag(storeInfo.is_on_sale);
 
                                       const hasUrl = !!storeInfo.lookup_url;
                                       let badgeColorClass = "";
@@ -560,8 +512,8 @@ export default function RegularItemsList({
                               return null;
                             }
 
-                            const fallbackExpired = price.is_on_sale && price.valid_until && isSaleExpiredLocal(price.valid_until);
-                            const hasActiveSale = price.is_on_sale === 1;
+                            const fallbackExpired = isOnSaleFlag(price.is_on_sale) && price.valid_until && isSaleExpired(price.valid_until);
+                            const hasActiveSale = isOnSaleFlag(price.is_on_sale);
 
                             let badgeColorClass = "";
                             let customAppendText = "";
@@ -578,7 +530,7 @@ export default function RegularItemsList({
                                 badgeColorClass = "bg-yellow-400 text-black border-black font-black";
                               }
                             } else {
-                              badgeColorClass = price.is_on_sale 
+                              badgeColorClass = isOnSaleFlag(price.is_on_sale) 
                                 ? fallbackExpired
                                   ? "text-amber-700 bg-amber-50 border-yellow-500 animate-pulse"
                                   : "text-red-700 bg-red-100" 
@@ -598,7 +550,7 @@ export default function RegularItemsList({
                                     {customAppendText}
                                   </span>
                                 )}
-                                {!hasUrl && price.is_on_sale === 1 && (
+                                {!hasUrl && isOnSaleFlag(price.is_on_sale) && (
                                   <span className={fallbackExpired ? "ml-0.5 text-[7px] text-amber-600 font-bold" : "ml-0.5 text-[7px] font-bold"}>
                                     {fallbackExpired ? "expired" : "sale"}
                                   </span>

@@ -14,58 +14,10 @@ import {
   Store,
   ChevronRight
 } from "lucide-react";
+import { normalizeStoreKey, getStoreActivePrice, getStoreDisplayName } from "@/lib/price-utils";
 
 interface BasketsTabProps {
   onNavigateToLists?: () => void;
-}
-
-function normalizeStoreKey(storeId: string): string {
-  if (!storeId) return "foodbasics";
-  const lower = String(storeId).toLowerCase().trim();
-  if (lower.includes("metro")) return "metro";
-  if (lower.includes("loblaws")) return "loblaws";
-  if (lower.includes("nofrills")) return "nofrills";
-  if (lower.includes("freshco") || lower.includes("freschco") || lower.includes("fresco") || lower.includes("fresh co")) return "freshco";
-  if (lower.includes("yourindependentgrocer")) return "yourindependentgrocer";
-  if (lower === "7923194" || lower.includes("foodbasics") || lower.includes("food basics")) return "foodbasics";
-  if (lower.includes("walmart")) return "walmart";
-  return lower;
-}
-
-function getStoreActivePrice(storeInfo: any): number | null {
-  if (!storeInfo) return null;
-  
-  const isSaleExpired = (dateStr?: string): boolean => {
-    if (!dateStr) return false;
-    const expiryDate = new Date(dateStr);
-    if (isNaN(expiryDate.getTime())) return false;
-    const now = new Date();
-    if (/^\d{4}-\d{2}-\d{2}$/.test(dateStr.trim())) {
-      const [y, m, d] = dateStr.trim().split("-").map(Number);
-      const targetDate = new Date(y, m - 1, d, 23, 59, 59, 999);
-      return now > targetDate;
-    }
-    return now > expiryDate;
-  };
-
-  const hasReg = storeInfo.regular_price !== null && storeInfo.regular_price !== undefined && storeInfo.regular_price > 0;
-  const hasSale = storeInfo.is_on_sale && storeInfo.sale_price !== null && storeInfo.sale_price !== undefined && storeInfo.sale_price > 0;
-  if (!hasReg && !hasSale) return null;
-  
-  const isExpired = hasSale && storeInfo.valid_until && isSaleExpired(storeInfo.valid_until);
-
-  if (hasSale && !isExpired) {
-    return typeof storeInfo.sale_price === "number" ? storeInfo.sale_price : parseFloat(storeInfo.sale_price) || null;
-  }
-  
-  if (hasReg) {
-    const regPrice = typeof storeInfo.regular_price === "number" ? storeInfo.regular_price : parseFloat(storeInfo.regular_price) || 0;
-    const salePrice = typeof storeInfo.sale_price === "number" ? storeInfo.sale_price : parseFloat(storeInfo.sale_price) || 0;
-    if (regPrice > 0 && regPrice !== salePrice) {
-      return regPrice;
-    }
-  }
-  return null;
 }
 
 export default function BasketsTab({ onNavigateToLists }: BasketsTabProps) {
@@ -228,7 +180,7 @@ export default function BasketsTab({ onNavigateToLists }: BasketsTabProps) {
         if (priceInfo.stores && typeof priceInfo.stores === "object") {
           for (const [sId, sInfo] of Object.entries(priceInfo.stores)) {
             const normId = normalizeStoreKey(sId);
-            const p = getStoreActivePrice(sInfo);
+            const p = getStoreActivePrice(sInfo as any);
             if (p !== null && p > 0) {
               itemPrices[normId] = p;
               activeStoreIds.add(normId);

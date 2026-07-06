@@ -21,53 +21,7 @@ function groupByCategory(items: GroceryItem[]): [string, GroceryItem[]][] {
     .sort(([a], [b]) => getCategoryOrderIndex(a) - getCategoryOrderIndex(b));
 }
 
-function normalizeStoreKey(storeId: string): string {
-  if (!storeId) return "foodbasics";
-  const lower = String(storeId).toLowerCase().trim();
-  if (lower.includes("metro")) return "metro";
-  if (lower.includes("loblaws")) return "loblaws";
-  if (lower.includes("nofrills")) return "nofrills";
-  if (lower.includes("freshco")) return "freshco";
-  if (lower.includes("yourindependentgrocer")) return "yourindependentgrocer";
-  if (lower === "7923194" || lower.includes("foodbasics") || lower.includes("food basics")) return "foodbasics";
-  return lower;
-}
-
-function getStoreActivePrice(storeInfo: any): number | null {
-  if (!storeInfo) return null;
-  
-  const isSaleExpired = (dateStr?: string): boolean => {
-    if (!dateStr) return false;
-    const expiryDate = new Date(dateStr);
-    if (isNaN(expiryDate.getTime())) return false;
-    const now = new Date();
-    if (/^\d{4}-\d{2}-\d{2}$/.test(dateStr.trim())) {
-      const [y, m, d] = dateStr.trim().split("-").map(Number);
-      const targetDate = new Date(y, m - 1, d, 23, 59, 59, 999);
-      return now > targetDate;
-    }
-    return now > expiryDate;
-  };
-
-  const hasReg = storeInfo.regular_price !== null && storeInfo.regular_price !== undefined && storeInfo.regular_price > 0;
-  const hasSale = storeInfo.is_on_sale && storeInfo.sale_price !== null && storeInfo.sale_price !== undefined && storeInfo.sale_price > 0;
-  if (!hasReg && !hasSale) return null;
-  
-  const isExpired = hasSale && storeInfo.valid_until && isSaleExpired(storeInfo.valid_until);
-
-  if (hasSale && !isExpired) {
-    return typeof storeInfo.sale_price === "number" ? storeInfo.sale_price : parseFloat(storeInfo.sale_price) || null;
-  }
-  
-  if (hasReg) {
-    const regPrice = typeof storeInfo.regular_price === "number" ? storeInfo.regular_price : parseFloat(storeInfo.regular_price) || 0;
-    const salePrice = typeof storeInfo.sale_price === "number" ? storeInfo.sale_price : parseFloat(storeInfo.sale_price) || 0;
-    if (regPrice > 0 && regPrice !== salePrice) {
-      return regPrice;
-    }
-  }
-  return null;
-}
+import { normalizeStoreKey, getStoreActivePrice, parsePrice, isOnSaleFlag, getStoreDisplayName } from "@/lib/price-utils";
 
 export default function GroceryList() {
   const store = useOfflineStore();
@@ -290,10 +244,10 @@ export default function GroceryList() {
     for (const item of store.groceryItems) {
       const price = priceLookup.get(item.name.toLowerCase());
       if (price) {
-        const regular = price.regular_price;
-        const sale = price.sale_price;
-        const isOnSale = price.is_on_sale === 1 || !!price.is_on_sale;
-        if (isOnSale && regular !== null && sale !== null && typeof regular === "number" && typeof sale === "number") {
+        const regular = parsePrice(price.regular_price);
+        const sale = parsePrice(price.sale_price);
+        const isOnSale = isOnSaleFlag(price.is_on_sale);
+        if (isOnSale && regular !== null && sale !== null) {
           const itemSavings = regular - sale;
           if (itemSavings > 0) {
             sum += itemSavings * (item.quantity || 1);
@@ -347,13 +301,7 @@ export default function GroceryList() {
         for (const [storeId, storeInfo] of Object.entries(entry.stores)) {
           const normId = normalizeStoreKey(storeId);
           if (!storeMap.has(normId)) {
-            let storeDisplayName = storeInfo.store_name || normId;
-            if (normId === "foodbasics") storeDisplayName = "Food Basics";
-            else if (normId === "metro") storeDisplayName = "Metro";
-            else if (normId === "loblaws") storeDisplayName = "Loblaws";
-            else if (normId === "nofrills") storeDisplayName = "No Frills";
-            else if (normId === "freshco") storeDisplayName = "FreshCo";
-            else if (normId === "yourindependentgrocer") storeDisplayName = "Your Independent Grocer";
+            let storeDisplayName = storeInfo.store_name || getStoreDisplayName(storeId);
 
             storeMap.set(normId, {
               storeName: storeDisplayName,
@@ -380,22 +328,22 @@ export default function GroceryList() {
           for (const [storeId, storeInfo] of Object.entries(matchingEntry.stores) as [string, any]) {
             const normId = normalizeStoreKey(storeId);
             const priceVal = getStoreActivePrice(storeInfo);
-            if (priceVal === null) continue; // Skip stores without active price
+            if (priceVal === null) continue;
             
-            const regular = typeof storeInfo.regular_price === "number" ? storeInfo.regular_price : parseFloat(storeInfo.regular_price) || priceVal;
+            const regular = parsePrice(storeInfo.regular_price) || priceVal;
             
             if (pricesByStore[normId]) {
               if (priceVal < pricesByStore[normId].price) {
                 pricesByStore[normId] = {
                   price: priceVal,
-                  onSale: storeInfo.is_on_sale === 1 || !!storeInfo.is_on_sale,
+                  onSale: isOnSaleFlag(storeInfo.is_on_sale),
                   regular: regular,
                 };
               }
             } else {
               pricesByStore[normId] = {
                 price: priceVal,
-                onSale: storeInfo.is_on_sale === 1 || !!storeInfo.is_on_sale,
+                onSale: isOnSaleFlag(storeInfo.is_on_sale),
                 regular: regular,
               };
             }
@@ -403,11 +351,11 @@ export default function GroceryList() {
         } else {
           const priceVal = getStoreActivePrice(matchingEntry);
           if (priceVal !== null) {
-            const regular = typeof matchingEntry.regular_price === "number" ? matchingEntry.regular_price : parseFloat(matchingEntry.regular_price) || priceVal;
+            const regular = parsePrice(matchingEntry.regular_price) || priceVal;
             const normId = normalizeStoreKey(matchingEntry.store_id || "foodbasics");
             pricesByStore[normId] = {
               price: priceVal,
-              onSale: matchingEntry.is_on_sale === 1 || !!matchingEntry.is_on_sale,
+              onSale: isOnSaleFlag(matchingEntry.is_on_sale),
               regular: regular,
             };
           }
@@ -416,13 +364,7 @@ export default function GroceryList() {
         for (const [storeId, info] of Object.entries(pricesByStore)) {
           let metric = storeMap.get(storeId);
           if (!metric) {
-            let storeDisplayName = storeId;
-            if (storeId === "foodbasics") storeDisplayName = "Food Basics";
-            else if (storeId === "metro") storeDisplayName = "Metro";
-            else if (storeId === "loblaws") storeDisplayName = "Loblaws";
-            else if (storeId === "nofrills") storeDisplayName = "No Frills";
-            else if (storeId === "freshco") storeDisplayName = "FreshCo";
-            else if (storeId === "yourindependentgrocer") storeDisplayName = "Your Independent Grocer";
+            let storeDisplayName = getStoreDisplayName(storeId);
 
             metric = {
               storeName: storeDisplayName,

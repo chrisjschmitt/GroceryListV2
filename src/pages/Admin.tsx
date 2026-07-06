@@ -102,19 +102,8 @@ const getNormalizedStoreKey = (storeId: string) => {
   return s;
 };
 
-const isSaleExpiredAdmin = (validUntil?: string | null): boolean => {
-  if (!validUntil) return false;
-  const expiryDate = new Date(validUntil);
-  if (isNaN(expiryDate.getTime())) return false;
-  
-  const now = new Date();
-  if (/^\d{4}-\d{2}-\d{2}$/.test(validUntil.trim())) {
-    const [y, m, d] = validUntil.trim().split("-").map(Number);
-    const targetDate = new Date(y, m - 1, d, 23, 59, 59, 999);
-    return now > targetDate;
-  }
-  return now > expiryDate;
-};
+import { isSaleExpired } from "@/lib/price-utils";
+const isSaleExpiredAdmin = isSaleExpired;
 
 const storeNames: Record<string, string> = {
   foodbasics: "Food Basics",

@@ -4,57 +4,7 @@ import { GroceryItem, PriceEntry } from "@/lib/types";
 import { ChevronDown, ChevronUp, Trash2, Plus, Minus, ListPlus, ExternalLink, RefreshCw } from "lucide-react";
 import CatalogDrawer from "../../components/CatalogDrawer";
 import SyncIndicator from "../../components/SyncIndicator";
-import { isSaleExpired } from "../../components/GroceryItemRow";
-
-function normalizeStoreKey(storeId: string): string {
-  if (!storeId) return "foodbasics";
-  const lower = String(storeId).toLowerCase().trim();
-  if (lower.includes("metro")) return "metro";
-  if (lower.includes("loblaws")) return "loblaws";
-  if (lower.includes("nofrills")) return "nofrills";
-  if (lower.includes("freshco") || lower.includes("freschco") || lower.includes("fresco") || lower.includes("fresh co")) return "freshco";
-  if (lower.includes("yourindependentgrocer")) return "yourindependentgrocer";
-  if (lower === "7923194" || lower.includes("foodbasics") || lower.includes("food basics")) return "foodbasics";
-  if (lower.includes("walmart")) return "walmart";
-  if (lower.includes("costco")) return "costco";
-  return lower;
-}
-
-function getStoreActivePrice(storeInfo: any): number | null {
-  if (!storeInfo) return null;
-  
-  const isSaleExpired = (dateStr?: string): boolean => {
-    if (!dateStr) return false;
-    const expiryDate = new Date(dateStr);
-    if (isNaN(expiryDate.getTime())) return false;
-    const now = new Date();
-    if (/^\d{4}-\d{2}-\d{2}$/.test(dateStr.trim())) {
-      const [y, m, d] = dateStr.trim().split("-").map(Number);
-      const targetDate = new Date(y, m - 1, d, 23, 59, 59, 999);
-      return now > targetDate;
-    }
-    return now > expiryDate;
-  };
-
-  const hasReg = storeInfo.regular_price !== null && storeInfo.regular_price !== undefined && storeInfo.regular_price > 0;
-  const hasSale = storeInfo.is_on_sale && storeInfo.sale_price !== null && storeInfo.sale_price !== undefined && storeInfo.sale_price > 0;
-  if (!hasReg && !hasSale) return null;
-  
-  const isExpired = hasSale && storeInfo.valid_until && isSaleExpired(storeInfo.valid_until);
-
-  if (hasSale && !isExpired) {
-    return typeof storeInfo.sale_price === "number" ? storeInfo.sale_price : parseFloat(storeInfo.sale_price) || null;
-  }
-  
-  if (hasReg) {
-    const regPrice = typeof storeInfo.regular_price === "number" ? storeInfo.regular_price : parseFloat(storeInfo.regular_price) || 0;
-    const salePrice = typeof storeInfo.sale_price === "number" ? storeInfo.sale_price : parseFloat(storeInfo.sale_price) || 0;
-    if (regPrice > 0 && regPrice !== salePrice) {
-      return regPrice;
-    }
-  }
-  return null;
-}
+import { normalizeStoreKey, getStoreActivePrice, isSaleExpired, getStoreDisplayName, isOnSaleFlag, parsePrice } from "@/lib/price-utils";
 
 const CATEGORY_WALKTHROUGH_ORDER = [
   "produce",
@@ -633,10 +583,8 @@ export default function ListsTab() {
         storeMap[normStoreId].items.push(item);
 
         if (bestPriceVal !== Infinity && bestStoreInfo) {
-          const regularPrice = typeof bestStoreInfo.regular_price === "number"
-            ? bestStoreInfo.regular_price
-            : parseFloat(bestStoreInfo.regular_price) || bestPriceVal;
-          const onSale = bestStoreInfo.is_on_sale === 1 || !!bestStoreInfo.is_on_sale;
+          const regularPrice = parsePrice(bestStoreInfo.regular_price) || bestPriceVal;
+          const onSale = isOnSaleFlag(bestStoreInfo.is_on_sale);
           
           storeMap[normStoreId].totalCost += bestPriceVal * item.quantity;
           if (onSale && regularPrice > bestPriceVal) {
@@ -960,7 +908,7 @@ export default function ListsTab() {
                     ? priceInfo?.stores?.[primaryStoreId?.toLowerCase() || ""]
                     : bestCompetitorInfo;
                   const isOnSale = sourceStoreInfo
-                    ? (sourceStoreInfo.is_on_sale === 1 || !!sourceStoreInfo.is_on_sale)
+                    ? isOnSaleFlag(sourceStoreInfo.is_on_sale)
                     : false;
                   const isExpired = isOnSale && sourceStoreInfo?.valid_until
                     ? isSaleExpired(sourceStoreInfo.valid_until)
@@ -1176,7 +1124,7 @@ export default function ListsTab() {
                                 (Object.entries(priceInfo.stores) as [string, any][]).map(([storeId, storeInfo]) => {
                                   const activePrice = getStoreActivePrice(storeInfo);
                                   const isCheapest = activePrice === cheapestPriceVal;
-                                  const isStoreSale = storeInfo.is_on_sale === 1 || !!storeInfo.is_on_sale;
+                                  const isStoreSale = isOnSaleFlag(storeInfo.is_on_sale);
                                   const isStoreExpired = isStoreSale && storeInfo.valid_until && isSaleExpired(storeInfo.valid_until);
                                   return (
                                     <div key={storeId} className="flex justify-between items-center text-xs">

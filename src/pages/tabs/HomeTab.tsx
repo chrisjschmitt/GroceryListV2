@@ -19,54 +19,7 @@ import {
   Flame
 } from "lucide-react";
 
-// --- Helper Functions copied from ListsTab for consistency ---
-function normalizeStoreKey(storeId: string): string {
-  if (!storeId) return "foodbasics";
-  const lower = String(storeId).toLowerCase().trim();
-  if (lower.includes("metro")) return "metro";
-  if (lower.includes("loblaws")) return "loblaws";
-  if (lower.includes("nofrills")) return "nofrills";
-  if (lower.includes("freshco") || lower.includes("freschco") || lower.includes("fresco") || lower.includes("fresh co")) return "freshco";
-  if (lower.includes("yourindependentgrocer")) return "yourindependentgrocer";
-  if (lower === "7923194" || lower.includes("foodbasics") || lower.includes("food basics")) return "foodbasics";
-  if (lower.includes("walmart")) return "walmart";
-  return lower;
-}
-
-function isSaleActive(validUntil: string | null | undefined): boolean {
-  if (!validUntil) return true;
-  try {
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
-    const expiry = new Date(validUntil);
-    if (isNaN(expiry.getTime())) return true;
-    return expiry >= today;
-  } catch {
-    return true;
-  }
-}
-
-function getStoreActivePrice(storeInfo: any): number | null {
-  if (!storeInfo) return null;
-  const hasReg = storeInfo.regular_price !== null && storeInfo.regular_price !== undefined && storeInfo.regular_price > 0;
-  
-  const saleActive = isSaleActive(storeInfo.valid_until);
-  const hasSale = storeInfo.is_on_sale && saleActive && storeInfo.sale_price !== null && storeInfo.sale_price !== undefined && storeInfo.sale_price > 0;
-  if (!hasReg && !hasSale) return null;
-  
-  if (hasSale) {
-    return typeof storeInfo.sale_price === "number" ? storeInfo.sale_price : parseFloat(storeInfo.sale_price) || null;
-  }
-  
-  if (hasReg) {
-    const regPrice = typeof storeInfo.regular_price === "number" ? storeInfo.regular_price : parseFloat(storeInfo.regular_price) || 0;
-    const salePrice = typeof storeInfo.sale_price === "number" ? storeInfo.sale_price : parseFloat(storeInfo.sale_price) || 0;
-    if (regPrice > 0 && regPrice !== salePrice) {
-      return regPrice;
-    }
-  }
-  return null;
-}
+import { normalizeStoreKey, isSaleActive, getStoreActivePrice, getStoreDisplayName, parsePrice } from "@/lib/price-utils";
 
 const PRODUCT_IMAGES: Record<string, string> = {
   milk: "https://images.unsplash.com/photo-1550583724-b2692b85b150?auto=format&fit=crop&q=80&w=200",
@@ -487,16 +440,10 @@ export default function HomeTab() {
       loblaws: { name: "Loblaws" },
       nofrills: { name: "No Frills" },
       yourindependentgrocer: { name: "Your Independent Grocer" },
-      walmart: { name: "Walmart" }
+      walmart: { name: "Walmart" },
+      costco: { name: "Costco" },
+      canadiantire: { name: "Canadian Tire" }
     };
-
-    const storeTotals: Record<string, number> = {};
-    let splitTotal = 0;
-    let pricedCount = 0;
-
-    for (const storeId of Object.keys(STORE_METADATA)) {
-      storeTotals[storeId] = 0;
-    }
 
     const activeStoreIds = new Set<string>();
 
@@ -509,7 +456,7 @@ export default function HomeTab() {
         if (priceInfo.stores && typeof priceInfo.stores === "object") {
           for (const [sId, sInfo] of Object.entries(priceInfo.stores)) {
             const normId = normalizeStoreKey(sId);
-            const p = getStoreActivePrice(sInfo);
+            const p = getStoreActivePrice(sInfo as any);
             if (p !== null && p > 0) {
               itemPrices[normId] = p;
               activeStoreIds.add(normId);
@@ -528,6 +475,19 @@ export default function HomeTab() {
       return { item, itemPrices };
     });
 
+    const allStoreIds = new Set([
+      ...Object.keys(STORE_METADATA),
+      ...activeStoreIds
+    ]);
+
+    const storeTotals: Record<string, number> = {};
+    for (const storeId of allStoreIds) {
+      storeTotals[storeId] = 0;
+    }
+
+    let splitTotal = 0;
+    let pricedCount = 0;
+
     for (const { item, itemPrices } of processedItems) {
       const availableStoreIds = Object.keys(itemPrices);
       
@@ -542,7 +502,7 @@ export default function HomeTab() {
       splitTotal += cheapestPrice * item.quantity;
 
       // Update store totals
-      for (const storeId of Object.keys(STORE_METADATA)) {
+      for (const storeId of allStoreIds) {
         const price = itemPrices[storeId] !== undefined ? itemPrices[storeId] : cheapestPrice;
         storeTotals[storeId] += price * item.quantity;
       }
@@ -559,7 +519,7 @@ export default function HomeTab() {
     let alternativeTotal = 0;
 
     if (activeTotals.length > 0) {
-      cheapestStoreName = STORE_METADATA[activeTotals[0].storeId].name;
+      cheapestStoreName = getStoreDisplayName(activeTotals[0].storeId);
       singleStoreCheapestTotal = activeTotals[0].total;
       alternativeTotal = activeTotals[1] ? activeTotals[1].total : activeTotals[0].total;
     }

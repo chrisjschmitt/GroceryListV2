@@ -42,19 +42,8 @@ interface GroceryItemRowProps {
   primaryStoreId?: string;
 }
 
-export function isSaleExpired(validUntil?: string | null): boolean {
-  if (!validUntil) return false;
-  const expiryDate = new Date(validUntil);
-  if (isNaN(expiryDate.getTime())) return false;
-  
-  const now = new Date();
-  if (/^\d{4}-\d{2}-\d{2}$/.test(validUntil.trim())) {
-    const [y, m, d] = validUntil.trim().split("-").map(Number);
-    const targetDate = new Date(y, m - 1, d, 23, 59, 59, 999);
-    return now > targetDate;
-  }
-  return now > expiryDate;
-}
+import { isSaleExpired, parsePrice, isOnSaleFlag } from "@/lib/price-utils";
+export { isSaleExpired };
 
 function getFlippSearchUrl(storeName: string, itemName: string, configName?: string, postalCode?: string): string {
   let queryStore = storeName || "";
@@ -229,13 +218,14 @@ export default function GroceryItemRow({ item, onToggle, onRemove, onUpdateQuant
       const storeKey = primaryStoreId.toLowerCase();
       const storeData = priceInfo.stores?.[storeKey];
       if (storeData) {
-        const regular = typeof storeData.regular_price === "number" ? storeData.regular_price : parseFloat(storeData.regular_price) || 0;
-        const pVal = (storeData.is_on_sale && storeData.sale_price !== null) ? storeData.sale_price : regular;
+        const regular = parsePrice(storeData.regular_price) || 0;
+        const sale = parsePrice(storeData.sale_price);
+        const pVal = (isOnSaleFlag(storeData.is_on_sale) && sale !== null) ? sale : regular;
         finalPrice = {
           storeId: storeKey,
           storeName: storeData.store_name || storeKey,
           price: pVal,
-          onSale: storeData.is_on_sale === 1 || !!storeData.is_on_sale,
+          onSale: isOnSaleFlag(storeData.is_on_sale),
           lookup_url: storeData.lookup_url,
           flipp_url: storeData.flipp_url,
           valid_until: storeData.valid_until,
@@ -246,12 +236,14 @@ export default function GroceryItemRow({ item, onToggle, onRemove, onUpdateQuant
     }
 
     if (!finalPrice) {
-      const rawPrice = (priceInfo.is_on_sale && priceInfo.sale_price !== null) ? priceInfo.sale_price : (priceInfo.regular_price || 0);
+      const regular = parsePrice(priceInfo.regular_price) || 0;
+      const sale = parsePrice(priceInfo.sale_price);
+      const rawPrice = (isOnSaleFlag(priceInfo.is_on_sale) && sale !== null) ? sale : regular;
       finalPrice = {
         storeId: priceInfo.store_id || "foodbasics",
         storeName: priceInfo.store_name || "Food Basics",
         price: rawPrice,
-        onSale: priceInfo.is_on_sale === 1 || !!priceInfo.is_on_sale,
+        onSale: isOnSaleFlag(priceInfo.is_on_sale),
         lookup_url: priceInfo.lookup_url,
         flipp_url: priceInfo.flipp_url,
         valid_until: priceInfo.valid_until,
@@ -264,15 +256,14 @@ export default function GroceryItemRow({ item, onToggle, onRemove, onUpdateQuant
       otherPrices = Object.entries(priceInfo.stores)
         .filter(([storeId]) => storeId !== finalPrice?.storeId)
         .map(([storeId, storeInfo]: [string, any]) => {
-          const regular = typeof storeInfo.regular_price === "number" ? storeInfo.regular_price : parseFloat(storeInfo.regular_price) || 0;
-          const pVal = (storeInfo.is_on_sale && storeInfo.sale_price !== null && storeInfo.sale_price !== undefined) 
-            ? storeInfo.sale_price 
-            : regular;
+          const regular = parsePrice(storeInfo.regular_price) || 0;
+          const sale = parsePrice(storeInfo.sale_price);
+          const pVal = (isOnSaleFlag(storeInfo.is_on_sale) && sale !== null) ? sale : regular;
           return {
             storeId: storeId,
             storeName: storeInfo.store_name || storeId,
             price: pVal,
-            onSale: storeInfo.is_on_sale === 1 || !!storeInfo.is_on_sale,
+            onSale: isOnSaleFlag(storeInfo.is_on_sale),
             lookup_url: storeInfo.lookup_url || "",
             flipp_url: storeInfo.flipp_url,
             valid_until: storeInfo.valid_until,

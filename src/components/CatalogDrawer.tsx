@@ -13,53 +13,7 @@ interface CatalogDrawerProps {
   onCustomAdd: (name: string, category: string, quantity: number) => Promise<void>;
 }
 
-// --- Helper Functions for Store Keys ---
-function normalizeStoreKey(storeId: string): string {
-  if (!storeId) return "foodbasics";
-  const lower = String(storeId).toLowerCase().trim();
-  if (lower.includes("metro")) return "metro";
-  if (lower.includes("loblaws")) return "loblaws";
-  if (lower.includes("nofrills")) return "nofrills";
-  if (lower.includes("freshco")) return "freshco";
-  if (lower.includes("yourindependentgrocer")) return "yourindependentgrocer";
-  if (lower === "7923194" || lower.includes("foodbasics") || lower.includes("food basics")) return "foodbasics";
-  return lower;
-}
-
-function isSaleActive(validUntil: string | null | undefined): boolean {
-  if (!validUntil) return true;
-  try {
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
-    const expiry = new Date(validUntil);
-    if (isNaN(expiry.getTime())) return true;
-    return expiry >= today;
-  } catch {
-    return true;
-  }
-}
-
-function getStoreActivePrice(storeInfo: any): number | null {
-  if (!storeInfo) return null;
-  const hasReg = storeInfo.regular_price !== null && storeInfo.regular_price !== undefined && storeInfo.regular_price > 0;
-  
-  const saleActive = isSaleActive(storeInfo.valid_until);
-  const hasSale = storeInfo.is_on_sale && saleActive && storeInfo.sale_price !== null && storeInfo.sale_price !== undefined && storeInfo.sale_price > 0;
-  if (!hasReg && !hasSale) return null;
-  
-  if (hasSale) {
-    return typeof storeInfo.sale_price === "number" ? storeInfo.sale_price : parseFloat(storeInfo.sale_price) || null;
-  }
-  
-  if (hasReg) {
-    const regPrice = typeof storeInfo.regular_price === "number" ? storeInfo.regular_price : parseFloat(storeInfo.regular_price) || 0;
-    const salePrice = typeof storeInfo.sale_price === "number" ? storeInfo.sale_price : parseFloat(storeInfo.sale_price) || 0;
-    if (regPrice > 0 && regPrice !== salePrice) {
-      return regPrice;
-    }
-  }
-  return null;
-}
+import { normalizeStoreKey, isSaleActive, getStoreActivePrice, isOnSaleFlag } from "@/lib/price-utils";
 
 export default function CatalogDrawer({
   isOpen,
@@ -427,12 +381,12 @@ export default function CatalogDrawer({
                     const val = getStoreActivePrice(sInfo);
                     if (val !== null) {
                       const saleActive = isSaleActive(sInfo.valid_until);
-                      const isExpired = !!sInfo.is_on_sale && !saleActive;
+                      const isExpired = isOnSaleFlag(sInfo.is_on_sale) && !saleActive;
                       storesWithPrices.push({
                         storeId: sId,
                         storeName: sInfo.store_name || sId,
                         price: val,
-                        onSale: (sInfo.is_on_sale === 1 || !!sInfo.is_on_sale) && saleActive,
+                        onSale: isOnSaleFlag(sInfo.is_on_sale) && saleActive,
                         isExpired,
                         validUntil: sInfo.valid_until || null,
                         regularPrice: sInfo.regular_price != null ? Number(sInfo.regular_price) : null,
