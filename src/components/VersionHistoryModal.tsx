@@ -21,6 +21,19 @@ interface VersionEntry {
 
 const VERSIONS: VersionEntry[] = [
   {
+    version: "2.2.0",
+    date: "July 2026",
+    type: "minor",
+    title: "Shared Offline Store Context",
+    changes: [
+      {
+        icon: <Sparkles className="w-4 h-4 text-emerald-500" />,
+        category: "Architecture",
+        description: "Wrapped the offline store hook inside a React Context provider, enabling a single shared store instance across tabs. This stops redundant database re-initialization and polling intervals when switching tabs."
+      }
+    ]
+  },
+  {
     version: "2.1.0",
     date: "July 2026",
     type: "minor",

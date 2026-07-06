@@ -16,7 +16,7 @@ import {
   ChevronRight,
   Clock
 } from "lucide-react";
-import { useOfflineStore } from "@/lib/client/use-offline-store";
+import { useOfflineStore } from "@/lib/client/offline-store-context";
 import { PurchaseLogEntry } from "@/lib/types";
 
 export default function ProfileTab() {

@@ -50,7 +50,7 @@ export interface OfflineStore {
   refreshFromServer: () => Promise<void>;
 }
 
-export function useOfflineStore(): OfflineStore {
+export function useOfflineStoreState(): OfflineStore {
   const [groceryItems, setGroceryItems] = useState<GroceryItem[]>([]);
   const [regularItems, setRegularItems] = useState<RegularItem[]>([]);
   const [syncStatus, setSyncStatus] = useState<SyncStatus>("synced");

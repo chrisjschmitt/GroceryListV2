@@ -1,5 +1,5 @@
 import { useState, useMemo, useEffect } from "react";
-import { useOfflineStore } from "@/lib/client/use-offline-store";
+import { useOfflineStore } from "@/lib/client/offline-store-context";
 import { GroceryItem, PriceEntry } from "@/lib/types";
 import { ChevronDown, ChevronUp, Trash2, Plus, Minus, ListPlus, ExternalLink, RefreshCw } from "lucide-react";
 import CatalogDrawer from "../../components/CatalogDrawer";

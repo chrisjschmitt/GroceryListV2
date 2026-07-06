@@ -1,5 +1,5 @@
 import { useState, useMemo, useRef } from "react";
-import { useOfflineStore } from "@/lib/client/use-offline-store";
+import { useOfflineStore } from "@/lib/client/offline-store-context";
 import { RegularItem, PriceEntry } from "@/lib/types";
 import {
   Sparkles,

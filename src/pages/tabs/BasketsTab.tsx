@@ -1,5 +1,5 @@
 import { useState, useMemo } from "react";
-import { useOfflineStore } from "@/lib/client/use-offline-store";
+import { useOfflineStore } from "@/lib/client/offline-store-context";
 import { GroceryItem, PriceEntry } from "@/lib/types";
 import { 
   ShieldCheck, 
