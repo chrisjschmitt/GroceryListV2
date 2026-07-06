@@ -444,12 +444,14 @@ async function startServer() {
     res.setHeader("Access-Control-Allow-Methods", "POST, OPTIONS");
 
     // Security Protocol: Match 'X-GroceryScout-Token' header in case-insensitive environmental variable
-    const token = req.headers["x-groceryscout-token"];
+    const rawToken = req.headers["x-groceryscout-token"];
+    const token = typeof rawToken === "string" ? rawToken.trim().replace(/^["']|["']$/g, "") : rawToken;
     
     // Checking lowercase, uppercase and camelcase environmental variable names to avoid case mismatches
-    const secretToken = process.env.GROCERY_SECRET_TOKEN || 
-                        process.env.Grocery_SECRET_TOKEN || 
-                        process.env.grocery_secret_token;
+    const rawSecret = process.env.GROCERY_SECRET_TOKEN || 
+                      process.env.Grocery_SECRET_TOKEN || 
+                      process.env.grocery_secret_token;
+    const secretToken = typeof rawSecret === "string" ? rawSecret.trim().replace(/^["']|["']$/g, "") : rawSecret;
 
     if (!secretToken || token !== secretToken) {
       res.status(401).json({
@@ -1107,10 +1109,12 @@ async function startServer() {
     res.setHeader("Access-Control-Allow-Methods", "POST, OPTIONS");
 
     // Security check
-    const token = req.headers["x-groceryscout-token"];
-    const secretToken = process.env.GROCERY_SECRET_TOKEN || 
-                        process.env.Grocery_SECRET_TOKEN || 
-                        process.env.grocery_secret_token;
+    const rawToken = req.headers["x-groceryscout-token"];
+    const token = typeof rawToken === "string" ? rawToken.trim().replace(/^["']|["']$/g, "") : rawToken;
+    const rawSecret = process.env.GROCERY_SECRET_TOKEN || 
+                      process.env.Grocery_SECRET_TOKEN || 
+                      process.env.grocery_secret_token;
+    const secretToken = typeof rawSecret === "string" ? rawSecret.trim().replace(/^["']|["']$/g, "") : rawSecret;
     if (!secretToken || token !== secretToken) {
       res.status(401).json({ error: "Unauthorized: Missing or invalid secure authentication credentials" });
       return;

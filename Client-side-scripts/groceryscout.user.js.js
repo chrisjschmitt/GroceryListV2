@@ -89,7 +89,9 @@
         }
         storageCache.apiBase = String(apiBase).replace(/\/$/, "");
         storageCache.token = (await storageGet(STORAGE_KEYS.token)) || null;
-        if (storageCache.token) storageCache.token = String(storageCache.token).trim();
+        if (storageCache.token) {
+            storageCache.token = String(storageCache.token).trim().replace(/^["']|["']$/g, "");
+        }
         storageCache.initialized = true;
     }
 
@@ -111,7 +113,7 @@
             alert("BasketWise Ingestion Token is required. Operation aborted.");
             return null;
         }
-        storageCache.token = entered.trim();
+        storageCache.token = entered.trim().replace(/^["']|["']$/g, "");
         await storageSet(STORAGE_KEYS.token, storageCache.token);
         return storageCache.token;
     }
@@ -122,7 +124,7 @@
         const currentToken = storageCache.token || "";
         const newToken = prompt("BasketWise: Enter new GROCERY_SECRET_TOKEN:", currentToken);
         if (newToken !== null) {
-            storageCache.token = newToken.trim();
+            storageCache.token = newToken.trim().replace(/^["']|["']$/g, "");
             await storageSet(STORAGE_KEYS.token, storageCache.token);
         }
 
