@@ -1,4 +1,4 @@
-import { StoreInfo } from "./types";
+import type { StoreInfo } from "./types.js";
 
 export function parsePrice(value: unknown): number | null {
   if (value === null || value === undefined || value === "") return null;

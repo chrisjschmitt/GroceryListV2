@@ -1,5 +1,5 @@
-import { normalizeStoreKey } from "./price-utils";
-import { ScrapeStoreConfig } from "./types";
+import { normalizeStoreKey } from "./price-utils.js";
+import type { ScrapeStoreConfig } from "./types.js";
 
 /**
  * Resolves the postal code for Flipp flyer lookups by matching the storeName
