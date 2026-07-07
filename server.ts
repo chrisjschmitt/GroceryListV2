@@ -40,6 +40,7 @@ import {
   blobSetPurchaseLogs,
 } from "./src/lib/db-store";
 import { resolveStorePostalCode } from "./src/lib/flipp-postal";
+import { resolveFlippFlyerUrl, buildFlippSearchPageUrl } from "./src/lib/flipp-resolve.js";
 import { RegularItem, PurchaseLogEntry } from "./src/lib/types";
 
 // Use standard memory storage for multer CSV upload
@@ -1468,219 +1469,36 @@ async function startServer() {
     return 85 + (cWords.length * 2);
   }
 
-  function scoreFlippItem(flippName: string, originalName: string): number {
-    const f = flippName.toLowerCase();
-    const o = originalName.toLowerCase();
-    
-    let score = 0;
-    
-    // Exact phrase match boosts
-    const phrases = [
-      "lactose free milk",
-      "lactose free",
-      "lactose-free",
-      "lactose free cream",
-      "organic milk",
-      "purfiltre milk"
-    ];
-    phrases.forEach(phrase => {
-      if (o.includes(phrase) && f.includes(phrase)) {
-        score += 40;
-      }
-    });
-
-    // Split original name into words for keyword matching
-    const words = o.split(/\s+/).filter(w => w.length > 1 && !w.includes("%"));
-    words.forEach(w => {
-      if (f.includes(w)) {
-        score += 10;
-        if (["lactantia", "natrel", "milk", "cream", "butter"].includes(w)) {
-          score += 15;
-        }
-      }
-    });
-
-    // Conflicting product checks (e.g. original is milk, but flipp is cream or butter)
-    if (o.includes("milk") && f.includes("cream") && !o.includes("cream") && !f.includes("milk")) {
-      score -= 60;
-    }
-    if (o.includes("milk") && f.includes("butter") && !o.includes("butter")) {
-      score -= 60;
-    }
-    if (o.includes("cream") && f.includes("butter") && !o.includes("butter")) {
-      score -= 60;
-    }
-    
-    // Percentage match (e.g. 1%, 2%, 3.25%, skim, chocolate)
-    const percentages = ["1%", "2%", "3.25%", "3.8%", "skim", "chocolate"];
-    percentages.forEach(p => {
-      const oHas = o.includes(p);
-      const fHas = f.includes(p);
-      if (oHas && fHas) {
-        score += 60; // Direct match boost
-      } else if (!oHas && fHas) {
-        score -= 40; // Mismatch penalty
-      }
-    });
-
-    return score;
-  }
-
   // GET /api/flipp/resolve
   app.get("/api/flipp/resolve", async (req, res) => {
     const storeName = req.query.storeName as string || "";
+    const storeId = req.query.storeId as string || "";
     const itemName = req.query.itemName as string || "";
     const configName = req.query.configName as string || "";
     const scrapedName = req.query.scrapedName as string || "";
     const postalCode = req.query.postalCode as string || "K7H3C6";
 
-    if (!storeName || !itemName) {
-      return res.status(400).json({ error: "Missing required query parameters: storeName and itemName" });
+    if (!itemName || (!storeName && !storeId)) {
+      return res.status(400).json({ error: "Missing required query parameters: itemName and either storeName or storeId" });
     }
 
-    let targetPostal = "K7H3C6";
     try {
       const catalog = await blobGetCombinedCatalog();
-      targetPostal = resolveStorePostalCode(storeName, postalCode, catalog.stores);
-    } catch (err) {
-      console.error("Error retrieving catalog for postal code lookup:", err);
-      targetPostal = postalCode ? postalCode.trim().toUpperCase().replace(/\s/g, "") : "K7H3C6";
-    }
-
-    try {
-      let cleanStore = storeName.trim();
-      const lowerStore = cleanStore.toLowerCase();
-      if (lowerStore.includes("food basics") || lowerStore === "fb" || lowerStore === "foodbasics") cleanStore = "Food Basics";
-      else if (lowerStore.includes("no frills") || lowerStore === "nofrills" || lowerStore === "nf") cleanStore = "No Frills";
-      else if (lowerStore.includes("your independent grocer") || lowerStore === "yourindependentgrocer" || lowerStore === "yig") cleanStore = "Your Independent Grocer";
-      else if (lowerStore.includes("loblaws") || lowerStore === "loblaws" || lowerStore === "lb") cleanStore = "Loblaws";
-      else if (lowerStore.includes("metro") || lowerStore === "metro" || lowerStore === "mt") cleanStore = "Metro";
-      else if (lowerStore.includes("freshco") || lowerStore.includes("fresco") || lowerStore === "fc" || lowerStore.includes("fresh co") || lowerStore.includes("freschco")) cleanStore = "FreshCo";
-      else if (lowerStore.includes("walmart") || lowerStore === "walmart") cleanStore = "Walmart";
-
-      let cleanItem = scrapedName || configName || itemName;
-      cleanItem = cleanItem.replace(/lactancia/gi, "Lactantia");
-      cleanItem = cleanItem
-        .replace(/\s*\b\d+(?:\.\d+)?%/g, "") 
-        .replace(/\s*\b\d+(?:g|l|ml|oz|kg|lb|pack)\b/gi, "") 
-        .replace(/\s*\(\d+[^)]*\)/gi, "") 
-        .replace(/\s*-\s*\d+$/gi, "") 
-        .replace(/\s*-\s*\w+$/gi, "") 
-        .trim();
-
-      const searchTerms = `${cleanStore} ${cleanItem}`.trim();
-      const flippApiUrl = `https://backflipp.wishabi.com/flipp/items/search?locale=en-ca&postal_code=${encodeURIComponent(targetPostal)}&q=${encodeURIComponent(searchTerms)}`;
-      
-      const fetchResponse = await fetch(flippApiUrl, {
-        headers: {
-          "User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
-        }
+      const result = await resolveFlippFlyerUrl({
+        storeName,
+        storeId,
+        itemName,
+        configName,
+        scrapedName,
+        postalCode,
+        catalogStores: catalog.stores
       });
-
-      let targetUrl = `https://flipp.com/search?q=${encodeURIComponent(searchTerms)}&postal_code=${encodeURIComponent(targetPostal)}`;
-
-      if (fetchResponse.ok) {
-        const data: any = await fetchResponse.json();
-        const items = data.items || [];
-        const merchantItems = items.filter((it: any) => {
-          const itMerchant = (it.merchant_name || "").toLowerCase();
-          const targetMerchant = cleanStore.toLowerCase();
-          return itMerchant.includes(targetMerchant) || targetMerchant.includes(itMerchant);
-        });
-
-        if (merchantItems.length > 0) {
-          const targetOriginalName = configName || itemName;
-          merchantItems.sort((a: any, b: any) => {
-            const scoreA = scoreFlippItem(a.name || "", targetOriginalName);
-            const scoreB = scoreFlippItem(b.name || "", targetOriginalName);
-            return scoreB - scoreA;
-          });
-          const bestItem = merchantItems[0];
-          if (bestItem.id && bestItem.flyer_id) {
-            return res.json({ url: `https://flipp.com/flyer/${bestItem.flyer_id}?item_id=${bestItem.id}&postal_code=${encodeURIComponent(targetPostal)}`, isMatch: true, resolvedPostal: targetPostal });
-          } else if (bestItem.id) {
-            return res.json({ url: `https://flipp.com/item/${bestItem.id}?postal_code=${encodeURIComponent(targetPostal)}`, isMatch: true, resolvedPostal: targetPostal });
-          } else if (bestItem.flyer_id) {
-            return res.json({ url: `https://flipp.com/flyer/${bestItem.flyer_id}?postal_code=${encodeURIComponent(targetPostal)}`, isMatch: false, resolvedPostal: targetPostal });
-          }
-        }
-      }
-
-      // SECONDARY STAGE: Try simplified query by stripping flavor/descriptive terms (e.g. unsalted, salted, organic)
-      const simplifiedItem = cleanItem
-        .replace(/\b(unsalted|salted|salted\/unsalted|organic|original|sweet|fresh|frozen|large|small|sliced|whole)\b/gi, "")
-        .replace(/\s+/g, " ")
-        .trim();
-
-      if (simplifiedItem && simplifiedItem !== cleanItem) {
-        const secondaryTerms = `${cleanStore} ${simplifiedItem}`.trim();
-        try {
-          const secondaryApiUrl = `https://backflipp.wishabi.com/flipp/items/search?locale=en-ca&postal_code=${encodeURIComponent(targetPostal)}&q=${encodeURIComponent(secondaryTerms)}`;
-          const secondaryResponse = await fetch(secondaryApiUrl, {
-            headers: {
-              "User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
-            }
-          });
-          if (secondaryResponse.ok) {
-            const secData: any = await secondaryResponse.json();
-            const secItems = secData.items || [];
-            const secMerchantItems = secItems.filter((it: any) => {
-              const itMerchant = (it.merchant_name || "").toLowerCase();
-              const targetMerchant = cleanStore.toLowerCase();
-              return itMerchant.includes(targetMerchant) || targetMerchant.includes(itMerchant);
-            });
-
-            if (secMerchantItems.length > 0) {
-              const targetOriginalName = configName || itemName;
-              secMerchantItems.sort((a: any, b: any) => {
-                const scoreA = scoreFlippItem(a.name || "", targetOriginalName);
-                const scoreB = scoreFlippItem(b.name || "", targetOriginalName);
-                return scoreB - scoreA;
-              });
-              const bestSecItem = secMerchantItems[0];
-              if (bestSecItem.id && bestSecItem.flyer_id) {
-                return res.json({ url: `https://flipp.com/flyer/${bestSecItem.flyer_id}?item_id=${bestSecItem.id}&postal_code=${encodeURIComponent(targetPostal)}`, isMatch: true, resolvedPostal: targetPostal });
-              } else if (bestSecItem.id) {
-                return res.json({ url: `https://flipp.com/item/${bestSecItem.id}?postal_code=${encodeURIComponent(targetPostal)}`, isMatch: true, resolvedPostal: targetPostal });
-              } else if (bestSecItem.flyer_id) {
-                return res.json({ url: `https://flipp.com/flyer/${bestSecItem.flyer_id}?postal_code=${encodeURIComponent(targetPostal)}`, isMatch: false, resolvedPostal: targetPostal });
-              }
-            }
-          }
-        } catch (secErr) {
-          console.error("Error in secondary simplified search:", secErr);
-        }
-      }
-
-      // TERTIARY STAGE: If specific item search returned 0 items, query for the store flyer itself
-      try {
-        const storeApiUrl = `https://backflipp.wishabi.com/flipp/items/search?locale=en-ca&postal_code=${encodeURIComponent(targetPostal)}&q=${encodeURIComponent(cleanStore)}`;
-        const storeResponse = await fetch(storeApiUrl, {
-          headers: {
-            "User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
-          }
-        });
-        if (storeResponse.ok) {
-          const storeData: any = await storeResponse.json();
-          const storeItems = storeData.items || [];
-          const matchedStoreItem = storeItems.find((it: any) => {
-            const itMerchant = (it.merchant_name || "").toLowerCase();
-            const targetMerchant = cleanStore.toLowerCase();
-            return itMerchant.includes(targetMerchant) || targetMerchant.includes(itMerchant);
-          });
-          if (matchedStoreItem && matchedStoreItem.flyer_id) {
-            return res.json({ url: `https://flipp.com/flyer/${matchedStoreItem.flyer_id}?postal_code=${encodeURIComponent(targetPostal)}`, isMatch: false, resolvedPostal: targetPostal });
-          }
-        }
-      } catch (storeErr) {
-        console.error("Error in fallback store flyer resolution:", storeErr);
-      }
-
-      return res.json({ url: targetUrl, isMatch: false, resolvedPostal: targetPostal });
+      return res.json(result);
     } catch (error: any) {
       console.error("Error in /api/flipp/resolve:", error);
-      const fallbackUrl = `https://flipp.com/search?q=${encodeURIComponent(storeName + " " + itemName)}&postal_code=${encodeURIComponent(targetPostal)}`;
-      return res.json({ url: fallbackUrl, resolvedPostal: targetPostal });
+      const fallbackStore = storeId || storeName || "foodbasics";
+      const fallbackUrl = buildFlippSearchPageUrl(fallbackStore, itemName, configName, postalCode);
+      return res.json({ url: fallbackUrl, isMatch: false, resolvedPostal: postalCode || "K7H3C6", queryUsed: itemName, stage: 4 });
     }
   });
 

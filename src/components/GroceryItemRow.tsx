@@ -43,40 +43,12 @@ interface GroceryItemRowProps {
 }
 
 import { isSaleExpired, parsePrice, isOnSaleFlag } from "@/lib/price-utils";
+import { isDirectFlippUrlUsable, buildFlippSearchPageUrl } from "@/lib/flipp-resolve";
 export { isSaleExpired };
-
-function getFlippSearchUrl(storeName: string, itemName: string, configName?: string, postalCode?: string): string {
-  let queryStore = storeName || "";
-  if (queryStore.toLowerCase().includes("food basics")) queryStore = "Food Basics";
-  else if (queryStore.toLowerCase().includes("no frills")) queryStore = "No Frills";
-  else if (queryStore.toLowerCase().includes("your independent grocer")) queryStore = "Your Independent Grocer";
-  else if (queryStore.toLowerCase().includes("loblaws")) queryStore = "Loblaws";
-  else if (queryStore.toLowerCase().includes("metro")) queryStore = "Metro";
-  else if (queryStore.toLowerCase().includes("freshco") || queryStore.toLowerCase().includes("fresco") || queryStore.toLowerCase().includes("fresh co") || queryStore.toLowerCase().includes("freschco")) queryStore = "FreshCo";
-  else if (queryStore.toLowerCase().includes("walmart")) queryStore = "Walmart";
-
-  let queryItem = itemName || "";
-  if (configName) {
-    queryItem = configName;
-  }
-  queryItem = queryItem
-    .replace(/\s*-\s*\d+$/gi, "") 
-    .replace(/\s*-\s*\w+$/gi, "") 
-    .replace(/\s*\(\d+g\)/gi, "")  
-    .replace(/\s*\d+g\b/gi, "")    
-    .replace(/\s*\d+-pack\b/gi, "") 
-    .trim();
-
-  const fullQuery = `${queryStore} ${queryItem}`.trim();
-  let url = `https://flipp.com/search?q=${encodeURIComponent(fullQuery)}`;
-  if (postalCode) {
-    url += `&postal_code=${encodeURIComponent(postalCode.trim())}`;
-  }
-  return url;
-}
 
 export default function GroceryItemRow({ item, onToggle, onRemove, onUpdateQuantity, priceInfo, primaryStoreId }: GroceryItemRowProps) {
   const openFlyerForStoreItem = (
+    storeId: string,
     storeName: string,
     itemName: string,
     configName?: string,
@@ -86,8 +58,8 @@ export default function GroceryItemRow({ item, onToggle, onRemove, onUpdateQuant
     flippUrl?: string,
     validUntil?: string
   ) => {
-    if (flippUrl) {
-      window.open(flippUrl, "_blank");
+    if (isDirectFlippUrlUsable(flippUrl, validUntil)) {
+      window.open(flippUrl!, "_blank");
       return;
     }
 
@@ -165,6 +137,7 @@ export default function GroceryItemRow({ item, onToggle, onRemove, onUpdateQuant
     `);
 
     const qParams = new URLSearchParams({
+      storeId: storeId || "",
       storeName: storeName || "",
       itemName: itemName || "",
       configName: configName || "",
@@ -201,11 +174,11 @@ export default function GroceryItemRow({ item, onToggle, onRemove, onUpdateQuant
         if (data && data.url) {
           handleRedirect(data.url, !!data.isMatch);
         } else {
-          handleRedirect(getFlippSearchUrl(storeName, itemName, configName, postalCode), false);
+          handleRedirect(buildFlippSearchPageUrl(storeId || storeName, itemName, configName, postalCode), false);
         }
       })
       .catch(() => {
-        handleRedirect(getFlippSearchUrl(storeName, itemName, configName, postalCode), false);
+        handleRedirect(buildFlippSearchPageUrl(storeId || storeName, itemName, configName, postalCode), false);
       });
   };
 
@@ -458,6 +431,7 @@ export default function GroceryItemRow({ item, onToggle, onRemove, onUpdateQuant
                     onClick={(e) => {
                       e.stopPropagation();
                       openFlyerForStoreItem(
+                        bestCompetitorPrice.storeId,
                         bestCompetitorPrice.storeName,
                         item.name,
                         priceInfo?.config_name,
@@ -482,6 +456,7 @@ export default function GroceryItemRow({ item, onToggle, onRemove, onUpdateQuant
                     onClick={(e) => {
                       e.stopPropagation();
                       openFlyerForStoreItem(
+                        finalPrice.storeId,
                         finalPrice.storeName,
                         item.name,
                         priceInfo?.config_name,

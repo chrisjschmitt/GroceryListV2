@@ -5,6 +5,7 @@ import { ChevronDown, ChevronUp, Trash2, Plus, Minus, ListPlus, ExternalLink, Re
 import CatalogDrawer from "../../components/CatalogDrawer";
 import SyncIndicator from "../../components/SyncIndicator";
 import { normalizeStoreKey, getStoreActivePrice, isSaleExpired, getStoreDisplayName, isOnSaleFlag, parsePrice } from "@/lib/price-utils";
+import { isDirectFlippUrlUsable, buildFlippSearchPageUrl, sanitizeFlippItemName } from "@/lib/flipp-resolve";
 
 const CATEGORY_WALKTHROUGH_ORDER = [
   "produce",
@@ -43,36 +44,21 @@ function abbreviateStoreName(name: string): string {
   return name.substring(0, 3).toUpperCase();
 }
 
-function getFlippSearchUrl(storeName: string, itemName: string, configName?: string, postalCode?: string): string {
-  let queryStore = storeName || "";
-  if (queryStore.toLowerCase().includes("food basics")) queryStore = "Food Basics";
-  else if (queryStore.toLowerCase().includes("no frills")) queryStore = "No Frills";
-  else if (queryStore.toLowerCase().includes("your independent grocer")) queryStore = "Your Independent Grocer";
-  else if (queryStore.toLowerCase().includes("loblaws")) queryStore = "Loblaws";
-  else if (queryStore.toLowerCase().includes("metro")) queryStore = "Metro";
-  else if (queryStore.toLowerCase().includes("freshco") || queryStore.toLowerCase().includes("fresco") || queryStore.toLowerCase().includes("fresh co") || queryStore.toLowerCase().includes("freschco")) queryStore = "FreshCo";
-  else if (queryStore.toLowerCase().includes("walmart")) queryStore = "Walmart";
-  else if (queryStore.toLowerCase().includes("costco")) queryStore = "Costco";
-
-  let queryItem = itemName || "";
-  if (configName) {
-    queryItem = configName;
-  }
-  queryItem = queryItem.replace(/lactancia/gi, "Lactantia");
-  queryItem = queryItem
-    .replace(/\s*\b\d+(?:\.\d+)?%/g, "") 
-    .replace(/\s*\b\d+(?:g|l|ml|oz|kg|lb|pack)\b/gi, "") 
-    .replace(/\s*\(\d+[^)]*\)/gi, "") 
-    .replace(/\s*-\s*\d+$/gi, "") 
-    .replace(/\s*-\s*\w+$/gi, "") 
-    .trim();
-
-  const fullQuery = `${queryStore} ${queryItem}`.trim();
-  let url = `https://flipp.com/search?q=${encodeURIComponent(fullQuery)}`;
-  if (postalCode) {
-    url += `&postal_code=${encodeURIComponent(postalCode.trim())}`;
-  }
-  return url;
+function getStorePricingForFlyer(priceInfo: any, storeId: string) {
+  if (!priceInfo) return null;
+  const storeKey = normalizeStoreKey(storeId);
+  const storeData = priceInfo.stores?.[storeKey];
+  if (!storeData) return null;
+  return {
+    storeId: storeKey,
+    storeName: storeData.store_name || getStoreDisplayName(storeKey),
+    postal_code: storeData.postal_code || priceInfo.postal_code,
+    scrapedName: storeData.brand_name || priceInfo.brand_name || priceInfo.item_name || storeData.item_name,
+    lookup_url: storeData.lookup_url,
+    flipp_url: storeData.flipp_url,
+    valid_until: storeData.valid_until,
+    config_name: priceInfo.config_name
+  };
 }
 
 export default function ListsTab() {
@@ -94,6 +80,7 @@ export default function ListsTab() {
   }, [store]);
 
   const openFlyerForStoreItem = (
+    storeId: string,
     storeName: string,
     itemName: string,
     configName?: string,
@@ -103,8 +90,8 @@ export default function ListsTab() {
     flippUrl?: string,
     validUntil?: string
   ) => {
-    if (flippUrl) {
-      window.open(flippUrl, "_blank");
+    if (isDirectFlippUrlUsable(flippUrl, validUntil)) {
+      window.open(flippUrl!, "_blank");
       return;
     }
 
@@ -206,6 +193,7 @@ export default function ListsTab() {
           </div>
 
           <script>
+            const storeId = "${storeId.replace(/'/g, "\\'")}";
             const storeName = "${storeName.replace(/'/g, "\\'")}";
             const itemName = "${itemName.replace(/'/g, "\\'")}";
             const configName = "${(configName || "").replace(/'/g, "\\'")}";
@@ -281,6 +269,7 @@ export default function ListsTab() {
             
             function performLookup(customQ) {
               const qParams = new URLSearchParams({
+                storeId: storeId,
                 storeName: storeName,
                 itemName: itemName,
                 configName: configName,
@@ -290,16 +279,24 @@ export default function ListsTab() {
               
               const fetchUrl = "/api/flipp/resolve?" + qParams.toString();
               
-              let cleanItem = customQ || scrapedName || configName || itemName;
-              cleanItem = cleanItem.replace(/lactancia/gi, "Lactantia");
+              function sanitizeFlippItemName(raw) {
+                if (!raw) return "";
+                let clean = raw.replace(/lactancia/gi, "Lactantia");
+                clean = clean.replace(/\\b\\d+\\s*-\\s*\\d+\\b/g, "");
+                clean = clean.replace(/#\\d+\\b/g, "");
+                clean = clean.replace(/\\s*\\b\\d+(?:\\.\\d+)?-?(?:g|l|ml|oz|kg|lb|lbs|pack|pk|pks|s)\\b/gi, "");
+                clean = clean.replace(/\\s*\\b\\d+\\s*x\\s*\\d+(?:\\.\\d+)?-?(?:g|l|ml|oz|kg|lb|lbs|pack|pk|pks|s)?\\b/gi, "");
+                clean = clean.replace(/\\s*\\b\\d+(?:\\.\\d+)?%/g, "");
+                clean = clean.replace(/\\s*\\([^)]*\\)/gi, "");
+                clean = clean.replace(/\\s*-\\s*\\d+$/gi, "");
+                clean = clean.replace(/\\s*-\\s*\\w+$/gi, "");
+                clean = clean.replace(/[^a-zA-Z0-9\\s'/.-]/g, "");
+                clean = clean.replace(/\\s+/g, " ").trim();
+                return clean;
+              }
               
-              cleanItem = cleanItem
-                .replace(/\\s*\\b\\d+(?:\\.\\d+)?%/g, "")
-                .replace(/\\s*\\b\\d+(?:g|l|ml|oz|kg|lb|pack)\\b/gi, "")
-                .replace(/\\s*\\(\\d+[^)]*\\)/gi, "")
-                .replace(/\\s*-\\s*\\d+$/gi, "")
-                .replace(/\\s*-\\s*\\w+$/gi, "")
-                .trim();
+              let cleanItem = customQ || scrapedName || configName || itemName;
+              cleanItem = sanitizeFlippItemName(cleanItem);
                 
               const finalQuery = (storeName + " " + cleanItem).trim();
               document.getElementById('debug-query').innerText = finalQuery;
@@ -325,7 +322,19 @@ export default function ListsTab() {
                       } else {
                         let html = "";
                         items.forEach(it => {
-                          const isMerchantMatch = (it.merchant_name || "").toLowerCase().includes(storeName.toLowerCase()) || storeName.toLowerCase().includes((it.merchant_name || "").toLowerCase());
+                          const normalizeStoreKey = (s) => {
+                            if (!s) return "";
+                            const l = s.toLowerCase().trim();
+                            if (l.includes("metro")) return "metro";
+                            if (l.includes("loblaws")) return "loblaws";
+                            if (l.includes("nofrills")) return "nofrills";
+                            if (l.includes("freshco") || l.includes("fresco") || l.includes("fresh co")) return "freshco";
+                            if (l.includes("yourindependentgrocer")) return "yourindependentgrocer";
+                            if (l.includes("foodbasics") || l.includes("food basics")) return "foodbasics";
+                            if (l.includes("walmart")) return "walmart";
+                            return l;
+                          };
+                          const isMerchantMatch = normalizeStoreKey(it.merchant_name) === normalizeStoreKey(storeId);
                           const color = isMerchantMatch ? "#34d399" : "#94a3b8";
                           const itemUrl = it.flyer_id
                             ? 'https://flipp.com/flyer/' + it.flyer_id + '?item_id=' + it.id + '&postal_code=' + postalCode
@@ -872,6 +881,7 @@ export default function ListsTab() {
                   let cheapestPriceVal: number | null = null;
                   let matchedStoreName = "";
                   let bestCompetitorInfo: any = null;
+                  let bestStoreId = "";
                   let primaryStorePrice: number | null = null;
 
                   if (priceInfo) {
@@ -892,6 +902,7 @@ export default function ListsTab() {
                         const val = getStoreActivePrice(sInfo);
                         if (val !== null && val < minP) {
                           minP = val;
+                          bestStoreId = sId;
                           bestStoreData = sInfo;
                         }
                       }
@@ -899,24 +910,32 @@ export default function ListsTab() {
                       const val = getStoreActivePrice(priceInfo);
                       if (val !== null) {
                         minP = val;
+                        bestStoreId = priceInfo.store_id || "foodbasics";
                         bestStoreData = priceInfo;
                       }
                     }
                     if (minP !== Infinity) {
                       cheapestPriceVal = minP;
-                      matchedStoreName = bestStoreData?.store_name || "Food Basics";
+                      matchedStoreName = bestStoreData?.store_name || getStoreDisplayName(bestStoreId);
                       bestCompetitorInfo = bestStoreData;
                     }
                   }
+
+                  const listContextStoreId =
+                    viewMode === "byStore" && group.id !== "unassigned"
+                      ? group.id
+                      : (primaryStoreId || normalizeStoreKey(matchedStoreName) || "foodbasics");
+                  const listContextStoreName = getStoreDisplayName(listContextStoreId);
+
+                  const listFlyer = getStorePricingForFlyer(priceInfo, listContextStoreId);
+                  const competitorFlyer = bestStoreId ? getStorePricingForFlyer(priceInfo, bestStoreId) : null;
 
                   // Determine display price and if a match is suggested
                   const displayPriceVal = primaryStorePrice !== null ? primaryStorePrice : cheapestPriceVal;
                   const showPriceMatch = primaryStorePrice !== null && cheapestPriceVal !== null && cheapestPriceVal < primaryStorePrice;
 
                   // Determine if the displayed price is a sale price
-                  const sourceStoreInfo = (primaryStorePrice !== null)
-                    ? priceInfo?.stores?.[primaryStoreId?.toLowerCase() || ""]
-                    : bestCompetitorInfo;
+                  const sourceStoreInfo = listFlyer || bestCompetitorInfo;
                   const isOnSale = sourceStoreInfo
                     ? isOnSaleFlag(sourceStoreInfo.is_on_sale)
                     : false;
@@ -976,14 +995,15 @@ export default function ListsTab() {
                                     onClick={(e) => {
                                       e.stopPropagation();
                                       openFlyerForStoreItem(
+                                        bestStoreId,
                                         matchedStoreName,
                                         item.name,
                                         priceInfo?.config_name,
-                                        bestCompetitorInfo?.postal_code || priceInfo?.postal_code,
-                                        bestCompetitorInfo?.brand_name || priceInfo?.brand_name || priceInfo?.item_name || bestCompetitorInfo?.item_name,
-                                        bestCompetitorInfo?.lookup_url || priceInfo?.lookup_url,
-                                        bestCompetitorInfo?.flipp_url || priceInfo?.flipp_url,
-                                        bestCompetitorInfo?.valid_until || priceInfo?.valid_until
+                                        competitorFlyer?.postal_code || priceInfo?.postal_code,
+                                        competitorFlyer?.scrapedName,
+                                        competitorFlyer?.lookup_url,
+                                        competitorFlyer?.flipp_url,
+                                        competitorFlyer?.valid_until
                                       );
                                     }}
                                     className="text-[8px] font-black uppercase bg-emerald-600 hover:bg-emerald-700 text-white border border-emerald-500 px-1 py-0.2 rounded-sm shadow-[0.5px_0.5px_0px_rgba(0,0,0,0.1)] flex items-center gap-0.5 hover:underline cursor-pointer text-center"
@@ -993,25 +1013,26 @@ export default function ListsTab() {
                                   </button>
                                 </div>
                               )}
-                              {!showPriceMatch && sourceStoreInfo && (sourceStoreInfo.flipp_url || sourceStoreInfo.lookup_url) && !item.checked && (
+                              {!showPriceMatch && listFlyer && (listFlyer.flipp_url || listFlyer.lookup_url) && !item.checked && (
                                 <div className="flex items-center gap-1 shrink-0 select-none" onClick={(e) => e.stopPropagation()}>
                                   <button
                                     type="button"
                                     onClick={(e) => {
                                       e.stopPropagation();
                                       openFlyerForStoreItem(
-                                        primaryStoreId || "Food Basics",
+                                        listContextStoreId,
+                                        listContextStoreName,
                                         item.name,
                                         priceInfo?.config_name,
-                                        sourceStoreInfo?.postal_code || priceInfo?.postal_code,
-                                        sourceStoreInfo?.brand_name || priceInfo?.brand_name || priceInfo?.item_name || sourceStoreInfo?.item_name,
-                                        sourceStoreInfo?.lookup_url || priceInfo?.lookup_url,
-                                        sourceStoreInfo?.flipp_url || priceInfo?.flipp_url,
-                                        sourceStoreInfo?.valid_until || priceInfo?.valid_until
+                                        listFlyer?.postal_code || priceInfo?.postal_code,
+                                        listFlyer?.scrapedName,
+                                        listFlyer?.lookup_url,
+                                        listFlyer?.flipp_url,
+                                        listFlyer?.valid_until
                                       );
                                     }}
                                     className="text-[8px] font-black uppercase bg-emerald-600 hover:bg-emerald-700 text-white border border-emerald-500 px-1 py-0.2 rounded-sm shadow-[0.5px_0.5px_0px_rgba(0,0,0,0.1)] flex items-center gap-0.5 hover:underline cursor-pointer text-center"
-                                    title={`Open flyer/link for ${primaryStoreId || "Food Basics"}`}
+                                    title={`Open flyer/link for ${listContextStoreName}`}
                                   >
                                     Open Flyer ↗
                                   </button>
