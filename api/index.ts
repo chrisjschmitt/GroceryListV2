@@ -6,6 +6,7 @@ import path from "path";
 import { MongoClient, ObjectId } from "mongodb";
 import { parseCsv } from "../src/lib/csv-parser.js";
 import { evaluateGeminiMatch, runAllMatchingTests, splitMultiProductDescription } from "../src/lib/gemini-match-service.js";
+import { buildPreviewResponse, commitFlippIngestion } from "../src/lib/flipp-ingestion.js";
 import { RegularItem, PurchaseLogEntry } from "../src/lib/types";
 import {
   blobGetGroceryItems,
@@ -1030,6 +1031,14 @@ app.post("/api/append-grocery", async (req, res) => {
               isOnSaleVal = existingStoreLink.is_on_sale;
             }
 
+            const isFlippUrl = lowerUrl.includes("flipp.com") || lowerUrl.includes("flipp.ca");
+            const inFlyerVal = priceDoc.in_flyer !== undefined 
+              ? (priceDoc.in_flyer ? 1 : 0) 
+              : (data.in_flyer !== undefined 
+                  ? (data.in_flyer ? 1 : 0) 
+                  : (isFlippUrl ? 1 : 0));
+            const flippUrlVal = priceDoc.flipp_url || data.flipp_url || (isFlippUrl ? dbUrl : existingStoreLink.flipp_url || "");
+
             catalogItem.requires_scraping = true;
             catalogItem.stores[fStoreKey] = {
               url: dbUrl,
@@ -1040,7 +1049,9 @@ app.post("/api/append-grocery", async (req, res) => {
               external_name: priceDoc.item_name || priceDoc.config_name || existingStoreLink.external_name || "",
               track_pricing: true,
               valid_until: priceDoc.valid_until || existingStoreLink.valid_until || "",
-              is_verified: true
+              is_verified: true,
+              flipp_url: flippUrlVal,
+              in_flyer: inFlyerVal
             };
 
             await blobSetCombinedCatalog(freshCatalog);
@@ -1086,6 +1097,48 @@ app.get("/api/app-version", (req, res) => {
   }
 });
 
+// Handle preflight for flipp/preview
+app.options("/api/flipp/preview", (req, res) => {
+  res.setHeader("Access-Control-Allow-Origin", "*");
+  res.setHeader("Access-Control-Allow-Headers", "Content-Type, X-GroceryScout-Token");
+  res.setHeader("Access-Control-Allow-Methods", "POST, OPTIONS");
+  res.status(204).end();
+});
+
+// POST /api/flipp/preview
+app.post("/api/flipp/preview", async (req, res) => {
+  res.setHeader("Access-Control-Allow-Origin", "*");
+  res.setHeader("Access-Control-Allow-Headers", "Content-Type, X-GroceryScout-Token");
+  res.setHeader("Access-Control-Allow-Methods", "POST, OPTIONS");
+
+  // Security check
+  const rawToken = req.headers["x-groceryscout-token"];
+  const token = typeof rawToken === "string" ? rawToken.trim().replace(/^["']|["']$/g, "") : rawToken;
+  const rawSecret = process.env.GROCERY_SECRET_TOKEN || 
+                    process.env.Grocery_SECRET_TOKEN || 
+                    process.env.grocery_secret_token;
+  const secretToken = typeof rawSecret === "string" ? rawSecret.trim().replace(/^["']|["']$/g, "") : rawSecret;
+  if (!secretToken || token !== secretToken) {
+    res.status(401).json({ error: "Unauthorized: Missing or invalid secure authentication credentials" });
+    return;
+  }
+
+  try {
+    const { url } = req.body;
+    if (!url || typeof url !== "string") {
+      res.status(400).json({ error: "Error: 'url' parameter must be a valid string." });
+      return;
+    }
+
+    const catalog = await blobGetCombinedCatalog();
+    const preview = await buildPreviewResponse(url, catalog);
+    res.json(preview);
+  } catch (error: any) {
+    console.error("[Flipp Ingestion] Preview Error:", error);
+    res.json({ success: false, message: `Error ${error.message || String(error)}` });
+  }
+});
+
 // Handle preflight for flipp/add-item
 app.options("/api/flipp/add-item", (req, res) => {
   res.setHeader("Access-Control-Allow-Origin", "*");
@@ -1113,355 +1166,33 @@ app.post("/api/flipp/add-item", async (req, res) => {
   }
 
   try {
-    const { url, quantity: rawQuantity } = req.body;
+    const { url, quantity: rawQuantity, selectedOptionIndex, catalogItemId } = req.body;
     if (!url || typeof url !== "string") {
       res.status(400).json({ error: "Error: 'url' parameter must be a valid string." });
       return;
     }
     const quantity = typeof rawQuantity === "number" && rawQuantity > 0 ? rawQuantity : 1;
+    const selectedOptionIdx = typeof selectedOptionIndex === "number" ? selectedOptionIndex : 0;
 
-    // Extract item ID
-    const match = url.match(/\/item\/(\d+)/);
-    if (!match) {
-      res.status(400).json({ error: "Error: Invalid Flipp item URL structure." });
-      return;
-    }
-    const itemId = match[1];
-
-    // Fetch Flipp details
-    const flippApiUrl = `https://backflipp.wishabi.com/flipp/items/${itemId}`;
-    console.log(`[Flipp Ingestion] Fetching item details from Flipp API: ${flippApiUrl}`);
-    const flippRes = await fetch(flippApiUrl, {
-      headers: {
-        "User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
-      }
-    });
-
-    if (!flippRes.ok) {
-      res.status(502).json({ error: `Error: Failed to fetch item details from Flipp API. Status: ${flippRes.status}` });
-      return;
-    }
-
-    const flippData: any = await flippRes.json();
-    if (!flippData || !flippData.item) {
-      res.status(404).json({ error: "Error: Item not found in Flipp database." });
-      return;
-    }
-
-    const fItem = flippData.item;
-    const rawMerchant = fItem.merchant || "";
-    const rawItemName = fItem.name || "";
-    const saleVal = typeof fItem.current_price === "number" 
-      ? fItem.current_price 
-      : (fItem.current_price ? parseFloat(String(fItem.current_price).replace(/[^0-9.]/g, "")) : null);
-    const regVal = typeof fItem.original_price === "number" 
-      ? fItem.original_price 
-      : (fItem.original_price ? parseFloat(String(fItem.original_price).replace(/[^0-9.]/g, "")) : null);
-    const validTo = fItem.valid_to || "";
-
-    // Normalize merchant to Store ID
-    const normalizeMerchantToStoreId = (mName: string): string | null => {
-      const m = mName.toLowerCase().trim();
-      if (m.includes("food basics") || m.includes("foodbasics")) return "foodbasics";
-      if (m === "metro") return "metro";
-      if (m.includes("freshco") || m.includes("fresh co")) return "freshco";
-      if (m.includes("no frills") || m.includes("nofrills")) return "nofrills";
-      if (m === "walmart") return "walmart";
-      if (m === "loblaws") return "loblaws";
-      if (m.includes("independent grocer") || m === "yourindependentgrocer") return "yourindependentgrocer";
-      if (m.includes("canadian flyer") || m.includes("canadian tire") || m.includes("canadiantire")) return "canadiantire";
-      return null;
-    };
-
-    const storeId = normalizeMerchantToStoreId(rawMerchant);
-    if (!storeId) {
-      res.status(200).json({ success: false, message: "Store not setup for this item" });
-      return;
-    }
-
-    // Read catalog configuration
     const catalog = await blobGetCombinedCatalog();
-    if (!catalog.stores || !catalog.stores[storeId]) {
-      res.status(200).json({ success: false, message: "Store not setup for this item" });
-      return;
-    }
-
-    // Name cleaning and title casing helpers
-    const cleanName = (n: string): string => {
-      return n.toLowerCase()
-              .replace(/\b\d+(?:g|kg|ml|l|oz|lb|s|'s|pk|pack|pcs|pieces)\b/gi, "")
-              .replace(/\b(selected varieties|product of canada|each|weekly ad)\b/gi, "")
-              .replace(/\s+/g, " ")
-              .trim();
-    };
-
-    const toTitleCase = (str: string): string => {
-      return str.toLowerCase().split(' ').map(word => {
-        return word.charAt(0).toUpperCase() + word.slice(1);
-      }).join(' ');
-    };
-
-    // Search matching item in catalog
-    const normalizeUrl = (u: string): string => {
-      if (!u) return "";
-      let norm = u.toLowerCase().trim();
-      norm = norm.replace(/^https?:\/\//, "").replace(/^www\./, "");
-      const qIdx = norm.indexOf("?");
-      if (qIdx !== -1) {
-        norm = norm.substring(0, qIdx);
-      }
-      if (norm.endsWith("/")) {
-        norm = norm.slice(0, -1);
-      }
-      return norm;
-    };
-
-    const splitNames = await splitMultiProductDescription(rawItemName);
-    console.log(`[Flipp Ingestion] Split incoming "${rawItemName}" into:`, splitNames);
-
-    // Load groceryItems list
     const groceryItems = await blobGetGroceryItems();
 
-    let isAnyCatalogUpdated = false;
-    const addedProductNames: string[] = [];
-    const newItemsList: string[] = [];
-    const updatedItemsList: string[] = [];
-    const regularItemsList: string[] = [];
+    const preview = await buildPreviewResponse(url, catalog);
+    const result = await commitFlippIngestion({
+      url,
+      quantity,
+      selectedOptionIndex: selectedOptionIdx,
+      catalogItemId,
+      preview,
+      catalog,
+      groceryItems
+    });
 
-    for (const productName of splitNames) {
-      // Search matching item in catalog
-      let matchedItem = (catalog.items || []).find((item: any) => {
-        const hasUrlMatch = Object.values(item.stores || {}).some((s: any) => 
-          s && (normalizeUrl(s.flipp_url) === normalizeUrl(url) || normalizeUrl(s.url) === normalizeUrl(url) || String(s.upc) === String(itemId))
-        );
-        if (hasUrlMatch) {
-          return scoreCatalogMatch(item.name, productName) >= 70;
-        }
-        return false;
-      });
-
-      if (!matchedItem) {
-        matchedItem = (catalog.items || []).find((item: any) => 
-          item.name.toLowerCase() === productName.toLowerCase()
-        );
-      }
-
-      if (!matchedItem) {
-        const targetClean = cleanName(productName);
-        matchedItem = (catalog.items || []).find((item: any) => 
-          cleanName(item.name) === targetClean
-        );
-      }
-
-      if (!matchedItem) {
-        const scoredCandidates = (catalog.items || []).map((item: any) => {
-          const score = scoreCatalogMatch(item.name, productName);
-          return { item, score };
-        }).filter(c => c.score >= 80);
-
-        if (scoredCandidates.length > 0) {
-          scoredCandidates.sort((a, b) => b.score - a.score);
-          matchedItem = scoredCandidates[0].item;
-          console.log(`[Flipp Ingestion] Matched incoming "${productName}" to catalog item "${matchedItem.name}" via score: ${scoredCandidates[0].score}`);
-        }
-      }
-
-      let isNewItem = false;
-      let priceUpdated = false;
-      let finalItemName = "";
-
-      const formattedExpiry = validTo ? validTo.split("T")[0] : "";
-
-      if (matchedItem) {
-        finalItemName = matchedItem.name;
-        // Verify store pricing link
-        const existingStore = matchedItem.stores?.[storeId];
-        if (!existingStore) {
-          priceUpdated = true; // store pricing is newly configured, treat as "price updated"
-          isAnyCatalogUpdated = true;
-          if (!matchedItem.stores) matchedItem.stores = {};
-          matchedItem.stores[storeId] = {
-            url: url,
-            flipp_url: url,
-            upc: itemId,
-            regular_price: regVal !== null ? regVal : saleVal,
-            sale_price: saleVal,
-            is_on_sale: 1,
-            valid_until: formattedExpiry,
-            in_flyer: 1,
-            is_verified: true,
-            track_pricing: true
-          };
-        } else {
-          // Compare pricing
-          const matchesPricing = existingStore.sale_price === saleVal && existingStore.regular_price === (regVal !== null ? regVal : existingStore.regular_price);
-          const matchesUrl = normalizeUrl(existingStore.flipp_url) === normalizeUrl(url);
-          if (!matchesPricing || !matchesUrl) {
-            priceUpdated = true;
-            isAnyCatalogUpdated = true;
-            matchedItem.stores[storeId] = {
-              ...existingStore,
-              flipp_url: url,
-              regular_price: regVal !== null ? regVal : (existingStore.regular_price !== undefined && existingStore.regular_price !== null ? existingStore.regular_price : saleVal),
-              sale_price: saleVal,
-              is_on_sale: 1,
-              valid_until: formattedExpiry || existingStore.valid_until,
-              in_flyer: 1,
-              is_verified: true,
-              track_pricing: true
-            };
-          }
-        }
-      } else {
-        isNewItem = true;
-        isAnyCatalogUpdated = true;
-        const cleanedTitle = toTitleCase(cleanName(productName));
-        finalItemName = cleanedTitle || toTitleCase(productName);
-
-        const catalogItems = (catalog.items || []).map((item: any) => ({
-          id: item.id,
-          name: item.name,
-          category: item.category,
-          selected: false,
-          unit: item.unit,
-          units: item.units
-        }));
-
-        let matchResult: any = null;
-        try {
-          matchResult = await evaluateGeminiMatch(finalItemName, catalogItems);
-        } catch (err) {
-          console.warn("[Flipp Ingestion] Gemini matching service not available:", err);
-        }
-
-        const proposedCategory = matchResult?.proposed_new_item?.category || categorizeItemByName(finalItemName);
-        
-        const newId = `regular-unmatched-${Date.now()}-${Math.random().toString(36).substring(2, 7)}`;
-        matchedItem = {
-          id: newId,
-          name: finalItemName,
-          category: proposedCategory,
-          unit: "unit",
-          requires_scraping: true,
-          stores: {
-            [storeId]: {
-              url: url,
-              flipp_url: url,
-              upc: itemId,
-              regular_price: regVal !== null ? regVal : saleVal,
-              sale_price: saleVal,
-              is_on_sale: 1,
-              valid_until: formattedExpiry,
-              in_flyer: 1,
-              is_verified: true,
-              track_pricing: true
-            }
-          }
-        };
-        if (!catalog.items) catalog.items = [];
-        catalog.items.push(matchedItem);
-      }
-
-      addedProductNames.push(finalItemName);
-      if (isNewItem) {
-        newItemsList.push(finalItemName);
-      } else if (priceUpdated) {
-        updatedItemsList.push(finalItemName);
-      } else {
-        regularItemsList.push(finalItemName);
-      }
-
-      // Sync MongoDB prices collection
-      if (isNewItem || priceUpdated) {
-        try {
-          const mongoUri = process.env.MONGODB_URI;
-          if (mongoUri) {
-            const cleanUri = mongoUri.trim().replace(/^["']|["']$/g, "");
-            const client = new MongoClient(cleanUri);
-            await client.connect();
-            const db = client.db("groceryscout");
-            const pricesCollection = db.collection<any>("prices");
-            const storeConfig = matchedItem.stores[storeId];
-            
-            const slugify = (text: string) => text.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/(^-|-$)/g, "");
-            const mongoId = splitNames.length > 1 ? `${itemId}-${slugify(productName)}` : itemId;
-
-            await pricesCollection.updateOne(
-              { _id: mongoId },
-              {
-                $set: {
-                  _id: mongoId,
-                  store_id: storeId,
-                  store_name: catalog.stores[storeId]?.store_name || rawMerchant,
-                  config_name: finalItemName,
-                  item_name: finalItemName,
-                  matched_catalog_id: matchedItem.id,
-                  regular_price: storeConfig.regular_price,
-                  sale_price: storeConfig.sale_price,
-                  is_on_sale: true,
-                  valid_until: storeConfig.valid_until,
-                  flipp_url: url,
-                  url: storeConfig.url || url,
-                  upc: itemId,
-                  synchronized_at: new Date()
-                }
-              },
-              { upsert: true }
-            );
-            await client.close();
-            console.log(`[Flipp Ingestion] Synced MongoDB prices collection for product "${finalItemName}" (ID: ${mongoId})`);
-          }
-        } catch (dbErr: any) {
-          console.warn(`[Flipp Ingestion] MongoDB sync warning: ${dbErr.message}`);
-        }
-      }
-
-      // Update Shopping list (groceryItems)
-      const existingListItem = groceryItems.find(i => i.name.toLowerCase().trim() === finalItemName.toLowerCase().trim());
-      if (existingListItem) {
-        existingListItem.quantity += quantity;
-      } else {
-        const newListItem: any = {
-          id: `item-${Date.now()}-${Math.random().toString(36).slice(2, 9)}`,
-          name: finalItemName,
-          category: matchedItem.category || "Other",
-          quantity: quantity,
-          unit: matchedItem.unit || "unit",
-          units: matchedItem.units,
-          checked: false,
-          prices: [],
-          bestPrice: undefined,
-          createdAt: new Date().toISOString()
-        };
-        groceryItems.push(newListItem);
-      }
-    }
-
-    // Persist Catalog updates if anything changed
-    if (isAnyCatalogUpdated) {
-      await blobSetCombinedCatalog(catalog);
-      console.log(`[Flipp Ingestion] Persisted catalog updates for split names:`, addedProductNames);
-    }
-
-    await blobSetGroceryItems(groceryItems);
+    await blobSetCombinedCatalog(result.catalog);
+    await blobSetGroceryItems(result.groceryItems);
     await blobUpdateSyncMeta("Flipp-Ingestion-API").catch(() => {});
 
-    // Build return messages
-    let responseMsg = "";
-    const summaryParts: string[] = [];
-    if (newItemsList.length > 0) {
-      summaryParts.push(`Added ${newItemsList.join(", ")} to catalog and shopping list`);
-    }
-    if (updatedItemsList.length > 0) {
-      summaryParts.push(`Added ${updatedItemsList.join(", ")} to shopping list (price updated)`);
-    }
-    if (regularItemsList.length > 0) {
-      summaryParts.push(`Added ${regularItemsList.join(", ")} to shopping list`);
-    }
-    responseMsg = summaryParts.join("; ");
-
-    console.log(`[Flipp Ingestion] Ingestion complete: "${responseMsg}"`);
-    res.json({ success: true, message: responseMsg });
+    res.json({ success: true, message: result.message });
   } catch (error: any) {
     console.error("[Flipp Ingestion] Ingestion Error:", error);
     res.json({ success: false, message: `Error ${error.message || String(error)}` });

@@ -1,8 +1,8 @@
 // ==UserScript==
-// @name         GroceryScout - 2.11.0 Normalized Canonical Exporter
+// @name         GroceryScout - 2.12.0 Normalized Canonical Exporter
 // @namespace    http://tampermonkey.net/
-// @version      2.11.0
-// @description  Added Canadian Tire & Loblaws dairy product normalization
+// @version      2.12.0
+// @description  Added conjoined product select preview flow and flyer item query format support
 // @author       You
 // @match        https://*.foodbasics.ca/*
 // @match        https://foodbasics.ca/*
@@ -275,27 +275,22 @@
             const settingsBtn = createSettingsButton(30, 220);
             settingsBtn.style.display = 'none';
 
-            // Check URL periodically for item detail pages
+            // Check URL periodically for item detail pages (supports flyer/item detail URL formats)
             setInterval(() => {
-                const isItemPage = window.location.href.includes("/item/");
+                const isItemPage = window.location.href.includes("/item/") || window.location.href.includes("item_id=");
                 flippBtn.style.display = isItemPage ? 'block' : 'none';
                 settingsBtn.style.display = isItemPage ? 'flex' : 'none';
             }, 1000);
 
-            flippBtn.onclick = async function() {
-                const rawQuantity = prompt("Enter quantity to add to Shopping List:", "1");
-                if (rawQuantity === null) return; // User cancelled
-                const quantity = parseInt(rawQuantity);
-                if (isNaN(quantity) || quantity <= 0) {
-                    alert("Invalid quantity. Please enter a positive number.");
-                    return;
+            function commitFlippItem(token, url, quantity, selectedOptionIndex, catalogItemId, onSuccess, onError) {
+                const payload = {
+                    url: url,
+                    quantity: quantity,
+                    selectedOptionIndex: selectedOptionIndex
+                };
+                if (catalogItemId) {
+                    payload.catalogItemId = catalogItemId;
                 }
-
-                const token = await ensureToken(true);
-                if (!token) return;
-
-                flippBtn.disabled = true;
-                flippBtn.innerHTML = '⏳ Adding...';
 
                 GM_xmlhttpRequest({
                     method: "POST",
@@ -304,35 +299,217 @@
                         "Content-Type": "application/json",
                         "X-GroceryScout-Token": token
                     },
-                    data: JSON.stringify({
-                        url: window.location.href,
-                        quantity: quantity
-                    }),
+                    data: JSON.stringify(payload),
                     onload: function(response) {
-                        flippBtn.disabled = false;
-                        flippBtn.innerHTML = '⚡ Add to BasketWise';
-                        console.log("[Flipp Ingestion Client] Status:", response.status);
-                        console.log("[Flipp Ingestion Client] Response:", response.responseText);
-                        
+                        console.log("[Flipp Ingestion Client] Add status:", response.status);
                         try {
                             const resObj = JSON.parse(response.responseText);
-                            if (response.status === 200) {
-                                alert("Success: Item added to shopping list!");
+                            if (response.status === 200 && resObj.success !== false) {
+                                alert(resObj.message || "Success: Item added to shopping list!");
+                                if (onSuccess) onSuccess();
                             } else {
-                                alert("Error: " + (resObj.error || "Failed to add item."));
+                                alert("Error: " + (resObj.error || resObj.message || "Failed to add item."));
+                                if (onError) onError();
                             }
                         } catch (e) {
                             if (response.status === 200) {
                                 alert("Success: Item added to shopping list!");
+                                if (onSuccess) onSuccess();
                             } else {
                                 alert("Failed to add item. Server returned status " + response.status);
+                                if (onError) onError();
                             }
                         }
                     },
                     onerror: function(err) {
+                        alert("Error: Commit request failed.");
+                        if (onError) onError();
+                    }
+                });
+            }
+
+            function showFlippModal(token, url, preview) {
+                // Remove any existing flipp modal first
+                const existing = document.getElementById('gs-flipp-modal');
+                if (existing) existing.remove();
+
+                const modal = document.createElement('div');
+                modal.id = 'gs-flipp-modal';
+                modal.style.position = 'fixed';
+                modal.style.top = '50%';
+                modal.style.right = '30px';
+                modal.style.left = 'auto';
+                modal.style.transform = 'translateY(-50%)';
+                modal.style.zIndex = '1000000';
+                modal.style.background = 'white';
+                modal.style.border = '4px solid black';
+                modal.style.boxShadow = '8px 8px 0px 0px rgba(0,0,0,1)';
+                modal.style.padding = '24px';
+                modal.style.fontFamily = 'system-ui, -apple-system, sans-serif';
+                modal.style.width = '350px';
+                modal.style.boxSizing = 'border-box';
+
+                let optionsHtml = '';
+                preview.options.forEach((opt, idx) => {
+                    const isChecked = idx === 0 ? 'checked' : '';
+                    const hasMatch = !!opt.matchedId;
+                    const matchLabel = hasMatch ? `Matches: <strong>${opt.matchedName}</strong> (${opt.confidence}%)` : 'No exact match found';
+                    
+                    let selectHtml = '';
+                    if (opt.alternatives && opt.alternatives.length > 0) {
+                        selectHtml = `
+                            <div style="margin-top:6px;">
+                                <label style="display:block; font-size:10px; text-transform:uppercase; font-weight:bold; margin-bottom:2px;">Select Catalog Item Match:</label>
+                                <select class="gs-flipp-alt-select" data-index="${idx}" style="width:100%; border:2px solid black; padding:4px; background:white; font-size:12px; font-weight:bold; outline:none; font-family:system-ui;">
+                                    <option value="">[Create New: ${opt.cleanTitle}]</option>
+                                    ${opt.alternatives.map(alt => `<option value="${alt.id}" ${alt.id === opt.matchedId ? 'selected' : ''}>${alt.name} (${alt.score}%)</option>`).join('')}
+                                </select>
+                             </div>
+                        `;
+                    }
+
+                    optionsHtml += `
+                        <div style="margin-bottom:14px; border:2px solid black; padding:10px; background:#f9f9f9; box-shadow:2px 2px 0px black;">
+                            <label style="font-weight:bold; display:block; cursor:pointer; font-size:13px; margin-bottom:6px; font-family:system-ui;">
+                                <input type="radio" name="gs-flipp-radio" value="${idx}" ${isChecked} style="margin-right:6px; cursor:pointer;" />
+                                ${opt.productName}
+                            </label>
+                            <div style="font-size:11px; color:#374151; font-family:system-ui;">
+                                ${matchLabel}
+                            </div>
+                            ${selectHtml}
+                        </div>
+                    `;
+                });
+
+                modal.innerHTML = `
+                    <h3 style="margin-top:0; margin-bottom:16px; font-size:18px; font-weight:900; text-transform:uppercase; border-bottom:3px solid black; padding-bottom:8px; font-family:system-ui;">⚡ Select Product</h3>
+                    <p style="font-size:12px; margin-bottom:12px; font-style:italic; color:#4b5563; font-family:system-ui;">Flipp listing: "${preview.fItem.name}"</p>
+                    
+                    <div style="max-height:260px; overflow-y:auto; margin-bottom:16px; border-bottom:2px solid #ccc; padding-bottom:8px;">
+                        ${optionsHtml}
+                    </div>
+
+                    <div style="margin-bottom:16px;">
+                        <label style="display:block; font-weight:bold; font-size:12px; text-transform:uppercase; margin-bottom:4px; font-family:system-ui;">Quantity</label>
+                        <input type="number" id="gs-flipp-modal-qty" value="1" min="1" style="width:100%; border:2px solid black; padding:6px 8px; font-weight:bold; box-sizing:border-box; outline:none; font-family:system-ui;" />
+                    </div>
+
+                    <div style="display:flex; gap:12px;">
+                        <button id="gs-flipp-modal-cancel" style="flex:1; background:#ef4444; color:white; border:2px solid black; padding:10px; font-weight:bold; cursor:pointer; text-transform:uppercase; box-shadow:2px 2px 0px black; font-size:12px; font-family:system-ui;">Cancel</button>
+                        <button id="gs-flipp-modal-submit" style="flex:1; background:#22c55e; color:white; border:2px solid black; padding:10px; font-weight:bold; cursor:pointer; text-transform:uppercase; box-shadow:2px 2px 0px black; font-size:12px; font-family:system-ui;">Submit</button>
+                    </div>
+                `;
+
+                document.body.appendChild(modal);
+
+                const cancelBtn = modal.querySelector('#gs-flipp-modal-cancel');
+                const submitBtn = modal.querySelector('#gs-flipp-modal-submit');
+
+                cancelBtn.onclick = function() {
+                    modal.remove();
+                };
+
+                submitBtn.onclick = function() {
+                    const selectedRadio = modal.querySelector('input[name="gs-flipp-radio"]:checked');
+                    if (!selectedRadio) {
+                        alert("Please select a product.");
+                        return;
+                    }
+                    const selectedIdx = parseInt(selectedRadio.value);
+                    const qtyInput = modal.querySelector('#gs-flipp-modal-qty');
+                    const qty = parseInt(qtyInput.value);
+                    if (isNaN(qty) || qty <= 0) {
+                        alert("Invalid quantity.");
+                        return;
+                    }
+
+                    // Find if there is an alternative match selected
+                    let catalogItemId = undefined;
+                    const altSelect = modal.querySelector(`.gs-flipp-alt-select[data-index="${selectedIdx}"]`);
+                    if (altSelect && altSelect.value) {
+                        catalogItemId = altSelect.value;
+                    } else {
+                        // Fallback to option's matchedId if no alternative is selected
+                        const option = preview.options[selectedIdx];
+                        if (option && option.matchedId) {
+                            catalogItemId = option.matchedId;
+                        }
+                    }
+
+                    submitBtn.disabled = true;
+                    submitBtn.innerHTML = '⏳ Committing...';
+                    cancelBtn.disabled = true;
+
+                    commitFlippItem(token, url, qty, selectedIdx, catalogItemId, () => {
+                        modal.remove();
+                    }, () => {
+                        submitBtn.disabled = false;
+                        submitBtn.innerHTML = 'Submit';
+                        cancelBtn.disabled = false;
+                    });
+                };
+            }
+
+            flippBtn.onclick = async function() {
+                const token = await ensureToken(true);
+                if (!token) return;
+
+                flippBtn.disabled = true;
+                flippBtn.innerHTML = '⏳ Previewing...';
+
+                GM_xmlhttpRequest({
+                    method: "POST",
+                    url: getApiBaseSync() + "/api/flipp/preview",
+                    headers: {
+                        "Content-Type": "application/json",
+                        "X-GroceryScout-Token": token
+                    },
+                    data: JSON.stringify({
+                        url: window.location.href
+                    }),
+                    onload: function(response) {
                         flippBtn.disabled = false;
                         flippBtn.innerHTML = '⚡ Add to BasketWise';
-                        alert("Error: Network request failed.");
+
+                        if (response.status !== 200) {
+                            alert("Error fetching preview: " + response.responseText);
+                            return;
+                         }
+
+                         try {
+                             const preview = JSON.parse(response.responseText);
+                             if (!preview.success) {
+                                 alert("Error: " + (preview.message || "Failed to preview item."));
+                                 return;
+                             }
+
+                             if (!preview.requiresSelection && preview.options.length === 1) {
+                                 // Simple confirm flow (quantity only)
+                                 const option = preview.options[0];
+                                 const matchText = option.matchedId ? ` (matches: ${option.matchedName})` : ' (new item)';
+                                 const rawQuantity = prompt(`Add "${option.cleanTitle}"${matchText} to BasketWise?\nEnter quantity:`, "1");
+                                 if (rawQuantity === null) return;
+                                 const quantity = parseInt(rawQuantity);
+                                 if (isNaN(quantity) || quantity <= 0) {
+                                     alert("Invalid quantity.");
+                                     return;
+                                 }
+
+                                 commitFlippItem(token, window.location.href, quantity, 0, option.matchedId);
+                             } else {
+                                 // Show selection modal
+                                 showFlippModal(token, window.location.href, preview);
+                             }
+                         } catch (e) {
+                             console.error(e);
+                             alert("Error parsing preview response.");
+                         }
+                    },
+                    onerror: function(err) {
+                        flippBtn.disabled = false;
+                        flippBtn.innerHTML = '⚡ Add to BasketWise';
+                        alert("Error: Preview request failed.");
                     }
                 });
             };

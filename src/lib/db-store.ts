@@ -39,7 +39,7 @@ const hasMongo = () => !!process.env.MONGODB_URI;
 let cachedClient: MongoClient | null = null;
 let cachedDb: any = null;
 
-async function getMongoDb() {
+export async function getMongoDb() {
   if (cachedDb) return cachedDb;
   const mongoUri = process.env.MONGODB_URI;
   if (!mongoUri) {
