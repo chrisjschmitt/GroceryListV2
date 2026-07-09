@@ -4,7 +4,8 @@ import {
   buildFlippSearchQueryVariants,
   merchantNamesMatch,
   isDirectFlippUrlUsable,
-  buildFlippSearchPageUrl
+  buildFlippSearchPageUrl,
+  buildFlippItemPageUrl
 } from "../src/lib/flipp-resolve";
 
 async function runTests() {
@@ -80,6 +81,18 @@ async function runTests() {
   assert.ok(searchUrl.includes("q=Metro%20Banana"));
   assert.ok(searchUrl.includes("postal_code=K7H3C6"));
   console.log("✅ buildFlippSearchPageUrl tests passed.");
+
+  // 6. buildFlippItemPageUrl Tests
+  console.log("\nTesting buildFlippItemPageUrl...");
+  assert.strictEqual(
+    buildFlippItemPageUrl("1023460217", "Food Basics", "K7H3C6"),
+    "https://flipp.com/en-ca/item/1023460217-food-basics-weekly-ad?postal_code=K7H3C6"
+  );
+  assert.strictEqual(
+    buildFlippItemPageUrl("12345", "Metro Ontario", "k7h 3c6"),
+    "https://flipp.com/en-ca/item/12345-metro-weekly-ad?postal_code=K7H3C6"
+  );
+  console.log("✅ buildFlippItemPageUrl tests passed.");
 
   console.log("\n🎉 ALL TESTS PASSED SUCCESSFULLY! 🎉");
 }

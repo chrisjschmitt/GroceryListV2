@@ -1,6 +1,8 @@
 import { CombinedCatalog, RegularItem, GroceryItem } from "./types.js";
 import { evaluateGeminiMatch, splitMultiProductDescription } from "./gemini-match-service.js";
 import { getMongoDb } from "./db-store.js";
+import { resolveStorePostalCode } from "./flipp-postal.js";
+import { buildFlippItemPageUrl } from "./flipp-resolve.js";
 
 export interface IngestionPreviewResponse {
   success: boolean;
@@ -432,6 +434,9 @@ export async function commitFlippIngestion({
   const saleVal = fItem.current_price;
   const regVal = fItem.original_price;
 
+  const resolvedPostal = resolveStorePostalCode(storeId, undefined, catalog.stores);
+  const finalFlippUrl = buildFlippItemPageUrl(itemId, storeId, resolvedPostal);
+
   if (matchedItem) {
     finalItemName = matchedItem.name;
     const existingStore = matchedItem.stores?.[storeId];
@@ -440,7 +445,7 @@ export async function commitFlippIngestion({
       if (!matchedItem.stores) matchedItem.stores = {};
       matchedItem.stores[storeId] = {
         url: url,
-        flipp_url: url,
+        flipp_url: finalFlippUrl,
         upc: itemId,
         regular_price: regVal !== null ? regVal : saleVal,
         sale_price: saleVal,
@@ -457,7 +462,7 @@ export async function commitFlippIngestion({
         priceUpdated = true;
         matchedItem.stores[storeId] = {
           ...existingStore,
-          flipp_url: url,
+          flipp_url: finalFlippUrl,
           regular_price: regVal !== null ? regVal : (existingStore.regular_price !== undefined && existingStore.regular_price !== null ? existingStore.regular_price : saleVal),
           sale_price: saleVal,
           is_on_sale: 1,
@@ -483,7 +488,7 @@ export async function commitFlippIngestion({
       stores: {
         [storeId]: {
           url: url,
-          flipp_url: url,
+          flipp_url: finalFlippUrl,
           upc: itemId,
           regular_price: regVal !== null ? regVal : saleVal,
           sale_price: saleVal,
@@ -525,7 +530,7 @@ export async function commitFlippIngestion({
             sale_price: storeConfig.sale_price,
             is_on_sale: true,
             valid_until: storeConfig.valid_until,
-            flipp_url: url,
+            flipp_url: finalFlippUrl,
             url: url,
             upc: itemId,
             synchronized_at: new Date()

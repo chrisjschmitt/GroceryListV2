@@ -184,6 +184,21 @@ export function buildFlippSearchPageUrl(
   return `https://flipp.com/search?q=${encodeURIComponent(query)}&postal_code=${encodeURIComponent(resolvedPostal)}`;
 }
 
+export function buildFlippItemPageUrl(
+  itemId: string | number,
+  merchantName: string,
+  postalCode?: string
+): string {
+  const displayName = getStoreDisplayName(merchantName) || merchantName;
+  const slug = displayName
+    .toLowerCase()
+    .replace(/[^a-z0-9\s-]/g, "")
+    .trim()
+    .replace(/\s+/g, "-");
+  const postal = postalCode ? postalCode.trim().toUpperCase().replace(/\s/g, "") : "K7H3C6";
+  return `https://flipp.com/en-ca/item/${itemId}-${slug}-weekly-ad?postal_code=${postal}`;
+}
+
 export function isDirectFlippUrlUsable(flippUrl?: string | null, validUntil?: string | null): boolean {
   if (!flippUrl) return false;
   const isFlipp = flippUrl.includes("flipp.com") || flippUrl.includes("wishabi");
@@ -254,12 +269,8 @@ export async function resolveFlippFlyerUrl(params: ResolveFlippParams): Promise<
 
           const bestItem = matchedItems[0];
           let url = "";
-          if (bestItem.id && bestItem.flyer_id) {
-            url = `https://flipp.com/flyer/${bestItem.flyer_id}?item_id=${bestItem.id}&postal_code=${encodeURIComponent(resolvedPostal)}`;
-          } else if (bestItem.id) {
-            url = `https://flipp.com/item/${bestItem.id}?postal_code=${encodeURIComponent(resolvedPostal)}`;
-          } else if (bestItem.flyer_id) {
-            url = `https://flipp.com/flyer/${bestItem.flyer_id}?postal_code=${encodeURIComponent(resolvedPostal)}`;
+          if (bestItem.id) {
+            url = buildFlippItemPageUrl(bestItem.id, bestItem.merchant_name || effectiveStoreName, resolvedPostal);
           }
 
           if (url) {
@@ -278,44 +289,11 @@ export async function resolveFlippFlyerUrl(params: ResolveFlippParams): Promise<
     }
   }
 
-  // Fallback: store flyer only
-  try {
-    const storeApiUrl = `https://backflipp.wishabi.com/flipp/items/search?locale=en-ca&postal_code=${encodeURIComponent(resolvedPostal)}&q=${encodeURIComponent(effectiveStoreName)}`;
-    const response = await fetch(storeApiUrl, {
-      headers: {
-        "User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
-      }
-    });
-
-    if (response.ok) {
-      const data = await response.json();
-      const items = data.items || [];
-      const bestStoreItem = items.find((it: any) =>
-        merchantNamesMatch(it.merchant_name || "", effectiveStoreId)
-      );
-
-      if (bestStoreItem && bestStoreItem.flyer_id) {
-        return {
-          url: `https://flipp.com/flyer/${bestStoreItem.flyer_id}?postal_code=${encodeURIComponent(resolvedPostal)}`,
-          isMatch: false,
-          resolvedPostal,
-          queryUsed: effectiveStoreName,
-          stage: 3
-        };
-      }
-    }
-  } catch (err) {
-    console.error("Error in fallback store flyer resolution:", err);
-  }
-
-  // Absolute fallback: Flipp search page
-  const fallbackQuery = `${effectiveStoreName} ${sanitizeFlippItemName(itemName)}`.trim();
-  const searchPageUrl = buildFlippSearchPageUrl(effectiveStoreId, itemName, configName, resolvedPostal);
   return {
-    url: searchPageUrl,
+    url: "",
     isMatch: false,
     resolvedPostal,
-    queryUsed: fallbackQuery,
-    stage: 4
+    queryUsed: "",
+    stage: 0
   };
 }

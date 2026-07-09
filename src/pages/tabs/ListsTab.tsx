@@ -327,18 +327,41 @@ export default function ListsTab() {
                             const l = s.toLowerCase().trim();
                             if (l.includes("metro")) return "metro";
                             if (l.includes("loblaws")) return "loblaws";
-                            if (l.includes("nofrills")) return "nofrills";
+                            if (l.includes("nofrills") || l.includes("no frills")) return "nofrills";
                             if (l.includes("freshco") || l.includes("fresco") || l.includes("fresh co")) return "freshco";
                             if (l.includes("yourindependentgrocer")) return "yourindependentgrocer";
                             if (l.includes("foodbasics") || l.includes("food basics")) return "foodbasics";
                             if (l.includes("walmart")) return "walmart";
                             return l;
                           };
+                          const getStoreDisplayName = (s) => {
+                            const n = normalizeStoreKey(s);
+                            const names = {
+                              foodbasics: "Food Basics",
+                              metro: "Metro",
+                              freshco: "FreshCo",
+                              loblaws: "Loblaws",
+                              nofrills: "No Frills",
+                              yourindependentgrocer: "Your Independent Grocer",
+                              walmart: "Walmart",
+                              costco: "Costco",
+                              canadiantire: "Canadian Tire"
+                            };
+                            return names[n] || n;
+                          };
+                          const buildFlippItemPageUrl = (itemId, merchantName, postalCode) => {
+                            const displayName = getStoreDisplayName(merchantName) || merchantName;
+                            const slug = displayName
+                              .toLowerCase()
+                              .replace(/[^a-z0-9\s-]/g, "")
+                              .trim()
+                              .replace(/\s+/g, "-");
+                            const postal = (postalCode || "K7H3C6").trim().toUpperCase().replace(/\s/g, "");
+                            return 'https://flipp.com/en-ca/item/' + itemId + '-' + slug + '-weekly-ad?postal_code=' + postal;
+                          };
                           const isMerchantMatch = normalizeStoreKey(it.merchant_name) === normalizeStoreKey(storeId);
                           const color = isMerchantMatch ? "#34d399" : "#94a3b8";
-                          const itemUrl = it.flyer_id
-                            ? 'https://flipp.com/flyer/' + it.flyer_id + '?item_id=' + it.id + '&postal_code=' + postalCode
-                            : 'https://flipp.com/item/' + it.id + '?postal_code=' + postalCode;
+                          const itemUrl = buildFlippItemPageUrl(it.id, it.merchant_name, postalCode);
                           html += '<div style="margin-bottom: 0.6rem; padding-bottom: 0.4rem; border-bottom: 1px solid rgba(255,255,255,0.03); color: ' + color + ';">' +
                             '[' + it.merchant_name + '] <strong>' + it.name + '</strong><br/>' +
                             'Price: ' + (it.price ? '$' + it.price : 'N/A') + ' | ' +
@@ -352,28 +375,21 @@ export default function ListsTab() {
                       document.getElementById('debug-results').innerText = "Error loading raw Flipp results: " + err.message;
                     });
                     
-                  if (data && data.url) {
-                    if (data.isMatch) {
-                      document.getElementById('status-title').innerText = "Flyer Deal Found!";
-                      startCountdown(data.url, "Redirecting to flyer deal");
-                    } else {
-                      if (storeUrl) {
-                        document.getElementById('status-title').innerText = "Opening Grocery Store Link";
-                        startCountdown(storeUrl, "Flyer deal not found. Redirecting to grocery store item link");
-                      } else {
-                        document.getElementById('status-title').innerText = "Opening Flyer Search";
-                        startCountdown(data.url, "Flyer deal not matched. Opening fallback flyer search");
-                      }
-                    }
+                  if (data && data.isMatch && data.url) {
+                    document.getElementById('status-title').innerText = "Flyer Deal Found!";
+                    startCountdown(data.url, "Redirecting to flyer deal");
+                  } else if (storeUrl) {
+                    document.getElementById('status-title').innerText = "Opening Grocery Store Link";
+                    startCountdown(storeUrl, "Flyer deal not found. Redirecting to grocery store item link");
                   } else {
                     document.getElementById('status-title').innerText = "No Match Found";
-                    startCountdown(storeUrl || "https://flipp.com", storeUrl ? "Redirecting to grocery store item link" : "Redirecting to store page");
+                    startCountdown("https://flipp.com", "Flyer deal not matched. Redirecting to Flipp");
                   }
                 })
                 .catch(err => {
                   document.getElementById('debug-results').innerText = "API Error: " + err.message;
                   document.getElementById('status-title').innerText = "Error Occurred";
-                  startCountdown(storeUrl || ("https://flipp.com/search?q=" + encodeURIComponent(finalQuery) + "&postal_code=" + postalCode), storeUrl ? "Error occurred. Redirecting to grocery store item link" : "Redirecting to Flipp search");
+                  startCountdown(storeUrl || "https://flipp.com", storeUrl ? "Error occurred. Redirecting to grocery store item link" : "Redirecting to Flipp");
                 });
             }
             

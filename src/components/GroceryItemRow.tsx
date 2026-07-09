@@ -146,9 +146,9 @@ export default function GroceryItemRow({ item, onToggle, onRemove, onUpdateQuant
     });
 
     const handleRedirect = (targetUrl: string, isMatch: boolean) => {
-      if (isMatch || !storeUrl) {
+      if (isMatch) {
         newTab.location.href = targetUrl;
-      } else {
+      } else if (storeUrl) {
         try {
           const doc = newTab.document;
           if (doc) {
@@ -165,20 +165,22 @@ export default function GroceryItemRow({ item, onToggle, onRemove, onUpdateQuant
         setTimeout(() => {
           newTab.location.href = storeUrl;
         }, 2200);
+      } else {
+        newTab.location.href = "https://flipp.com";
       }
     };
 
     fetch("/api/flipp/resolve?" + qParams.toString())
       .then(r => r.json())
       .then(data => {
-        if (data && data.url) {
-          handleRedirect(data.url, !!data.isMatch);
+        if (data && data.url && data.isMatch) {
+          handleRedirect(data.url, true);
         } else {
-          handleRedirect(buildFlippSearchPageUrl(storeId || storeName, itemName, configName, postalCode), false);
+          handleRedirect("", false);
         }
       })
       .catch(() => {
-        handleRedirect(buildFlippSearchPageUrl(storeId || storeName, itemName, configName, postalCode), false);
+        handleRedirect("", false);
       });
   };
 
