@@ -1,18 +1,18 @@
 import { useState, useEffect } from "react";
 import Admin from "./pages/Admin";
-import HomeTab from "./pages/tabs/HomeTab";
+import DealsTab from "./pages/tabs/DealsTab";
 import BasketsTab from "./pages/tabs/BasketsTab";
 import ListsTab from "./pages/tabs/ListsTab";
 import ProfileTab from "./pages/tabs/ProfileTab";
 import VersionHistoryModal from "./components/VersionHistoryModal";
 import HelpModal from "./components/HelpModal";
 import packageJson from "../package.json";
-import { Home, ShoppingBasket, ListTodo, User, Settings2, HelpCircle } from "lucide-react";
+import { Home, ShoppingBasket, Tag, User, Settings2, HelpCircle } from "lucide-react";
 import { OfflineStoreProvider } from "./lib/client/offline-store-context";
 
 export default function App() {
   const [currentPath, setCurrentPath] = useState(window.location.pathname);
-  const [activeTab, setActiveTab] = useState<"home" | "baskets" | "lists" | "profile">("home");
+  const [activeTab, setActiveTab] = useState<"home" | "deals" | "baskets" | "profile">("home");
   const [isChangelogOpen, setIsChangelogOpen] = useState(false);
   const [isHelpOpen, setIsHelpOpen] = useState(false);
   const CURRENT_VERSION = packageJson.version;
@@ -70,15 +70,15 @@ export default function App() {
   const renderTabContent = () => {
     switch (activeTab) {
       case "home":
-        return <HomeTab />;
-      case "baskets":
-        return <BasketsTab onNavigateToLists={() => setActiveTab("lists")} />;
-      case "lists":
         return <ListsTab />;
+      case "deals":
+        return <DealsTab />;
+      case "baskets":
+        return <BasketsTab onNavigateToLists={() => setActiveTab("home")} />;
       case "profile":
         return <ProfileTab />;
       default:
-        return <HomeTab />;
+        return <ListsTab />;
     }
   };
 
@@ -165,15 +165,15 @@ export default function App() {
               <span className="text-[10px] font-bold mt-1 tracking-wide">Baskets</span>
             </button>
 
-            {/* Lists Tab Button */}
+            {/* Deals Tab Button */}
             <button
-              onClick={() => setActiveTab("lists")}
+              onClick={() => setActiveTab("deals")}
               className={`flex flex-col items-center justify-center flex-1 h-full py-1 transition-all ${
-                activeTab === "lists" ? "text-primary scale-105" : "text-on-surface-variant/70 hover:text-on-surface"
+                activeTab === "deals" ? "text-primary scale-105" : "text-on-surface-variant/70 hover:text-on-surface"
               }`}
             >
-              <ListTodo size={20} className={activeTab === "lists" ? "stroke-[2.5px]" : "stroke-[2px]"} />
-              <span className="text-[10px] font-bold mt-1 tracking-wide">Lists</span>
+              <Tag size={20} className={activeTab === "deals" ? "stroke-[2.5px]" : "stroke-[2px]"} />
+              <span className="text-[10px] font-bold mt-1 tracking-wide">Deals</span>
             </button>
 
             {/* Profile Tab Button */}
