@@ -96,3 +96,61 @@ export function standardizeCategory(catName: string): string {
 
   return "Pantry Staples";
 }
+
+export function inferCategoryFromItemName(name: string): string {
+  if (!name) return standardizeCategory("");
+  const lower = name.trim().toLowerCase();
+
+  let category = "";
+
+  // Beer, Wine & Spirits
+  if (
+    /\b(beer|wine|spirits|alcohol|liquor|whiskey|vodka|rum|gin|tequila|cider|ale|lager|ipa)s?\b/i.test(lower)
+  ) {
+    category = "Beer, Wine & Spirits";
+  }
+  // Health, Personal & Household
+  else if (
+    /paper towel|toilet paper|napkin|tissue|detergent|soap|shampoo|conditioner|body wash|toothpaste|toothbrush|floss|deodorant|razor|shaving|lotion|medicine|advil|tylenol|aspirin|vitamin|supplement|band-aid|bandage|trash bag|garbage bag|foil|plastic wrap|ziploc|sponge|scrubber|cleaner|disinfectant|wipe|diaper|baby|\bpet\b|\bdog\b|\bcat\b/i.test(lower)
+  ) {
+    category = "Health, Personal & Household";
+  }
+  // Snacks & Beverages
+  else if (
+    /water|soda|\bpop\b|juice|\bdrink\b|beverage|\btea\b|coffee|chips|pretzel|cracker|popcorn|nuts|peanut|almond|cashew|pistachio|candy|chocolate|gummy|cookie|\bbar\b|granola bar|energy drink|coke|pepsi|sprite|frozen|ice cream|sorbet|popsicle/i.test(lower)
+  ) {
+    category = "Snacks & Beverages";
+  }
+  // Bakery & Breads
+  else if (
+    /bread|loaf|\bbun\b|\broll\b|bagel|croissant|muffin|tortilla|wrap|pita|naan|pastry|danish|baguette|bakery|toast/i.test(lower)
+  ) {
+    category = "Bakery & Breads";
+  }
+  // Meat & Seafood
+  else if (
+    /meat|seafood|chicken|poultry|turkey|beef|steak|pork|\bham\b|bacon|sausage|hot dog|ribs|salmon|tuna|shrimp|prawn|crab|lobster|\bfish\b|\bcod\b|haddock|halibut|scallop|veal|lamb|mutton/i.test(lower)
+  ) {
+    category = "Meat & Seafood";
+  }
+  // Dairy & Eggs
+  else if (
+    /milk|\begg\b|butter|cheese|cheddar|mozzarella|parmesan|yogurt|cream|sour cream|cottage cheese|cream cheese|margarine|dairy|creamer|half & half|half and half/i.test(lower)
+  ) {
+    category = "Dairy & Eggs";
+  }
+  // Baking & Spices
+  else if (
+    /flour|sugar|yeast|baking powder|baking soda|vanilla|cocoa|chocolate chip|spice|cinnamon|nutmeg|oregano|paprika|salt|extract|syrup|honey|cornstarch/i.test(lower)
+  ) {
+    category = "Baking & Spices";
+  }
+  // Fresh Produce
+  else if (
+    /banana|apple|grape|orange|lemon|lime|berry|strawberry|blueberry|raspberry|blackberry|melon|watermelon|cantaloupe|pear|peach|plum|avocado|tomato|potato|onion|garlic|ginger|lettuce|spinach|kale|salad|carrot|broccoli|cauliflower|cucumber|pepper|celery|asparagus|zucchini|squash|mushroom|cabbage|herb|cilantro|parsley|basil|mint|thyme|rosemary|produce|fruit|vegetable/i.test(lower)
+  ) {
+    category = "Fresh Produce";
+  }
+
+  return standardizeCategory(category);
+}

@@ -100,7 +100,7 @@ export interface OfflineStore {
   hasPendingChanges: boolean;
   prices: PriceData;
   saveChanges: () => Promise<void>;
-  addGroceryItem: (name: string, quantity: number, unit: string, category?: string, units?: number) => Promise<void>;
+  addGroceryItem: (name: string, quantity: number, unit: string, category?: string, units?: number) => Promise<GroceryItem>;
   toggleGroceryItem: (id: string) => Promise<void>;
   updateGroceryItemQuantity: (id: string, quantity: number) => Promise<void>;
   removeGroceryItem: (id: string) => Promise<void>;
@@ -417,16 +417,24 @@ export function useOfflineStoreState(): OfflineStore {
 
   // --- Mutations ---
 
-  const addGroceryItem = useCallback(async (name: string, quantity: number, unit: string, category?: string, units?: number) => {
+  const addGroceryItem = useCallback(async (name: string, quantity: number, unit: string, category?: string, units?: number): Promise<GroceryItem> => {
     const existing = await localGetGroceryItems();
-    if (existing.some((i) => i.name.toLowerCase() === name.toLowerCase())) {
-      return;
+    const normalizedName = name.toLowerCase().trim();
+    const existingItem = existing.find((i) => i.name.toLowerCase().trim() === normalizedName);
+
+    if (existingItem) {
+      const newQty = (existingItem.quantity || 1) + quantity;
+      await localUpdateGroceryItemQuantity(existingItem.id, newQty);
+      const updatedItem = { ...existingItem, quantity: newQty };
+      setGroceryItems((prev) => prev.map((i) => (i.id === existingItem.id ? updatedItem : i)));
+      markDirty("grocery");
+      return updatedItem;
     }
 
     const newItem: GroceryItem = {
       id: `item-${Date.now()}-${Math.random().toString(36).slice(2, 9)}`,
       name,
-      category: category || "Other",
+      category: category || "Pantry Staples",
       quantity,
       unit,
       units,
@@ -437,7 +445,6 @@ export function useOfflineStoreState(): OfflineStore {
     };
 
     // Attempt to enrich item with existing prices client-side if available
-    const normalizedName = name.toLowerCase().trim();
     const matchingPrices = (Object.values(prices) as PriceEntry[]).filter((p) => 
       p && (
         (p.item_name && p.item_name.toLowerCase() === normalizedName) ||
@@ -453,8 +460,8 @@ export function useOfflineStoreState(): OfflineStore {
               ? storeInfo.sale_price 
               : (storeInfo.regular_price || 0);
             
-            const existing = mergedStorePricesMap.get(storeId);
-            if (!existing || priceVal < existing.price) {
+            const existingStore = mergedStorePricesMap.get(storeId);
+            if (!existingStore || priceVal < existingStore.price) {
               mergedStorePricesMap.set(storeId, {
                 storeId: storeId,
                 storeName: storeInfo.store_name || storeId,
@@ -470,8 +477,8 @@ export function useOfflineStoreState(): OfflineStore {
             ? p.sale_price 
             : (p.regular_price || 0);
           const storeId = p.store_id || "foodbasics";
-          const existing = mergedStorePricesMap.get(storeId);
-          if (!existing || priceVal < existing.price) {
+          const existingStore = mergedStorePricesMap.get(storeId);
+          if (!existingStore || priceVal < existingStore.price) {
             mergedStorePricesMap.set(storeId, {
               storeId: storeId,
               storeName: p.store_name || "Food Basics",
@@ -493,6 +500,7 @@ export function useOfflineStoreState(): OfflineStore {
     await localAddGroceryItem(newItem);
     setGroceryItems((prev) => [...prev, newItem]);
     markDirty("grocery");
+    return newItem;
   }, [prices, markDirty]);
 
   const toggleGroceryItem = useCallback(async (id: string) => {

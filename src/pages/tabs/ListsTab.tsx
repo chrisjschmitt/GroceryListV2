@@ -6,6 +6,7 @@ import CatalogDrawer from "../../components/CatalogDrawer";
 import SyncIndicator from "../../components/SyncIndicator";
 import { normalizeStoreKey, getStoreActivePrice, isSaleExpired, getStoreDisplayName, isOnSaleFlag, parsePrice } from "@/lib/price-utils";
 import { isDirectFlippUrlUsable, buildFlippSearchPageUrl, sanitizeFlippItemName } from "@/lib/flipp-resolve";
+import { CATEGORY_ORDER, inferCategoryFromItemName } from "@/lib/categories";
 
 const CATEGORY_WALKTHROUGH_ORDER = [
   "produce",
@@ -97,6 +98,29 @@ export default function ListsTab() {
   const [quickAddMenuOpen, setQuickAddMenuOpen] = useState(false);
   const quickAddContainerRef = useRef<HTMLDivElement>(null);
   const [isSaving, setIsSaving] = useState(false);
+  const [newOptionCategory, setNewOptionCategory] = useState("Pantry Staples");
+  const [highlightedItemId, setHighlightedItemId] = useState<string | null>(null);
+  const [pendingScrollItemId, setPendingScrollItemId] = useState<string | null>(null);
+
+  useEffect(() => {
+    const raw = quickAddName.trim();
+    if (raw) {
+      setNewOptionCategory(inferCategoryFromItemName(raw));
+    }
+  }, [quickAddName]);
+
+  useEffect(() => {
+    if (pendingScrollItemId) {
+      const timer = setTimeout(() => {
+        const el = document.querySelector(`[data-grocery-item-id="${pendingScrollItemId}"]`);
+        if (el) {
+          el.scrollIntoView({ behavior: "smooth", block: "nearest" });
+          setPendingScrollItemId(null);
+        }
+      }, 100);
+      return () => clearTimeout(timer);
+    }
+  }, [pendingScrollItemId]);
   const handleSaveChanges = useCallback(async () => {
     setIsSaving(true);
     try {
@@ -731,11 +755,11 @@ export default function ListsTab() {
     await store.removeGroceryItemByName(name);
   };
 
-  const handleCustomAdd = async (name: string, category: string, quantity: number) => {
+  const handleCustomAdd = async (name: string, category: string, quantity: number): Promise<GroceryItem> => {
     // Add to catalog so it is saved for future browsing
     await store.addRegularItem(name, category);
     // Add to active shopping list with specified quantity
-    await store.addGroceryItem(name, quantity, "unit", category);
+    return await store.addGroceryItem(name, quantity, "unit", category);
   };
 
   const quickAddSuggestions = useMemo(
@@ -775,66 +799,122 @@ export default function ListsTab() {
     setQuickAddMenuOpen(false);
   }, []);
 
-  const addCatalogItemToList = useCallback(async (catalogItem: RegularItem) => {
-    const existing = store.groceryItems.find((gi) => gi.name.toLowerCase() === catalogItem.name.toLowerCase());
-    if (existing) {
-      await store.updateGroceryItemQuantity(existing.id, (existing.quantity || 1) + 1);
-    } else {
-      await store.addGroceryItem(
-        catalogItem.name,
-        1,
-        catalogItem.unit || "unit",
-        catalogItem.category,
-        catalogItem.units
-      );
+  const triggerPostAddFocus = useCallback((item: GroceryItem) => {
+    // 1. Clear search query if it would hide the added item
+    const q = searchQuery.trim().toLowerCase();
+    if (q) {
+      const matchesSearch = item.name.toLowerCase().includes(q) || item.category.toLowerCase().includes(q);
+      if (!matchesSearch) {
+        setSearchQuery("");
+      }
     }
+
+    // 2. Expand only when active price exists (same logic as row)
+    let hasActivePrice = false;
+    const priceInfo = priceLookup.get(item.name.toLowerCase().trim());
+    if (priceInfo) {
+      let primaryStorePrice: number | null = null;
+      if (primaryStoreId) {
+        const storeKey = primaryStoreId.toLowerCase();
+        const storeData = priceInfo.stores?.[storeKey];
+        if (storeData) {
+          primaryStorePrice = getStoreActivePrice(storeData);
+        }
+      }
+
+      let cheapestPriceVal: number | null = null;
+      let minP = Infinity;
+      if (priceInfo.stores && typeof priceInfo.stores === "object") {
+        for (const sInfo of Object.values(priceInfo.stores) as any[]) {
+          const val = getStoreActivePrice(sInfo);
+          if (val !== null && val < minP) {
+            minP = val;
+          }
+        }
+      } else {
+        const val = getStoreActivePrice(priceInfo);
+        if (val !== null) {
+          minP = val;
+        }
+      }
+      if (minP !== Infinity) {
+        cheapestPriceVal = minP;
+      }
+
+      const displayPriceVal = primaryStorePrice !== null ? primaryStorePrice : cheapestPriceVal;
+      hasActivePrice = displayPriceVal !== null;
+    }
+
+    if (hasActivePrice) {
+      setExpandedItems((prev) => {
+        const next = new Set(prev);
+        next.add(item.id);
+        return next;
+      });
+    }
+
+    // 3. Highlight and scroll
+    setHighlightedItemId(item.id);
+    setPendingScrollItemId(item.id);
+
+    // 4. Remove highlight after 2.5s
+    setTimeout(() => {
+      setHighlightedItemId((prev) => (prev === item.id ? null : prev));
+    }, 2500);
+  }, [searchQuery, priceLookup, primaryStoreId]);
+
+  const addCatalogItemToList = useCallback(async (catalogItem: RegularItem): Promise<GroceryItem> => {
+    const item = await store.addGroceryItem(
+      catalogItem.name,
+      1,
+      catalogItem.unit || "unit",
+      catalogItem.category,
+      catalogItem.units
+    );
     resetQuickAdd();
+    return item;
   }, [store, resetQuickAdd]);
 
-  const handleQuickAddNewItem = useCallback(async () => {
+  const handleQuickAddNewItem = useCallback(async (): Promise<GroceryItem | null> => {
     const raw = quickAddName.trim();
-    if (!raw) return;
-    await handleCustomAdd(raw, "other", 1);
+    if (!raw) return null;
+    const item = await handleCustomAdd(raw, newOptionCategory, 1);
     resetQuickAdd();
-  }, [quickAddName, handleCustomAdd, resetQuickAdd]);
+    return item;
+  }, [quickAddName, newOptionCategory, handleCustomAdd, resetQuickAdd]);
 
   const handleQuickAdd = useCallback(async (forcedCatalogItem?: RegularItem) => {
     const raw = quickAddName.trim();
     if (!raw && !forcedCatalogItem) return;
 
+    let affectedItem: GroceryItem | null = null;
+
     if (forcedCatalogItem) {
-      await addCatalogItemToList(forcedCatalogItem);
-      return;
-    }
-
-    if (quickAddExactCatalogMatch) {
-      await addCatalogItemToList(quickAddExactCatalogMatch);
-      return;
-    }
-
-    if (quickAddHighlightIndex >= 0 && quickAddSuggestions[quickAddHighlightIndex]) {
-      await addCatalogItemToList(quickAddSuggestions[quickAddHighlightIndex]);
-      return;
-    }
-
-    if (quickAddSuggestions.length === 1) {
-      await addCatalogItemToList(quickAddSuggestions[0]);
-      return;
-    }
-
-    if (quickAddSuggestions.length > 0) {
+      affectedItem = await addCatalogItemToList(forcedCatalogItem);
+    } else if (quickAddExactCatalogMatch) {
+      affectedItem = await addCatalogItemToList(quickAddExactCatalogMatch);
+    } else if (quickAddHighlightIndex >= 0 && quickAddSuggestions[quickAddHighlightIndex]) {
+      affectedItem = await addCatalogItemToList(quickAddSuggestions[quickAddHighlightIndex]);
+    } else if (quickAddSuggestions.length === 1) {
+      affectedItem = await addCatalogItemToList(quickAddSuggestions[0]);
+    } else if (quickAddSuggestions.length > 0) {
       setQuickAddMenuOpen(true);
       return;
+    } else {
+      affectedItem = await handleQuickAddNewItem();
     }
 
-    await handleQuickAddNewItem();
+    if (affectedItem) {
+      triggerPostAddFocus(affectedItem);
+    }
   }, [
     quickAddName,
     quickAddExactCatalogMatch,
     quickAddHighlightIndex,
     quickAddSuggestions,
     addCatalogItemToList,
-    handleQuickAddNewItem
+    handleQuickAddNewItem,
+    triggerPostAddFocus
   ]);
 
   return (
@@ -924,7 +1004,9 @@ export default function ListsTab() {
                   quickAddShowNewOption &&
                   quickAddHighlightIndex === quickAddSuggestions.length
                 ) {
-                  void handleQuickAddNewItem();
+                  void handleQuickAddNewItem().then((item) => {
+                    if (item) triggerPostAddFocus(item);
+                  });
                   return;
                 }
                 void handleQuickAdd();
@@ -954,14 +1036,17 @@ export default function ListsTab() {
                   key={item.id}
                   type="button"
                   onMouseEnter={() => setQuickAddHighlightIndex(index)}
-                  onClick={() => void addCatalogItemToList(item)}
+                  onClick={async () => {
+                    const affected = await addCatalogItemToList(item);
+                    if (affected) triggerPostAddFocus(affected);
+                  }}
                   className={`w-full px-3 py-2.5 text-left border-b border-outline/5 last:border-b-0 transition-colors
                     ${isHighlighted ? "bg-primary/10" : "hover:bg-surface-container-low"}`}
                 >
                   <div className="flex items-center justify-between gap-3">
-                    <div className="min-w-0">
+                    <div className="min-w-0 flex-1">
                       <div className="text-sm font-bold text-on-surface truncate">{item.name}</div>
-                      <div className="text-[10px] font-bold uppercase tracking-wider text-on-surface-variant/70">
+                      <div className="text-[10px] font-bold uppercase tracking-wider text-on-surface-variant/70 mt-0.5">
                         {item.category || "Other"}
                       </div>
                     </div>
@@ -976,20 +1061,38 @@ export default function ListsTab() {
             })}
 
             {quickAddShowNewOption && (
-              <button
-                type="button"
+              <div
                 onMouseEnter={() => setQuickAddHighlightIndex(quickAddSuggestions.length)}
-                onClick={() => void handleQuickAddNewItem()}
-                className={`w-full px-3 py-2.5 text-left transition-colors
+                onClick={async () => {
+                  const affected = await handleQuickAddNewItem();
+                  if (affected) triggerPostAddFocus(affected);
+                }}
+                className={`w-full px-3 py-2.5 text-left transition-colors flex items-center justify-between gap-4 cursor-pointer
                   ${quickAddHighlightIndex === quickAddSuggestions.length ? "bg-amber-500/10" : "hover:bg-surface-container-low"}`}
               >
-                <div className="text-sm font-bold text-on-surface">
-                  Add "{quickAddName.trim()}" as new item
+                <div className="min-w-0 flex-1">
+                  <div className="text-sm font-bold text-on-surface truncate">
+                    Add "{quickAddName.trim()}" as new item
+                  </div>
+                  <div className="text-[10px] font-bold uppercase tracking-wider text-on-surface-variant/70 mt-0.5">
+                    Category: <span className="text-primary font-extrabold">{newOptionCategory}</span>
+                  </div>
                 </div>
-                <div className="text-[10px] font-bold uppercase tracking-wider text-on-surface-variant/70">
-                  Not in catalog
+
+                <div className="relative shrink-0" onClick={(e) => e.stopPropagation()}>
+                  <select
+                    value={newOptionCategory}
+                    onChange={(e) => setNewOptionCategory(e.target.value)}
+                    className="bg-surface border border-outline/25 rounded-md px-2 py-1 text-[10px] font-bold uppercase tracking-wide focus:outline-none focus:ring-1 focus:ring-primary cursor-pointer text-on-surface"
+                  >
+                    {CATEGORY_ORDER.map((cat) => (
+                      <option key={cat} value={cat}>
+                        {cat}
+                      </option>
+                    ))}
+                  </select>
                 </div>
-              </button>
+              </div>
             )}
           </div>
         )}
@@ -1219,9 +1322,10 @@ export default function ListsTab() {
                   return (
                     <div
                       key={item.id}
-                      className={`bg-surface border border-outline-variant rounded-lg overflow-hidden transition-all duration-200 ${
+                      data-grocery-item-id={item.id}
+                      className={`bg-surface border border-outline-variant rounded-lg overflow-hidden transition-all duration-300 ${
                         item.checked ? "opacity-60" : ""
-                      }`}
+                      } ${item.id === highlightedItemId ? "ring-2 ring-primary ring-offset-2 scale-[1.01] shadow-md z-10 relative" : ""}`}
                     >
                       {/* Interactive Header Row */}
                       <div
@@ -1540,7 +1644,7 @@ export default function ListsTab() {
         priceLookup={priceLookup}
         onAdd={handleAddFromCatalog}
         onRemove={handleRemoveFromCatalog}
-        onCustomAdd={handleCustomAdd}
+        onCustomAdd={async (name, cat, qty) => { await handleCustomAdd(name, cat, qty); }}
       />
     </div>
   );
