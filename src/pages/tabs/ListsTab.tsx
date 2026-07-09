@@ -1,6 +1,6 @@
-import { useState, useMemo, useEffect, useCallback } from "react";
+import { useState, useMemo, useEffect, useCallback, useRef } from "react";
 import { useOfflineStore } from "@/lib/client/offline-store-context";
-import { GroceryItem, PriceEntry } from "@/lib/types";
+import { GroceryItem, PriceEntry, RegularItem } from "@/lib/types";
 import { ChevronDown, ChevronUp, Trash2, Plus, Minus, ListPlus, ExternalLink, RefreshCw } from "lucide-react";
 import CatalogDrawer from "../../components/CatalogDrawer";
 import SyncIndicator from "../../components/SyncIndicator";
@@ -44,6 +44,29 @@ function abbreviateStoreName(name: string): string {
   return name.substring(0, 3).toUpperCase();
 }
 
+function scoreQuickAddMatch(query: string, name: string): number {
+  const q = query.trim().toLowerCase();
+  const n = name.toLowerCase();
+  if (!q) return 0;
+  if (n === q) return 1000;
+  if (n.startsWith(q)) return 800;
+  if (n.split(/\s+/).some((word) => word.startsWith(q))) return 600;
+  if (n.includes(q)) return 400;
+  return 0;
+}
+
+function getQuickAddSuggestions(items: RegularItem[], query: string, limit = 8): RegularItem[] {
+  const q = query.trim();
+  if (q.length < 1) return [];
+
+  return items
+    .map((item) => ({ item, score: scoreQuickAddMatch(q, item.name) }))
+    .filter(({ score }) => score > 0)
+    .sort((a, b) => b.score - a.score || a.item.name.localeCompare(b.item.name))
+    .slice(0, limit)
+    .map(({ item }) => item);
+}
+
 function getStorePricingForFlyer(priceInfo: any, storeId: string) {
   if (!priceInfo) return null;
   const storeKey = normalizeStoreKey(storeId);
@@ -70,6 +93,9 @@ export default function ListsTab() {
     return localStorage.getItem("primaryStoreId") || null;
   });
   const [quickAddName, setQuickAddName] = useState("");
+  const [quickAddHighlightIndex, setQuickAddHighlightIndex] = useState(-1);
+  const [quickAddMenuOpen, setQuickAddMenuOpen] = useState(false);
+  const quickAddContainerRef = useRef<HTMLDivElement>(null);
   const [isSaving, setIsSaving] = useState(false);
   const handleSaveChanges = useCallback(async () => {
     setIsSaving(true);
@@ -712,25 +738,104 @@ export default function ListsTab() {
     await store.addGroceryItem(name, quantity, "unit", category);
   };
 
-  const handleQuickAdd = useCallback(async () => {
-    const raw = quickAddName.trim();
-    if (!raw) return;
+  const quickAddSuggestions = useMemo(
+    () => getQuickAddSuggestions(store.regularItems, quickAddName),
+    [store.regularItems, quickAddName]
+  );
 
-    const existing = store.groceryItems.find((gi) => gi.name.toLowerCase() === raw.toLowerCase());
+  const quickAddExactCatalogMatch = useMemo(() => {
+    const raw = quickAddName.trim().toLowerCase();
+    if (!raw) return null;
+    return store.regularItems.find((ri) => ri.name.toLowerCase() === raw) || null;
+  }, [store.regularItems, quickAddName]);
+
+  const quickAddShowNewOption = useMemo(() => {
+    const raw = quickAddName.trim();
+    if (!raw || quickAddExactCatalogMatch) return false;
+    return true;
+  }, [quickAddName, quickAddExactCatalogMatch]);
+
+  useEffect(() => {
+    setQuickAddHighlightIndex(quickAddSuggestions.length > 0 ? 0 : -1);
+  }, [quickAddName, quickAddSuggestions.length]);
+
+  useEffect(() => {
+    const handlePointerDown = (event: MouseEvent) => {
+      if (!quickAddContainerRef.current?.contains(event.target as Node)) {
+        setQuickAddMenuOpen(false);
+      }
+    };
+    document.addEventListener("mousedown", handlePointerDown);
+    return () => document.removeEventListener("mousedown", handlePointerDown);
+  }, []);
+
+  const resetQuickAdd = useCallback(() => {
+    setQuickAddName("");
+    setQuickAddHighlightIndex(-1);
+    setQuickAddMenuOpen(false);
+  }, []);
+
+  const addCatalogItemToList = useCallback(async (catalogItem: RegularItem) => {
+    const existing = store.groceryItems.find((gi) => gi.name.toLowerCase() === catalogItem.name.toLowerCase());
     if (existing) {
       await store.updateGroceryItemQuantity(existing.id, (existing.quantity || 1) + 1);
-      setQuickAddName("");
+    } else {
+      await store.addGroceryItem(
+        catalogItem.name,
+        1,
+        catalogItem.unit || "unit",
+        catalogItem.category,
+        catalogItem.units
+      );
+    }
+    resetQuickAdd();
+  }, [store, resetQuickAdd]);
+
+  const handleQuickAddNewItem = useCallback(async () => {
+    const raw = quickAddName.trim();
+    if (!raw) return;
+    await handleCustomAdd(raw, "other", 1);
+    resetQuickAdd();
+  }, [quickAddName, handleCustomAdd, resetQuickAdd]);
+
+  const handleQuickAdd = useCallback(async (forcedCatalogItem?: RegularItem) => {
+    const raw = quickAddName.trim();
+    if (!raw && !forcedCatalogItem) return;
+
+    if (forcedCatalogItem) {
+      await addCatalogItemToList(forcedCatalogItem);
       return;
     }
 
-    const matchRegular = store.regularItems.find((ri) => ri.name.toLowerCase() === raw.toLowerCase());
-    const category = matchRegular?.category || "other";
-    const unit = matchRegular?.unit || "unit";
-    const units = matchRegular?.units;
+    if (quickAddExactCatalogMatch) {
+      await addCatalogItemToList(quickAddExactCatalogMatch);
+      return;
+    }
 
-    await store.addGroceryItem(raw, 1, unit, category, units);
-    setQuickAddName("");
-  }, [quickAddName, store]);
+    if (quickAddHighlightIndex >= 0 && quickAddSuggestions[quickAddHighlightIndex]) {
+      await addCatalogItemToList(quickAddSuggestions[quickAddHighlightIndex]);
+      return;
+    }
+
+    if (quickAddSuggestions.length === 1) {
+      await addCatalogItemToList(quickAddSuggestions[0]);
+      return;
+    }
+
+    if (quickAddSuggestions.length > 0) {
+      setQuickAddMenuOpen(true);
+      return;
+    }
+
+    await handleQuickAddNewItem();
+  }, [
+    quickAddName,
+    quickAddExactCatalogMatch,
+    quickAddHighlightIndex,
+    quickAddSuggestions,
+    addCatalogItemToList,
+    handleQuickAddNewItem
+  ]);
 
   return (
     <div className="space-y-6 pb-12">
@@ -772,7 +877,7 @@ export default function ListsTab() {
       </div>
 
       {/* Quick Add */}
-      <div className="bg-surface p-3 rounded-lg border border-outline/10 shadow-xs">
+      <div ref={quickAddContainerRef} className="bg-surface p-3 rounded-lg border border-outline/10 shadow-xs relative">
         <div className="flex items-center gap-2">
           <input
             type="text"
@@ -780,11 +885,48 @@ export default function ListsTab() {
             autoComplete="off"
             autoCorrect="off"
             spellCheck={false}
+            role="combobox"
+            aria-expanded={quickAddMenuOpen && (quickAddSuggestions.length > 0 || quickAddShowNewOption)}
+            aria-autocomplete="list"
             value={quickAddName}
-            onChange={(e) => setQuickAddName(e.target.value)}
+            onChange={(e) => {
+              setQuickAddName(e.target.value);
+              setQuickAddMenuOpen(true);
+            }}
+            onFocus={() => {
+              if (quickAddName.trim()) setQuickAddMenuOpen(true);
+            }}
             onKeyDown={(e) => {
+              const optionCount = quickAddSuggestions.length + (quickAddShowNewOption ? 1 : 0);
+              if (e.key === "ArrowDown") {
+                e.preventDefault();
+                setQuickAddMenuOpen(true);
+                if (optionCount === 0) return;
+                setQuickAddHighlightIndex((prev) => (prev + 1) % optionCount);
+                return;
+              }
+              if (e.key === "ArrowUp") {
+                e.preventDefault();
+                setQuickAddMenuOpen(true);
+                if (optionCount === 0) return;
+                setQuickAddHighlightIndex((prev) => (prev <= 0 ? optionCount - 1 : prev - 1));
+                return;
+              }
+              if (e.key === "Escape") {
+                e.preventDefault();
+                setQuickAddMenuOpen(false);
+                setQuickAddHighlightIndex(-1);
+                return;
+              }
               if (e.key === "Enter") {
                 e.preventDefault();
+                if (
+                  quickAddShowNewOption &&
+                  quickAddHighlightIndex === quickAddSuggestions.length
+                ) {
+                  void handleQuickAddNewItem();
+                  return;
+                }
                 void handleQuickAdd();
               }
             }}
@@ -801,8 +943,59 @@ export default function ListsTab() {
             Add
           </button>
         </div>
+
+        {quickAddMenuOpen && quickAddName.trim() && (quickAddSuggestions.length > 0 || quickAddShowNewOption) && (
+          <div className="absolute left-3 right-3 top-[calc(100%-0.25rem)] z-40 mt-1 max-h-64 overflow-y-auto rounded-xl border border-outline/10 bg-surface shadow-lg">
+            {quickAddSuggestions.map((item, index) => {
+              const inList = store.groceryItems.some((gi) => gi.name.toLowerCase() === item.name.toLowerCase());
+              const isHighlighted = quickAddHighlightIndex === index;
+              return (
+                <button
+                  key={item.id}
+                  type="button"
+                  onMouseEnter={() => setQuickAddHighlightIndex(index)}
+                  onClick={() => void addCatalogItemToList(item)}
+                  className={`w-full px-3 py-2.5 text-left border-b border-outline/5 last:border-b-0 transition-colors
+                    ${isHighlighted ? "bg-primary/10" : "hover:bg-surface-container-low"}`}
+                >
+                  <div className="flex items-center justify-between gap-3">
+                    <div className="min-w-0">
+                      <div className="text-sm font-bold text-on-surface truncate">{item.name}</div>
+                      <div className="text-[10px] font-bold uppercase tracking-wider text-on-surface-variant/70">
+                        {item.category || "Other"}
+                      </div>
+                    </div>
+                    {inList && (
+                      <span className="text-[10px] font-bold uppercase tracking-wider text-primary shrink-0">
+                        On list
+                      </span>
+                    )}
+                  </div>
+                </button>
+              );
+            })}
+
+            {quickAddShowNewOption && (
+              <button
+                type="button"
+                onMouseEnter={() => setQuickAddHighlightIndex(quickAddSuggestions.length)}
+                onClick={() => void handleQuickAddNewItem()}
+                className={`w-full px-3 py-2.5 text-left transition-colors
+                  ${quickAddHighlightIndex === quickAddSuggestions.length ? "bg-amber-500/10" : "hover:bg-surface-container-low"}`}
+              >
+                <div className="text-sm font-bold text-on-surface">
+                  Add "{quickAddName.trim()}" as new item
+                </div>
+                <div className="text-[10px] font-bold uppercase tracking-wider text-on-surface-variant/70">
+                  Not in catalog
+                </div>
+              </button>
+            )}
+          </div>
+        )}
+
         <div className="mt-2 flex items-center justify-between text-[10px] text-on-surface-variant/70 font-bold">
-          <span>Enter adds to list (or +1 if already added)</span>
+          <span>Pick a catalog match or add as new</span>
           <button
             type="button"
             onClick={() => setIsCatalogOpen(true)}
