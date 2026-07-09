@@ -149,11 +149,16 @@ npx tsx scripts/audit-prices.ts --analyze
 
 # Analyze only captured screenshots for a specific store (e.g. Metro)
 npx tsx scripts/audit-prices.ts --analyze --store metro
+
+# Retry only items that had errors or timed out in the previous run
+npx tsx scripts/audit-prices.ts --retry-errors
 ```
 This runs the Gemini 3.5 Flash multimodal API to extract regular prices, sale prices, flyer validity dates, and sale status. It outputs:
 * **`price_audit_report.md`**: A detailed comparison markdown dashboard.
 * **`db-storage/audit-pricing-updates.json`**: A delta cache containing only the price updates/unverified flags.
 * **`db-storage/combined-catalog-updated.json`**: A full backup copy of the updated catalog.
+
+* **Retry Errors Optimization:** If the Gemini API requests time out or fail, you can run the script with `--retry-errors` (or `--retry`). This skips successfully audited items by reading the cached status from `db-storage/audit-pricing-updates.json` and only invokes Gemini on the items that failed.
 
 #### 4. Automated Weekly Flyer Validation
 During the `--analyze` phase, if the Gemini API identifies that an item is actively on sale, the script automatically queries the Flipp/Wishabi flyer search API for the store's configured postal code (from the database) to verify if the product is featured in the merchant's active weekly flyer. It sets the `in_flyer` boolean indicator to `true` (otherwise `false`) in the database metadata so the frontend can display visual flyer badges.
