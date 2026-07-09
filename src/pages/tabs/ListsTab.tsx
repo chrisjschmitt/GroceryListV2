@@ -69,6 +69,7 @@ export default function ListsTab() {
   const [primaryStoreId, setPrimaryStoreId] = useState<string | null>(() => {
     return localStorage.getItem("primaryStoreId") || null;
   });
+  const [quickAddName, setQuickAddName] = useState("");
   const [isSaving, setIsSaving] = useState(false);
   const handleSaveChanges = useCallback(async () => {
     setIsSaving(true);
@@ -711,6 +712,26 @@ export default function ListsTab() {
     await store.addGroceryItem(name, quantity, "unit", category);
   };
 
+  const handleQuickAdd = useCallback(async () => {
+    const raw = quickAddName.trim();
+    if (!raw) return;
+
+    const existing = store.groceryItems.find((gi) => gi.name.toLowerCase() === raw.toLowerCase());
+    if (existing) {
+      await store.updateGroceryItemQuantity(existing.id, (existing.quantity || 1) + 1);
+      setQuickAddName("");
+      return;
+    }
+
+    const matchRegular = store.regularItems.find((ri) => ri.name.toLowerCase() === raw.toLowerCase());
+    const category = matchRegular?.category || "other";
+    const unit = matchRegular?.unit || "unit";
+    const units = matchRegular?.units;
+
+    await store.addGroceryItem(raw, 1, unit, category, units);
+    setQuickAddName("");
+  }, [quickAddName, store]);
+
   return (
     <div className="space-y-6 pb-12">
       {/* List Header */}
@@ -748,6 +769,49 @@ export default function ListsTab() {
           onSave={handleSaveChanges}
           onRefresh={store.refreshFromServer}
         />
+      </div>
+
+      {/* Quick Add */}
+      <div className="bg-surface p-3 rounded-lg border border-outline/10 shadow-xs">
+        <div className="flex items-center gap-2">
+          <input
+            type="text"
+            inputMode="text"
+            autoComplete="off"
+            autoCorrect="off"
+            spellCheck={false}
+            value={quickAddName}
+            onChange={(e) => setQuickAddName(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === "Enter") {
+                e.preventDefault();
+                void handleQuickAdd();
+              }
+            }}
+            placeholder="Quick add… (e.g. milk)"
+            className="flex-1 px-3 py-2 bg-surface border border-outline/10 rounded-xl text-base font-bold placeholder-on-surface-variant/40 focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent transition-all shadow-xs text-on-surface"
+          />
+          <button
+            type="button"
+            onClick={() => void handleQuickAdd()}
+            disabled={!quickAddName.trim()}
+            className="px-3 py-2 rounded-xl bg-primary text-on-primary font-extrabold text-sm disabled:opacity-40 disabled:cursor-not-allowed shadow-xs border border-primary/20"
+            title="Add item"
+          >
+            Add
+          </button>
+        </div>
+        <div className="mt-2 flex items-center justify-between text-[10px] text-on-surface-variant/70 font-bold">
+          <span>Enter adds to list (or +1 if already added)</span>
+          <button
+            type="button"
+            onClick={() => setIsCatalogOpen(true)}
+            className="text-primary hover:underline"
+            title="Open catalog"
+          >
+            Browse catalog
+          </button>
+        </div>
       </div>
 
       {/* Search Bar Container */}

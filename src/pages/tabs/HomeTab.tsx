@@ -1,25 +1,18 @@
-import { useState, useMemo, useRef } from "react";
+import { useMemo, useRef, useState } from "react";
 import { useOfflineStore } from "@/lib/client/offline-store-context";
 import { RegularItem, PriceEntry } from "@/lib/types";
 import {
   Sparkles,
-  TrendingDown,
-  DollarSign,
-  ShoppingBasket,
   Search,
   Plus,
   Check,
-  ChevronDown,
-  ChevronUp,
-  ExternalLink,
   ChevronLeft,
   ChevronRight,
   X,
   Lightbulb,
-  Flame
 } from "lucide-react";
 
-import { normalizeStoreKey, isSaleActive, getStoreActivePrice, getStoreDisplayName, parsePrice } from "@/lib/price-utils";
+import { normalizeStoreKey, isSaleActive, getStoreActivePrice, getStoreDisplayName } from "@/lib/price-utils";
 
 const PRODUCT_IMAGES: Record<string, string> = {
   milk: "https://images.unsplash.com/photo-1550583724-b2692b85b150?auto=format&fit=crop&q=80&w=200",
@@ -105,9 +98,6 @@ export default function HomeTab() {
   const carouselRef = useRef<HTMLDivElement>(null);
 
   // States
-  const [searchTerm, setSearchTerm] = useState("");
-  const [selectedCategory, setSelectedCategory] = useState("All");
-  const [expandedPrices, setExpandedPrices] = useState<Set<string>>(new Set());
   const [isViewAllSaleOpen, setIsViewAllSaleOpen] = useState(false);
   const [saleSearchTerm, setSaleSearchTerm] = useState("");
 
@@ -332,97 +322,6 @@ export default function HomeTab() {
     return list.sort((a, b) => (b.relevanceScore || 0) - (a.relevanceScore || 0));
   }, [store.regularItems, priceLookup, store.purchaseLogs]);
 
-  // Trending Items calculations (Staples Basket regular items list)
-  const trendingItems = useMemo(() => {
-    return store.regularItems.map((ri) => {
-      const priceInfo = priceLookup.get(ri.name.toLowerCase());
-      const pricesList: {
-        storeId: string;
-        storeName: string;
-        price: number;
-        onSale: boolean;
-        isExpired: boolean;
-        validUntil: string | null;
-        regularPrice: number | null;
-        salePrice: number | null;
-        lookup_url?: string;
-      }[] = [];
-
-      if (priceInfo) {
-        const addPrice = (sId: string, sInfo: any) => {
-          const val = getStoreActivePrice(sInfo);
-          if (val !== null) {
-            const saleActive = isSaleActive(sInfo.valid_until);
-            pricesList.push({
-              storeId: sId,
-              storeName: sInfo.store_name || sId,
-              price: val,
-              onSale: (sInfo.is_on_sale === 1 || !!sInfo.is_on_sale) && saleActive,
-              isExpired: !!sInfo.is_on_sale && !saleActive,
-              validUntil: sInfo.valid_until || null,
-              regularPrice: sInfo.regular_price != null ? Number(sInfo.regular_price) : null,
-              salePrice: sInfo.sale_price != null ? Number(sInfo.sale_price) : null,
-              lookup_url: sInfo.lookup_url,
-            });
-          }
-        };
-
-        if (priceInfo.stores && typeof priceInfo.stores === "object") {
-          for (const [sId, sInfo] of Object.entries(priceInfo.stores)) {
-            addPrice(sId, sInfo);
-          }
-        } else {
-          addPrice(priceInfo.store_id || "foodbasics", priceInfo);
-        }
-      }
-
-      let minPrice: number | null = null;
-      let maxPrice: number | null = null;
-      let avgPrice: number | null = null;
-
-      if (pricesList.length > 0) {
-        const vals = pricesList.map((p) => p.price);
-        minPrice = Math.min(...vals);
-        maxPrice = Math.max(...vals);
-        avgPrice = vals.reduce((sum, v) => sum + v, 0) / vals.length;
-      }
-
-      return {
-        id: ri.id,
-        name: ri.name,
-        category: ri.category,
-        unit: ri.unit,
-        units: ri.units,
-        minPrice,
-        maxPrice,
-        avgPrice,
-        pricesList,
-      };
-    }).filter((item) => item.pricesList.length > 0);
-  }, [store.regularItems, priceLookup]);
-
-  // Dynamic Categories from regularItems
-  const categories = useMemo(() => {
-    const cats = new Set<string>();
-    cats.add("All");
-    for (const item of store.regularItems) {
-      if (item.category) {
-        cats.add(item.category);
-      }
-    }
-    return Array.from(cats);
-  }, [store.regularItems]);
-
-  // Filtered Trending Groceries
-  const filteredTrending = useMemo(() => {
-    return trendingItems.filter((item) => {
-      const matchesSearch = item.name.toLowerCase().includes(searchTerm.toLowerCase()) || 
-                            item.category.toLowerCase().includes(searchTerm.toLowerCase());
-      const matchesCategory = selectedCategory === "All" || item.category === selectedCategory;
-      return matchesSearch && matchesCategory;
-    });
-  }, [trendingItems, searchTerm, selectedCategory]);
-
   // Filtered View All Sale Items
   const filteredSales = useMemo(() => {
     return saleItems.filter((item) =>
@@ -547,18 +446,6 @@ export default function HomeTab() {
     } else {
       await store.addGroceryItem(ri.name, 1, ri.unit || "unit", ri.category, ri.units);
     }
-  };
-
-  const togglePriceExpand = (itemName: string) => {
-    setExpandedPrices((prev) => {
-      const next = new Set(prev);
-      if (next.has(itemName)) {
-        next.delete(itemName);
-      } else {
-        next.add(itemName);
-      }
-      return next;
-    });
   };
 
   const scrollCarousel = (direction: "left" | "right") => {
@@ -740,258 +627,6 @@ export default function HomeTab() {
           </p>
         </div>
       </div>
-
-      {/* Trending Groceries Section */}
-      <section className="space-y-4">
-        <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-          <div>
-            <h2 className="text-lg font-bold text-gray-900">Trending Groceries</h2>
-            <p className="text-xs text-gray-500">Staples Basket catalog items & pricing spread</p>
-          </div>
-
-          {/* Search bar integration */}
-          <div className="relative w-full sm:w-64">
-            <Search size={16} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400" />
-            <input 
-              type="text" 
-              placeholder="Search staples..."
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              className="w-full bg-white border border-[#EEEEEE] rounded-full py-2 pl-10 pr-4 text-xs font-medium text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-1 focus:ring-[#0d631b] focus:border-[#0d631b] transition-all"
-            />
-            {searchTerm && (
-              <button 
-                onClick={() => setSearchTerm("")} 
-                className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
-              >
-                <X size={14} />
-              </button>
-            )}
-          </div>
-        </div>
-
-        {/* Category Filter Pills */}
-        <div className="flex overflow-x-auto gap-2 no-scrollbar pb-2">
-          {categories.map((cat) => (
-            <button
-              key={cat}
-              onClick={() => setSelectedCategory(cat)}
-              className={`px-4 py-2 rounded-full text-xs font-bold transition-all flex-shrink-0 cursor-pointer border
-                ${selectedCategory === cat 
-                  ? "bg-[#0d631b] text-white border-[#0d631b]" 
-                  : "bg-white text-gray-600 border-[#EEEEEE] hover:bg-gray-50"
-                }`}
-            >
-              {cat}
-            </button>
-          ))}
-        </div>
-
-        {/* Grid layout */}
-        {filteredTrending.length === 0 ? (
-          <div className="bg-white border border-[#EEEEEE] rounded-2xl p-12 text-center text-gray-500 text-xs">
-            No trending staples found matching the filters.
-          </div>
-        ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {filteredTrending.map((item) => {
-              const isAdded = shoppingListNames.has(item.name.toLowerCase());
-              
-              // Calculate custom percentage values for the range slider
-              const hasPrices = item.minPrice !== null && item.maxPrice !== null;
-              const priceSpreadStr = hasPrices 
-                ? `$${item.minPrice!.toFixed(2)} - $${item.maxPrice!.toFixed(2)}`
-                : "No Scraped Prices";
-
-              const maxBound = hasPrices ? item.maxPrice! * 1.25 : 0;
-              const leftPercent = hasPrices && maxBound > 0 ? (item.minPrice! / maxBound) * 100 : 0;
-              const rightPercent = hasPrices && maxBound > 0 ? 100 - (item.maxPrice! / maxBound) * 100 : 0;
-              const avgPercent = hasPrices && maxBound > 0 && item.avgPrice ? (item.avgPrice / maxBound) * 100 : 0;
-              const isExpanded = expandedPrices.has(item.name);
-
-              let leftStoreLabel = "";
-              let rightStoreLabel = "";
-              if (item.pricesList.length > 0) {
-                const sortedPrices = [...item.pricesList].sort((a, b) => {
-                  if (a.price !== b.price) {
-                    return a.price - b.price;
-                  }
-                  return a.storeName.localeCompare(b.storeName);
-                });
-                leftStoreLabel = sortedPrices[0].storeName;
-                rightStoreLabel = sortedPrices.length > 1 ? sortedPrices[sortedPrices.length - 1].storeName : "";
-              }
-
-              return (
-                <div 
-                  key={item.id}
-                  className={`bg-white rounded-2xl border p-4 flex flex-col justify-between transition-all duration-200
-                    ${isAdded 
-                      ? "border-[#0d631b] bg-emerald-50/5 ring-1 ring-[#0d631b]" 
-                      : "border-[#EEEEEE] hover:border-gray-300"
-                    }`}
-                >
-                  <div className="flex gap-4 items-start">
-                    <div className="w-16 h-16 bg-gray-50 rounded-xl overflow-hidden border border-gray-100 flex-shrink-0 relative">
-                      <img 
-                        className="w-full h-full object-cover" 
-                        src={getProductImage(item.name)} 
-                        alt={item.name} 
-                      />
-                      {isAdded && (
-                        <div className="absolute inset-0 bg-[#0d631b]/30 flex items-center justify-center" />
-                      )}
-                    </div>
-                    
-                    <div className="flex-1 min-w-0 py-0.5">
-                      <h4 className="text-sm font-bold text-gray-900 truncate" title={item.name}>
-                        {item.name}
-                      </h4>
-                      <p className="text-[11px] text-gray-400 font-bold uppercase tracking-wider mt-0.5">
-                        {item.category}
-                      </p>
-                      {item.unit && (
-                        <p className="text-[11px] text-gray-500 font-medium mt-0.5">
-                          {item.units || 1} {item.unit}
-                        </p>
-                      )}
-                    </div>
-
-                    <button 
-                      onClick={() => handleToggleGroceryItem(item)}
-                      className={`w-9 h-9 rounded-full border flex items-center justify-center transition-all cursor-pointer flex-shrink-0
-                        ${isAdded 
-                          ? "bg-[#0d631b] border-[#0d631b] text-white hover:bg-[#2e7d32]" 
-                          : "border-[#EEEEEE] text-[#0d631b] hover:bg-[#0d631b]/5"
-                        }`}
-                      aria-label={isAdded ? "Remove from Grocery List" : "Add to Grocery List"}
-                    >
-                      {isAdded ? <Check size={16} className="stroke-[3]" /> : <ShoppingBasket size={16} />}
-                    </button>
-                  </div>
-
-                  {/* Range Slider Container */}
-                  <div className="mt-5 space-y-2">
-                    <div 
-                      onClick={() => togglePriceExpand(item.name)}
-                      className="cursor-pointer hover:bg-gray-50 p-2 rounded-xl border border-dashed border-gray-100 transition-colors"
-                      title="Click to view store pricing details"
-                    >
-                      <div className="flex justify-between items-center mb-1.5">
-                        <span className="text-[10px] font-bold text-gray-400 uppercase tracking-wider flex items-center gap-1">
-                          Price Range {isExpanded ? <ChevronUp size={12} /> : <ChevronDown size={12} />}
-                        </span>
-                        <span className="text-xs font-extrabold text-gray-900">
-                          {priceSpreadStr}
-                        </span>
-                      </div>
-                      
-                      {hasPrices ? (
-                        <div className="space-y-1.5">
-                          <div className="w-full h-2 bg-gray-100 rounded-full overflow-hidden relative">
-                            {/* Green range bar */}
-                            <div 
-                              className="absolute h-full bg-[#0d631b] rounded-full"
-                              style={{ left: `${leftPercent}%`, right: `${rightPercent}%` }}
-                            />
-                            {/* Black average marker */}
-                            <div 
-                              className="absolute w-1 h-3 bg-gray-900 -top-0.5"
-                              style={{ left: `${avgPercent}%` }}
-                            />
-                          </div>
-                          <div className="flex justify-between items-center text-[9px] text-gray-400 font-bold uppercase">
-                            <span className="truncate max-w-[40%] text-left" title={leftStoreLabel}>{leftStoreLabel}</span>
-                            <span className="text-gray-900">Avg: ${item.avgPrice!.toFixed(2)}</span>
-                            <span className="truncate max-w-[40%] text-right" title={rightStoreLabel}>{rightStoreLabel}</span>
-                          </div>
-                        </div>
-                      ) : (
-                        <div className="w-full h-2 bg-gray-100 rounded-full" />
-                      )}
-                    </div>
-
-                    {/* Expandable store prices details */}
-                    {isExpanded && (
-                      <div className="bg-gray-50/50 rounded-xl border border-gray-100 p-3 mt-2 space-y-2 animate-fadeIn">
-                        <h5 className="text-[9px] font-black text-gray-400 uppercase tracking-wider border-b border-gray-100 pb-1">
-                          Available Store Pricing
-                        </h5>
-                        {item.pricesList.length === 0 ? (
-                          <p className="text-[10px] text-gray-400 italic">No price data currently fetched for this item.</p>
-                        ) : (
-                          <div className="space-y-2">
-                            {item.pricesList.map((pr) => (
-                              <div key={pr.storeId} className="flex justify-between items-center text-xs">
-                                <div className="flex items-center gap-2">
-                                  <StoreLogo storeId={pr.storeId} className="w-5 h-5 flex-shrink-0" />
-                                  <div className="flex flex-col">
-                                    <span className="font-semibold text-gray-800 flex items-center gap-1.5">
-                                      {pr.storeName}
-                                      {pr.onSale && (
-                                        <span className="bg-amber-100 text-amber-900 text-[8px] font-black px-1.5 py-0.5 rounded-sm uppercase flex items-center gap-0.5">
-                                          <Flame size={8} className="fill-amber-600 stroke-none" />
-                                          Sale
-                                        </span>
-                                      )}
-                                      {pr.isExpired && (
-                                        <span className="bg-red-50 text-red-500 text-[8px] font-black px-1.5 py-0.5 rounded-sm border border-red-100 uppercase">
-                                          Expired
-                                        </span>
-                                      )}
-                                    </span>
-                                    {pr.validUntil && (
-                                      <span className="text-[9px] text-gray-400 font-medium">
-                                        {pr.onSale ? `ends ${pr.validUntil}` : pr.isExpired ? `expired ${pr.validUntil}` : ""}
-                                      </span>
-                                    )}
-                                  </div>
-                                </div>
-                                <div className="flex items-center gap-2">
-                                  {pr.isExpired ? (
-                                    <div className="flex flex-col items-end font-tnum">
-                                      <span className="font-extrabold text-gray-900">${pr.regularPrice?.toFixed(2)}</span>
-                                      <span className="text-[9px] text-red-500 line-through opacity-85">
-                                        Sale: ${pr.salePrice?.toFixed(2)}
-                                      </span>
-                                    </div>
-                                  ) : pr.onSale ? (
-                                    <div className="flex flex-col items-end font-tnum">
-                                      <span className="font-extrabold text-amber-600">${pr.price.toFixed(2)}</span>
-                                      {pr.regularPrice !== null && pr.regularPrice !== undefined && pr.regularPrice > 0 && (
-                                        <span className="text-[9px] text-gray-400 line-through opacity-60">
-                                          Reg: ${pr.regularPrice.toFixed(2)}
-                                        </span>
-                                      )}
-                                    </div>
-                                  ) : (
-                                    <span className="font-extrabold text-gray-900 font-tnum">${pr.price.toFixed(2)}</span>
-                                  )}
-                                  {pr.lookup_url && (
-                                    <a 
-                                      href={pr.lookup_url} 
-                                      target="_blank" 
-                                      rel="noopener noreferrer"
-                                      className="text-gray-400 hover:text-gray-700 transition-colors p-1"
-                                      title="Verify price at store web page"
-                                    >
-                                      <ExternalLink size={12} />
-                                    </a>
-                                  )}
-                                </div>
-                              </div>
-                            ))}
-                          </div>
-                        )}
-                      </div>
-                    )}
-                  </div>
-                </div>
-              );
-            })}
-          </div>
-        )}
-      </section>
 
       {/* --- Staples on Sale View All Modal Drawer Overlay --- */}
       {isViewAllSaleOpen && (
