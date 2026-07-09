@@ -88,6 +88,7 @@ interface AuditResult {
   status: "MATCH" | "MISMATCH" | "ERROR";
   discrepancies: string[];
   errorMessage?: string;
+  analyzed?: boolean;
 }
 
 async function handleCloudflareChallenge(page: any): Promise<boolean> {
@@ -273,7 +274,8 @@ async function runAudit() {
   }
 
   const setupMode = args.includes("--setup");
-  const analyzeOnly = args.includes("--analyze");
+  const retryErrors = args.includes("--retry-errors") || args.includes("--retry");
+  const analyzeOnly = args.includes("--analyze") || retryErrors;
   const runAll = args.includes("--all");
   const screenshotsOnly = !analyzeOnly && !runAll && !setupMode;
 
@@ -558,6 +560,22 @@ async function runAudit() {
     }
   } else if (analyzeOnly) {
     console.log("\n2. Skipping browser capture. Loading existing screenshots for Gemini analysis...");
+    
+    let previousUpdates: any[] = [];
+    if (retryErrors) {
+      const deltaPath = path.join(process.cwd(), "db-storage", "audit-pricing-updates.json");
+      if (fs.existsSync(deltaPath)) {
+        try {
+          previousUpdates = JSON.parse(fs.readFileSync(deltaPath, "utf8"));
+          console.log(`   Loaded ${previousUpdates.length} previous updates to filter/retry errors...`);
+        } catch (err: any) {
+          console.warn(`   ⚠️ Warning: Could not read previous audit updates: ${err.message}`);
+        }
+      } else {
+        console.warn(`   ⚠️ Warning: No previous audit updates file found at ${deltaPath}. Retrying all items.`);
+      }
+    }
+
     for (let i = 0; i < targetLinks.length; i++) {
       const { item, storeKey, storeDetails } = targetLinks[i];
       const screenshotName = `${item.id}_${storeKey}.png`;
@@ -573,29 +591,66 @@ async function runAudit() {
 
       const hasScreenshot = fs.existsSync(screenshotPath);
       if (hasScreenshot) {
-        auditResults.push({
-          itemId: item.id,
-          itemName: item.name,
-          storeKey,
-          url: storeDetails.url,
-          catalogRegular,
-          catalogSale,
-          catalogIsOnSale,
-          catalogValidUntil,
-          catalogUnit,
-          catalogUnits,
-          catalogInFlyer,
-          geminiRegular: null,
-          geminiSale: null,
-          geminiIsOnSale: false,
-          geminiValidUntil: null,
-          geminiUnit: null,
-          geminiUnits: null,
-          geminiInFlyer: false,
-          screenshotFile: screenshotPath,
-          status: "MATCH",
-          discrepancies: []
-        });
+        let prevMatch = null;
+        if (retryErrors && previousUpdates.length > 0) {
+          prevMatch = previousUpdates.find((u: any) => u.itemId === item.id && u.storeKey === storeKey);
+        }
+
+        if (prevMatch && prevMatch.status !== "ERROR") {
+          console.log(`   ├─ [SKIP] "${item.name}" (${storeKey}) was successfully audited in previous run (Status: ${prevMatch.status}).`);
+          auditResults.push({
+            itemId: item.id,
+            itemName: item.name,
+            storeKey,
+            url: storeDetails.url,
+            catalogRegular,
+            catalogSale,
+            catalogIsOnSale,
+            catalogValidUntil,
+            catalogUnit,
+            catalogUnits,
+            catalogInFlyer,
+            geminiRegular: prevMatch.regular_price,
+            geminiSale: prevMatch.sale_price,
+            geminiIsOnSale: prevMatch.is_on_sale === 1 || prevMatch.is_on_sale === true,
+            geminiValidUntil: prevMatch.valid_until || null,
+            geminiUnit: prevMatch.unit || null,
+            geminiUnits: prevMatch.units != null ? Number(prevMatch.units) : null,
+            geminiInFlyer: prevMatch.in_flyer === 1 || prevMatch.in_flyer === true,
+            screenshotFile: screenshotPath,
+            status: prevMatch.status,
+            discrepancies: prevMatch.discrepancies || [],
+            analyzed: true
+          });
+        } else {
+          if (prevMatch && prevMatch.status === "ERROR") {
+            console.log(`   ├─ [RETRY] "${item.name}" (${storeKey}) had ERROR/TIMEOUT in previous run. Will re-audit.`);
+          }
+          auditResults.push({
+            itemId: item.id,
+            itemName: item.name,
+            storeKey,
+            url: storeDetails.url,
+            catalogRegular,
+            catalogSale,
+            catalogIsOnSale,
+            catalogValidUntil,
+            catalogUnit,
+            catalogUnits,
+            catalogInFlyer,
+            geminiRegular: null,
+            geminiSale: null,
+            geminiIsOnSale: false,
+            geminiValidUntil: null,
+            geminiUnit: null,
+            geminiUnits: null,
+            geminiInFlyer: false,
+            screenshotFile: screenshotPath,
+            status: "MATCH",
+            discrepancies: [],
+            analyzed: false
+          });
+        }
       } else {
         auditResults.push({
           itemId: item.id,
@@ -619,7 +674,8 @@ async function runAudit() {
           screenshotFile: "",
           status: "ERROR",
           discrepancies: [],
-          errorMessage: `Screenshot file missing: ${screenshotName}`
+          errorMessage: `Screenshot file missing: ${screenshotName}`,
+          analyzed: true
         });
       }
     }
@@ -651,7 +707,7 @@ Look for currency symbols ($, ¢). Be precise and double check your numbers and 
 
   for (let i = 0; i < auditResults.length; i++) {
     const result = auditResults[i];
-    if (result.status === "ERROR" || !result.screenshotFile) {
+    if (result.analyzed || !result.screenshotFile) {
       continue;
     }
 
