@@ -863,6 +863,21 @@ export default function ListsTab() {
     }, 2500);
   }, [searchQuery, priceLookup, primaryStoreId]);
 
+  const handleClearChecked = useCallback(async () => {
+    if (!primaryStoreId) {
+      alert("Please select a 'Shopping At' store before clearing checked items so we can record your purchase savings.");
+      return;
+    }
+    const storeName = getStoreDisplayName(primaryStoreId);
+    const checkedItemsCount = store.groceryItems.filter((i) => i.checked).length;
+    if (checkedItemsCount === 0) return;
+
+    const confirmed = window.confirm(`Log ${checkedItemsCount} checked item${checkedItemsCount !== 1 ? "s" : ""} as purchased at ${storeName}?`);
+    if (!confirmed) return;
+
+    await store.clearCheckedGroceryItems(primaryStoreId, storeName);
+  }, [primaryStoreId, store]);
+
   const addCatalogItemToList = useCallback(async (catalogItem: RegularItem): Promise<GroceryItem> => {
     const item = await store.addGroceryItem(
       catalogItem.name,
@@ -1171,7 +1186,7 @@ export default function ListsTab() {
       {totalItems > 0 && (
         <div className="flex gap-2 justify-end">
           <button
-            onClick={store.clearCheckedGroceryItems}
+            onClick={handleClearChecked}
             className="text-[10px] font-bold uppercase tracking-wide bg-surface hover:bg-surface-container-low text-on-surface border border-outline/20 px-3 py-1.5 rounded-md transition-all shadow-xs"
           >
             Clear Checked

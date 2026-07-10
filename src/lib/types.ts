@@ -151,6 +151,13 @@ export interface TelemetryEntry {
   message?: string;
 }
 
+export interface PriceSnapshotEntry {
+  storeId: string;
+  storeName: string;
+  activePrice: number | null;
+  regularPrice: number | null;
+}
+
 export interface PurchaseLogEntry {
   id: string; // unique id (log-[timestamp]-[random])
   timestamp: string; // ISO string
@@ -162,7 +169,13 @@ export interface PurchaseLogEntry {
   units?: number;
   storeId?: string; // purchased store ID
   storeName?: string; // purchased store name
-  price?: number; // active price at purchase
+  price?: number | null; // legacy active price, matches paidPrice
+  paidPrice?: number | null; // active price paid at Shopping At store
+  regularPrice?: number | null; // regular price at Shopping At store
+  salePrice?: number | null; // sale price at Shopping At store
+  wasOnSale?: boolean; // true if bought on sale
+  validUntil?: string | null; // sale end date if applicable
+  priceSnapshot?: PriceSnapshotEntry[]; // pricing snapshot of competitor stores
 }
 
 

@@ -197,7 +197,13 @@ export async function blobGetPurchaseLogs(): Promise<PurchaseLogEntry[]> {
         units: d.units || undefined,
         storeId: d.storeId || undefined,
         storeName: d.storeName || undefined,
-        price: d.price || undefined,
+        price: d.price !== undefined ? d.price : undefined,
+        paidPrice: d.paidPrice !== undefined ? d.paidPrice : undefined,
+        regularPrice: d.regularPrice !== undefined ? d.regularPrice : undefined,
+        salePrice: d.salePrice !== undefined ? d.salePrice : undefined,
+        wasOnSale: d.wasOnSale !== undefined ? d.wasOnSale : undefined,
+        validUntil: d.validUntil !== undefined ? d.validUntil : undefined,
+        priceSnapshot: d.priceSnapshot || undefined,
       }));
     } catch (err) {
       console.error("MongoDB purchase logs read error, using local fallback", err);
@@ -229,6 +235,12 @@ export async function blobSetPurchaseLogs(logs: PurchaseLogEntry[]): Promise<voi
           storeId: log.storeId || null,
           storeName: log.storeName || null,
           price: log.price !== undefined ? log.price : null,
+          paidPrice: log.paidPrice !== undefined ? log.paidPrice : null,
+          regularPrice: log.regularPrice !== undefined ? log.regularPrice : null,
+          salePrice: log.salePrice !== undefined ? log.salePrice : null,
+          wasOnSale: log.wasOnSale !== undefined ? log.wasOnSale : null,
+          validUntil: log.validUntil !== undefined ? log.validUntil : null,
+          priceSnapshot: log.priceSnapshot !== undefined ? log.priceSnapshot : null,
         }));
         await db.collection("purchase_logs").insertMany(docs);
       }

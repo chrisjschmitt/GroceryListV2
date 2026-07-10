@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback, useRef, useMemo } from "react";
-import { GroceryItem, RegularItem, PriceData, PriceEntry, PurchaseLogEntry } from "../types";
+import { GroceryItem, RegularItem, PriceData, PriceEntry, PurchaseLogEntry, PriceSnapshotEntry } from "../types";
+import { normalizeStoreKey, getStoreActivePrice, getStoreDisplayName } from "../price-utils";
 import {
   localGetGroceryItems,
   localSetGroceryItems,
@@ -105,7 +106,7 @@ export interface OfflineStore {
   updateGroceryItemQuantity: (id: string, quantity: number) => Promise<void>;
   removeGroceryItem: (id: string) => Promise<void>;
   removeGroceryItemByName: (name: string) => Promise<void>;
-  clearCheckedGroceryItems: () => Promise<void>;
+  clearCheckedGroceryItems: (storeId: string, storeName: string) => Promise<void>;
   clearAllGroceryItems: () => Promise<void>;
   toggleRegularItem: (id: string) => Promise<void>;
   uploadCsv: (file: File) => Promise<{ count: number; errors: string[] }>;
@@ -538,22 +539,84 @@ export function useOfflineStoreState(): OfflineStore {
     }
   }, [markDirty]);
 
-  const clearCheckedGroceryItems = useCallback(async () => {
+  const clearCheckedGroceryItems = useCallback(async (storeId: string, storeName: string) => {
     const checked = groceryItems.filter((i) => i.checked);
     if (checked.length > 0) {
-      const newLogs: PurchaseLogEntry[] = checked.map((item) => ({
-        id: `log-${Date.now()}-${Math.random().toString(36).substring(2, 7)}`,
-        timestamp: new Date().toISOString(),
-        itemId: item.id,
-        name: item.name,
-        category: item.category,
-        quantity: item.quantity,
-        unit: item.unit,
-        units: item.units,
-        storeId: item.bestPrice?.storeId,
-        storeName: item.bestPrice?.storeName,
-        price: item.bestPrice?.price,
-      }));
+      const newLogs: PurchaseLogEntry[] = checked.map((item) => {
+        const normalizedName = item.name.toLowerCase().trim();
+        const priceInfo = prices[normalizedName] || (Object.values(prices) as PriceEntry[]).find((p) =>
+          p && (
+            (p.item_name && p.item_name.toLowerCase() === normalizedName) ||
+            (p.config_name && p.config_name.toLowerCase() === normalizedName)
+          )
+        );
+
+        let paidPrice: number | null = null;
+        let regularPrice: number | null = null;
+        let salePrice: number | null = null;
+        let wasOnSale = false;
+        let validUntil: string | null = null;
+        const priceSnapshot: PriceSnapshotEntry[] = [];
+
+        if (priceInfo) {
+          // Resolve snapshot for all competitor stores
+          if (priceInfo.stores && typeof priceInfo.stores === "object") {
+            for (const [sId, sInfo] of Object.entries(priceInfo.stores) as [string, any][]) {
+              const activeP = getStoreActivePrice(sInfo);
+              const regP = sInfo.regular_price || activeP || null;
+              priceSnapshot.push({
+                storeId: sId,
+                storeName: sInfo.store_name || getStoreDisplayName(sId),
+                activePrice: activeP,
+                regularPrice: regP,
+              });
+            }
+          } else {
+            const activeP = getStoreActivePrice(priceInfo);
+            const regP = priceInfo.regular_price || activeP || null;
+            const sId = priceInfo.store_id || "foodbasics";
+            priceSnapshot.push({
+              storeId: sId,
+              storeName: priceInfo.store_name || getStoreDisplayName(sId),
+              activePrice: activeP,
+              regularPrice: regP,
+            });
+          }
+
+          // Resolve Shopping At store prices
+          const currentStoreKey = normalizeStoreKey(storeId);
+          const currentStoreInfo = priceInfo.stores?.[currentStoreKey];
+          if (currentStoreInfo) {
+            paidPrice = getStoreActivePrice(currentStoreInfo);
+            regularPrice = currentStoreInfo.regular_price || paidPrice;
+            if (currentStoreInfo.is_on_sale) {
+              salePrice = currentStoreInfo.sale_price || null;
+              wasOnSale = true;
+              validUntil = currentStoreInfo.valid_until || null;
+            }
+          }
+        }
+
+        return {
+          id: `log-${Date.now()}-${Math.random().toString(36).substring(2, 7)}`,
+          timestamp: new Date().toISOString(),
+          itemId: item.id,
+          name: item.name,
+          category: item.category,
+          quantity: item.quantity,
+          unit: item.unit,
+          units: item.units,
+          storeId,
+          storeName,
+          price: paidPrice, // legacy field, matches paidPrice
+          paidPrice,
+          regularPrice,
+          salePrice,
+          wasOnSale,
+          validUntil,
+          priceSnapshot,
+        };
+      });
 
       await localAddPurchaseLogs(newLogs);
       setPurchaseLogs((prev) => [...prev, ...newLogs]);
@@ -563,7 +626,7 @@ export function useOfflineStoreState(): OfflineStore {
     setGroceryItems((prev) => prev.filter((i) => !i.checked));
     await localClearCheckedGroceryItems();
     markDirty("grocery");
-  }, [groceryItems, markDirty]);
+  }, [groceryItems, prices, markDirty]);
 
   const clearAllGroceryItems = useCallback(async () => {
     setGroceryItems([]);

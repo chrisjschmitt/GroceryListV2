@@ -1,4 +1,4 @@
-import { useMemo, useState, useEffect } from "react";
+import { useMemo, useState, useEffect, useCallback } from "react";
 import { useOfflineStore } from "@/lib/client/offline-store-context";
 import { GroceryItem, PriceEntry } from "@/lib/types";
 import AddItemForm from "./AddItemForm";
@@ -275,6 +275,20 @@ export default function GroceryList() {
   const uncheckedItems = store.groceryItems.filter((i) => !i.checked);
   const checkedItems = store.groceryItems.filter((i) => i.checked);
   const uncheckedByCategory = groupByCategory(uncheckedItems);
+
+  const handleClearChecked = useCallback(async () => {
+    if (!primaryStoreId) {
+      alert("Please select a 'Shopping At' store before clearing checked items so we can record your purchase savings.");
+      return;
+    }
+    const storeName = getStoreDisplayName(primaryStoreId);
+    const checkedCount = checkedItems.length;
+    
+    const confirmed = window.confirm(`Log ${checkedCount} checked item${checkedCount !== 1 ? "s" : ""} as purchased at ${storeName}?`);
+    if (!confirmed) return;
+
+    await store.clearCheckedGroceryItems(primaryStoreId, storeName);
+  }, [primaryStoreId, checkedItems, store]);
 
   const progressPercent = store.groceryItems.length > 0
     ? Math.round((checkedItems.length / store.groceryItems.length) * 100)
@@ -626,7 +640,7 @@ export default function GroceryList() {
                   <div className="flex gap-2">
                     {checkedItems.length > 0 && (
                       <button
-                        onClick={store.clearCheckedGroceryItems}
+                        onClick={handleClearChecked}
                         className="text-[10px] font-black uppercase tracking-wide bg-white text-gray-600 hover:text-black border-2 border-black px-2 py-1 shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] hover:shadow-none hover:translate-x-[2px] hover:translate-y-[2px] transition-all"
                       >
                         Clear Checked
