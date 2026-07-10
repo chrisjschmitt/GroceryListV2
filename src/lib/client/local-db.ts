@@ -135,6 +135,28 @@ export async function setLastSyncTime(time: number): Promise<void> {
   await db.put("meta", { key: "lastSync", value: time });
 }
 
+export async function getLocalDirtyFlags(): Promise<{ grocery: boolean; regular: boolean }> {
+  const db = await getLocalDb();
+  const grocery = await db.get("meta", "groceryDirty");
+  const regular = await db.get("meta", "regularDirty");
+  return {
+    grocery: !!grocery?.value,
+    regular: !!regular?.value,
+  };
+}
+
+export async function setLocalDirtyFlags(flags: { grocery?: boolean; regular?: boolean }): Promise<void> {
+  const db = await getLocalDb();
+  const tx = db.transaction("meta", "readwrite");
+  if (flags.grocery !== undefined) {
+    await tx.store.put({ key: "groceryDirty", value: flags.grocery });
+  }
+  if (flags.regular !== undefined) {
+    await tx.store.put({ key: "regularDirty", value: flags.regular });
+  }
+  await tx.done;
+}
+
 // Purchase Logs
 export async function localGetPurchaseLogs(): Promise<PurchaseLogEntry[]> {
   const db = await getLocalDb();

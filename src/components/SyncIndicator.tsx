@@ -8,7 +8,9 @@ interface SyncIndicatorProps {
   lastSavedBy: string | null;
   hasPendingChanges: boolean;
   onSave: () => Promise<void>;
-  onRefresh?: () => Promise<void>;
+  onRefresh?: (force?: boolean) => Promise<void>;
+  syncConflict?: boolean;
+  onResolveConflict?: (choice: "local" | "server") => Promise<void>;
 }
 
 function timeAgo(date: Date): string {
@@ -42,6 +44,8 @@ export default function SyncIndicator({
   hasPendingChanges,
   onSave,
   onRefresh,
+  syncConflict,
+  onResolveConflict,
 }: SyncIndicatorProps) {
   const [saving, setSaving] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
@@ -60,7 +64,7 @@ export default function SyncIndicator({
     if (!onRefresh) return;
     setRefreshing(true);
     try {
-      await onRefresh();
+      await onRefresh(true);
     } finally {
       setRefreshing(false);
     }
@@ -70,6 +74,34 @@ export default function SyncIndicator({
   const lastSyncedLabel = ago ? ` • last saved${byDevice} ${ago}` : "";
 
   const renderStatus = () => {
+    if (syncConflict && isOnline) {
+      return (
+        <div className="flex flex-col gap-2.5 p-4 border-2 border-red-500 bg-red-50 text-black shadow-[3px_3px_0px_0px_rgba(239,68,68,1)] text-xs font-bold uppercase w-full sm:max-w-md">
+          <div className="flex items-center gap-2 font-black text-red-700">
+            <span className="w-2.5 h-2.5 rounded-full bg-red-600 border border-black animate-pulse" />
+            <span>Sync Conflict: Server list is newer</span>
+          </div>
+          <p className="text-[10px] text-gray-700 normal-case font-bold leading-normal">
+            Another device has saved changes to the server that you do not have locally. Would you like to keep your local edits (which will overwrite the server) or discard them and pull the server version?
+          </p>
+          <div className="flex items-center gap-2 mt-1">
+            <button
+              onClick={() => onResolveConflict?.("local")}
+              className="px-2.5 py-1 bg-black text-white hover:bg-emerald-600 transition-colors border border-black text-[9px] font-black uppercase cursor-pointer"
+            >
+              Keep Local (Overwrite)
+            </button>
+            <button
+              onClick={() => onResolveConflict?.("server")}
+              className="px-2.5 py-1 bg-white text-black hover:bg-rose-100 transition-colors border border-black text-[9px] font-black uppercase cursor-pointer"
+            >
+              Use Server (Discard Local)
+            </button>
+          </div>
+        </div>
+      );
+    }
+
     if (saving) {
       return (
         <div className="inline-flex items-center gap-2 px-4 py-2 border-2 border-black bg-white text-black shadow-[3px_3px_0px_0px_rgba(0,0,0,1)] text-xs font-black uppercase">
@@ -114,7 +146,7 @@ export default function SyncIndicator({
   return (
     <div className="flex flex-wrap items-center gap-2.5">
       {renderStatus()}
-      {onRefresh && isOnline && !hasPendingChanges && !saving && (
+      {onRefresh && isOnline && !hasPendingChanges && !saving && !syncConflict && (
         <button
           onClick={handleRefresh}
           disabled={refreshing}

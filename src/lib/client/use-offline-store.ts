@@ -21,6 +21,9 @@ import {
   localUpdateGroceryItemQuantity,
   localToggleRegularItem,
   setLastSyncTime,
+  getLastSyncTime,
+  getLocalDirtyFlags,
+  setLocalDirtyFlags,
 } from "./local-db";
 import { pullFromServer, pushDirtyToServer, syncAllToServer, SyncStatus, DirtyFlag, fetchFromServer } from "./sync";
 import { parseCsv } from "../csv-parser";
@@ -107,7 +110,9 @@ export interface OfflineStore {
   editRegularItem: (id: string, name: string) => Promise<void>;
   deleteRegularItem: (id: string) => Promise<void>;
   addSelectedToGroceryList: (items: RegularItem[]) => Promise<void>;
-  refreshFromServer: () => Promise<void>;
+  refreshFromServer: (force?: boolean) => Promise<void>;
+  syncConflict: boolean;
+  resolveConflict: (choice: "local" | "server") => Promise<void>;
 }
 
 export function useOfflineStoreState(): OfflineStore {
@@ -117,6 +122,9 @@ export function useOfflineStoreState(): OfflineStore {
   const [isOnline, setIsOnline] = useState(true);
   const [lastSynced, setLastSynced] = useState<Date | null>(null);
   const [lastSavedBy, setLastSavedBy] = useState<string | null>(null);
+  const [groceryDirty, setGroceryDirtyState] = useState(false);
+  const [regularDirty, setRegularDirtyState] = useState(false);
+  const [syncConflict, setSyncConflict] = useState(false);
   const [prices, setPrices] = useState<PriceData>({});
 
   const [purchaseLogs, setPurchaseLogs] = useState<PurchaseLogEntry[]>([]);
@@ -156,10 +164,9 @@ export function useOfflineStoreState(): OfflineStore {
     serverRegularItemsRef.current = serverRegularItems;
   }, [serverRegularItems]);
 
-  // We check dirtyRef instead of comparing with server logs because logs only append
   const hasPendingChanges = useMemo(() => {
-    return isGroceryItemsDifferent || isRegularItemsDifferent || dirtyRef.current.has("purchaseLogs");
-  }, [isGroceryItemsDifferent, isRegularItemsDifferent, purchaseLogs]);
+    return groceryDirty || regularDirty || dirtyRef.current.has("purchaseLogs");
+  }, [groceryDirty, regularDirty, purchaseLogs]);
 
   const markSynced = useCallback((savedBy?: string) => {
     setSyncStatus("synced");
@@ -167,16 +174,26 @@ export function useOfflineStoreState(): OfflineStore {
     if (savedBy) setLastSavedBy(savedBy);
   }, []);
 
-  const markDirty = useCallback((flag: DirtyFlag) => {
-    dirtyRef.current.add(flag);
+  const markDirty = useCallback(async (flag: DirtyFlag) => {
+    if (flag === "grocery") {
+      setGroceryDirtyState(true);
+      await setLocalDirtyFlags({ grocery: true });
+    } else if (flag === "regular") {
+      setRegularDirtyState(true);
+      await setLocalDirtyFlags({ regular: true });
+    } else {
+      dirtyRef.current.add(flag);
+    }
   }, []);
 
   const saveChanges = useCallback(() => {
     const nextPromise = saveQueuePromiseRef.current.then(async () => {
+      if (syncConflict) {
+        return; // Block auto-save during conflict
+      }
+
       const reactGrocery = groceryItemsRef.current;
       const reactRegular = regularItemsRef.current;
-      const snapServerGrocery = serverGroceryItemsRef.current;
-      const snapServerRegular = serverRegularItemsRef.current;
 
       let currentGrocery = await localGetGroceryItems();
       let currentRegular = await localGetRegularItems();
@@ -191,13 +208,13 @@ export function useOfflineStoreState(): OfflineStore {
         currentRegular = reactRegular;
       }
 
-      const isGroceryDiff = !areGroceryItemsEqual(currentGrocery, snapServerGrocery);
-      const isRegularDiff = !areRegularItemsEqual(currentRegular, snapServerRegular);
+      const flags = await getLocalDirtyFlags();
+      const hasLogsDirty = dirtyRef.current.has("purchaseLogs");
 
       const toFlush = new Set<DirtyFlag>();
-      if (isGroceryDiff) toFlush.add("grocery");
-      if (isRegularDiff) toFlush.add("regular");
-      if (dirtyRef.current.has("purchaseLogs")) toFlush.add("purchaseLogs");
+      if (flags.grocery) toFlush.add("grocery");
+      if (flags.regular) toFlush.add("regular");
+      if (hasLogsDirty) toFlush.add("purchaseLogs");
 
       if (toFlush.size === 0) return;
 
@@ -210,6 +227,13 @@ export function useOfflineStoreState(): OfflineStore {
       const result = await pushDirtyToServer(toFlush);
 
       if (result.success) {
+        if (flags.grocery) await setLocalDirtyFlags({ grocery: false });
+        if (flags.regular) await setLocalDirtyFlags({ regular: false });
+        
+        setGroceryDirtyState(false);
+        setRegularDirtyState(false);
+        dirtyRef.current.delete("purchaseLogs");
+
         const freshGrocery = await localGetGroceryItems();
         const freshRegular = await localGetRegularItems();
         
@@ -219,7 +243,14 @@ export function useOfflineStoreState(): OfflineStore {
         serverGroceryItemsRef.current = freshGrocery;
         serverRegularItemsRef.current = freshRegular;
 
-        dirtyRef.current.clear();
+        // Fetch server to align metadata (lastSync)
+        const serverData = await fetchFromServer();
+        if (serverData && serverData.syncMeta) {
+          await setLastSyncTime(serverData.syncMeta.lastSavedTime);
+        } else {
+          await setLastSyncTime(Date.now());
+        }
+
         markSynced(getDeviceName());
       } else {
         setSyncStatus("offline");
@@ -231,25 +262,107 @@ export function useOfflineStoreState(): OfflineStore {
 
     saveQueuePromiseRef.current = nextPromise;
     return nextPromise;
-  }, [markSynced]);
+  }, [markSynced, syncConflict, groceryDirty, regularDirty]);
 
-  const pullAndUpdate = useCallback(async () => {
-    if (!navigator.onLine || hasPendingChanges) return;
-    const serverData = await pullFromServer();
-    if (serverData) {
-      setGroceryItems(serverData.groceryItems);
-      setRegularItems(serverData.regularItems);
-      setPrices(serverData.prices);
-      // Prefer enriched server logs over stale IndexedDB copies of the same ids
-      const localLogs = await localGetPurchaseLogs().catch(() => [] as PurchaseLogEntry[]);
-      const mergedLogs = mergePurchaseLogs(localLogs, serverData.purchaseLogs);
-      await localSetPurchaseLogs(mergedLogs);
-      setPurchaseLogs(mergedLogs);
-      setServerGroceryItems(JSON.parse(JSON.stringify(serverData.groceryItems)));
-      setServerRegularItems(JSON.parse(JSON.stringify(serverData.regularItems)));
-      markSynced(serverData.syncMeta?.lastSavedBy || undefined);
+  const pullAndUpdate = useCallback(async (force = false) => {
+    if (!navigator.onLine) return;
+    
+    // If not forced and we have local dirty edits, block auto-pull
+    if (!force && (groceryDirty || regularDirty)) {
+      return;
     }
-  }, [markSynced, hasPendingChanges]);
+
+    try {
+      const serverData = await fetchFromServer();
+      if (!serverData) return;
+
+      const serverLastSaved = serverData.syncMeta?.lastSavedTime || 0;
+      const localLastSync = await getLastSyncTime();
+      const isDirty = groceryDirty || regularDirty;
+
+      const groceryDiffer = !areGroceryItemsEqual(groceryItemsRef.current, serverData.groceryItems);
+      const regularDiffer = !areRegularItemsEqual(regularItemsRef.current, serverData.regularItems);
+
+      if (serverLastSaved > localLastSync || groceryDiffer || regularDiffer) {
+        if (isDirty && !force) {
+          // Conflict!
+          setSyncConflict(true);
+          return;
+        }
+
+        // Pull path
+        await localSetGroceryItems(serverData.groceryItems);
+        await localSetRegularItems(serverData.regularItems);
+
+        const localLogs = await localGetPurchaseLogs().catch(() => [] as PurchaseLogEntry[]);
+        const mergedLogs = mergePurchaseLogs(localLogs, serverData.purchaseLogs);
+        await localSetPurchaseLogs(mergedLogs);
+
+        await setLastSyncTime(serverLastSaved);
+        await setLocalDirtyFlags({ grocery: false, regular: false });
+
+        setGroceryItems(serverData.groceryItems);
+        setRegularItems(serverData.regularItems);
+        setPurchaseLogs(mergedLogs);
+        setPrices(serverData.prices);
+
+        setServerGroceryItems(JSON.parse(JSON.stringify(serverData.groceryItems)));
+        setServerRegularItems(JSON.parse(JSON.stringify(serverData.regularItems)));
+
+        setGroceryDirtyState(false);
+        setRegularDirtyState(false);
+        setSyncConflict(false);
+
+        markSynced(serverData.syncMeta?.lastSavedBy || undefined);
+      }
+    } catch (err) {
+      console.error("Failed to pull from server:", err);
+    }
+  }, [markSynced, groceryDirty, regularDirty]);
+
+  const resolveConflict = useCallback(async (choice: "local" | "server") => {
+    if (choice === "server") {
+      // Use server version (discard local)
+      await pullAndUpdate(true);
+    } else {
+      // Keep local changes (push to server)
+      setSyncConflict(false); // Clear temporarily to allow pushing
+      setSyncStatus("syncing");
+
+      const flags = await getLocalDirtyFlags();
+      const toFlush = new Set<DirtyFlag>();
+      if (flags.grocery) toFlush.add("grocery");
+      if (flags.regular) toFlush.add("regular");
+
+      const result = await pushDirtyToServer(toFlush);
+      if (result.success) {
+        await setLocalDirtyFlags({ grocery: false, regular: false });
+        setGroceryDirtyState(false);
+        setRegularDirtyState(false);
+
+        const freshGrocery = await localGetGroceryItems();
+        const freshRegular = await localGetRegularItems();
+        setServerGroceryItems(freshGrocery);
+        setServerRegularItems(freshRegular);
+        serverGroceryItemsRef.current = freshGrocery;
+        serverRegularItemsRef.current = freshRegular;
+
+        // Fetch server to align metadata (lastSync)
+        const serverData = await fetchFromServer();
+        if (serverData && serverData.syncMeta) {
+          await setLastSyncTime(serverData.syncMeta.lastSavedTime);
+        } else {
+          await setLastSyncTime(Date.now());
+        }
+
+        setSyncConflict(false);
+        markSynced(getDeviceName());
+      } else {
+        setSyncConflict(true); // Restore conflict if push failed
+        setSyncStatus("offline");
+      }
+    }
+  }, [pullAndUpdate, markSynced]);
 
   // Load from IndexedDB on mount, then do initial server reconciliation
   useEffect(() => {
@@ -257,28 +370,24 @@ export function useOfflineStoreState(): OfflineStore {
       let localGrocery: GroceryItem[] = [];
       let localRegular: RegularItem[] = [];
       let localLogs: PurchaseLogEntry[] = [];
+      let flags = { grocery: false, regular: false };
+      let localLastSync = 0;
 
       try {
         localGrocery = await localGetGroceryItems();
-      } catch (err) {
-        console.error("Failed to load local grocery items from IndexedDB:", err);
-      }
-
-      try {
         localRegular = await localGetRegularItems();
-      } catch (err) {
-        console.error("Failed to load local regular items from IndexedDB:", err);
-      }
-
-      try {
         localLogs = await localGetPurchaseLogs();
+        flags = await getLocalDirtyFlags();
+        localLastSync = await getLastSyncTime();
       } catch (err) {
-        console.error("Failed to load local purchase logs from IndexedDB:", err);
+        console.error("Failed to load local DB data on mount init:", err);
       }
 
       setGroceryItems(localGrocery);
       setRegularItems(localRegular);
       setPurchaseLogs(localLogs);
+      setGroceryDirtyState(flags.grocery);
+      setRegularDirtyState(flags.regular);
       setServerGroceryItems(JSON.parse(JSON.stringify(localGrocery)));
       setServerRegularItems(JSON.parse(JSON.stringify(localRegular)));
 
@@ -291,49 +400,51 @@ export function useOfflineStoreState(): OfflineStore {
       setSyncStatus("syncing");
       try {
         const serverData = await fetchFromServer();
-
         if (serverData === null) {
           setSyncStatus("offline");
           return;
         }
 
-        // Always set prices on successful fetch regardless of push/pull path
+        // Always set prices on successful fetch
         setPrices(serverData.prices);
 
-        const hasLocalData = localGrocery.length > 0 || localRegular.length > 0;
+        const serverLastSaved = serverData.syncMeta?.lastSavedTime || 0;
+        const isDirty = flags.grocery || flags.regular;
+
         const groceryDiffer = !areGroceryItemsEqual(localGrocery, serverData.groceryItems);
         const regularDiffer = !areRegularItemsEqual(localRegular, serverData.regularItems);
 
-        if (hasLocalData && (groceryDiffer || regularDiffer)) {
-          // Push grocery/regular only — do NOT push purchaseLogs here.
-          // Pushing stale IndexedDB logs would overwrite Mongo backfills / enriched snapshots.
-          const result = await pushDirtyToServer(new Set(["grocery", "regular"]));
-          if (result.success) {
-            setServerGroceryItems(JSON.parse(JSON.stringify(localGrocery)));
-            setServerRegularItems(JSON.parse(JSON.stringify(localRegular)));
-            
-            // Prefer enriched server logs when ids collide
-            const mergedLogs = mergePurchaseLogs(localLogs, serverData.purchaseLogs);
-            await localSetPurchaseLogs(mergedLogs);
-            setPurchaseLogs(mergedLogs);
-            
-            markSynced(getDeviceName());
-          } else {
-            setSyncStatus("offline");
-          }
-        } else {
-          // Write server items/logs to IndexedDB and update React state from server
+        // If local is not dirty -> always pull (server wins)
+        if (!isDirty) {
           await localSetGroceryItems(serverData.groceryItems);
           await localSetRegularItems(serverData.regularItems);
-          await localSetPurchaseLogs(serverData.purchaseLogs);
-          await setLastSyncTime(Date.now());
+          
+          const mergedLogs = mergePurchaseLogs(localLogs, serverData.purchaseLogs);
+          await localSetPurchaseLogs(mergedLogs);
+          await setLastSyncTime(serverLastSaved);
+          await setLocalDirtyFlags({ grocery: false, regular: false });
 
           setGroceryItems(serverData.groceryItems);
           setRegularItems(serverData.regularItems);
-          setPurchaseLogs(serverData.purchaseLogs);
+          setPurchaseLogs(mergedLogs);
           setServerGroceryItems(JSON.parse(JSON.stringify(serverData.groceryItems)));
           setServerRegularItems(JSON.parse(JSON.stringify(serverData.regularItems)));
+          
+          setGroceryDirtyState(false);
+          setRegularDirtyState(false);
+          setSyncConflict(false);
           markSynced(serverData.syncMeta?.lastSavedBy || undefined);
+        } else {
+          // Local is dirty
+          if (serverLastSaved > localLastSync || groceryDiffer || regularDiffer) {
+            // Conflict exists!
+            setSyncConflict(true);
+            setSyncStatus("synced");
+            markSynced(serverData.syncMeta?.lastSavedBy || undefined);
+          } else {
+            // Safe, server is not newer/different, local dirty is ahead
+            setSyncStatus("synced");
+          }
         }
       } catch (syncErr) {
         console.error("Failed server reconciliation on mount:", syncErr);
@@ -735,5 +846,7 @@ export function useOfflineStoreState(): OfflineStore {
     deleteRegularItem,
     addSelectedToGroceryList,
     refreshFromServer: pullAndUpdate,
+    syncConflict,
+    resolveConflict,
   };
 }

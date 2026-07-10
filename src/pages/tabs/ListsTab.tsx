@@ -968,6 +968,8 @@ export default function ListsTab() {
           lastSavedBy={store.lastSavedBy}
           onSave={handleSaveChanges}
           onRefresh={store.refreshFromServer}
+          syncConflict={store.syncConflict}
+          onResolveConflict={store.resolveConflict}
         />
       </div>
 
