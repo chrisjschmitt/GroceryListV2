@@ -110,6 +110,35 @@ function testSparseData() {
   assert.strictEqual(report.unpricedLogs.length, 1);
   assert.strictEqual(report.unpricedLogs[0].name, "Unpriced Item");
 
+  // === Line Items Detailed Verification ===
+  console.log("\nVerifying detailed line item sums match totals...");
+
+  // 1. spentLines total spent
+  const sumSpent = report.spentLines.reduce((sum, item) => sum + item.lineSpent, 0);
+  assert.strictEqual(normalizeZero(sumSpent), normalizeZero(report.totalSpent));
+  assert.ok(report.spentLines.every(item => item.included === true && item.baselinePrice === null && item.baselineLabel === "n/a" && item.lineSavings === 0));
+
+  // 2. vsRegularLines total savings (for included items)
+  const sumReg = report.vsRegularLines.filter(i => i.included).reduce((sum, item) => sum + item.lineSavings, 0);
+  assert.strictEqual(normalizeZero(sumReg), normalizeZero(report.vsRegularSavings));
+
+  // 3. vsAlternateLines total savings (for included items)
+  const sumAlt = report.vsAlternateLines.filter(i => i.included).reduce((sum, item) => sum + item.lineSavings, 0);
+  assert.strictEqual(normalizeZero(sumAlt), normalizeZero(report.vsAlternateSavings));
+
+  // 4. vsAverageLines total savings (for included items)
+  const sumAvg = report.vsAverageLines.filter(i => i.included).reduce((sum, item) => sum + item.lineSavings, 0);
+  assert.strictEqual(normalizeZero(sumAvg), normalizeZero(report.vsAverageSavings));
+
+  // 5. vsHighestLines total savings (for included items)
+  const sumMax = report.vsHighestLines.filter(i => i.included).reduce((sum, item) => sum + item.lineSavings, 0);
+  assert.strictEqual(normalizeZero(sumMax), normalizeZero(report.vsHighestSavings));
+
+  // 6. missedLines total savings (for included items)
+  const sumMissed = report.missedLines.filter(i => i.included).reduce((sum, item) => sum + item.lineSavings, 0);
+  assert.strictEqual(normalizeZero(sumMissed), normalizeZero(report.missedSavings));
+
+  console.log("✅ Detailed line item sums matched report totals!");
   console.log("✅ testSparseData passed!");
 }
 

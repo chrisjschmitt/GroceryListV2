@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from "react";
+import React, { useState, useMemo, useEffect } from "react";
 import { 
   User, 
   Settings, 
@@ -14,11 +14,13 @@ import {
   Search, 
   BarChart3, 
   ChevronRight,
-  Clock
+  Clock,
+  X,
+  Download
 } from "lucide-react";
 import { useOfflineStore } from "@/lib/client/offline-store-context";
 import { PurchaseLogEntry } from "@/lib/types";
-import { computeTimeframeSavings } from "@/lib/purchase-savings";
+import { computeTimeframeSavings, SavingsLineItem } from "@/lib/purchase-savings";
 import { getStoreDisplayName, normalizeStoreKey } from "@/lib/price-utils";
 
 function abbreviateStoreName(name: string): string {
@@ -44,6 +46,18 @@ export default function ProfileTab() {
   const [storeFilter, setStoreFilter] = useState("");
   const [timeFilter, setTimeFilter] = useState(""); // "" | "7d" | "30d" | "90d" | "180d"
   const [forcedAltStoreId, setForcedAltStoreId] = useState<string>("");
+  const [inspectingMetric, setInspectingMetric] = useState<"spent" | "vsRegular" | "vsAlternate" | "vsAverage" | "vsHighest" | "missed" | null>(null);
+  const [showExcluded, setShowExcluded] = useState(false);
+
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "Escape") {
+        setInspectingMetric(null);
+      }
+    };
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, []);
 
   const purchaseLogs = store.purchaseLogs || [];
 
@@ -493,13 +507,21 @@ export default function ProfileTab() {
 
             {/* Savings Cards Grid */}
             <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
-              <div className="bg-surface p-4 rounded-xl border border-outline/10 flex flex-col justify-between shadow-xs">
+              <button
+                type="button"
+                onClick={() => { setInspectingMetric("spent"); setShowExcluded(false); }}
+                className="bg-surface p-4 rounded-xl border border-outline/10 flex flex-col justify-between shadow-xs text-left cursor-pointer hover:border-primary/40 hover:shadow-xs transition-all duration-200"
+              >
                 <span className="text-[10px] text-on-surface-variant font-bold uppercase tracking-wider">Total Spent</span>
                 <span className="text-xl font-extrabold text-on-surface mt-2">${savingsReport.totalSpent.toFixed(2)}</span>
                 <span className="text-[9px] text-on-surface-variant mt-1">On priced items</span>
-              </div>
+              </button>
 
-              <div className="bg-surface p-4 rounded-xl border border-outline/10 flex flex-col justify-between shadow-xs">
+              <button
+                type="button"
+                onClick={() => { setInspectingMetric("vsRegular"); setShowExcluded(false); }}
+                className="bg-surface p-4 rounded-xl border border-outline/10 flex flex-col justify-between shadow-xs text-left cursor-pointer hover:border-primary/40 hover:shadow-xs transition-all duration-200"
+              >
                 <span className="text-[10px] text-on-surface-variant font-bold uppercase tracking-wider">Same-Store Regular Savings</span>
                 <span className={`text-xl font-extrabold mt-2 ${savingsReport.vsRegularSavings > 0 ? "text-emerald-600" : "text-on-surface"}`}>
                   +${savingsReport.vsRegularSavings.toFixed(2)}
@@ -507,31 +529,43 @@ export default function ProfileTab() {
                 <span className="text-[9px] text-on-surface-variant mt-1">
                   Based on {savingsReport.vsRegularCount} of {savingsReport.totalCount} items
                 </span>
-              </div>
+              </button>
 
-              <div className="bg-surface p-4 rounded-xl border border-outline/10 flex flex-col justify-between shadow-xs">
+              <button
+                type="button"
+                onClick={() => { setInspectingMetric("vsAlternate"); setShowExcluded(false); }}
+                className="bg-surface p-4 rounded-xl border border-outline/10 flex flex-col justify-between shadow-xs text-left cursor-pointer hover:border-primary/40 hover:shadow-xs transition-all duration-200"
+              >
                 <span className="text-[10px] text-on-surface-variant font-bold uppercase tracking-wider">
                   vs {forcedAltStoreId ? getStoreDisplayName(forcedAltStoreId) : "Cheapest Alternate"}
                 </span>
-                <span className={`text-xl font-extrabold mt-2 ${savingsReport.vsAlternateSavings > 0 ? "text-emerald-600" : savingsReport.vsAlternateSavings < 0 ? "text-red-650" : "text-on-surface"}`}>
+                <span className={`text-xl font-extrabold mt-2 ${savingsReport.vsAlternateSavings > 0 ? "text-emerald-600" : savingsReport.vsAlternateSavings < 0 ? "text-red-655" : "text-on-surface"}`}>
                   {savingsReport.vsAlternateSavings >= 0 ? "+" : ""}${savingsReport.vsAlternateSavings.toFixed(2)}
                 </span>
                 <span className="text-[9px] text-on-surface-variant mt-1">
                   Based on {savingsReport.vsAlternateCount} of {savingsReport.totalCount} items
                 </span>
-              </div>
+              </button>
 
-              <div className="bg-surface p-4 rounded-xl border border-outline/10 flex flex-col justify-between shadow-xs">
+              <button
+                type="button"
+                onClick={() => { setInspectingMetric("vsAverage"); setShowExcluded(false); }}
+                className="bg-surface p-4 rounded-xl border border-outline/10 flex flex-col justify-between shadow-xs text-left cursor-pointer hover:border-primary/40 hover:shadow-xs transition-all duration-200"
+              >
                 <span className="text-[10px] text-on-surface-variant font-bold uppercase tracking-wider">vs Average Price</span>
-                <span className={`text-xl font-extrabold mt-2 ${savingsReport.vsAverageSavings > 0 ? "text-emerald-600" : savingsReport.vsAverageSavings < 0 ? "text-red-650" : "text-on-surface"}`}>
+                <span className={`text-xl font-extrabold mt-2 ${savingsReport.vsAverageSavings > 0 ? "text-emerald-600" : savingsReport.vsAverageSavings < 0 ? "text-red-655" : "text-on-surface"}`}>
                   {savingsReport.vsAverageSavings >= 0 ? "+" : ""}${savingsReport.vsAverageSavings.toFixed(2)}
                 </span>
                 <span className="text-[9px] text-on-surface-variant mt-1">
                   Based on {savingsReport.vsAverageCount} of {savingsReport.totalCount} items
                 </span>
-              </div>
+              </button>
 
-              <div className="bg-surface p-4 rounded-xl border border-outline/10 flex flex-col justify-between shadow-xs">
+              <button
+                type="button"
+                onClick={() => { setInspectingMetric("vsHighest"); setShowExcluded(false); }}
+                className="bg-surface p-4 rounded-xl border border-outline/10 flex flex-col justify-between shadow-xs text-left cursor-pointer hover:border-primary/40 hover:shadow-xs transition-all duration-200"
+              >
                 <span className="text-[10px] text-on-surface-variant font-bold uppercase tracking-wider">vs Highest Price</span>
                 <span className={`text-xl font-extrabold mt-2 ${savingsReport.vsHighestSavings > 0 ? "text-emerald-600" : "text-on-surface"}`}>
                   +${savingsReport.vsHighestSavings.toFixed(2)}
@@ -539,9 +573,13 @@ export default function ProfileTab() {
                 <span className="text-[9px] text-on-surface-variant mt-1">
                   Based on {savingsReport.vsHighestCount} of {savingsReport.totalCount} items
                 </span>
-              </div>
+              </button>
 
-              <div className="bg-surface p-4 border border-red-100 bg-[#fef2f2]/30 flex flex-col justify-between shadow-xs">
+              <button
+                type="button"
+                onClick={() => { setInspectingMetric("missed"); setShowExcluded(false); }}
+                className="bg-surface p-4 border border-red-100 bg-[#fef2f2]/30 flex flex-col justify-between shadow-xs text-left cursor-pointer hover:border-red-200 hover:shadow-xs transition-all duration-200"
+              >
                 <span className="text-[10px] text-red-750 font-bold uppercase tracking-wider">Missed Savings</span>
                 <span className={`text-xl font-extrabold mt-2 ${savingsReport.missedSavings > 0 ? "text-red-650" : "text-on-surface-variant"}`}>
                   -${savingsReport.missedSavings.toFixed(2)}
@@ -549,7 +587,7 @@ export default function ProfileTab() {
                 <span className="text-[9px] text-red-750/75 mt-1">
                   Based on {savingsReport.missedCount} of {savingsReport.totalCount} items
                 </span>
-              </div>
+              </button>
             </div>
 
             {/* Unpriced warning box */}
@@ -740,6 +778,260 @@ export default function ProfileTab() {
             </div>
           </div>
         )}
+
+        {/* Savings Metric Inspect Modal */}
+        {inspectingMetric !== null && (() => {
+          let metricTitle = "";
+          let metricDesc = "";
+          let totalVal = 0;
+          let showSavingsColor = true;
+          let rawLines: SavingsLineItem[] = [];
+
+          if (inspectingMetric === "spent") {
+            metricTitle = "Total Spent Detail";
+            metricDesc = "Total purchase spent across all priced items.";
+            totalVal = savingsReport.totalSpent;
+            showSavingsColor = false;
+            rawLines = savingsReport.spentLines;
+          } else if (inspectingMetric === "vsRegular") {
+            metricTitle = "Same-Store Regular Savings Detail";
+            metricDesc = "Calculated savings relative to the regular retail price of the same store.";
+            totalVal = savingsReport.vsRegularSavings;
+            rawLines = savingsReport.vsRegularLines;
+          } else if (inspectingMetric === "vsAlternate") {
+            const alternateStoreName = forcedAltStoreId ? getStoreDisplayName(forcedAltStoreId) : "Cheapest Alternate";
+            metricTitle = `vs ${alternateStoreName} Detail`;
+            metricDesc = `Comparison of prices paid relative to ${alternateStoreName.toLowerCase()} active prices.`;
+            totalVal = savingsReport.vsAlternateSavings;
+            rawLines = savingsReport.vsAlternateLines;
+          } else if (inspectingMetric === "vsAverage") {
+            metricTitle = "vs Average Price Detail";
+            metricDesc = "Comparison of prices paid relative to the average competitor prices.";
+            totalVal = savingsReport.vsAverageSavings;
+            rawLines = savingsReport.vsAverageLines;
+          } else if (inspectingMetric === "vsHighest") {
+            metricTitle = "vs Highest Price Detail";
+            metricDesc = "Comparison of prices paid relative to the highest competitor prices.";
+            totalVal = savingsReport.vsHighestSavings;
+            rawLines = savingsReport.vsHighestLines;
+          } else if (inspectingMetric === "missed") {
+            metricTitle = "Missed Savings Detail";
+            metricDesc = "Potential savings lost by not purchasing at a cheaper competitor store.";
+            totalVal = savingsReport.missedSavings;
+            rawLines = savingsReport.missedLines;
+          }
+
+          // Filter line items based on toggle (included only vs show all)
+          const displayedLines = showExcluded 
+            ? rawLines 
+            : rawLines.filter(line => line.included);
+
+          const totalLinesCount = rawLines.length;
+          const coveredLinesCount = rawLines.filter(line => line.included).length;
+
+          // CSV Export Handler
+          const handleExport = () => {
+            const headers = [
+              "Item Name",
+              "Category",
+              "Date",
+              "Quantity",
+              "Store",
+              "Paid Price ($)",
+              "Baseline Price ($)",
+              "Comparison Baseline",
+              "Total Spent ($)",
+              "Savings ($)",
+              "Included in Coverage",
+              "Exclusion Reason"
+            ];
+            
+            const rows = rawLines.map(line => {
+              const dateStr = new Date(line.timestamp).toLocaleDateString();
+              return [
+                `"${(line.name || "").replace(/"/g, '""')}"`,
+                `"${(line.category || "").replace(/"/g, '""')}"`,
+                `"${dateStr}"`,
+                line.quantity,
+                `"${(line.storeName || "").replace(/"/g, '""')}"`,
+                line.paidPrice !== null ? line.paidPrice.toFixed(2) : "0.00",
+                line.baselinePrice !== null ? line.baselinePrice.toFixed(2) : "n/a",
+                `"${(line.baselineLabel || "").replace(/"/g, '""')}"`,
+                line.lineSpent.toFixed(2),
+                line.lineSavings.toFixed(2),
+                line.included ? "Yes" : "No",
+                `"${(line.excludeReason || "").replace(/"/g, '""')}"`
+              ];
+            });
+            
+            const csvContent = [headers.join(","), ...rows.map(e => e.join(","))].join("\n");
+            const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
+            const url = URL.createObjectURL(blob);
+            const link = document.createElement("a");
+            const timeframeStr = timeFilter || "all_time";
+            const cleanMetricName = inspectingMetric.toLowerCase();
+            const timestamp = new Date().toISOString().slice(0, 10);
+            link.setAttribute("href", url);
+            link.setAttribute("download", `savings_report_${cleanMetricName}_${timeframeStr}_${timestamp}.csv`);
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+          };
+
+          return (
+            <div 
+              role="dialog"
+              aria-modal="true"
+              aria-labelledby="modal-title"
+              className="fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex items-center justify-center p-0 sm:p-4 animate-fade-in"
+              onClick={() => setInspectingMetric(null)}
+            >
+              <div 
+                className="w-full h-full sm:h-auto sm:max-h-[90vh] sm:max-w-2xl bg-surface border-0 sm:border border-outline/10 sm:rounded-xl shadow-xl flex flex-col overflow-hidden animate-slide-up"
+                onClick={(e) => e.stopPropagation()}
+              >
+                {/* Modal Header */}
+                <div className="p-4 border-b border-outline/5 flex items-start justify-between bg-surface-container-low">
+                  <div className="min-w-0 flex-1 pr-3">
+                    <h3 id="modal-title" className="text-sm font-extrabold text-on-surface truncate">
+                      {metricTitle}
+                    </h3>
+                    <p className="text-[10px] text-on-surface-variant/85 mt-0.5 leading-tight">
+                      {metricDesc}
+                    </p>
+                  </div>
+                  <button 
+                    type="button"
+                    aria-label="Close dialog"
+                    onClick={() => setInspectingMetric(null)}
+                    className="p-1 hover:bg-outline/5 rounded-lg text-on-surface-variant/60 hover:text-on-surface transition-all cursor-pointer"
+                  >
+                    <X size={16} />
+                  </button>
+                </div>
+
+                {/* Modal Stat Panel */}
+                <div className="p-4 bg-surface flex flex-wrap items-center justify-between gap-3 border-b border-outline/5">
+                  <div className="flex items-baseline gap-2">
+                    <span className="text-[10px] text-on-surface-variant font-bold uppercase tracking-wider">
+                      {inspectingMetric === "spent" ? "Total Spent:" : "Total Metric Savings:"}
+                    </span>
+                    <span className={`text-lg font-black font-tnum ${showSavingsColor && totalVal > 0 ? "text-emerald-600" : showSavingsColor && totalVal < 0 ? "text-red-650" : "text-on-surface"}`}>
+                      {showSavingsColor && totalVal >= 0 ? "+" : ""}${totalVal.toFixed(2)}
+                    </span>
+                  </div>
+
+                  <div className="flex items-center gap-3">
+                    <button 
+                      type="button"
+                      onClick={handleExport}
+                      className="text-[10px] font-extrabold uppercase tracking-wide bg-primary text-on-primary hover:opacity-90 px-3 py-1.5 rounded-lg transition-all shadow-xs flex items-center gap-1 cursor-pointer"
+                    >
+                      <Download size={12} />
+                      Export CSV
+                    </button>
+                  </div>
+                </div>
+
+                {/* Toggle & Filter Controls */}
+                {inspectingMetric !== "spent" && (
+                  <div className="px-4 py-2.5 bg-surface-container-lowest border-b border-outline/5 flex items-center justify-between text-[11px] font-bold text-on-surface-variant">
+                    <span>
+                      Coverage: {coveredLinesCount} of {totalLinesCount} items ({totalLinesCount > 0 ? Math.round((coveredLinesCount / totalLinesCount) * 100) : 0}%)
+                    </span>
+                    <label className="flex items-center gap-1.5 cursor-pointer">
+                      <input 
+                        type="checkbox" 
+                        checked={showExcluded}
+                        onChange={(e) => setShowExcluded(e.target.checked)}
+                        className="rounded border-outline/20 text-primary focus:ring-primary/20 accent-primary"
+                      />
+                      <span>Show Excluded Items</span>
+                    </label>
+                  </div>
+                )}
+
+                {/* Scrollable Content */}
+                <div className="flex-1 overflow-y-auto p-4 space-y-2 bg-surface-container-lowest max-h-[60vh] sm:max-h-[50vh]">
+                  {displayedLines.map((line) => {
+                    const dateStr = new Date(line.timestamp).toLocaleDateString(undefined, {
+                      month: "short",
+                      day: "numeric",
+                    });
+                    const diff = line.lineSavings;
+
+                    return (
+                      <div 
+                        key={line.logId}
+                        className={`p-3 border rounded-xl flex items-center justify-between text-xs transition-all ${
+                          !line.included 
+                            ? "bg-surface-container-high/40 border-outline/5 opacity-60" 
+                            : "bg-surface border-outline/10 hover:border-outline/25"
+                        }`}
+                      >
+                        <div className="min-w-0 flex-1 pr-3">
+                          <div className="flex items-center gap-1.5 flex-wrap">
+                            <span className="font-extrabold text-on-surface truncate">{line.name}</span>
+                            <span className="text-[8px] bg-outline/10 text-on-surface-variant px-1 rounded uppercase font-bold tracking-wider shrink-0 font-sans">
+                              {line.category}
+                            </span>
+                          </div>
+                          <div className="text-[10px] text-on-surface-variant font-bold flex flex-wrap items-center gap-x-2.5 gap-y-0.5 mt-1 font-tnum">
+                            <span className="font-sans font-medium text-[9px] flex items-center gap-0.5">
+                              <Calendar size={10} />
+                              {dateStr}
+                            </span>
+                            <span className="font-sans font-medium text-[9px] flex items-center gap-0.5">
+                              <Store size={10} />
+                              {line.storeName}
+                            </span>
+                            <span>Qty: <span>{line.quantity}</span></span>
+                            <span>Paid: <span>${line.paidPrice !== null ? line.paidPrice.toFixed(2) : "0.00"}</span></span>
+                            {line.baselinePrice !== null && (
+                              <span>Base: <span className="font-sans font-medium text-on-surface-variant/80">(${line.baselinePrice.toFixed(2)} - {line.baselineLabel})</span></span>
+                            )}
+                          </div>
+                        </div>
+
+                        <div className="text-right shrink-0">
+                          {line.included ? (
+                            inspectingMetric === "spent" ? (
+                              <span className="font-extrabold text-on-surface font-tnum">
+                                ${line.lineSpent.toFixed(2)}
+                              </span>
+                            ) : (
+                              <span className={`font-extrabold font-tnum ${diff > 0 ? "text-emerald-600" : diff < 0 ? "text-red-650" : "text-on-surface-variant"}`}>
+                                {diff > 0 ? "+" : ""}${diff.toFixed(2)}
+                              </span>
+                            )
+                          ) : (
+                            <span 
+                              title={line.excludeReason}
+                              className="text-[8px] uppercase tracking-wider text-amber-700 bg-amber-50 border border-amber-200/55 px-1.5 py-0.5 rounded font-black font-sans cursor-help"
+                            >
+                              Excluded
+                            </span>
+                          )}
+                          {!line.included && line.excludeReason && (
+                            <span className="block text-[8.5px] text-amber-700/80 font-bold mt-1 font-sans">
+                              {line.excludeReason}
+                            </span>
+                          )}
+                        </div>
+                      </div>
+                    );
+                  })}
+
+                  {displayedLines.length === 0 && (
+                    <div className="text-center py-8 text-on-surface-variant/60 font-bold text-xs bg-surface border border-dashed border-outline/10 rounded-xl font-sans">
+                      No items to display.
+                    </div>
+                  )}
+                </div>
+              </div>
+            </div>
+          );
+        })()}
       </div>
     );
   }
