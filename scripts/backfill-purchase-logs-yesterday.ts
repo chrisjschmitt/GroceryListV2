@@ -1,182 +1,255 @@
-import dotenv from "dotenv";
-import { MongoClient } from "mongodb";
-import { getStoreDisplayName, getStoreActivePrice } from "../src/lib/price-utils";
-
 import fs from "fs";
 import path from "path";
+import dotenv from "dotenv";
 
-if (fs.existsSync(path.join(process.cwd(), ".env.local"))) {
-  dotenv.config({ path: ".env.local" });
+// MUST run before any Mongo/db-store import. Stale Cursor-injected env can otherwise win.
+const envLocalPath = path.join(process.cwd(), ".env.local");
+if (fs.existsSync(envLocalPath)) {
+  dotenv.config({ path: envLocalPath, override: true });
 } else {
-  dotenv.config();
+  dotenv.config({ override: true });
 }
 
-console.log("=== Running Purchase Logs Backfill for Yesterday ===");
+async function main() {
+  const { MongoClient } = await import("mongodb");
+  const {
+    getStoreDisplayName,
+    getStoreActivePrice,
+    normalizeStoreKey,
+    isOnSaleFlag,
+  } = await import("../src/lib/price-utils.js");
+  const { blobGetPrices } = await import("../src/lib/db-store.js");
+  const typeMod = await import("../src/lib/types.js");
+  type PriceEntry = typeMod.PriceEntry;
 
-// Timezone aware helper for America/Toronto
-function getTorontoYesterdayChecker() {
-  const formatter = new Intl.DateTimeFormat("en-US", {
-    timeZone: "America/Toronto",
-    year: "numeric",
-    month: "numeric",
-    day: "numeric",
-  });
-  const parts = formatter.formatToParts(new Date());
-  const year = parseInt(parts.find(p => p.type === 'year')!.value);
-  const month = parseInt(parts.find(p => p.type === 'month')!.value);
-  const day = parseInt(parts.find(p => p.type === 'day')!.value);
+  console.log("=== Running Purchase Logs Backfill for Yesterday ===");
 
-  const todayLocal = new Date(year, month - 1, day);
-  const yesterdayLocal = new Date(todayLocal);
-  yesterdayLocal.setDate(todayLocal.getDate() - 1);
-  
-  const yYear = yesterdayLocal.getFullYear();
-  const yMonth = String(yesterdayLocal.getMonth() + 1).padStart(2, '0');
-  const yDay = String(yesterdayLocal.getDate()).padStart(2, '0');
-  
-  console.log(`Toronto local yesterday date to backfill: ${yYear}-${yMonth}-${yDay}`);
+  function getTorontoYesterdayChecker() {
+    const formatter = new Intl.DateTimeFormat("en-US", {
+      timeZone: "America/Toronto",
+      year: "numeric",
+      month: "numeric",
+      day: "numeric",
+    });
+    const parts = formatter.formatToParts(new Date());
+    const year = parseInt(parts.find((p) => p.type === "year")!.value);
+    const month = parseInt(parts.find((p) => p.type === "month")!.value);
+    const day = parseInt(parts.find((p) => p.type === "day")!.value);
 
-  return {
-    isYesterday: (timestamp: string): boolean => {
-      const d = new Date(timestamp);
-      const f = new Intl.DateTimeFormat("en-US", {
-        timeZone: "America/Toronto",
-        year: "numeric",
-        month: "2-digit",
-        day: "2-digit",
-      });
-      const logParts = f.formatToParts(d);
-      const ly = logParts.find(p => p.type === 'year')!.value;
-      const lm = logParts.find(p => p.type === 'month')!.value;
-      const ld = logParts.find(p => p.type === 'day')!.value;
-      
-      return ly === String(yYear) && lm === yMonth && ld === yDay;
-    },
-    dateString: `${yYear}-${yMonth}-${yDay}`
-  };
-}
+    const todayLocal = new Date(year, month - 1, day);
+    const yesterdayLocal = new Date(todayLocal);
+    yesterdayLocal.setDate(todayLocal.getDate() - 1);
 
-async function backfill() {
+    const yYear = yesterdayLocal.getFullYear();
+    const yMonth = String(yesterdayLocal.getMonth() + 1).padStart(2, "0");
+    const yDay = String(yesterdayLocal.getDate()).padStart(2, "0");
+
+    console.log(`Toronto local yesterday date to backfill: ${yYear}-${yMonth}-${yDay}`);
+
+    return {
+      isYesterday: (timestamp: string): boolean => {
+        const d = new Date(timestamp);
+        const f = new Intl.DateTimeFormat("en-US", {
+          timeZone: "America/Toronto",
+          year: "numeric",
+          month: "2-digit",
+          day: "2-digit",
+        });
+        const logParts = f.formatToParts(d);
+        const ly = logParts.find((p) => p.type === "year")!.value;
+        const lm = logParts.find((p) => p.type === "month")!.value;
+        const ld = logParts.find((p) => p.type === "day")!.value;
+        return ly === String(yYear) && lm === yMonth && ld === yDay;
+      },
+    };
+  }
+
+  function buildPriceLookup(prices: Record<string, PriceEntry | null | undefined>) {
+    const map = new Map<string, PriceEntry>();
+    for (const entry of Object.values(prices)) {
+      if (!entry) continue;
+      for (const key of [entry.item_name, entry.config_name]) {
+        const k = (key || "").toLowerCase().trim();
+        if (k && !map.has(k)) map.set(k, entry);
+      }
+    }
+    return map;
+  }
+
+  function findPriceEntry(priceMap: Map<string, PriceEntry>, name: string): PriceEntry | null {
+    const normalized = (name || "").toLowerCase().trim();
+    if (!normalized) return null;
+    const exact = priceMap.get(normalized);
+    if (exact) return exact;
+
+    let best: PriceEntry | null = null;
+    let bestLen = 0;
+    for (const [key, entry] of priceMap.entries()) {
+      if (!key || key.length < 3) continue;
+      if (normalized.includes(key) || key.includes(normalized)) {
+        if (key.length > bestLen) {
+          best = entry;
+          bestLen = key.length;
+        }
+      }
+    }
+    return best;
+  }
+
+  function getFoodBasicsStoreInfo(priceInfo: PriceEntry): any | null {
+    if (priceInfo.stores && typeof priceInfo.stores === "object") {
+      for (const [sId, sInfo] of Object.entries(priceInfo.stores)) {
+        if (normalizeStoreKey(sId) === "foodbasics") return sInfo;
+      }
+    }
+    if (normalizeStoreKey(priceInfo.store_id || priceInfo.store_name || "") === "foodbasics") {
+      return priceInfo;
+    }
+    return null;
+  }
+
   const mongoUri = process.env.MONGODB_URI;
   if (!mongoUri) {
     throw new Error("MONGODB_URI is not defined in environment variables.");
   }
   const cleanUri = mongoUri.trim().replace(/^["']|["']$/g, "");
-  const client = new MongoClient(cleanUri);
-  await client.connect();
-  const db = client.db("groceryscout");
-  console.log("Connected to MongoDB.");
+  const host = cleanUri.split("@")[1]?.split("/")[0] || "(unknown)";
+  console.log(`Using Mongo host: ${host}`);
 
-  // Fetch prices collection
-  const pricesCollection = db.collection("prices");
-  const priceDocs = await pricesCollection.find().toArray();
-  
-  // Construct lookup map
-  const priceMap = new Map<string, any>();
-  for (const doc of priceDocs) {
-    if (doc.item_name) {
-      priceMap.set(doc.item_name.toLowerCase().trim(), doc);
-    }
-    if (doc.config_name) {
-      priceMap.set(doc.config_name.toLowerCase().trim(), doc);
-    }
+  if (host === "cluster.mongodb.net" || host.startsWith("cluster.mongodb.net")) {
+    throw new Error(
+      `MONGODB_URI still points at placeholder host "${host}". Check .env.local and that no shell env overrides it.`
+    );
   }
 
-  // Fetch purchase logs
+  console.log("Loading prices from combined catalog (same path as the app)...");
+  const prices = await blobGetPrices();
+  const priceMap = buildPriceLookup(prices);
+  console.log(`Catalog price entries indexed: ${priceMap.size}`);
+
+  const client = new MongoClient(cleanUri, { serverSelectionTimeoutMS: 15000 });
+  console.log("Connecting to MongoDB (15s timeout)...");
+  await client.connect();
+  const db = client.db("groceryscout");
+  console.log(`Connected. db=groceryscout`);
+
   const logsCollection = db.collection("purchase_logs");
   const logs = await logsCollection.find().toArray();
   console.log(`Found ${logs.length} total purchase logs.`);
 
   const checker = getTorontoYesterdayChecker();
   let updatedCount = 0;
+  let matchedCatalog = 0;
+  let withPaidPrice = 0;
+  const unmatchedNames: string[] = [];
 
   for (const log of logs) {
-    if (checker.isYesterday(log.timestamp)) {
-      console.log(`Updating yesterday's log: "${log.name}" (ID: ${log._id})`);
-      
-      // Update storeId to "foodbasics" and storeName to "Food Basics"
-      const storeId = "foodbasics";
-      const storeName = "Food Basics";
-      
-      // Resolve prices
-      const normalizedName = (log.name || "").toLowerCase().trim();
-      const priceInfo = priceMap.get(normalizedName);
-      
-      let paidPrice: number | null = null;
-      let regularPrice: number | null = null;
-      let salePrice: number | null = null;
-      let wasOnSale = false;
-      let validUntil: string | null = null;
-      const priceSnapshot: any[] = [];
+    if (!checker.isYesterday(log.timestamp)) continue;
 
-      if (priceInfo) {
-        // Build snapshot
-        if (priceInfo.stores && typeof priceInfo.stores === "object") {
-          for (const [sId, sInfo] of Object.entries(priceInfo.stores) as [string, any][]) {
-            const activeP = getStoreActivePrice(sInfo);
-            const regP = sInfo.regular_price || activeP || null;
-            priceSnapshot.push({
-              storeId: sId,
-              storeName: sInfo.store_name || getStoreDisplayName(sId),
-              activePrice: activeP,
-              regularPrice: regP,
-            });
-          }
-        } else {
-          const activeP = getStoreActivePrice(priceInfo);
-          const regP = priceInfo.regular_price || activeP || null;
-          const sId = priceInfo.store_id || "foodbasics";
+    const storeId = "foodbasics";
+    const storeName = "Food Basics";
+    const priceInfo = findPriceEntry(priceMap, log.name || "");
+
+    let paidPrice: number | null = null;
+    let regularPrice: number | null = null;
+    let salePrice: number | null = null;
+    let wasOnSale = false;
+    let validUntil: string | null = null;
+    const priceSnapshot: any[] = [];
+
+    if (priceInfo) {
+      matchedCatalog++;
+      if (priceInfo.stores && typeof priceInfo.stores === "object") {
+        for (const [sId, sInfo] of Object.entries(priceInfo.stores) as [string, any][]) {
+          const activeP = getStoreActivePrice(sInfo);
+          const regP =
+            sInfo.regular_price != null && Number(sInfo.regular_price) > 0
+              ? Number(sInfo.regular_price)
+              : activeP;
           priceSnapshot.push({
-            storeId: sId,
-            storeName: priceInfo.store_name || getStoreDisplayName(sId),
+            storeId: normalizeStoreKey(sId),
+            storeName: sInfo.store_name || getStoreDisplayName(sId),
             activePrice: activeP,
             regularPrice: regP,
           });
         }
-
-        // Food Basics specific active/regular prices
-        const fbInfo = priceInfo.stores?.["foodbasics"];
-        if (fbInfo) {
-          paidPrice = getStoreActivePrice(fbInfo);
-          regularPrice = fbInfo.regular_price || paidPrice;
-          if (fbInfo.is_on_sale) {
-            salePrice = fbInfo.sale_price || null;
-            wasOnSale = true;
-            validUntil = fbInfo.valid_until || null;
-          }
-        }
       }
 
-      // Legacy fallback
-      const priceVal = paidPrice;
-
-      // Update in MongoDB
-      await logsCollection.updateOne(
-        { _id: log._id },
-        {
-          $set: {
-            storeId,
-            storeName,
-            price: priceVal,
-            paidPrice,
-            regularPrice,
-            salePrice,
-            wasOnSale,
-            validUntil,
-            priceSnapshot,
-            backfillEstimated: true, // Tag indicating this was backfilled
-          }
+      const fbInfo = getFoodBasicsStoreInfo(priceInfo);
+      if (fbInfo) {
+        paidPrice = getStoreActivePrice(fbInfo);
+        regularPrice =
+          fbInfo.regular_price != null && Number(fbInfo.regular_price) > 0
+            ? Number(fbInfo.regular_price)
+            : paidPrice;
+        if (isOnSaleFlag(fbInfo.is_on_sale)) {
+          salePrice = fbInfo.sale_price != null ? Number(fbInfo.sale_price) : null;
+          wasOnSale = true;
+          validUntil = fbInfo.valid_until || null;
         }
-      );
-      updatedCount++;
+      }
+    } else {
+      unmatchedNames.push(log.name || "(unnamed)");
     }
+
+    if ((paidPrice === null || paidPrice <= 0) && log.price != null && Number(log.price) > 0) {
+      paidPrice = Number(log.price);
+    }
+
+    if (paidPrice != null && paidPrice > 0) withPaidPrice++;
+
+    console.log(
+      `Updating "${log.name}" → paid=${paidPrice} regular=${regularPrice} snapshot=${priceSnapshot.length}`
+    );
+
+    await logsCollection.updateOne(
+      { _id: log._id },
+      {
+        $set: {
+          storeId,
+          storeName,
+          price: paidPrice,
+          paidPrice,
+          regularPrice,
+          salePrice,
+          wasOnSale,
+          validUntil,
+          priceSnapshot,
+          backfillEstimated: true,
+        },
+      }
+    );
+    updatedCount++;
   }
 
-  console.log(`\n🎉 Backfilled ${updatedCount} purchase logs successfully!`);
+  console.log(`\n🎉 Backfilled ${updatedCount} purchase logs.`);
+  console.log(`Catalog name matches: ${matchedCatalog}/${updatedCount}`);
+  console.log(`With paidPrice > 0: ${withPaidPrice}/${updatedCount}`);
+  if (unmatchedNames.length) {
+    console.log(`Unmatched names (${unmatchedNames.length}):`);
+    for (const n of unmatchedNames.slice(0, 30)) console.log(`  - ${n}`);
+  }
+
+  const sample = await logsCollection.findOne({ backfillEstimated: true, paidPrice: { $ne: null } });
+  if (sample) {
+    console.log("\nSample enriched doc:", {
+      name: sample.name,
+      storeName: sample.storeName,
+      paidPrice: sample.paidPrice,
+      regularPrice: sample.regularPrice,
+      snapshotStores: (sample.priceSnapshot || []).length,
+    });
+  } else {
+    console.log("\n⚠️ No docs with paidPrice set. Check catalog pricing / name matches.");
+  }
+
   await client.close();
 }
 
-backfill().catch(err => {
-  console.error("Backfill failed:", err);
+main().catch((err) => {
+  console.error("Backfill failed:", err?.message || err);
+  if (String(err?.message || err).includes("ENOTFOUND") || String(err?.message || err).includes("timed out") || String(err?.message || err).includes("ServerSelection")) {
+    console.error("\nHint: In MongoDB Atlas → Network Access, allow your current IP (or 0.0.0.0/0 for testing).");
+  }
   process.exit(1);
 });

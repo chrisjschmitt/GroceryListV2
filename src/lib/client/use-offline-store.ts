@@ -26,6 +26,9 @@ import { pullFromServer, pushDirtyToServer, syncAllToServer, SyncStatus, DirtyFl
 import { parseCsv } from "../csv-parser";
 import { getDeviceName } from "./device-name";
 import { getAutoSaveEnabled } from "./settings";
+import { mergePurchaseLogs } from "../purchase-log-merge";
+
+export { mergePurchaseLogs, purchaseLogEnrichmentScore } from "../purchase-log-merge";
 
 const POLL_INTERVAL = 60000;
 
@@ -78,17 +81,6 @@ export function areRegularItemsEqual(local: RegularItem[], server: RegularItem[]
   }
   return true;
 }
-
-export function mergePurchaseLogs(localLogs: PurchaseLogEntry[], serverLogs: PurchaseLogEntry[]): PurchaseLogEntry[] {
-  const merged = [...localLogs];
-  for (const sLog of serverLogs) {
-    if (!merged.some(l => l.id === sLog.id)) {
-      merged.push(sLog);
-    }
-  }
-  return merged.sort((a, b) => new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime());
-}
-
 
 export interface OfflineStore {
   groceryItems: GroceryItem[];
@@ -248,7 +240,11 @@ export function useOfflineStoreState(): OfflineStore {
       setGroceryItems(serverData.groceryItems);
       setRegularItems(serverData.regularItems);
       setPrices(serverData.prices);
-      setPurchaseLogs(serverData.purchaseLogs);
+      // Prefer enriched server logs over stale IndexedDB copies of the same ids
+      const localLogs = await localGetPurchaseLogs().catch(() => [] as PurchaseLogEntry[]);
+      const mergedLogs = mergePurchaseLogs(localLogs, serverData.purchaseLogs);
+      await localSetPurchaseLogs(mergedLogs);
+      setPurchaseLogs(mergedLogs);
       setServerGroceryItems(JSON.parse(JSON.stringify(serverData.groceryItems)));
       setServerRegularItems(JSON.parse(JSON.stringify(serverData.regularItems)));
       markSynced(serverData.syncMeta?.lastSavedBy || undefined);
@@ -309,13 +305,14 @@ export function useOfflineStoreState(): OfflineStore {
         const regularDiffer = !areRegularItemsEqual(localRegular, serverData.regularItems);
 
         if (hasLocalData && (groceryDiffer || regularDiffer)) {
-          // Push local state via syncAllToServer, do NOT overwrite local items
-          const result = await syncAllToServer();
+          // Push grocery/regular only — do NOT push purchaseLogs here.
+          // Pushing stale IndexedDB logs would overwrite Mongo backfills / enriched snapshots.
+          const result = await pushDirtyToServer(new Set(["grocery", "regular"]));
           if (result.success) {
             setServerGroceryItems(JSON.parse(JSON.stringify(localGrocery)));
             setServerRegularItems(JSON.parse(JSON.stringify(localRegular)));
             
-            // Merge server purchaseLogs into local DB and state so we don't lose server-only logs
+            // Prefer enriched server logs when ids collide
             const mergedLogs = mergePurchaseLogs(localLogs, serverData.purchaseLogs);
             await localSetPurchaseLogs(mergedLogs);
             setPurchaseLogs(mergedLogs);

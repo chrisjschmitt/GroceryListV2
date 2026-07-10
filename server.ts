@@ -42,6 +42,7 @@ import {
 import { resolveStorePostalCode } from "./src/lib/flipp-postal";
 import { resolveFlippFlyerUrl, buildFlippSearchPageUrl } from "./src/lib/flipp-resolve.js";
 import { RegularItem, PurchaseLogEntry } from "./src/lib/types";
+import { mergePurchaseLogs } from "./src/lib/purchase-log-merge";
 
 // Use standard memory storage for multer CSV upload
 const upload = multer({ storage: multer.memoryStorage() });
@@ -1531,14 +1532,9 @@ async function startServer() {
       }
       if (purchaseLogs && Array.isArray(purchaseLogs)) {
         const existingLogs = await blobGetPurchaseLogs();
-        const mergedLogsMap = new Map<string, PurchaseLogEntry>();
-        for (const log of existingLogs) {
-          mergedLogsMap.set(log.id, log);
-        }
-        for (const log of purchaseLogs) {
-          mergedLogsMap.set(log.id, log);
-        }
-        await blobSetPurchaseLogs(Array.from(mergedLogsMap.values()));
+        // Prefer enriched logs (backfill / clear-checked snapshots) over stale client copies
+        const mergedLogs = mergePurchaseLogs(existingLogs, purchaseLogs);
+        await blobSetPurchaseLogs(mergedLogs);
       }
 
       const syncMeta = await blobUpdateSyncMeta(deviceName || "Unknown");

@@ -8,6 +8,7 @@ import { parseCsv } from "../src/lib/csv-parser.js";
 import { evaluateGeminiMatch, runAllMatchingTests, splitMultiProductDescription } from "../src/lib/gemini-match-service.js";
 import { buildPreviewResponse, commitFlippIngestion } from "../src/lib/flipp-ingestion.js";
 import { RegularItem, PurchaseLogEntry } from "../src/lib/types";
+import { mergePurchaseLogs } from "../src/lib/purchase-log-merge.js";
 import {
   blobGetGroceryItems,
   blobSetGroceryItems,
@@ -1523,14 +1524,9 @@ app.put("/api/sync", async (req, res) => {
     }
     if (purchaseLogs && Array.isArray(purchaseLogs)) {
       const existingLogs = await blobGetPurchaseLogs();
-      const mergedLogsMap = new Map<string, PurchaseLogEntry>();
-      for (const log of existingLogs) {
-        mergedLogsMap.set(log.id, log);
-      }
-      for (const log of purchaseLogs) {
-        mergedLogsMap.set(log.id, log);
-      }
-      await blobSetPurchaseLogs(Array.from(mergedLogsMap.values()));
+      // Prefer enriched logs (backfill / clear-checked snapshots) over stale client copies
+      const mergedLogs = mergePurchaseLogs(existingLogs, purchaseLogs);
+      await blobSetPurchaseLogs(mergedLogs);
     }
 
     const syncMeta = await blobUpdateSyncMeta(deviceName || "Unknown");
