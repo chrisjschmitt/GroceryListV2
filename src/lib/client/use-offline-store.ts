@@ -266,11 +266,6 @@ export function useOfflineStoreState(): OfflineStore {
 
   const pullAndUpdate = useCallback(async (force = false) => {
     if (!navigator.onLine) return;
-    
-    // If not forced and we have local dirty edits, block auto-pull
-    if (!force && (groceryDirty || regularDirty)) {
-      return;
-    }
 
     try {
       const serverData = await fetchFromServer();
