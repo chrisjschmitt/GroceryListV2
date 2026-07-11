@@ -1542,7 +1542,7 @@ app.put("/api/sync", async (req, res) => {
       } else {
         const serverGrocery = await blobGetGroceryItems();
         const serverTombstones = await blobGetGroceryTombstones();
-        const merged = mergeLists(serverGrocery, serverTombstones, groceryItems || [], groceryTombstones || []);
+        const merged = mergeLists(groceryItems || [], groceryTombstones || [], serverGrocery, serverTombstones);
         finalGroceryItems = merged.mergedItems;
         finalGroceryTombstones = merged.mergedTombstones;
         groceryAmbiguities = merged.ambiguities;
@@ -1562,7 +1562,7 @@ app.put("/api/sync", async (req, res) => {
       } else {
         const serverRegular = await blobGetRegularItems();
         const serverTombstones = await blobGetRegularTombstones();
-        const merged = mergeLists(serverRegular, serverTombstones, regularItems || [], regularTombstones || [], true);
+        const merged = mergeLists(regularItems || [], regularTombstones || [], serverRegular, serverTombstones, true);
         finalRegularItems = merged.mergedItems;
         finalRegularTombstones = merged.mergedTombstones;
         regularAmbiguities = merged.ambiguities;
