@@ -1514,7 +1514,16 @@ app.get("/api/sync", async (req, res) => {
 // 2. PUT /api/sync
 app.put("/api/sync", async (req, res) => {
   try {
-    const { groceryItems, regularItems, purchaseLogs, deviceName } = req.body;
+    const { groceryItems, regularItems, purchaseLogs, deviceName, basedOnLastSavedTime, forceOverwrite } = req.body;
+
+    const hasListItems = (groceryItems !== undefined || regularItems !== undefined);
+    if (basedOnLastSavedTime !== undefined && !forceOverwrite && hasListItems) {
+      const currentMeta = await blobGetSyncMeta();
+      if (currentMeta && currentMeta.lastSavedTime > basedOnLastSavedTime) {
+        res.status(409).json({ error: "Conflict: Server list is newer than client base sync time." });
+        return;
+      }
+    }
 
     if (groceryItems) {
       await blobSetGroceryItems(groceryItems);

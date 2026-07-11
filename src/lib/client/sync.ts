@@ -24,7 +24,11 @@ function fetchWithTimeout(input: RequestInfo | URL, init?: RequestInit): Promise
   );
 }
 
-export async function pushDirtyToServer(dirty: Set<DirtyFlag>): Promise<{ success: boolean }> {
+export async function pushDirtyToServer(
+  dirty: Set<DirtyFlag>,
+  lastSyncTime?: number,
+  forceOverwrite?: boolean
+): Promise<{ success: boolean; conflict?: boolean }> {
   if (!navigator.onLine || dirty.size === 0) {
     return { success: dirty.size === 0 };
   }
@@ -33,6 +37,8 @@ export async function pushDirtyToServer(dirty: Set<DirtyFlag>): Promise<{ succes
     const payload: Record<string, unknown> = {
       deviceName: getDeviceName(),
     };
+
+    const hasListItems = dirty.has("grocery") || dirty.has("regular");
 
     if (dirty.has("grocery")) {
       payload.groceryItems = await localGetGroceryItems();
@@ -44,11 +50,24 @@ export async function pushDirtyToServer(dirty: Set<DirtyFlag>): Promise<{ succes
       payload.purchaseLogs = await localGetPurchaseLogs();
     }
 
+    if (hasListItems) {
+      if (lastSyncTime !== undefined) {
+        payload.basedOnLastSavedTime = lastSyncTime;
+      }
+      if (forceOverwrite !== undefined) {
+        payload.forceOverwrite = forceOverwrite;
+      }
+    }
+
     const res = await fetchWithTimeout("/api/sync", {
       method: "PUT",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(payload),
     });
+
+    if (res.status === 409) {
+      return { success: false, conflict: true };
+    }
 
     if (!res.ok) {
       try {

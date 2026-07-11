@@ -223,8 +223,30 @@ export function useOfflineStoreState(): OfflineStore {
         return;
       }
 
+      const localLastSync = await getLastSyncTime();
+      const hasListItems = flags.grocery || flags.regular;
+      if (hasListItems) {
+        // Fetch latest metadata from server to check freshness
+        const serverData = await fetchFromServer();
+        if (serverData) {
+          const serverLastSaved = serverData.syncMeta?.lastSavedTime || 0;
+          if (serverLastSaved > localLastSync) {
+            // Conflict detected!
+            setSyncConflict(true);
+            setSyncStatus("synced");
+            return;
+          }
+        }
+      }
+
       setSyncStatus("syncing");
-      const result = await pushDirtyToServer(toFlush);
+      const result = await pushDirtyToServer(toFlush, localLastSync);
+
+      if (result.conflict) {
+        setSyncConflict(true);
+        setSyncStatus("synced");
+        return;
+      }
 
       if (result.success) {
         if (flags.grocery) await setLocalDirtyFlags({ grocery: false });
@@ -329,7 +351,7 @@ export function useOfflineStoreState(): OfflineStore {
       if (flags.grocery) toFlush.add("grocery");
       if (flags.regular) toFlush.add("regular");
 
-      const result = await pushDirtyToServer(toFlush);
+      const result = await pushDirtyToServer(toFlush, undefined, true);
       if (result.success) {
         await setLocalDirtyFlags({ grocery: false, regular: false });
         setGroceryDirtyState(false);
@@ -460,6 +482,7 @@ export function useOfflineStoreState(): OfflineStore {
   // Auto-save when leaving (if enabled), pull when returning
   useEffect(() => {
     const handleVisibility = () => {
+      if (syncConflict) return;
       if (document.visibilityState === "hidden") {
         if (getAutoSaveEnabled() && hasPendingChanges && navigator.onLine) {
           saveChanges();
@@ -473,13 +496,14 @@ export function useOfflineStoreState(): OfflineStore {
 
     document.addEventListener("visibilitychange", handleVisibility);
     return () => document.removeEventListener("visibilitychange", handleVisibility);
-  }, [pullAndUpdate, saveChanges, hasPendingChanges]);
+  }, [pullAndUpdate, saveChanges, hasPendingChanges, syncConflict]);
 
   // Auto-save changes with a debounce of 1.5 seconds if auto-save is enabled
   useEffect(() => {
     if (!hasPendingChanges) return;
     if (!navigator.onLine) return;
     if (!getAutoSaveEnabled()) return;
+    if (syncConflict) return;
 
     const timer = setTimeout(() => {
       console.log("Auto-saving pending changes to server...");
@@ -487,7 +511,7 @@ export function useOfflineStoreState(): OfflineStore {
     }, 1500);
 
     return () => clearTimeout(timer);
-  }, [hasPendingChanges, saveChanges]);
+  }, [hasPendingChanges, saveChanges, syncConflict]);
 
   // Warn user before leaving if there are unsaved pending changes
   useEffect(() => {
