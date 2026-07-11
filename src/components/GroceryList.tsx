@@ -5,6 +5,7 @@ import AddItemForm from "./AddItemForm";
 import GroceryItemRow, { abbreviateStoreName } from "./GroceryItemRow";
 import RegularItemsList from "./RegularItemsList";
 import SyncIndicator from "./SyncIndicator";
+import SyncAmbiguityResolver from "./SyncAmbiguityResolver";
 import PullToRefresh from "./PullToRefresh";
 
 import { getCategoryOrderIndex } from "@/lib/categories";
@@ -437,6 +438,20 @@ export default function GroceryList() {
     <PullToRefresh onRefresh={store.refreshFromServer} enabled={!store.hasPendingChanges && store.isOnline}>
       <div className="space-y-8 animate-fade-in">
         
+        {/* Sync Ambiguity Resolvers */}
+        <SyncAmbiguityResolver
+          listType="grocery"
+          ambiguities={store.groceryAmbiguities}
+          onResolve={(id, choice) => store.resolveSingleAmbiguity("grocery", id, choice)}
+          onResolveAll={(choice) => store.resolveAllAmbiguities("grocery", choice)}
+        />
+        <SyncAmbiguityResolver
+          listType="regular"
+          ambiguities={store.regularAmbiguities}
+          onResolve={(id, choice) => store.resolveSingleAmbiguity("regular", id, choice)}
+          onResolveAll={(choice) => store.resolveAllAmbiguities("regular", choice)}
+        />
+
         {/* Bento Grid Stats Row with Smart Basket Dashboard */}
         <div className="grid grid-cols-1 md:grid-cols-12 gap-5">
           {/* Smart Basket Dashboard Panel */}

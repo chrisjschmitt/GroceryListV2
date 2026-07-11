@@ -21,8 +21,12 @@ import { buildPreviewResponse, commitFlippIngestion } from "./src/lib/flipp-inge
 import {
   blobGetGroceryItems,
   blobSetGroceryItems,
+  blobGetGroceryTombstones,
+  blobSetGroceryTombstones,
   blobGetRegularItems,
   blobSetRegularItems,
+  blobGetRegularTombstones,
+  blobSetRegularTombstones,
   blobGetSyncMeta,
   blobUpdateSyncMeta,
   blobGetPrices,
@@ -43,6 +47,8 @@ import { resolveStorePostalCode } from "./src/lib/flipp-postal";
 import { resolveFlippFlyerUrl, buildFlippSearchPageUrl } from "./src/lib/flipp-resolve.js";
 import { RegularItem, PurchaseLogEntry } from "./src/lib/types";
 import { mergePurchaseLogs } from "./src/lib/purchase-log-merge";
+import { mergeLists } from "./src/lib/list-merge";
+
 
 // Use standard memory storage for multer CSV upload
 const upload = multer({ storage: multer.memoryStorage() });
@@ -1506,14 +1512,16 @@ async function startServer() {
   // 1. GET /api/sync
   app.get("/api/sync", async (req, res) => {
     try {
-      const [groceryItems, regularItems, syncMeta, prices, purchaseLogs] = await Promise.all([
+      const [groceryItems, regularItems, groceryTombstones, regularTombstones, syncMeta, prices, purchaseLogs] = await Promise.all([
         blobGetGroceryItems(),
         blobGetRegularItems(),
+        blobGetGroceryTombstones(),
+        blobGetRegularTombstones(),
         blobGetSyncMeta(),
         getMergedPrices(),
         blobGetPurchaseLogs(),
       ]);
-      res.json({ groceryItems, regularItems, syncMeta, prices, purchaseLogs });
+      res.json({ groceryItems, regularItems, groceryTombstones, regularTombstones, syncMeta, prices, purchaseLogs });
     } catch {
       res.status(500).json({ error: "Failed to fetch sync data" });
     }
@@ -1522,23 +1530,56 @@ async function startServer() {
   // 2. PUT /api/sync
   app.put("/api/sync", async (req, res) => {
     try {
-      const { groceryItems, regularItems, purchaseLogs, deviceName, basedOnLastSavedTime, forceOverwrite } = req.body;
+      const {
+        groceryItems,
+        regularItems,
+        groceryTombstones,
+        regularTombstones,
+        purchaseLogs,
+        deviceName,
+        forceOverwrite
+      } = req.body;
 
-      const hasListItems = (groceryItems !== undefined || regularItems !== undefined);
-      if (basedOnLastSavedTime !== undefined && !forceOverwrite && hasListItems) {
-        const currentMeta = await blobGetSyncMeta();
-        if (currentMeta && currentMeta.lastSavedTime > basedOnLastSavedTime) {
-          res.status(409).json({ error: "Conflict: Server list is newer than client base sync time." });
-          return;
+      let finalGroceryItems = groceryItems || [];
+      let finalGroceryTombstones = groceryTombstones || [];
+      let groceryAmbiguities: any[] = [];
+
+      if (groceryItems !== undefined || groceryTombstones !== undefined) {
+        if (forceOverwrite) {
+          finalGroceryItems = groceryItems || [];
+          finalGroceryTombstones = groceryTombstones || [];
+        } else {
+          const serverGrocery = await blobGetGroceryItems();
+          const serverTombstones = await blobGetGroceryTombstones();
+          const merged = mergeLists(serverGrocery, serverTombstones, groceryItems || [], groceryTombstones || []);
+          finalGroceryItems = merged.mergedItems;
+          finalGroceryTombstones = merged.mergedTombstones;
+          groceryAmbiguities = merged.ambiguities;
         }
+        await blobSetGroceryItems(finalGroceryItems);
+        await blobSetGroceryTombstones(finalGroceryTombstones);
       }
 
-      if (groceryItems) {
-        await blobSetGroceryItems(groceryItems);
+      let finalRegularItems = regularItems || [];
+      let finalRegularTombstones = regularTombstones || [];
+      let regularAmbiguities: any[] = [];
+
+      if (regularItems !== undefined || regularTombstones !== undefined) {
+        if (forceOverwrite) {
+          finalRegularItems = regularItems || [];
+          finalRegularTombstones = regularTombstones || [];
+        } else {
+          const serverRegular = await blobGetRegularItems();
+          const serverTombstones = await blobGetRegularTombstones();
+          const merged = mergeLists(serverRegular, serverTombstones, regularItems || [], regularTombstones || [], true);
+          finalRegularItems = merged.mergedItems;
+          finalRegularTombstones = merged.mergedTombstones;
+          regularAmbiguities = merged.ambiguities;
+        }
+        await blobSetRegularItems(finalRegularItems);
+        await blobSetRegularTombstones(finalRegularTombstones);
       }
-      if (regularItems) {
-        await blobSetRegularItems(regularItems);
-      }
+
       if (purchaseLogs && Array.isArray(purchaseLogs)) {
         const existingLogs = await blobGetPurchaseLogs();
         // Prefer enriched logs (backfill / clear-checked snapshots) over stale client copies
@@ -1547,8 +1588,18 @@ async function startServer() {
       }
 
       const syncMeta = await blobUpdateSyncMeta(deviceName || "Unknown");
-      res.json({ success: true, syncMeta });
-    } catch {
+      res.json({
+        success: true,
+        syncMeta,
+        groceryItems: finalGroceryItems,
+        groceryTombstones: finalGroceryTombstones,
+        groceryAmbiguities,
+        regularItems: finalRegularItems,
+        regularTombstones: finalRegularTombstones,
+        regularAmbiguities
+      });
+    } catch (err) {
+      console.error("PUT /api/sync error:", err);
       res.status(500).json({ error: "Failed to update sync data" });
     }
   });

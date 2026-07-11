@@ -4,6 +4,7 @@ import { GroceryItem, PriceEntry, RegularItem } from "@/lib/types";
 import { ChevronDown, ChevronUp, Trash2, Plus, Minus, ListPlus, ExternalLink, RefreshCw } from "lucide-react";
 import CatalogDrawer from "../../components/CatalogDrawer";
 import SyncIndicator from "../../components/SyncIndicator";
+import SyncAmbiguityResolver from "../../components/SyncAmbiguityResolver";
 import { normalizeStoreKey, getStoreActivePrice, isSaleExpired, getStoreDisplayName, isOnSaleFlag, parsePrice } from "@/lib/price-utils";
 import { isDirectFlippUrlUsable, buildFlippSearchPageUrl, sanitizeFlippItemName } from "@/lib/flipp-resolve";
 import { CATEGORY_ORDER, inferCategoryFromItemName } from "@/lib/categories";
@@ -970,6 +971,18 @@ export default function ListsTab() {
           onRefresh={store.refreshFromServer}
           syncConflict={store.syncConflict}
           onResolveConflict={store.resolveConflict}
+        />
+        <SyncAmbiguityResolver
+          listType="grocery"
+          ambiguities={store.groceryAmbiguities}
+          onResolve={(id, choice) => store.resolveSingleAmbiguity("grocery", id, choice)}
+          onResolveAll={(choice) => store.resolveAllAmbiguities("grocery", choice)}
+        />
+        <SyncAmbiguityResolver
+          listType="regular"
+          ambiguities={store.regularAmbiguities}
+          onResolve={(id, choice) => store.resolveSingleAmbiguity("regular", id, choice)}
+          onResolveAll={(choice) => store.resolveAllAmbiguities("regular", choice)}
         />
       </div>
 

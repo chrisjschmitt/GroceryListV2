@@ -26,6 +26,8 @@ export interface GroceryItem {
   prices: StorePrice[];
   bestPrice?: StorePrice;
   createdAt: string;
+  updatedAt?: number;
+  updatedBy?: string;
 }
 
 export interface GroceryList {
@@ -40,6 +42,14 @@ export interface RegularItem {
   unit?: string;
   units?: number;
   stores?: Record<string, any>;
+  updatedAt?: number;
+  updatedBy?: string;
+}
+
+export interface Tombstone {
+  id: string;
+  deletedAt: number;
+  deletedBy?: string;
 }
 
 export interface StoreInfo {

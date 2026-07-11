@@ -13,7 +13,8 @@ import {
   ScrapeItemConfig,
   ScrapeStoreItemLink,
   ScrapeStoreConfig,
-  PurchaseLogEntry
+  PurchaseLogEntry,
+  Tombstone
 } from "./types.js";
 import { standardizeCategory } from "./categories.js";
 import fs from "fs";
@@ -138,6 +139,8 @@ export async function blobGetGroceryItems(): Promise<GroceryItem[]> {
         unit: d.unit,
         checked: d.checked,
         units: d.units || undefined,
+        updatedAt: d.updatedAt || undefined,
+        updatedBy: d.updatedBy || undefined,
       }));
     } catch (err) {
       console.error("MongoDB grocery items read error, using local fallback", err);
@@ -166,6 +169,8 @@ export async function blobSetGroceryItems(items: GroceryItem[]): Promise<void> {
           unit: item.unit,
           checked: item.checked,
           units: item.units !== undefined ? item.units : null,
+          updatedAt: item.updatedAt || null,
+          updatedBy: item.updatedBy || null,
         }));
         await db.collection("grocery_list").insertMany(docs);
       }
@@ -178,6 +183,52 @@ export async function blobSetGroceryItems(items: GroceryItem[]): Promise<void> {
   // Local filesystem write
   const localPath = getLocalPath("grocerylist/grocery-items.json");
   fs.writeFileSync(localPath, JSON.stringify(items, null, 2), "utf8");
+}
+
+// --- Grocery Tombstones ---
+export async function blobGetGroceryTombstones(): Promise<Tombstone[]> {
+  if (hasMongo()) {
+    try {
+      const db = await getMongoDb();
+      const docs = await db.collection("grocery_tombstones").find().toArray();
+      return docs.map(d => ({
+        id: d._id,
+        deletedAt: d.deletedAt,
+        deletedBy: d.deletedBy || undefined,
+      }));
+    } catch (err) {
+      console.error("MongoDB grocery tombstones read error, using local fallback", err);
+    }
+  }
+
+  const localPath = getLocalPath("grocerylist/grocery-tombstones.json");
+  if (fs.existsSync(localPath)) {
+    return JSON.parse(fs.readFileSync(localPath, "utf8"));
+  }
+  return [];
+}
+
+export async function blobSetGroceryTombstones(tombstones: Tombstone[]): Promise<void> {
+  if (hasMongo()) {
+    try {
+      const db = await getMongoDb();
+      await db.collection("grocery_tombstones").deleteMany({});
+      if (tombstones.length > 0) {
+        const docs = tombstones.map(t => ({
+          _id: t.id,
+          deletedAt: t.deletedAt,
+          deletedBy: t.deletedBy || null,
+        }));
+        await db.collection("grocery_tombstones").insertMany(docs);
+      }
+      return;
+    } catch (err) {
+      console.error("MongoDB grocery tombstones write error, using local fallback", err);
+    }
+  }
+
+  const localPath = getLocalPath("grocerylist/grocery-tombstones.json");
+  fs.writeFileSync(localPath, JSON.stringify(tombstones, null, 2), "utf8");
 }
 
 // --- Purchase History Logs ---
@@ -276,6 +327,9 @@ export async function blobSetRegularItems(items: RegularItem[]): Promise<void> {
         name: updatedItem.name,
         category: updatedItem.category || existing.category || "grocery",
         unit: (updatedItem as any).unit || existing.unit || "unit",
+        selected: updatedItem.selected !== undefined ? updatedItem.selected : (existing.selected || false),
+        updatedAt: updatedItem.updatedAt || existing.updatedAt || undefined,
+        updatedBy: updatedItem.updatedBy || existing.updatedBy || undefined,
       };
     } else {
       return {
@@ -283,14 +337,63 @@ export async function blobSetRegularItems(items: RegularItem[]): Promise<void> {
         name: updatedItem.name,
         category: updatedItem.category || "grocery",
         unit: (updatedItem as any).unit || "unit",
+        selected: updatedItem.selected || false,
         requires_scraping: false,
         stores: {},
+        updatedAt: updatedItem.updatedAt || undefined,
+        updatedBy: updatedItem.updatedBy || undefined,
       };
     }
   });
 
   catalog.items = updatedItems;
   await blobSetCombinedCatalog(catalog);
+}
+
+// --- Regular Tombstones ---
+export async function blobGetRegularTombstones(): Promise<Tombstone[]> {
+  if (hasMongo()) {
+    try {
+      const db = await getMongoDb();
+      const docs = await db.collection("regular_tombstones").find().toArray();
+      return docs.map(d => ({
+        id: d._id,
+        deletedAt: d.deletedAt,
+        deletedBy: d.deletedBy || undefined,
+      }));
+    } catch (err) {
+      console.error("MongoDB regular tombstones read error, using local fallback", err);
+    }
+  }
+
+  const localPath = getLocalPath("grocerylist/regular-tombstones.json");
+  if (fs.existsSync(localPath)) {
+    return JSON.parse(fs.readFileSync(localPath, "utf8"));
+  }
+  return [];
+}
+
+export async function blobSetRegularTombstones(tombstones: Tombstone[]): Promise<void> {
+  if (hasMongo()) {
+    try {
+      const db = await getMongoDb();
+      await db.collection("regular_tombstones").deleteMany({});
+      if (tombstones.length > 0) {
+        const docs = tombstones.map(t => ({
+          _id: t.id,
+          deletedAt: t.deletedAt,
+          deletedBy: t.deletedBy || null,
+        }));
+        await db.collection("regular_tombstones").insertMany(docs);
+      }
+      return;
+    } catch (err) {
+      console.error("MongoDB regular tombstones write error, using local fallback", err);
+    }
+  }
+
+  const localPath = getLocalPath("grocerylist/regular-tombstones.json");
+  fs.writeFileSync(localPath, JSON.stringify(tombstones, null, 2), "utf8");
 }
 
 // --- Sync Metadata ---

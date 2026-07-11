@@ -1,13 +1,16 @@
 import { openDB, IDBPDatabase } from "idb";
-import { GroceryItem, RegularItem, PurchaseLogEntry } from "../types";
+import { GroceryItem, RegularItem, PurchaseLogEntry, Tombstone } from "../types";
+import { getDeviceName } from "./device-name";
 
 const DB_NAME = "grocerylist";
-const DB_VERSION = 2;
+const DB_VERSION = 3;
 
 export interface LocalDB {
   groceryItems: GroceryItem[];
   regularItems: RegularItem[];
   purchaseLogs: PurchaseLogEntry[];
+  groceryTombstones: Tombstone[];
+  regularTombstones: Tombstone[];
 }
 
 let dbPromise: Promise<IDBPDatabase> | null = null;
@@ -27,6 +30,12 @@ function getLocalDb(): Promise<IDBPDatabase> {
         }
         if (!db.objectStoreNames.contains("purchaseLogs")) {
           db.createObjectStore("purchaseLogs", { keyPath: "id" });
+        }
+        if (!db.objectStoreNames.contains("groceryTombstones")) {
+          db.createObjectStore("groceryTombstones", { keyPath: "id" });
+        }
+        if (!db.objectStoreNames.contains("regularTombstones")) {
+          db.createObjectStore("regularTombstones", { keyPath: "id" });
         }
       },
     }).then((db) => {
@@ -58,26 +67,36 @@ export async function localSetGroceryItems(items: GroceryItem[]): Promise<void> 
 
 export async function localAddGroceryItem(item: GroceryItem): Promise<void> {
   const db = await getLocalDb();
+  item.updatedAt = item.updatedAt || Date.now();
+  item.updatedBy = item.updatedBy || getDeviceName();
   await db.put("groceryItems", item);
 }
 
 export async function localUpdateGroceryItem(item: GroceryItem): Promise<void> {
   const db = await getLocalDb();
+  item.updatedAt = item.updatedAt || Date.now();
+  item.updatedBy = item.updatedBy || getDeviceName();
   await db.put("groceryItems", item);
 }
 
 export async function localRemoveGroceryItem(id: string): Promise<void> {
   const db = await getLocalDb();
   await db.delete("groceryItems", id);
+  await db.put("groceryTombstones", { id, deletedAt: Date.now(), deletedBy: getDeviceName() });
 }
 
 export async function localClearCheckedGroceryItems(): Promise<void> {
   const db = await getLocalDb();
   const items = await db.getAll("groceryItems");
-  const tx = db.transaction("groceryItems", "readwrite");
+  const tx = db.transaction(["groceryItems", "groceryTombstones"], "readwrite");
+  const groceryStore = tx.objectStore("groceryItems");
+  const tombstoneStore = tx.objectStore("groceryTombstones");
+  const now = Date.now();
+  const device = getDeviceName();
   for (const item of items) {
     if (item.checked) {
-      await tx.store.delete(item.id);
+      await groceryStore.delete(item.id);
+      await tombstoneStore.put({ id: item.id, deletedAt: now, deletedBy: device });
     }
   }
   await tx.done;
@@ -85,8 +104,16 @@ export async function localClearCheckedGroceryItems(): Promise<void> {
 
 export async function localClearAllGroceryItems(): Promise<void> {
   const db = await getLocalDb();
-  const tx = db.transaction("groceryItems", "readwrite");
-  await tx.store.clear();
+  const items = await db.getAll("groceryItems");
+  const tx = db.transaction(["groceryItems", "groceryTombstones"], "readwrite");
+  const groceryStore = tx.objectStore("groceryItems");
+  const tombstoneStore = tx.objectStore("groceryTombstones");
+  const now = Date.now();
+  const device = getDeviceName();
+  for (const item of items) {
+    await tombstoneStore.put({ id: item.id, deletedAt: now, deletedBy: device });
+  }
+  await groceryStore.clear();
   await tx.done;
 }
 
@@ -108,18 +135,29 @@ export async function localSetRegularItems(items: RegularItem[]): Promise<void> 
 
 export async function localUpdateRegularItem(item: RegularItem): Promise<void> {
   const db = await getLocalDb();
+  item.updatedAt = item.updatedAt || Date.now();
+  item.updatedBy = item.updatedBy || getDeviceName();
   await db.put("regularItems", item);
 }
 
 export async function localRemoveRegularItem(id: string): Promise<void> {
   const db = await getLocalDb();
   await db.delete("regularItems", id);
+  await db.put("regularTombstones", { id, deletedAt: Date.now(), deletedBy: getDeviceName() });
 }
 
 export async function localClearRegularItems(): Promise<void> {
   const db = await getLocalDb();
-  const tx = db.transaction("regularItems", "readwrite");
-  await tx.store.clear();
+  const items = await db.getAll("regularItems");
+  const tx = db.transaction(["regularItems", "regularTombstones"], "readwrite");
+  const regularStore = tx.objectStore("regularItems");
+  const tombstoneStore = tx.objectStore("regularTombstones");
+  const now = Date.now();
+  const device = getDeviceName();
+  for (const item of items) {
+    await tombstoneStore.put({ id: item.id, deletedAt: now, deletedBy: device });
+  }
+  await regularStore.clear();
   await tx.done;
 }
 
@@ -188,6 +226,8 @@ export async function localToggleGroceryItem(id: string, targetChecked: boolean)
   const item = await tx.store.get(id);
   if (item) {
     item.checked = targetChecked;
+    item.updatedAt = Date.now();
+    item.updatedBy = getDeviceName();
     await tx.store.put(item);
   }
   await tx.done;
@@ -199,6 +239,8 @@ export async function localUpdateGroceryItemQuantity(id: string, targetQuantity:
   const item = await tx.store.get(id);
   if (item) {
     item.quantity = targetQuantity;
+    item.updatedAt = Date.now();
+    item.updatedBy = getDeviceName();
     await tx.store.put(item);
   }
   await tx.done;
@@ -210,8 +252,60 @@ export async function localToggleRegularItem(id: string, targetSelected: boolean
   const item = await tx.store.get(id);
   if (item) {
     item.selected = targetSelected;
+    item.updatedAt = Date.now();
+    item.updatedBy = getDeviceName();
     await tx.store.put(item);
   }
   await tx.done;
 }
 
+// Tombstone Local Accessors
+export async function localGetGroceryTombstones(): Promise<Tombstone[]> {
+  const db = await getLocalDb();
+  return db.getAll("groceryTombstones");
+}
+
+export async function localSetGroceryTombstones(tombstones: Tombstone[]): Promise<void> {
+  const db = await getLocalDb();
+  const tx = db.transaction("groceryTombstones", "readwrite");
+  await tx.store.clear();
+  for (const t of tombstones) {
+    await tx.store.put(t);
+  }
+  await tx.done;
+}
+
+export async function localAddGroceryTombstone(tombstone: Tombstone): Promise<void> {
+  const db = await getLocalDb();
+  await db.put("groceryTombstones", tombstone);
+}
+
+export async function localGetRegularTombstones(): Promise<Tombstone[]> {
+  const db = await getLocalDb();
+  return db.getAll("regularTombstones");
+}
+
+export async function localSetRegularTombstones(tombstones: Tombstone[]): Promise<void> {
+  const db = await getLocalDb();
+  const tx = db.transaction("regularTombstones", "readwrite");
+  await tx.store.clear();
+  for (const t of tombstones) {
+    await tx.store.put(t);
+  }
+  await tx.done;
+}
+
+export async function localAddRegularTombstone(tombstone: Tombstone): Promise<void> {
+  const db = await getLocalDb();
+  await db.put("regularTombstones", tombstone);
+}
+
+export async function localDeleteGroceryTombstone(id: string): Promise<void> {
+  const db = await getLocalDb();
+  await db.delete("groceryTombstones", id);
+}
+
+export async function localDeleteRegularTombstone(id: string): Promise<void> {
+  const db = await getLocalDb();
+  await db.delete("regularTombstones", id);
+}
