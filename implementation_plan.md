@@ -5,7 +5,7 @@ This plan outlines the design and implementation to replace the whole-list last-
 ## User Review Required
 
 > [!IMPORTANT]
-> - **Retiring Stale 409 Lock for List Merges:** Server-side LWW merges will no longer trigger 409 Conflict status codes on stale baselines for grocery/regular syncs. The server will always load the latest database state, merge, and persist. Stale 409 locking is preserved exclusively for purchase-log-only pushes.
+> - **Removing Stale 409 Lock entirely:** Concurrency 409 Conflict checks are completely removed on the server for all PUT sync requests (both lists and purchase logs). The server always loads the current database state, merges lists/logs, and persists. List writes rely entirely on the per-item merge algorithm instead of whole-list 409 rejections.
 > - **Retiring Whole-List Conflict UI:** The primary SyncIndicator conflict banner is retired for list syncing. Instead, the UI will display a `SyncAmbiguityResolver` panel ONLY when true tied conflicts (same ID, identical timestamps, different fields) occur.
 > - **Incremental Merge Execution:** Client-side merges apply non-ambiguous merges immediately to local IndexedDB and React states, preserving only the conflicting records in memory for user resolution.
 > - **Automatic Automated Tests:** We will implement an automated test suite [test-list-merge.ts](file:///Users/christopherschmitt/Library/Mobile%20Documents/com~apple%20CloudDocs/GroceryHub/Code/GroceryListV2/scripts/test-list-merge.ts) covering the six merge scenarios.
@@ -81,7 +81,7 @@ Returns `{ groceryItems, regularItems, groceryTombstones, regularTombstones, syn
 
 ### 2. `PUT /api/sync`
 - Accepts payload containing list items + tombstones.
-- **Optimistic Locking Bypass:** If the payload contains `groceryItems` or `regularItems`, bypass the stale baseline 409 status code. Load the current database state, run `mergeLists`, and save the merged result using Mongo upserts and deletes (preventing Naive blind replacements).
+- **409 Concurrency Check Removal:** All server-side 409 status checks on stale baseline timestamps are removed. The server always loads the current database state, merges lists/logs, and persists the merged result using Mongo upserts and deletes (preventing naive blind replacements).
 - Returns `200` with the merged items/tombstones and any remaining `ambiguities`.
 
 ### 3. File Fallbacks
