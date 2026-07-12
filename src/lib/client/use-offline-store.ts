@@ -40,7 +40,7 @@ import { mergeLists } from "../list-merge";
 
 export { mergePurchaseLogs, purchaseLogEnrichmentScore } from "../purchase-log-merge";
 
-const POLL_INTERVAL = 60000;
+const POLL_VISIBLE_MS = 10000;
 
 export function areGroceryItemsEqual(local: GroceryItem[], server: GroceryItem[]): boolean {
   if (local.length !== server.length) return false;
@@ -553,30 +553,61 @@ export function useOfflineStoreState(): OfflineStore {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // Poll for changes from other devices (read-only, free operations)
+  // Adaptive polling and visibility/online handler
   useEffect(() => {
-    const interval = setInterval(pullAndUpdate, POLL_INTERVAL);
-    return () => clearInterval(interval);
-  }, [pullAndUpdate]);
+    let intervalId: any = null;
 
-  // Auto-save when leaving (if enabled), pull when returning
-  useEffect(() => {
+    const startPolling = () => {
+      if (intervalId) clearInterval(intervalId);
+      if (document.visibilityState === "visible" && isOnline) {
+        intervalId = setInterval(() => {
+          pullAndUpdate();
+        }, POLL_VISIBLE_MS);
+      }
+    };
+
+    const stopPolling = () => {
+      if (intervalId) {
+        clearInterval(intervalId);
+        intervalId = null;
+      }
+    };
+
     const handleVisibility = () => {
       if (syncConflict) return;
-      if (document.visibilityState === "hidden") {
-        if (getAutoSaveEnabled() && hasPendingChanges && navigator.onLine) {
-          saveChanges();
+
+      if (document.visibilityState === "visible") {
+        if (isOnline) {
+          if (!hasPendingChanges) {
+            pullAndUpdate();
+          }
+          startPolling();
         }
-      } else if (document.visibilityState === "visible" && navigator.onLine) {
-        if (!hasPendingChanges) {
-          pullAndUpdate();
+      } else if (document.visibilityState === "hidden") {
+        stopPolling();
+        if (getAutoSaveEnabled() && hasPendingChanges && isOnline) {
+          saveChanges();
         }
       }
     };
 
+    // Initialize or restart polling based on current online/visibility states
+    if (document.visibilityState === "visible" && isOnline) {
+      if (!hasPendingChanges) {
+        pullAndUpdate();
+      }
+      startPolling();
+    } else {
+      stopPolling();
+    }
+
     document.addEventListener("visibilitychange", handleVisibility);
-    return () => document.removeEventListener("visibilitychange", handleVisibility);
-  }, [pullAndUpdate, saveChanges, hasPendingChanges, syncConflict]);
+
+    return () => {
+      stopPolling();
+      document.removeEventListener("visibilitychange", handleVisibility);
+    };
+  }, [pullAndUpdate, saveChanges, hasPendingChanges, syncConflict, isOnline]);
 
   // Auto-save changes with a debounce of 1.5 seconds if auto-save is enabled
   useEffect(() => {
