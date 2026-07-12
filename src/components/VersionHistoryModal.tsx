@@ -21,6 +21,162 @@ interface VersionEntry {
 
 const VERSIONS: VersionEntry[] = [
   {
+    version: "2.14.1",
+    date: "July 2026",
+    type: "patch",
+    title: "Adaptive Polling & Sync Stability",
+    changes: [
+      {
+        icon: <Clock className="w-4 h-4 text-emerald-500" />,
+        category: "Performance",
+        description: "Implemented adaptive client-side polling: 10s intervals when visible and online, pausing completely when hidden/backgrounded or offline. Fixed infinite rendering loop issues via React ref-based closures and deep-equal comparisons."
+      }
+    ]
+  },
+  {
+    version: "2.14.0",
+    date: "July 2026",
+    type: "minor",
+    title: "Per-Item LWW Merge & Deletion Tombstones",
+    changes: [
+      {
+        icon: <Database className="w-4 h-4 text-emerald-500" />,
+        category: "Synchronization",
+        description: "Replaced whole-list LWW sync with a per-item Last-Write-Wins (LWW) merge using persistent IndexedDB/MongoDB deletion tombstones. Added a dedicated SyncAmbiguityResolver side-by-side field diff UI for resolving concurrent tied conflicts."
+      }
+    ]
+  },
+  {
+    version: "2.13.0",
+    date: "July 2026",
+    type: "minor",
+    title: "Pre-Push Sync Conflict & Optimistic locking",
+    changes: [
+      {
+        icon: <Zap className="w-4 h-4 text-emerald-500" />,
+        category: "Conflict Prevention",
+        description: "Introduced client-side pre-push freshness checks and server-side optimistic locking (excluding purchase-log-only updates) to prevent concurrent dirty device overwrites."
+      }
+    ]
+  },
+  {
+    version: "2.12.0",
+    date: "July 2026",
+    type: "minor",
+    title: "Cheapest Store Card Navigation & CSV Export",
+    changes: [
+      {
+        icon: <Layout className="w-4 h-4 text-emerald-500" />,
+        category: "UI / UX",
+        description: "Enabled clicking on competitor pricing cards to filter items where that store has the lowest price. Added CSV export support for all items."
+      }
+    ]
+  },
+  {
+    version: "2.11.0",
+    date: "July 2026",
+    type: "minor",
+    title: "Purchase Savings Analytics & Backfills",
+    changes: [
+      {
+        icon: <FileSpreadsheet className="w-4 h-4 text-emerald-500" />,
+        category: "Analytics",
+        description: "Implemented purchase savings tracking and price snapshots to verify real vs missed flyer discounts. Handled non-destructive Mongo merges for log updates."
+      }
+    ]
+  },
+  {
+    version: "2.10.0",
+    date: "July 2026",
+    type: "minor",
+    title: "Quick-Add Catalog Integration",
+    changes: [
+      {
+        icon: <Sparkles className="w-4 h-4 text-emerald-500" />,
+        category: "Grocery List",
+        description: "Integrated the product catalog auto-completion into the main Quick-Add input field with instant category inference."
+      }
+    ]
+  },
+  {
+    version: "2.9.0",
+    date: "July 2026",
+    type: "minor",
+    title: "Deals Tab Enhancements",
+    changes: [
+      {
+        icon: <Tag className="w-4 h-4 text-emerald-500" />,
+        category: "Deals View",
+        description: "Added highlighted tag indicators for items cheaper than the user's primary store, and expired deal filtering."
+      }
+    ]
+  },
+  {
+    version: "2.8.0",
+    date: "July 2026",
+    type: "minor",
+    title: "Catalog Autocomplete Quick-Add",
+    changes: [
+      {
+        icon: <Layout className="w-4 h-4 text-emerald-500" />,
+        category: "Grocery List",
+        description: "Implemented full autocomplete suggestions on the main grocery list add-item input, sourced directly from the local catalog."
+      }
+    ]
+  },
+  {
+    version: "2.7.0",
+    date: "July 2026",
+    type: "minor",
+    title: "Direct Flipp Product Page Ingestion",
+    changes: [
+      {
+        icon: <ExternalLink className="w-4 h-4 text-emerald-500" />,
+        category: "Flyer Ingestion",
+        description: "Switched ingestion links to direct Flipp item details page URLs, enabling single-click navigation straight to the flyer item instead of generic merchant searches."
+      }
+    ]
+  },
+  {
+    version: "2.6.0",
+    date: "July 2026",
+    type: "minor",
+    title: "Flipp Flyer Resolution Optimization",
+    changes: [
+      {
+        icon: <RefreshCw className="w-4 h-4 text-emerald-500" />,
+        category: "Ingestion",
+        description: "Optimized resolution variants and added an inline query debugger/competitor comparison builder in ListsTab."
+      }
+    ]
+  },
+  {
+    version: "2.5.0",
+    date: "July 2026",
+    type: "minor",
+    title: "Multi-Product Flyer Ingestion & Scoring",
+    changes: [
+      {
+        icon: <Search className="w-4 h-4 text-emerald-500" />,
+        category: "Ingestion Modal",
+        description: "Added support for splitting combined flyer descriptions (using Gemini) and selecting matches from a multi-product selection modal."
+      }
+    ]
+  },
+  {
+    version: "2.4.0",
+    date: "July 2026",
+    type: "minor",
+    title: "Save Indicator & Active Closure Refinements",
+    changes: [
+      {
+        icon: <Clock className="w-4 h-4 text-emerald-500" />,
+        category: "Sync UX",
+        description: "Resolved endless spinning save indicator issues by introducing ref state trackers to avoid React closure mismatches."
+      }
+    ]
+  },
+  {
     version: "2.3.0",
     date: "July 2026",
     type: "minor",
