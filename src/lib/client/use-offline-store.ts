@@ -155,11 +155,17 @@ export function useOfflineStoreState(): OfflineStore {
 
   const dirtyRef = useRef<Set<DirtyFlag>>(new Set());
   const saveQueuePromiseRef = useRef<Promise<void>>(Promise.resolve());
+  const saveInFlightRef = useRef(false);
+  const wasOnlineRef = useRef(true);
 
   const groceryItemsRef = useRef<GroceryItem[]>(groceryItems);
   const regularItemsRef = useRef<RegularItem[]>(regularItems);
   const serverGroceryItemsRef = useRef<GroceryItem[]>(serverGroceryItems);
   const serverRegularItemsRef = useRef<RegularItem[]>(serverRegularItems);
+  const groceryAmbiguitiesRef = useRef<any[]>([]);
+  const regularAmbiguitiesRef = useRef<any[]>([]);
+  const pullAndUpdateRef = useRef<(force?: boolean) => Promise<void>>(async () => {});
+  const saveChangesRef = useRef<() => Promise<void>>(async () => {});
 
   useEffect(() => {
     groceryItemsRef.current = groceryItems;
@@ -177,9 +183,26 @@ export function useOfflineStoreState(): OfflineStore {
     serverRegularItemsRef.current = serverRegularItems;
   }, [serverRegularItems]);
 
+  useEffect(() => {
+    groceryAmbiguitiesRef.current = groceryAmbiguities;
+  }, [groceryAmbiguities]);
+
+  useEffect(() => {
+    regularAmbiguitiesRef.current = regularAmbiguities;
+  }, [regularAmbiguities]);
+
   const hasPendingChanges = useMemo(() => {
     return groceryDirty || regularDirty || dirtyRef.current.has("purchaseLogs");
   }, [groceryDirty, regularDirty, purchaseLogs]);
+
+  const ambiguitiesAreEqual = (a: any[], b: any[]) => {
+    if (a === b) return true;
+    if (a.length !== b.length) return false;
+    for (let i = 0; i < a.length; i++) {
+      if (a[i]?.id !== b[i]?.id || a[i]?.reason !== b[i]?.reason) return false;
+    }
+    return true;
+  };
 
   const markSynced = useCallback((savedBy?: string) => {
     setSyncStatus("synced");
@@ -201,10 +224,12 @@ export function useOfflineStoreState(): OfflineStore {
 
   const saveChanges = useCallback(() => {
     const nextPromise = saveQueuePromiseRef.current.then(async () => {
-      if (groceryAmbiguities.length > 0 || regularAmbiguities.length > 0) {
+      if (groceryAmbiguitiesRef.current.length > 0 || regularAmbiguitiesRef.current.length > 0) {
         return;
       }
 
+      saveInFlightRef.current = true;
+      try {
       const reactGrocery = groceryItemsRef.current;
       const reactRegular = regularItemsRef.current;
 
@@ -250,7 +275,9 @@ export function useOfflineStoreState(): OfflineStore {
           await localSetGroceryTombstones(result.groceryTombstones);
         }
         if (result.groceryAmbiguities) {
-          setGroceryAmbiguities(result.groceryAmbiguities);
+          setGroceryAmbiguities((prev) =>
+            ambiguitiesAreEqual(prev, result.groceryAmbiguities!) ? prev : result.groceryAmbiguities!
+          );
         }
 
         if (result.regularItems) {
@@ -263,7 +290,9 @@ export function useOfflineStoreState(): OfflineStore {
           await localSetRegularTombstones(result.regularTombstones);
         }
         if (result.regularAmbiguities) {
-          setRegularAmbiguities(result.regularAmbiguities);
+          setRegularAmbiguities((prev) =>
+            ambiguitiesAreEqual(prev, result.regularAmbiguities!) ? prev : result.regularAmbiguities!
+          );
         }
 
         if (flags.grocery) await setLocalDirtyFlags({ grocery: false });
@@ -285,18 +314,24 @@ export function useOfflineStoreState(): OfflineStore {
       } else {
         setSyncStatus("error");
       }
+      } finally {
+        saveInFlightRef.current = false;
+      }
     }).catch((err) => {
+      saveInFlightRef.current = false;
       console.error("saveChanges error:", err);
       setSyncStatus("error");
     });
 
     saveQueuePromiseRef.current = nextPromise;
     return nextPromise;
-  }, [markSynced, syncConflict, groceryDirty, regularDirty]);
+  }, [markSynced]);
 
   const pullAndUpdate = useCallback(async (force = false) => {
     if (!navigator.onLine) return;
-    if (groceryAmbiguities.length > 0 || regularAmbiguities.length > 0) return;
+    if (groceryAmbiguitiesRef.current.length > 0 || regularAmbiguitiesRef.current.length > 0) return;
+    // Avoid racing with an in-flight save (was hammering API + wiping pending adds)
+    if (!force && saveInFlightRef.current) return;
 
     try {
       const serverData = await fetchFromServer();
@@ -316,14 +351,18 @@ export function useOfflineStoreState(): OfflineStore {
       setGroceryItems(mergedGrocery.mergedItems);
       setServerGroceryItems(JSON.parse(JSON.stringify(mergedGrocery.mergedItems)));
       serverGroceryItemsRef.current = mergedGrocery.mergedItems;
-      setGroceryAmbiguities(mergedGrocery.ambiguities);
+      setGroceryAmbiguities((prev) =>
+        ambiguitiesAreEqual(prev, mergedGrocery.ambiguities) ? prev : mergedGrocery.ambiguities
+      );
 
       await localSetRegularItems(mergedRegular.mergedItems);
       await localSetRegularTombstones(mergedRegular.mergedTombstones);
       setRegularItems(mergedRegular.mergedItems);
       setServerRegularItems(JSON.parse(JSON.stringify(mergedRegular.mergedItems)));
       serverRegularItemsRef.current = mergedRegular.mergedItems;
-      setRegularAmbiguities(mergedRegular.ambiguities);
+      setRegularAmbiguities((prev) =>
+        ambiguitiesAreEqual(prev, mergedRegular.ambiguities) ? prev : mergedRegular.ambiguities
+      );
 
       const localLogs = await localGetPurchaseLogs().catch(() => [] as PurchaseLogEntry[]);
       const mergedLogs = mergePurchaseLogs(localLogs, serverData.purchaseLogs);
@@ -342,8 +381,15 @@ export function useOfflineStoreState(): OfflineStore {
     } catch (err) {
       console.error("Failed to pull from server:", err);
     }
-  }, [markSynced, groceryAmbiguities, regularAmbiguities]);
+  }, [markSynced]);
 
+  useEffect(() => {
+    pullAndUpdateRef.current = pullAndUpdate;
+  }, [pullAndUpdate]);
+
+  useEffect(() => {
+    saveChangesRef.current = saveChanges;
+  }, [saveChanges]);
   const resolveConflict = useCallback(async (choice: "local" | "server") => {
     if (choice === "server") {
       // Use server version (discard local)
@@ -521,14 +567,18 @@ export function useOfflineStoreState(): OfflineStore {
         setGroceryItems(mergedGrocery.mergedItems);
         setServerGroceryItems(JSON.parse(JSON.stringify(mergedGrocery.mergedItems)));
         serverGroceryItemsRef.current = mergedGrocery.mergedItems;
-        setGroceryAmbiguities(mergedGrocery.ambiguities);
+        setGroceryAmbiguities((prev) =>
+          ambiguitiesAreEqual(prev, mergedGrocery.ambiguities) ? prev : mergedGrocery.ambiguities
+        );
 
         await localSetRegularItems(mergedRegular.mergedItems);
         await localSetRegularTombstones(mergedRegular.mergedTombstones);
         setRegularItems(mergedRegular.mergedItems);
         setServerRegularItems(JSON.parse(JSON.stringify(mergedRegular.mergedItems)));
         serverRegularItemsRef.current = mergedRegular.mergedItems;
-        setRegularAmbiguities(mergedRegular.ambiguities);
+        setRegularAmbiguities((prev) =>
+          ambiguitiesAreEqual(prev, mergedRegular.ambiguities) ? prev : mergedRegular.ambiguities
+        );
 
         const mergedLogs = mergePurchaseLogs(localLogs, serverData.purchaseLogs);
         await localSetPurchaseLogs(mergedLogs);
@@ -553,17 +603,22 @@ export function useOfflineStoreState(): OfflineStore {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // Adaptive polling and visibility/online handler
+  // Adaptive polling and visibility/online handler.
+  // Uses refs for pull/save so this effect does NOT restart on every pull
+  // (restarting + immediate pull was causing an infinite /api/sync loop).
   useEffect(() => {
-    let intervalId: any = null;
+    let intervalId: ReturnType<typeof setInterval> | null = null;
+
+    const canPoll = () =>
+      document.visibilityState === "visible" && isOnline && !syncConflict;
 
     const startPolling = () => {
       if (intervalId) clearInterval(intervalId);
-      if (document.visibilityState === "visible" && isOnline) {
-        intervalId = setInterval(() => {
-          pullAndUpdate();
-        }, POLL_VISIBLE_MS);
-      }
+      intervalId = null;
+      if (!canPoll()) return;
+      intervalId = setInterval(() => {
+        pullAndUpdateRef.current();
+      }, POLL_VISIBLE_MS);
     };
 
     const stopPolling = () => {
@@ -574,27 +629,28 @@ export function useOfflineStoreState(): OfflineStore {
     };
 
     const handleVisibility = () => {
-      if (syncConflict) return;
-
       if (document.visibilityState === "visible") {
-        if (isOnline) {
+        if (canPoll()) {
           if (!hasPendingChanges) {
-            pullAndUpdate();
+            pullAndUpdateRef.current();
           }
           startPolling();
         }
-      } else if (document.visibilityState === "hidden") {
+      } else {
         stopPolling();
-        if (getAutoSaveEnabled() && hasPendingChanges && isOnline) {
-          saveChanges();
+        if (!syncConflict && getAutoSaveEnabled() && hasPendingChanges && isOnline) {
+          saveChangesRef.current();
         }
       }
     };
 
-    // Initialize or restart polling based on current online/visibility states
-    if (document.visibilityState === "visible" && isOnline) {
-      if (!hasPendingChanges) {
-        pullAndUpdate();
+    const becameOnline = !wasOnlineRef.current && isOnline;
+    wasOnlineRef.current = isOnline;
+
+    if (canPoll()) {
+      // Pull on reconnect only — not on every effect re-run (e.g. pending-change toggles)
+      if (becameOnline && !hasPendingChanges) {
+        pullAndUpdateRef.current();
       }
       startPolling();
     } else {
@@ -602,12 +658,11 @@ export function useOfflineStoreState(): OfflineStore {
     }
 
     document.addEventListener("visibilitychange", handleVisibility);
-
     return () => {
       stopPolling();
       document.removeEventListener("visibilitychange", handleVisibility);
     };
-  }, [pullAndUpdate, saveChanges, hasPendingChanges, syncConflict, isOnline]);
+  }, [isOnline, hasPendingChanges, syncConflict]);
 
   // Auto-save changes with a debounce of 1.5 seconds if auto-save is enabled
   useEffect(() => {
