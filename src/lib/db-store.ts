@@ -155,11 +155,12 @@ export async function blobGetGroceryItems(): Promise<GroceryItem[]> {
   return [];
 }
 
-export async function blobSetGroceryItems(items: GroceryItem[]): Promise<void> {
+export async function blobSetGroceryItems(items: GroceryItem[]): Promise<'mongodb' | 'local_fs'> {
   if (hasMongo()) {
     try {
       const db = await getMongoDb();
-      await db.collection("grocery_list").deleteMany({});
+      const delRes = await db.collection("grocery_list").deleteMany({});
+      let insRes = { acknowledged: true };
       if (items.length > 0) {
         const docs = items.map(item => ({
           _id: item.id,
@@ -172,9 +173,11 @@ export async function blobSetGroceryItems(items: GroceryItem[]): Promise<void> {
           updatedAt: item.updatedAt || null,
           updatedBy: item.updatedBy || null,
         }));
-        await db.collection("grocery_list").insertMany(docs);
+        insRes = await db.collection("grocery_list").insertMany(docs);
       }
-      return;
+      if (delRes.acknowledged && insRes.acknowledged) {
+        return "mongodb";
+      }
     } catch (err) {
       console.error("MongoDB grocery items write error, using local fallback", err);
     }
@@ -183,6 +186,7 @@ export async function blobSetGroceryItems(items: GroceryItem[]): Promise<void> {
   // Local filesystem write
   const localPath = getLocalPath("grocerylist/grocery-items.json");
   fs.writeFileSync(localPath, JSON.stringify(items, null, 2), "utf8");
+  return "local_fs";
 }
 
 // --- Grocery Tombstones ---
@@ -208,20 +212,23 @@ export async function blobGetGroceryTombstones(): Promise<Tombstone[]> {
   return [];
 }
 
-export async function blobSetGroceryTombstones(tombstones: Tombstone[]): Promise<void> {
+export async function blobSetGroceryTombstones(tombstones: Tombstone[]): Promise<'mongodb' | 'local_fs'> {
   if (hasMongo()) {
     try {
       const db = await getMongoDb();
-      await db.collection("grocery_tombstones").deleteMany({});
+      const delRes = await db.collection("grocery_tombstones").deleteMany({});
+      let insRes = { acknowledged: true };
       if (tombstones.length > 0) {
         const docs = tombstones.map(t => ({
           _id: t.id,
           deletedAt: t.deletedAt,
           deletedBy: t.deletedBy || null,
         }));
-        await db.collection("grocery_tombstones").insertMany(docs);
+        insRes = await db.collection("grocery_tombstones").insertMany(docs);
       }
-      return;
+      if (delRes.acknowledged && insRes.acknowledged) {
+        return "mongodb";
+      }
     } catch (err) {
       console.error("MongoDB grocery tombstones write error, using local fallback", err);
     }
@@ -229,6 +236,7 @@ export async function blobSetGroceryTombstones(tombstones: Tombstone[]): Promise
 
   const localPath = getLocalPath("grocerylist/grocery-tombstones.json");
   fs.writeFileSync(localPath, JSON.stringify(tombstones, null, 2), "utf8");
+  return "local_fs";
 }
 
 // --- Purchase History Logs ---
@@ -268,11 +276,12 @@ export async function blobGetPurchaseLogs(): Promise<PurchaseLogEntry[]> {
   return [];
 }
 
-export async function blobSetPurchaseLogs(logs: PurchaseLogEntry[]): Promise<void> {
+export async function blobSetPurchaseLogs(logs: PurchaseLogEntry[]): Promise<'mongodb' | 'local_fs'> {
   if (hasMongo()) {
     try {
       const db = await getMongoDb();
-      await db.collection("purchase_logs").deleteMany({});
+      const delRes = await db.collection("purchase_logs").deleteMany({});
+      let insRes = { acknowledged: true };
       if (logs.length > 0) {
         const docs = logs.map(log => ({
           _id: log.id,
@@ -293,9 +302,11 @@ export async function blobSetPurchaseLogs(logs: PurchaseLogEntry[]): Promise<voi
           validUntil: log.validUntil !== undefined ? log.validUntil : null,
           priceSnapshot: log.priceSnapshot !== undefined ? log.priceSnapshot : null,
         }));
-        await db.collection("purchase_logs").insertMany(docs);
+        insRes = await db.collection("purchase_logs").insertMany(docs);
       }
-      return;
+      if (delRes.acknowledged && insRes.acknowledged) {
+        return "mongodb";
+      }
     } catch (err) {
       console.error("MongoDB purchase logs write error, using local fallback", err);
     }
@@ -303,6 +314,7 @@ export async function blobSetPurchaseLogs(logs: PurchaseLogEntry[]): Promise<voi
 
   const localPath = getLocalPath("grocerylist/purchase-logs.json");
   fs.writeFileSync(localPath, JSON.stringify(logs, null, 2), "utf8");
+  return "local_fs";
 }
 
 // --- Regular/Pantry Items (Consolidated Catalog Proxy) ---
@@ -311,7 +323,7 @@ export async function blobGetRegularItems(): Promise<RegularItem[]> {
   return catalog.items as any;
 }
 
-export async function blobSetRegularItems(items: RegularItem[]): Promise<void> {
+export async function blobSetRegularItems(items: RegularItem[]): Promise<'mongodb' | 'local_fs'> {
   const catalog = await blobGetCombinedCatalog();
   
   const existingMap = new Map<string, any>();
@@ -347,7 +359,7 @@ export async function blobSetRegularItems(items: RegularItem[]): Promise<void> {
   });
 
   catalog.items = updatedItems;
-  await blobSetCombinedCatalog(catalog);
+  return await blobSetCombinedCatalog(catalog);
 }
 
 // --- Regular Tombstones ---
@@ -373,20 +385,23 @@ export async function blobGetRegularTombstones(): Promise<Tombstone[]> {
   return [];
 }
 
-export async function blobSetRegularTombstones(tombstones: Tombstone[]): Promise<void> {
+export async function blobSetRegularTombstones(tombstones: Tombstone[]): Promise<'mongodb' | 'local_fs'> {
   if (hasMongo()) {
     try {
       const db = await getMongoDb();
-      await db.collection("regular_tombstones").deleteMany({});
+      const delRes = await db.collection("regular_tombstones").deleteMany({});
+      let insRes = { acknowledged: true };
       if (tombstones.length > 0) {
         const docs = tombstones.map(t => ({
           _id: t.id,
           deletedAt: t.deletedAt,
           deletedBy: t.deletedBy || null,
         }));
-        await db.collection("regular_tombstones").insertMany(docs);
+        insRes = await db.collection("regular_tombstones").insertMany(docs);
       }
-      return;
+      if (delRes.acknowledged && insRes.acknowledged) {
+        return "mongodb";
+      }
     } catch (err) {
       console.error("MongoDB regular tombstones write error, using local fallback", err);
     }
@@ -394,6 +409,7 @@ export async function blobSetRegularTombstones(tombstones: Tombstone[]): Promise
 
   const localPath = getLocalPath("grocerylist/regular-tombstones.json");
   fs.writeFileSync(localPath, JSON.stringify(tombstones, null, 2), "utf8");
+  return "local_fs";
 }
 
 // --- Sync Metadata ---
@@ -421,16 +437,18 @@ export async function blobGetSyncMeta(): Promise<SyncMetadata | null> {
   return null;
 }
 
-export async function blobSetSyncMeta(meta: SyncMetadata): Promise<void> {
+export async function blobSetSyncMeta(meta: SyncMetadata): Promise<'mongodb' | 'local_fs'> {
   if (hasMongo()) {
     try {
       const db = await getMongoDb();
-      await db.collection("sync_metadata").updateOne(
+      const res = await db.collection("sync_metadata").updateOne(
         { _id: "global" },
         { $set: { lastSavedTime: meta.lastSavedTime, lastSavedBy: meta.lastSavedBy } },
         { upsert: true }
       );
-      return;
+      if (res.acknowledged) {
+        return "mongodb";
+      }
     } catch (err) {
       console.error("MongoDB sync meta write error, using local fallback", err);
     }
@@ -438,15 +456,19 @@ export async function blobSetSyncMeta(meta: SyncMetadata): Promise<void> {
 
   const localPath = getLocalPath("grocerylist/sync-meta.json");
   fs.writeFileSync(localPath, JSON.stringify(meta, null, 2), "utf8");
+  return "local_fs";
 }
 
-export async function blobUpdateSyncMeta(deviceName: string): Promise<SyncMetadata> {
+export async function blobUpdateSyncMeta(deviceName: string): Promise<SyncMetadata & { writeAcknowledgement: 'mongodb' | 'local_fs' }> {
   const meta: SyncMetadata = {
     lastSavedTime: Date.now(),
     lastSavedBy: deviceName,
   };
-  await blobSetSyncMeta(meta);
-  return meta;
+  const ack = await blobSetSyncMeta(meta);
+  return {
+    ...meta,
+    writeAcknowledgement: ack,
+  };
 }
 
 // --- Combined Catalog ---
@@ -501,7 +523,7 @@ export async function blobGetCombinedCatalog(): Promise<CombinedCatalog> {
   return { stores: {}, items: [] };
 }
 
-export async function blobSetCombinedCatalog(catalog: CombinedCatalog): Promise<void> {
+export async function blobSetCombinedCatalog(catalog: CombinedCatalog): Promise<'mongodb' | 'local_fs'> {
   validateUniqueUrls(catalog);
   
   if (hasMongo()) {
@@ -523,7 +545,8 @@ export async function blobSetCombinedCatalog(catalog: CombinedCatalog): Promise<
       }
 
       // 2. Update Catalog Items
-      await db.collection("catalog_items").deleteMany({});
+      const delRes = await db.collection("catalog_items").deleteMany({});
+      let insRes = { acknowledged: true };
       if (catalog.items && catalog.items.length > 0) {
         const itemDocs = catalog.items.map(item => ({
           _id: item.id,
@@ -535,9 +558,11 @@ export async function blobSetCombinedCatalog(catalog: CombinedCatalog): Promise<
           stores: item.stores || {},
           parent_id: item.parent_id || null,
         }));
-        await db.collection("catalog_items").insertMany(itemDocs);
+        insRes = await db.collection("catalog_items").insertMany(itemDocs);
       }
-      return;
+      if (delRes.acknowledged && insRes.acknowledged) {
+        return "mongodb";
+      }
     } catch (err) {
       console.error("MongoDB combined catalog write error, using local fallback", err);
     }
@@ -546,6 +571,7 @@ export async function blobSetCombinedCatalog(catalog: CombinedCatalog): Promise<
   // Local fallback
   const localPath = getLocalPath("grocerylist/combined-catalog.json");
   fs.writeFileSync(localPath, JSON.stringify(catalog, null, 2), "utf8");
+  return "local_fs";
 }
 
 // --- Scrape Config Proxy ---

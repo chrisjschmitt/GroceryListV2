@@ -1521,7 +1521,16 @@ async function startServer() {
         getMergedPrices(),
         blobGetPurchaseLogs(),
       ]);
-      res.json({ groceryItems, regularItems, groceryTombstones, regularTombstones, syncMeta, prices, purchaseLogs });
+      res.json({
+        groceryItems,
+        regularItems,
+        groceryTombstones,
+        regularTombstones,
+        syncMeta,
+        prices,
+        purchaseLogs,
+        writeAcknowledgement: (process.env.MONGODB_URI ? 'mongodb' : 'local_fs')
+      });
     } catch {
       res.status(500).json({ error: "Failed to fetch sync data" });
     }
@@ -1543,6 +1552,7 @@ async function startServer() {
       let finalGroceryItems = groceryItems || [];
       let finalGroceryTombstones = groceryTombstones || [];
       let groceryAmbiguities: any[] = [];
+      let writeAckStatus: 'mongodb' | 'local_fs' = 'mongodb';
 
       if (groceryItems !== undefined || groceryTombstones !== undefined) {
         if (forceOverwrite) {
@@ -1556,8 +1566,11 @@ async function startServer() {
           finalGroceryTombstones = merged.mergedTombstones;
           groceryAmbiguities = merged.ambiguities;
         }
-        await blobSetGroceryItems(finalGroceryItems);
-        await blobSetGroceryTombstones(finalGroceryTombstones);
+        const ack1 = await blobSetGroceryItems(finalGroceryItems);
+        const ack2 = await blobSetGroceryTombstones(finalGroceryTombstones);
+        if (ack1 === 'local_fs' || ack2 === 'local_fs') {
+          writeAckStatus = 'local_fs';
+        }
       }
 
       let finalRegularItems = regularItems || [];
@@ -1576,21 +1589,32 @@ async function startServer() {
           finalRegularTombstones = merged.mergedTombstones;
           regularAmbiguities = merged.ambiguities;
         }
-        await blobSetRegularItems(finalRegularItems);
-        await blobSetRegularTombstones(finalRegularTombstones);
+        const ack3 = await blobSetRegularItems(finalRegularItems);
+        const ack4 = await blobSetRegularTombstones(finalRegularTombstones);
+        if (ack3 === 'local_fs' || ack4 === 'local_fs') {
+          writeAckStatus = 'local_fs';
+        }
       }
 
       if (purchaseLogs && Array.isArray(purchaseLogs)) {
         const existingLogs = await blobGetPurchaseLogs();
         // Prefer enriched logs (backfill / clear-checked snapshots) over stale client copies
         const mergedLogs = mergePurchaseLogs(existingLogs, purchaseLogs);
-        await blobSetPurchaseLogs(mergedLogs);
+        const ack5 = await blobSetPurchaseLogs(mergedLogs);
+        if (ack5 === 'local_fs') {
+          writeAckStatus = 'local_fs';
+        }
       }
 
       const syncMeta = await blobUpdateSyncMeta(deviceName || "Unknown");
+      if (syncMeta.writeAcknowledgement === 'local_fs') {
+        writeAckStatus = 'local_fs';
+      }
+
       res.json({
         success: true,
         syncMeta,
+        writeAcknowledgement: writeAckStatus,
         groceryItems: finalGroceryItems,
         groceryTombstones: finalGroceryTombstones,
         groceryAmbiguities,

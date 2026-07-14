@@ -11,6 +11,7 @@ interface CatalogDrawerProps {
   onAdd: (item: RegularItem) => Promise<void>;
   onRemove: (name: string) => Promise<void>;
   onCustomAdd: (name: string, category: string, quantity: number) => Promise<void>;
+  isInline?: boolean;
 }
 
 import { normalizeStoreKey, isSaleActive, getStoreActivePrice, isOnSaleFlag } from "@/lib/price-utils";
@@ -24,6 +25,7 @@ export default function CatalogDrawer({
   onAdd,
   onRemove,
   onCustomAdd,
+  isInline = false,
 }: CatalogDrawerProps) {
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedCategory, setSelectedCategory] = useState("All Items");
@@ -189,11 +191,10 @@ export default function CatalogDrawer({
     return "bg-gray-50 text-gray-600 border-gray-200 hover:bg-gray-100";
   };
 
-  if (!isOpen) return null;
+  if (!isOpen && !isInline) return null;
 
-  return (
-    <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex justify-end transition-opacity duration-300">
-      <div className="bg-background w-full max-w-lg h-full flex flex-col shadow-2xl relative animate-slide-in-right">
+  const innerContent = (
+    <>
         {/* Drawer Header */}
         <div className="flex justify-between items-center px-4 py-4 border-b border-outline/10 bg-surface">
           <div className="flex items-center gap-2">
@@ -202,12 +203,14 @@ export default function CatalogDrawer({
               {filteredItems.length} Items
             </span>
           </div>
-          <button
-            onClick={onClose}
-            className="p-1.5 hover:bg-surface-container rounded-full text-on-surface-variant hover:text-on-surface transition-colors"
-          >
-            <X size={20} />
-          </button>
+          {!isInline && (
+            <button
+              onClick={onClose}
+              className="p-1.5 hover:bg-surface-container rounded-full text-on-surface-variant hover:text-on-surface transition-colors"
+            >
+              <X size={20} />
+            </button>
+          )}
         </div>
 
         {/* Search Bar */}
@@ -601,7 +604,22 @@ export default function CatalogDrawer({
             </div>
           )}
         </div>
+      </>
+    );
+
+    if (isInline) {
+      return (
+        <div className="bg-surface border-2 border-black rounded-xl shadow-[4px_4px_0px_rgba(0,0,0,1)] w-full h-full flex flex-col relative overflow-hidden">
+          {innerContent}
+        </div>
+      );
+    }
+
+    return (
+      <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex justify-end transition-opacity duration-300">
+        <div className="bg-background w-full max-w-lg h-full flex flex-col shadow-2xl relative animate-slide-in-right">
+          {innerContent}
+        </div>
       </div>
-    </div>
-  );
-}
+    );
+  }

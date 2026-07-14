@@ -136,7 +136,7 @@ export default function App() {
         </header>
 
         {/* Main Tab Content Area */}
-        <main className="flex-1 max-w-lg w-full mx-auto px-4 py-6">
+        <main className={`flex-1 w-full mx-auto px-4 py-6 ${activeTab === "home" ? "max-w-lg lg:max-w-[1400px]" : "max-w-lg"}`}>
           {renderTabContent()}
         </main>
 
