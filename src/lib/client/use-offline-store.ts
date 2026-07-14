@@ -102,6 +102,7 @@ export interface OfflineStore {
   lastSavedBy: string | null;
   hasPendingChanges: boolean;
   prices: PriceData;
+  writeAcknowledgement?: "mongodb" | "local_fs" | "error";
   saveChanges: () => Promise<void>;
   addGroceryItem: (name: string, quantity: number, unit: string, category?: string, units?: number) => Promise<GroceryItem>;
   toggleGroceryItem: (id: string) => Promise<void>;
@@ -130,6 +131,7 @@ export function useOfflineStoreState(): OfflineStore {
   const [groceryItems, setGroceryItems] = useState<GroceryItem[]>([]);
   const [regularItems, setRegularItems] = useState<RegularItem[]>([]);
   const [syncStatus, setSyncStatus] = useState<SyncStatus>("synced");
+  const [writeAcknowledgement, setWriteAcknowledgement] = useState<"mongodb" | "local_fs" | "error" | undefined>(undefined);
   const [isOnline, setIsOnline] = useState(true);
   const [lastSynced, setLastSynced] = useState<Date | null>(null);
   const [lastSavedBy, setLastSavedBy] = useState<string | null>(null);
@@ -258,6 +260,7 @@ export function useOfflineStoreState(): OfflineStore {
 
       if (!navigator.onLine) {
         setSyncStatus("offline");
+        setWriteAcknowledgement("local_fs");
         return;
       }
 
@@ -310,9 +313,11 @@ export function useOfflineStoreState(): OfflineStore {
         } else {
           setSyncStatus("synced");
         }
+        setWriteAcknowledgement(result.writeAcknowledgement);
         markSynced(result.syncMeta?.lastSavedBy || getDeviceName());
       } else {
         setSyncStatus("error");
+        setWriteAcknowledgement("error");
       }
       } finally {
         saveInFlightRef.current = false;
@@ -321,6 +326,7 @@ export function useOfflineStoreState(): OfflineStore {
       saveInFlightRef.current = false;
       console.error("saveChanges error:", err);
       setSyncStatus("error");
+      setWriteAcknowledgement("error");
     });
 
     saveQueuePromiseRef.current = nextPromise;
@@ -376,6 +382,7 @@ export function useOfflineStoreState(): OfflineStore {
         setLastSynced(new Date(serverData.syncMeta.lastSavedTime));
         setLastSavedBy(serverData.syncMeta.lastSavedBy || null);
       }
+      setWriteAcknowledgement(serverData.writeAcknowledgement);
 
       markSynced(serverData.syncMeta?.lastSavedBy || undefined);
     } catch (err) {
@@ -1015,6 +1022,7 @@ export function useOfflineStoreState(): OfflineStore {
     lastSavedBy,
     hasPendingChanges,
     prices,
+    writeAcknowledgement,
     saveChanges,
     addGroceryItem,
     toggleGroceryItem,

@@ -11,6 +11,7 @@ interface SyncIndicatorProps {
   onRefresh?: (force?: boolean) => Promise<void>;
   syncConflict?: boolean;
   onResolveConflict?: (choice: "local" | "server") => Promise<void>;
+  writeAcknowledgement?: "mongodb" | "local_fs" | "error";
 }
 
 function timeAgo(date: Date): string {
@@ -46,6 +47,7 @@ export default function SyncIndicator({
   onRefresh,
   syncConflict,
   onResolveConflict,
+  writeAcknowledgement,
 }: SyncIndicatorProps) {
   const [saving, setSaving] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
@@ -131,6 +133,24 @@ export default function SyncIndicator({
         <div className="inline-flex items-center gap-2 px-4 py-2 border-2 border-black bg-rose-100 text-black shadow-[3px_3px_0px_0px_rgba(0,0,0,1)] text-xs font-black uppercase">
           <span className="w-2.5 h-2.5 rounded-full bg-rose-500 border border-black" />
           <span>Offline{hasPendingChanges ? " — unsaved" : ""}{lastSyncedLabel}</span>
+        </div>
+      );
+    }
+
+    if (writeAcknowledgement === "local_fs") {
+      return (
+        <div className="inline-flex items-center gap-2 px-4 py-2 border-2 border-black bg-amber-100 text-black shadow-[3px_3px_0px_0px_rgba(0,0,0,1)] text-xs font-black uppercase">
+          <span className="w-2.5 h-2.5 rounded-full bg-amber-500 border border-black animate-pulse" />
+          <span>Saved Locally (Cloud Offline){ago ? ` • ${ago}${byDevice}` : ""}</span>
+        </div>
+      );
+    }
+
+    if (writeAcknowledgement === "mongodb") {
+      return (
+        <div className="inline-flex items-center gap-2 px-4 py-2 border-2 border-black bg-emerald-100 text-black shadow-[3px_3px_0px_0px_rgba(0,0,0,1)] text-xs font-black uppercase">
+          <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 border border-black" />
+          <span>Synced to Cloud (DB Confirmed){ago ? ` • ${ago}${byDevice}` : ""}</span>
         </div>
       );
     }

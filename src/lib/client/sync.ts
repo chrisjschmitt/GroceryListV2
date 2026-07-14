@@ -37,6 +37,7 @@ export interface PushResult {
   regularTombstones?: Tombstone[];
   regularAmbiguities?: any[];
   syncMeta?: SyncMetadata;
+  writeAcknowledgement?: "mongodb" | "local_fs" | "error";
 }
 
 export async function pushDirtyToServer(
@@ -104,6 +105,7 @@ export async function pushDirtyToServer(
       regularTombstones: data.regularTombstones,
       regularAmbiguities: data.regularAmbiguities,
       syncMeta: data.syncMeta,
+      writeAcknowledgement: data.writeAcknowledgement,
     };
   } catch (err) {
     console.error("PUT /api/sync encountered an exception:", err);
@@ -123,6 +125,7 @@ export interface PullResult {
   syncMeta: SyncMetadata | null;
   prices: PriceData;
   purchaseLogs: PurchaseLogEntry[];
+  writeAcknowledgement?: "mongodb" | "local_fs" | "error";
 }
 
 export async function fetchFromServer(): Promise<PullResult | null> {
@@ -140,6 +143,7 @@ export async function fetchFromServer(): Promise<PullResult | null> {
     const syncMeta: SyncMetadata | null = data.syncMeta || null;
     const prices: PriceData = data.prices || {};
     const purchaseLogs: PurchaseLogEntry[] = data.purchaseLogs || [];
+    const writeAcknowledgement: "mongodb" | "local_fs" | "error" | undefined = data.writeAcknowledgement;
 
     return {
       groceryItems,
@@ -149,6 +153,7 @@ export async function fetchFromServer(): Promise<PullResult | null> {
       syncMeta,
       prices,
       purchaseLogs,
+      writeAcknowledgement,
     };
   } catch (err) {
     console.error("Failed to fetch from server:", err);
