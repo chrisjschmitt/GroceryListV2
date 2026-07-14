@@ -5,6 +5,7 @@ import { ChevronDown, ChevronUp, Trash2, Plus, Minus, ListPlus, ExternalLink, Re
 import CatalogDrawer from "../../components/CatalogDrawer";
 import SyncIndicator from "../../components/SyncIndicator";
 import SyncAmbiguityResolver from "../../components/SyncAmbiguityResolver";
+import StoreSummaryBar from "../../components/StoreSummaryBar";
 import { normalizeStoreKey, getStoreActivePrice, isSaleExpired, getStoreDisplayName, isOnSaleFlag, parsePrice } from "@/lib/price-utils";
 import { isDirectFlippUrlUsable, buildFlippSearchPageUrl, sanitizeFlippItemName } from "@/lib/flipp-resolve";
 import { CATEGORY_ORDER, inferCategoryFromItemName } from "@/lib/categories";
@@ -88,6 +89,23 @@ function getStorePricingForFlyer(priceInfo: any, storeId: string) {
 
 export default function ListsTab() {
   const store = useOfflineStore();
+  const [isLargeScreen, setIsLargeScreen] = useState(() => {
+    if (typeof window !== "undefined") {
+      return window.matchMedia("(min-width: 1024px)").matches;
+    }
+    return false;
+  });
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const media = window.matchMedia("(min-width: 1024px)");
+    const listener = (e: MediaQueryListEvent) => {
+      setIsLargeScreen(e.matches);
+    };
+    media.addEventListener("change", listener);
+    return () => media.removeEventListener("change", listener);
+  }, []);
+
   const [expandedItems, setExpandedItems] = useState<Set<string>>(new Set());
   const [isCatalogOpen, setIsCatalogOpen] = useState(false);
   const [viewMode, setViewMode] = useState<"byStore" | "all">("all");
@@ -670,7 +688,9 @@ export default function ListsTab() {
 
         if (bestPriceVal !== Infinity && bestStoreInfo) {
           const regularPrice = parsePrice(bestStoreInfo.regular_price) || bestPriceVal;
-          const onSale = isOnSaleFlag(bestStoreInfo.is_on_sale);
+          const onSale = isOnSaleFlag(bestStoreInfo.is_on_sale) &&
+                         !isSaleExpired(bestStoreInfo.valid_until) &&
+                         parsePrice(bestStoreInfo.sale_price) !== null;
           
           storeMap[normStoreId].totalCost += bestPriceVal * item.quantity;
           if (onSale && regularPrice > bestPriceVal) {
@@ -971,6 +991,7 @@ export default function ListsTab() {
           onRefresh={store.refreshFromServer}
           syncConflict={store.syncConflict}
           onResolveConflict={store.resolveConflict}
+          writeAcknowledgement={(store as any).writeAcknowledgement}
         />
         <SyncAmbiguityResolver
           listType="grocery"
@@ -986,7 +1007,16 @@ export default function ListsTab() {
         />
       </div>
 
-      {/* Quick Add */}
+      {/* Per-store Price Summary Bar */}
+      {totalItems > 0 && (
+        <StoreSummaryBar groups={groupedByStore} />
+      )}
+
+      {/* Responsive Grid Wrapper */}
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
+        {/* Left Column (Shopping List building UI) */}
+        <div className="lg:col-span-7 space-y-6">
+          {/* Quick Add */}
       <div ref={quickAddContainerRef} className="bg-surface p-3 rounded-lg border border-outline/10 shadow-xs relative">
         <div className="flex items-center gap-2">
           <input
@@ -1651,31 +1681,59 @@ export default function ListsTab() {
         </div>
       )}
 
+        </div>
+
+        {/* Right Column: Inline Catalog Panel (Sticky) */}
+        {isLargeScreen && (
+          <div className="lg:col-span-5 lg:sticky lg:top-4 lg:max-h-[calc(100vh-120px)] lg:overflow-y-auto">
+            <CatalogDrawer
+              isOpen={true}
+              onClose={async () => {
+                if (store.hasPendingChanges) {
+                  await handleSaveChanges();
+                }
+              }}
+              regularItems={store.regularItems}
+              alreadyInList={shoppingListNames}
+              priceLookup={priceLookup}
+              onAdd={handleAddFromCatalog}
+              onRemove={handleRemoveFromCatalog}
+              onCustomAdd={async (name, cat, qty) => { await handleCustomAdd(name, cat, qty); }}
+              isInline={true}
+            />
+          </div>
+        )}
+      </div>
+
       {/* Floating Action Button (FAB) to open catalog */}
-      <button
-        onClick={() => setIsCatalogOpen(true)}
-        className="fixed bottom-24 right-6 w-14 h-14 bg-primary text-on-primary rounded-2xl shadow-lg flex items-center justify-center hover:scale-105 active:scale-95 transition-transform z-40 cursor-pointer"
-        title="Browse Grocery Catalog"
-      >
-        <ListPlus size={26} className="stroke-[2.5px]" />
-      </button>
+      {!isLargeScreen && (
+        <button
+          onClick={() => setIsCatalogOpen(true)}
+          className="fixed bottom-24 right-6 w-14 h-14 bg-primary text-on-primary rounded-2xl shadow-lg flex items-center justify-center hover:scale-105 active:scale-95 transition-transform z-40 cursor-pointer"
+          title="Browse Grocery Catalog"
+        >
+          <ListPlus size={26} className="stroke-[2.5px]" />
+        </button>
+      )}
 
       {/* Catalog Drawer Modal */}
-      <CatalogDrawer
-        isOpen={isCatalogOpen}
-        onClose={async () => {
-          setIsCatalogOpen(false);
-          if (store.hasPendingChanges) {
-            await handleSaveChanges();
-          }
-        }}
-        regularItems={store.regularItems}
-        alreadyInList={shoppingListNames}
-        priceLookup={priceLookup}
-        onAdd={handleAddFromCatalog}
-        onRemove={handleRemoveFromCatalog}
-        onCustomAdd={async (name, cat, qty) => { await handleCustomAdd(name, cat, qty); }}
-      />
+      {!isLargeScreen && (
+        <CatalogDrawer
+          isOpen={isCatalogOpen}
+          onClose={async () => {
+            setIsCatalogOpen(false);
+            if (store.hasPendingChanges) {
+              await handleSaveChanges();
+            }
+          }}
+          regularItems={store.regularItems}
+          alreadyInList={shoppingListNames}
+          priceLookup={priceLookup}
+          onAdd={handleAddFromCatalog}
+          onRemove={handleRemoveFromCatalog}
+          onCustomAdd={async (name, cat, qty) => { await handleCustomAdd(name, cat, qty); }}
+        />
+      )}
     </div>
   );
 }
