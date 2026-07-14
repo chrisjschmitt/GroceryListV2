@@ -99,11 +99,21 @@ export default function ListsTab() {
   useEffect(() => {
     if (typeof window === "undefined") return;
     const media = window.matchMedia("(min-width: 1024px)");
-    const listener = (e: MediaQueryListEvent) => {
+    const listener = (e: MediaQueryListEvent | MediaQueryList) => {
       setIsLargeScreen(e.matches);
     };
-    media.addEventListener("change", listener);
-    return () => media.removeEventListener("change", listener);
+    if (media.addEventListener) {
+      media.addEventListener("change", listener as EventListener);
+    } else {
+      (media as any).addListener(listener);
+    }
+    return () => {
+      if (media.removeEventListener) {
+        media.removeEventListener("change", listener as EventListener);
+      } else {
+        (media as any).removeListener(listener);
+      }
+    };
   }, []);
 
   const [expandedItems, setExpandedItems] = useState<Set<string>>(new Set());
@@ -1685,7 +1695,7 @@ export default function ListsTab() {
 
         {/* Right Column: Inline Catalog Panel (Sticky) */}
         {isLargeScreen && (
-          <div className="lg:col-span-5 lg:sticky lg:top-4 lg:max-h-[calc(100vh-120px)] lg:overflow-y-auto">
+          <div className="lg:col-span-5 lg:sticky lg:top-24 lg:h-[calc(100vh-120px)]">
             <CatalogDrawer
               isOpen={true}
               onClose={async () => {

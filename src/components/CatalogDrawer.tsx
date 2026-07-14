@@ -609,7 +609,7 @@ export default function CatalogDrawer({
 
     if (isInline) {
       return (
-        <div className="bg-background w-full h-full flex flex-col relative overflow-hidden">
+        <div className="bg-surface border-2 border-black rounded-xl shadow-[4px_4px_0px_rgba(0,0,0,1)] w-full h-full flex flex-col relative overflow-hidden">
           {innerContent}
         </div>
       );
