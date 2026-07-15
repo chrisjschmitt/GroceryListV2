@@ -51,7 +51,7 @@ export default function StoreSummaryBar({ groups }: StoreSummaryBarProps) {
   }
 
   return (
-    <div className="w-full border-2 border-black bg-white text-black rounded-xl shadow-[3px_3px_0px_rgba(0,0,0,1)] overflow-hidden">
+    <div className="hidden md:block w-full border-2 border-black bg-white text-black rounded-xl shadow-[3px_3px_0px_rgba(0,0,0,1)] overflow-hidden">
       {/* Header/Thin Strip */}
       <div 
         onClick={toggleMinimize}
