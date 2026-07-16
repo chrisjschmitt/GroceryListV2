@@ -8,8 +8,28 @@ import {
 } from "../src/lib/flipp-ingestion";
 import * as dotenv from "dotenv";
 import * as path from "path";
+import * as fs from "fs";
+import { fileURLToPath } from "url";
 
-dotenv.config({ path: path.join(process.cwd(), ".env.local") });
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+
+// Load local environment variables
+const projectRootEnvPath = path.join(__dirname, "..", ".env.local");
+const cwdEnvPath = path.join(process.cwd(), ".env.local");
+
+let envPath = "";
+if (fs.existsSync(projectRootEnvPath)) {
+  envPath = projectRootEnvPath;
+} else if (fs.existsSync(cwdEnvPath)) {
+  envPath = cwdEnvPath;
+}
+
+if (envPath) {
+  dotenv.config({ path: envPath });
+} else {
+  dotenv.config();
+}
 
 // Mock Combined Catalog data
 let mockCatalog: CombinedCatalog = {

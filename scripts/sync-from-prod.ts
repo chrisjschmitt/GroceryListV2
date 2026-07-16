@@ -2,10 +2,23 @@ import { MongoClient } from "mongodb";
 import dotenv from "dotenv";
 import fs from "fs";
 import path from "path";
+import { fileURLToPath } from "url";
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
 // 1. Load Environment Variables from .env.local
-const envPath = path.join(process.cwd(), ".env.local");
-if (fs.existsSync(envPath)) {
+const projectRootEnvPath = path.join(__dirname, "..", ".env.local");
+const cwdEnvPath = path.join(process.cwd(), ".env.local");
+
+let envPath = "";
+if (fs.existsSync(projectRootEnvPath)) {
+  envPath = projectRootEnvPath;
+} else if (fs.existsSync(cwdEnvPath)) {
+  envPath = cwdEnvPath;
+}
+
+if (envPath) {
   dotenv.config({ path: envPath });
 } else {
   dotenv.config();

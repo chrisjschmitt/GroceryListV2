@@ -1,10 +1,23 @@
 import fs from "fs";
 import path from "path";
 import dotenv from "dotenv";
+import { fileURLToPath } from "url";
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
 // Load local environment variables
-const envPath = path.join(process.cwd(), ".env.local");
-if (fs.existsSync(envPath)) {
+const projectRootEnvPath = path.join(__dirname, "..", ".env.local");
+const cwdEnvPath = path.join(process.cwd(), ".env.local");
+
+let envPath = "";
+if (fs.existsSync(projectRootEnvPath)) {
+  envPath = projectRootEnvPath;
+} else if (fs.existsSync(cwdEnvPath)) {
+  envPath = cwdEnvPath;
+}
+
+if (envPath) {
   dotenv.config({ path: envPath });
 } else {
   dotenv.config();

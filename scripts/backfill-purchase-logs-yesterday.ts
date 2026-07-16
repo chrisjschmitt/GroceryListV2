@@ -1,11 +1,24 @@
 import fs from "fs";
 import path from "path";
 import dotenv from "dotenv";
+import { fileURLToPath } from "url";
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
 // MUST run before any Mongo/db-store import. Stale Cursor-injected env can otherwise win.
-const envLocalPath = path.join(process.cwd(), ".env.local");
-if (fs.existsSync(envLocalPath)) {
-  dotenv.config({ path: envLocalPath, override: true });
+const projectRootEnvPath = path.join(__dirname, "..", ".env.local");
+const cwdEnvPath = path.join(process.cwd(), ".env.local");
+
+let envPath = "";
+if (fs.existsSync(projectRootEnvPath)) {
+  envPath = projectRootEnvPath;
+} else if (fs.existsSync(cwdEnvPath)) {
+  envPath = cwdEnvPath;
+}
+
+if (envPath) {
+  dotenv.config({ path: envPath, override: true });
 } else {
   dotenv.config({ override: true });
 }
