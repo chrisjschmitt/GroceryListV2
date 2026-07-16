@@ -26,9 +26,9 @@ if (fs.existsSync(projectRootEnvPath)) {
 }
 
 if (envPath) {
-  dotenv.config({ path: envPath });
+  dotenv.config({ path: envPath, override: true });
 } else {
-  dotenv.config();
+  dotenv.config({ override: true });
 }
 
 // Mock Combined Catalog data

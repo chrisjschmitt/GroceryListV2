@@ -19,9 +19,9 @@ if (fs.existsSync(projectRootEnvPath)) {
 }
 
 if (envPath) {
-  dotenv.config({ path: envPath });
+  dotenv.config({ path: envPath, override: true });
 } else {
-  dotenv.config();
+  dotenv.config({ override: true });
 }
 
 const MONGO_URI = process.env.MONGODB_URI;
