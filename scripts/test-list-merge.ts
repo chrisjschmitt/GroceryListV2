@@ -113,6 +113,26 @@ function testTiedEditConflict() {
   console.log("✅ testTiedEditConflict passed!");
 }
 
+// 4b. null vs undefined units should NOT be a tied conflict
+function testNullUndefinedUnitsNotAmbiguity() {
+  console.log("Testing null vs undefined units are not meaningfully different...");
+
+  const localItems: TestItem[] = [
+    { id: "item-1", name: "Milk", category: "Dairy", quantity: 1, unit: "bag", checked: false, updatedAt: now },
+  ];
+  const remoteItems: any[] = [
+    { id: "item-1", name: "Milk", category: "Dairy", quantity: 1, unit: "bag", checked: false, updatedAt: now, units: null },
+  ];
+
+  const result = mergeLists(localItems, [], remoteItems as TestItem[], []);
+
+  if (result.ambiguities.length !== 0) {
+    throw new Error(`Expected 0 ambiguities for null/undefined units, got ${result.ambiguities.length}`);
+  }
+
+  console.log("✅ testNullUndefinedUnitsNotAmbiguity passed!");
+}
+
 // 5. 90-day pruning
 function testTombstonePruning() {
   console.log("Testing 90-day pruning of tombstones...");
@@ -144,6 +164,7 @@ try {
   testDeleteLww();
   testDeleteLwwOverride();
   testTiedEditConflict();
+  testNullUndefinedUnitsNotAmbiguity();
   testTombstonePruning();
   console.log("\n🎉 ALL SYNC MERGE TESTS PASSED SUCCESSFULLY! 🎉\n");
 } catch (error) {

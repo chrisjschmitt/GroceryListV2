@@ -238,14 +238,39 @@ export function useOfflineStoreState(): OfflineStore {
       let currentGrocery = await localGetGroceryItems();
       let currentRegular = await localGetRegularItems();
 
+      // Prefer React field edits, but never downgrade a newer IndexedDB updatedAt
+      // (mutations often bump IDB timestamps before React state catches up).
+      const mergeReactWithNewerIdbTimestamps = <T extends { id: string; updatedAt?: number; updatedBy?: string }>(
+        reactItems: T[],
+        idbItems: T[]
+      ): T[] => {
+        const idbMap = new Map(idbItems.map((item) => [item.id, item]));
+        return reactItems.map((reactItem) => {
+          const idbItem = idbMap.get(reactItem.id);
+          if (!idbItem) return reactItem;
+          const reactTime = reactItem.updatedAt || 0;
+          const idbTime = idbItem.updatedAt || 0;
+          if (idbTime > reactTime) {
+            return {
+              ...reactItem,
+              updatedAt: idbItem.updatedAt,
+              updatedBy: idbItem.updatedBy ?? reactItem.updatedBy,
+            };
+          }
+          return reactItem;
+        });
+      };
+
       // If React state differs from IDB, write state to IDB
       if (!areGroceryItemsEqual(reactGrocery, currentGrocery)) {
-        await localSetGroceryItems(reactGrocery);
-        currentGrocery = reactGrocery;
+        const toWrite = mergeReactWithNewerIdbTimestamps(reactGrocery, currentGrocery);
+        await localSetGroceryItems(toWrite);
+        currentGrocery = toWrite;
       }
       if (!areRegularItemsEqual(reactRegular, currentRegular)) {
-        await localSetRegularItems(reactRegular);
-        currentRegular = reactRegular;
+        const toWrite = mergeReactWithNewerIdbTimestamps(reactRegular, currentRegular);
+        await localSetRegularItems(toWrite);
+        currentRegular = toWrite;
       }
 
       const flags = await getLocalDirtyFlags();
@@ -725,15 +750,22 @@ export function useOfflineStoreState(): OfflineStore {
 
     if (existingItem) {
       const newQty = (existingItem.quantity || 1) + quantity;
+      const now = Date.now();
       await localUpdateGroceryItemQuantity(existingItem.id, newQty);
-      const updatedItem = { ...existingItem, quantity: newQty };
+      const updatedItem: GroceryItem = {
+        ...existingItem,
+        quantity: newQty,
+        updatedAt: now,
+        updatedBy: getDeviceName(),
+      };
       setGroceryItems((prev) => prev.map((i) => (i.id === existingItem.id ? updatedItem : i)));
       markDirty("grocery");
       return updatedItem;
     }
 
+    const now = Date.now();
     const newItem: GroceryItem = {
-      id: `item-${Date.now()}-${Math.random().toString(36).slice(2, 9)}`,
+      id: `item-${now}-${Math.random().toString(36).slice(2, 9)}`,
       name,
       category: category || "Pantry Staples",
       quantity,
@@ -743,6 +775,8 @@ export function useOfflineStoreState(): OfflineStore {
       prices: [],
       bestPrice: undefined,
       createdAt: new Date().toISOString(),
+      updatedAt: now,
+      updatedBy: getDeviceName(),
     };
 
     // Attempt to enrich item with existing prices client-side if available
@@ -805,20 +839,28 @@ export function useOfflineStoreState(): OfflineStore {
   }, [prices, markDirty]);
 
   const toggleGroceryItem = useCallback(async (id: string) => {
+    const now = Date.now();
+    const device = getDeviceName();
     setGroceryItems((prev) => {
       const item = prev.find((i) => i.id === id);
       const targetChecked = item ? !item.checked : false;
       localToggleGroceryItem(id, targetChecked).catch(console.error);
-      return prev.map((i) => (i.id === id ? { ...i, checked: targetChecked } : i));
+      return prev.map((i) =>
+        i.id === id ? { ...i, checked: targetChecked, updatedAt: now, updatedBy: device } : i
+      );
     });
     markDirty("grocery");
   }, [markDirty]);
 
   const updateGroceryItemQuantity = useCallback(async (id: string, quantity: number) => {
     const targetQuantity = Math.max(1, quantity);
+    const now = Date.now();
+    const device = getDeviceName();
     setGroceryItems((prev) => {
       localUpdateGroceryItemQuantity(id, targetQuantity).catch(console.error);
-      return prev.map((i) => (i.id === id ? { ...i, quantity: targetQuantity } : i));
+      return prev.map((i) =>
+        i.id === id ? { ...i, quantity: targetQuantity, updatedAt: now, updatedBy: device } : i
+      );
     });
     markDirty("grocery");
   }, [markDirty]);
@@ -935,11 +977,15 @@ export function useOfflineStoreState(): OfflineStore {
   }, [markDirty]);
 
   const toggleRegularItem = useCallback(async (id: string) => {
+    const now = Date.now();
+    const device = getDeviceName();
     setRegularItems((prev) => {
       const item = prev.find((i) => i.id === id);
       const targetSelected = item ? !item.selected : false;
       localToggleRegularItem(id, targetSelected).catch(console.error);
-      return prev.map((i) => (i.id === id ? { ...i, selected: targetSelected } : i));
+      return prev.map((i) =>
+        i.id === id ? { ...i, selected: targetSelected, updatedAt: now, updatedBy: device } : i
+      );
     });
     markDirty("regular");
   }, [markDirty]);

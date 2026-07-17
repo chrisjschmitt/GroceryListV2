@@ -167,16 +167,22 @@ export function mergeLists<T extends { id: string; updatedAt?: number; createdAt
   return { mergedItems, mergedTombstones, ambiguities };
 }
 
+function normalizeField(value: unknown): unknown {
+  // Avoid false tied-conflicts from Mongo null vs client undefined round-trips
+  if (value === null || value === undefined) return undefined;
+  return value;
+}
+
 function areItemsMeaningfullyDifferent(a: any, b: any, isRegularList: boolean): boolean {
   if (isRegularList) {
     const fields = ["name", "category", "selected"];
     for (const f of fields) {
-      if (a[f] !== b[f]) return true;
+      if (normalizeField(a[f]) !== normalizeField(b[f])) return true;
     }
   } else {
     const fields = ["name", "category", "quantity", "unit", "units", "checked"];
     for (const f of fields) {
-      if (a[f] !== b[f]) return true;
+      if (normalizeField(a[f]) !== normalizeField(b[f])) return true;
     }
   }
   return false;
