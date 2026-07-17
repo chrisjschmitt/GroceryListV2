@@ -21,6 +21,45 @@ interface VersionEntry {
 
 const VERSIONS: VersionEntry[] = [
   {
+    version: "2.16.1",
+    date: "July 2026",
+    type: "patch",
+    title: "False Tied-Conflict Sync Fixes",
+    changes: [
+      {
+        icon: <RefreshCw className="w-4 h-4 text-emerald-500" />,
+        category: "Synchronization",
+        description: "Stopped false Resolve Tied Item Conflicts prompts after quantity edits, and fixed mass catalog false conflicts caused by regular items missing selected/updatedAt on the server."
+      }
+    ]
+  },
+  {
+    version: "2.16.0",
+    date: "July 2026",
+    type: "minor",
+    title: "iPhone Store Summary Removal",
+    changes: [
+      {
+        icon: <Smartphone className="w-4 h-4 text-emerald-500" />,
+        category: "UI / UX",
+        description: "Removed the Store Price Summary window on iPhone view for a cleaner mobile shopping list."
+      }
+    ]
+  },
+  {
+    version: "2.15.0",
+    date: "July 2026",
+    type: "minor",
+    title: "iPad & Desktop Layout Improvements",
+    changes: [
+      {
+        icon: <Layout className="w-4 h-4 text-emerald-500" />,
+        category: "UI / UX",
+        description: "Improved the UI layout to work better on iPad and desktop screens."
+      }
+    ]
+  },
+  {
     version: "2.14.1",
     date: "July 2026",
     type: "patch",
