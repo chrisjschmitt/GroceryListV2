@@ -91,15 +91,24 @@ export function mergeLists<T extends { id: string; updatedAt?: number; createdAt
         winningItem = localItem;
       } else if (remoteTime > localTime) {
         winningItem = remoteItem;
+      } else if (localTime === 0 && remoteTime === 0) {
+        // Legacy / catalog rows with no real timestamps: never surface UI conflicts.
+        // Regular items are catalog-backed — keep server catalog fields, preserve local selection.
+        winningItem = isRegularList
+          ? ({
+              ...remoteItem,
+              selected: normalizeBool((localItem as any).selected)
+                ? true
+                : normalizeBool((remoteItem as any).selected),
+            } as T)
+          : localItem;
+        hasTiedItemConflict = false;
+      } else if (areItemsMeaningfullyDifferent(localItem, remoteItem, isRegularList)) {
+        // Real tied timestamps with divergent fields
+        hasTiedItemConflict = true;
+        winningItem = localItem;
       } else {
-        // Equal timestamps: check if fields differ
-        if (areItemsMeaningfullyDifferent(localItem, remoteItem, isRegularList)) {
-          hasTiedItemConflict = true;
-          // Local wins as fallback for winningItem in active list
-          winningItem = localItem;
-        } else {
-          winningItem = localItem;
-        }
+        winningItem = localItem;
       }
     } else {
       winningItem = localItem || remoteItem;
@@ -173,17 +182,21 @@ function normalizeField(value: unknown): unknown {
   return value;
 }
 
+function normalizeBool(value: unknown): boolean {
+  return value === true;
+}
+
 function areItemsMeaningfullyDifferent(a: any, b: any, isRegularList: boolean): boolean {
   if (isRegularList) {
-    const fields = ["name", "category", "selected"];
-    for (const f of fields) {
-      if (normalizeField(a[f]) !== normalizeField(b[f])) return true;
-    }
+    if (normalizeField(a.name) !== normalizeField(b.name)) return true;
+    if (normalizeField(a.category) !== normalizeField(b.category)) return true;
+    if (normalizeBool(a.selected) !== normalizeBool(b.selected)) return true;
   } else {
-    const fields = ["name", "category", "quantity", "unit", "units", "checked"];
+    const fields = ["name", "category", "quantity", "unit", "units"];
     for (const f of fields) {
       if (normalizeField(a[f]) !== normalizeField(b[f])) return true;
     }
+    if (normalizeBool(a.checked) !== normalizeBool(b.checked)) return true;
   }
   return false;
 }

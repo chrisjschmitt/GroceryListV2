@@ -320,7 +320,14 @@ export async function blobSetPurchaseLogs(logs: PurchaseLogEntry[]): Promise<'mo
 // --- Regular/Pantry Items (Consolidated Catalog Proxy) ---
 export async function blobGetRegularItems(): Promise<RegularItem[]> {
   const catalog = await blobGetCombinedCatalog();
-  return catalog.items as any;
+  // Catalog rows are not selection-aware; default selected so sync merge
+  // does not treat missing vs false as a tied conflict across ~all items.
+  return catalog.items.map((item: any) => ({
+    ...item,
+    selected: item.selected === true,
+    updatedAt: item.updatedAt || undefined,
+    updatedBy: item.updatedBy || undefined,
+  })) as RegularItem[];
 }
 
 export async function blobSetRegularItems(items: RegularItem[]): Promise<'mongodb' | 'local_fs'> {

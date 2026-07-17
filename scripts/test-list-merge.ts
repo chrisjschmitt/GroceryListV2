@@ -133,6 +133,60 @@ function testNullUndefinedUnitsNotAmbiguity() {
   console.log("✅ testNullUndefinedUnitsNotAmbiguity passed!");
 }
 
+// 4c. Regular catalog rows with no timestamps must not flood ambiguity UI
+function testRegularCatalogLegacyNoAmbiguity() {
+  console.log("Testing regular catalog selected false vs missing at updatedAt 0...");
+
+  const localItems = Array.from({ length: 50 }, (_, i) => ({
+    id: `r-${i}`,
+    name: `Item ${i}`,
+    category: "Other",
+    selected: false,
+  }));
+  const remoteItems = Array.from({ length: 50 }, (_, i) => ({
+    id: `r-${i}`,
+    name: `Item ${i}`,
+    category: "Other",
+    // selected omitted — catalog shape
+  }));
+
+  const result = mergeLists(localItems as any, [], remoteItems as any, [], true);
+
+  if (result.ambiguities.length !== 0) {
+    throw new Error(`Expected 0 ambiguities for legacy regular catalog merge, got ${result.ambiguities.length}`);
+  }
+  if (result.mergedItems.length !== 50) {
+    throw new Error(`Expected 50 merged items, got ${result.mergedItems.length}`);
+  }
+
+  console.log("✅ testRegularCatalogLegacyNoAmbiguity passed!");
+}
+
+// 4d. Preserve local selected=true when merging legacy regular catalog rows
+function testRegularCatalogPreservesLocalSelected() {
+  console.log("Testing local selected=true preserved on legacy regular merge...");
+
+  const localItems = [
+    { id: "r-1", name: "Milk", category: "Dairy", selected: true },
+  ];
+  const remoteItems = [
+    { id: "r-1", name: "Milk", category: "Dairy", unit: "unit" },
+  ];
+
+  const result = mergeLists(localItems as any, [], remoteItems as any, [], true);
+  if (result.ambiguities.length !== 0) {
+    throw new Error(`Expected 0 ambiguities, got ${result.ambiguities.length}`);
+  }
+  if ((result.mergedItems[0] as any).selected !== true) {
+    throw new Error(`Expected selected=true to be preserved`);
+  }
+  if ((result.mergedItems[0] as any).unit !== "unit") {
+    throw new Error(`Expected remote catalog fields to be kept`);
+  }
+
+  console.log("✅ testRegularCatalogPreservesLocalSelected passed!");
+}
+
 // 5. 90-day pruning
 function testTombstonePruning() {
   console.log("Testing 90-day pruning of tombstones...");
@@ -165,6 +219,8 @@ try {
   testDeleteLwwOverride();
   testTiedEditConflict();
   testNullUndefinedUnitsNotAmbiguity();
+  testRegularCatalogLegacyNoAmbiguity();
+  testRegularCatalogPreservesLocalSelected();
   testTombstonePruning();
   console.log("\n🎉 ALL SYNC MERGE TESTS PASSED SUCCESSFULLY! 🎉\n");
 } catch (error) {
