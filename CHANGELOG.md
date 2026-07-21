@@ -1,5 +1,9 @@
 # Changelog
 
+## v2.20.0 — 2026-07-21
+
+- CR-10: Item Price Audit UI
+
 ## v2.19.0 — 2026-07-21
 
 - CR-9: - [ ] Research ways to compact Catalog
