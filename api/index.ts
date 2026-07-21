@@ -1993,7 +1993,10 @@ app.put("/api/catalog", async (req, res) => {
 // 6.7. GET /api/audit-updates
 app.get("/api/audit-updates", async (req, res) => {
   try {
-    const filePath = path.join(LOCAL_DIR, "audit-pricing-updates.json");
+    let filePath = path.join(LOCAL_DIR, "audit-pricing-updates.json");
+    if (!fs.existsSync(filePath)) {
+      filePath = path.join(process.cwd(), "db-storage", "audit-pricing-updates.json");
+    }
     if (!fs.existsSync(filePath)) {
       res.json([]);
       return;
