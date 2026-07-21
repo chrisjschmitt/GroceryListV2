@@ -3,7 +3,6 @@ import { useOfflineStore } from "@/lib/client/offline-store-context";
 import { GroceryItem, PriceEntry, RegularItem } from "@/lib/types";
 import { ChevronDown, ChevronUp, Trash2, Plus, Minus, ListPlus, ExternalLink, RefreshCw } from "lucide-react";
 import CatalogDrawer from "../../components/CatalogDrawer";
-import SyncIndicator from "../../components/SyncIndicator";
 import SyncAmbiguityResolver from "../../components/SyncAmbiguityResolver";
 import StoreSummaryBar from "../../components/StoreSummaryBar";
 import { normalizeStoreKey, getStoreActivePrice, isSaleExpired, getStoreDisplayName, isOnSaleFlag, parsePrice } from "@/lib/price-utils";
@@ -989,34 +988,23 @@ export default function ListsTab() {
         )}
       </div>
 
-      {/* Sync Indicator at Top of Page */}
-      <div className="bg-surface p-3 rounded-lg border border-outline/10 shadow-xs">
-        <SyncIndicator
-          status={store.syncStatus}
-          isOnline={store.isOnline}
-          lastSynced={store.lastSynced}
-          hasPendingChanges={store.hasPendingChanges}
-          lastSavedBy={store.lastSavedBy}
-          onSave={handleSaveChanges}
-          onRefresh={store.refreshFromServer}
-          onResetToServer={store.resetToServer}
-          syncConflict={store.syncConflict}
-          onResolveConflict={store.resolveConflict}
-          writeAcknowledgement={(store as any).writeAcknowledgement}
-        />
-        <SyncAmbiguityResolver
-          listType="grocery"
-          ambiguities={store.groceryAmbiguities}
-          onResolve={(id, choice) => store.resolveSingleAmbiguity("grocery", id, choice)}
-          onResolveAll={(choice) => store.resolveAllAmbiguities("grocery", choice)}
-        />
-        <SyncAmbiguityResolver
-          listType="regular"
-          ambiguities={store.regularAmbiguities}
-          onResolve={(id, choice) => store.resolveSingleAmbiguity("regular", id, choice)}
-          onResolveAll={(choice) => store.resolveAllAmbiguities("regular", choice)}
-        />
-      </div>
+      {/* Sync ambiguity prompts (only when needed) */}
+      {(store.groceryAmbiguities.length > 0 || store.regularAmbiguities.length > 0) && (
+        <div className="bg-surface p-3 rounded-lg border border-outline/10 shadow-xs space-y-2">
+          <SyncAmbiguityResolver
+            listType="grocery"
+            ambiguities={store.groceryAmbiguities}
+            onResolve={(id, choice) => store.resolveSingleAmbiguity("grocery", id, choice)}
+            onResolveAll={(choice) => store.resolveAllAmbiguities("grocery", choice)}
+          />
+          <SyncAmbiguityResolver
+            listType="regular"
+            ambiguities={store.regularAmbiguities}
+            onResolve={(id, choice) => store.resolveSingleAmbiguity("regular", id, choice)}
+            onResolveAll={(choice) => store.resolveAllAmbiguities("regular", choice)}
+          />
+        </div>
+      )}
 
       {/* Per-store Price Summary Bar */}
       {totalItems > 0 && (

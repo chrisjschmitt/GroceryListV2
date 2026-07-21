@@ -9,6 +9,7 @@ import HelpModal from "./components/HelpModal";
 import packageJson from "../package.json";
 import { Home, ShoppingBasket, Tag, User, Settings2, HelpCircle } from "lucide-react";
 import { OfflineStoreProvider } from "./lib/client/offline-store-context";
+import SyncIndicator, { SyncConflictBanner } from "./components/SyncIndicator";
 
 export default function App() {
   const [currentPath, setCurrentPath] = useState(window.location.pathname);
@@ -101,7 +102,9 @@ export default function App() {
             </span>
           </div>
 
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-1.5 sm:gap-3">
+            <SyncIndicator />
+
             {/* Changelog Version Button */}
             <button
               onClick={() => setIsChangelogOpen(true)}
@@ -134,6 +137,8 @@ export default function App() {
             </a>
           </div>
         </header>
+
+        <SyncConflictBanner />
 
         {/* Main Tab Content Area */}
         <main className={`flex-1 w-full mx-auto px-4 py-6 ${activeTab === "home" ? "max-w-lg lg:max-w-[1400px]" : "max-w-lg"}`}>

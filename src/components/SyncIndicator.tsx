@@ -1,20 +1,6 @@
-import { useState, useEffect } from "react";
-import { SyncStatus } from "../lib/client/sync";
-
-interface SyncIndicatorProps {
-  status: SyncStatus;
-  isOnline: boolean;
-  lastSynced: Date | null;
-  lastSavedBy: string | null;
-  hasPendingChanges: boolean;
-  onSave: () => Promise<void>;
-  onRefresh?: (force?: boolean) => Promise<void>;
-  /** True replace: discard local lists and use the server snapshot. */
-  onResetToServer?: () => Promise<boolean>;
-  syncConflict?: boolean;
-  onResolveConflict?: (choice: "local" | "server") => Promise<void>;
-  writeAcknowledgement?: "mongodb" | "local_fs" | "error";
-}
+import { useState, useEffect, useRef } from "react";
+import { ChevronDown } from "lucide-react";
+import { useOfflineStore } from "@/lib/client/offline-store-context";
 
 const RESET_TO_SERVER_CONFIRM =
   "Replace the shopping list on this device with what's on the server?\n\nLocal-only items will be removed. This can't be undone.";
@@ -42,171 +28,223 @@ function useTimeAgo(date: Date | null): string {
   return timeAgo(date);
 }
 
-export default function SyncIndicator({
-  status,
-  isOnline,
-  lastSynced,
-  lastSavedBy,
-  hasPendingChanges,
-  onSave,
-  onRefresh,
-  onResetToServer,
-  syncConflict,
-  onResolveConflict,
-  writeAcknowledgement,
-}: SyncIndicatorProps) {
+type ChipTone = "green" | "yellow" | "red" | "blue";
+
+function getChipState(opts: {
+  syncConflict: boolean;
+  isOnline: boolean;
+  saving: boolean;
+  hasPendingChanges: boolean;
+  status: string;
+  writeAcknowledgement?: "mongodb" | "local_fs" | "error";
+}): { tone: ChipTone; label: string; pulse: boolean } {
+  const { syncConflict, isOnline, saving, hasPendingChanges, status, writeAcknowledgement } = opts;
+
+  if (syncConflict && isOnline) {
+    return { tone: "red", label: "Conflict", pulse: true };
+  }
+  if (saving) {
+    return { tone: "blue", label: "Syncing", pulse: true };
+  }
+  if (!isOnline || status === "offline" || status === "error") {
+    return { tone: "yellow", label: hasPendingChanges ? "Offline · unsaved" : "Offline", pulse: false };
+  }
+  if (hasPendingChanges) {
+    return { tone: "yellow", label: "Unsaved", pulse: true };
+  }
+  if (writeAcknowledgement === "local_fs" || writeAcknowledgement === "error") {
+    return { tone: "yellow", label: "Local", pulse: true };
+  }
+  if (writeAcknowledgement === "mongodb") {
+    return { tone: "green", label: "Cloud", pulse: false };
+  }
+  return { tone: "green", label: "Synced", pulse: false };
+}
+
+const DOT_CLASS: Record<ChipTone, string> = {
+  green: "bg-emerald-500",
+  yellow: "bg-amber-500",
+  red: "bg-red-600",
+  blue: "bg-blue-500",
+};
+
+/** Compact header chip + actions menu. Reads sync state from OfflineStore. */
+export default function SyncIndicator() {
+  const store = useOfflineStore();
+  const [menuOpen, setMenuOpen] = useState(false);
   const [saving, setSaving] = useState(false);
-  const [refreshing, setRefreshing] = useState(false);
   const [resetting, setResetting] = useState(false);
-  const ago = useTimeAgo(lastSynced);
+  const rootRef = useRef<HTMLDivElement>(null);
+  const ago = useTimeAgo(store.lastSynced);
+
+  const { tone, label, pulse } = getChipState({
+    syncConflict: store.syncConflict,
+    isOnline: store.isOnline,
+    saving,
+    hasPendingChanges: store.hasPendingChanges,
+    status: store.syncStatus,
+    writeAcknowledgement: store.writeAcknowledgement,
+  });
+
+  useEffect(() => {
+    if (!menuOpen) return;
+    const onPointerDown = (e: PointerEvent) => {
+      if (rootRef.current && !rootRef.current.contains(e.target as Node)) {
+        setMenuOpen(false);
+      }
+    };
+    const onKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "Escape") setMenuOpen(false);
+    };
+    document.addEventListener("pointerdown", onPointerDown);
+    document.addEventListener("keydown", onKeyDown);
+    return () => {
+      document.removeEventListener("pointerdown", onPointerDown);
+      document.removeEventListener("keydown", onKeyDown);
+    };
+  }, [menuOpen]);
 
   const handleSave = async () => {
     setSaving(true);
     try {
-      await onSave();
+      await store.saveChanges();
     } finally {
       setSaving(false);
-    }
-  };
-
-  const handleRefresh = async () => {
-    if (!onRefresh) return;
-    setRefreshing(true);
-    try {
-      await onRefresh(true);
-    } finally {
-      setRefreshing(false);
+      setMenuOpen(false);
     }
   };
 
   const handleResetToServer = async () => {
-    if (!onResetToServer) return;
     if (!window.confirm(RESET_TO_SERVER_CONFIRM)) return;
     setResetting(true);
     try {
-      await onResetToServer();
+      await store.resetToServer();
     } finally {
       setResetting(false);
+      setMenuOpen(false);
     }
   };
 
-  const byDevice = lastSavedBy ? ` by ${lastSavedBy}` : "";
-  const lastSyncedLabel = ago ? ` • last saved${byDevice} ${ago}` : "";
-
-  const renderStatus = () => {
-    if (syncConflict && isOnline) {
-      return (
-        <div className="flex flex-col gap-2.5 p-4 border-2 border-red-500 bg-red-50 text-black shadow-[3px_3px_0px_0px_rgba(239,68,68,1)] text-xs font-bold uppercase w-full sm:max-w-md">
-          <div className="flex items-center gap-2 font-black text-red-700">
-            <span className="w-2.5 h-2.5 rounded-full bg-red-600 border border-black animate-pulse" />
-            <span>Sync Conflict: Server list is newer</span>
-          </div>
-          <p className="text-[10px] text-gray-700 normal-case font-bold leading-normal">
-            Another device has saved changes to the server that you do not have locally. Keep your local edits (overwrites the server), or replace this device with the full server list — local-only items will be removed.
-          </p>
-          <div className="flex items-center gap-2 mt-1">
-            <button
-              onClick={() => onResolveConflict?.("local")}
-              className="px-2.5 py-1 bg-black text-white hover:bg-emerald-600 transition-colors border border-black text-[9px] font-black uppercase cursor-pointer"
-            >
-              Keep Local (Overwrite)
-            </button>
-            <button
-              onClick={() => {
-                if (!window.confirm(RESET_TO_SERVER_CONFIRM)) return;
-                void onResolveConflict?.("server");
-              }}
-              className="px-2.5 py-1 bg-white text-black hover:bg-rose-100 transition-colors border border-black text-[9px] font-black uppercase cursor-pointer"
-            >
-              Use Server (Discard Local)
-            </button>
-          </div>
-        </div>
-      );
-    }
-
-    if (saving) {
-      return (
-        <div className="inline-flex items-center gap-2 px-4 py-2 border-2 border-black bg-white text-black shadow-[3px_3px_0px_0px_rgba(0,0,0,1)] text-xs font-black uppercase">
-          <span className="w-2.5 h-2.5 rounded-full bg-blue-500 border border-black animate-ping" />
-          <span>Syncing...</span>
-        </div>
-      );
-    }
-
-    if (hasPendingChanges && isOnline) {
-      return (
-        <div className="inline-flex items-center gap-2 px-4 py-2 border-2 border-black bg-amber-100 text-black shadow-[3px_3px_0px_0px_rgba(0,0,0,1)] text-xs font-black uppercase">
-          <span className="w-2.5 h-2.5 rounded-full bg-amber-500 border border-black animate-pulse" />
-          <span>Unsaved changes{lastSyncedLabel}</span>
-          <button
-            onClick={handleSave}
-            className="ml-2 px-2.5 py-0.5 bg-black text-white hover:bg-emerald-600 transition-colors border border-black text-[10px] font-black uppercase"
-          >
-            Save Now
-          </button>
-        </div>
-      );
-    }
-
-    if (!isOnline || status === "offline" || status === "error") {
-      return (
-        <div className="inline-flex items-center gap-2 px-4 py-2 border-2 border-black bg-rose-100 text-black shadow-[3px_3px_0px_0px_rgba(0,0,0,1)] text-xs font-black uppercase">
-          <span className="w-2.5 h-2.5 rounded-full bg-rose-500 border border-black" />
-          <span>Offline{hasPendingChanges ? " — unsaved" : ""}{lastSyncedLabel}</span>
-        </div>
-      );
-    }
-
-    if (writeAcknowledgement === "local_fs") {
-      return (
-        <div className="inline-flex items-center gap-2 px-4 py-2 border-2 border-black bg-amber-100 text-black shadow-[3px_3px_0px_0px_rgba(0,0,0,1)] text-xs font-black uppercase">
-          <span className="w-2.5 h-2.5 rounded-full bg-amber-500 border border-black animate-pulse" />
-          <span>Saved Locally (Cloud Offline){ago ? ` • ${ago}${byDevice}` : ""}</span>
-        </div>
-      );
-    }
-
-    if (writeAcknowledgement === "mongodb") {
-      return (
-        <div className="inline-flex items-center gap-2 px-4 py-2 border-2 border-black bg-emerald-100 text-black shadow-[3px_3px_0px_0px_rgba(0,0,0,1)] text-xs font-black uppercase">
-          <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 border border-black" />
-          <span>Synced to Cloud (DB Confirmed){ago ? ` • ${ago}${byDevice}` : ""}</span>
-        </div>
-      );
-    }
-
-    return (
-      <div className="inline-flex items-center gap-2 px-4 py-2 border-2 border-black bg-emerald-100 text-black shadow-[3px_3px_0px_0px_rgba(0,0,0,1)] text-xs font-black uppercase">
-        <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 border border-black" />
-        <span>Synced{ago ? ` • ${ago}${byDevice}` : ""}</span>
-      </div>
-    );
-  };
+  const byDevice = store.lastSavedBy ? ` by ${store.lastSavedBy}` : "";
+  const detailLine = ago
+    ? `Last saved${byDevice} ${ago}`
+    : store.isOnline
+      ? "Connected"
+      : "Working offline";
 
   return (
-    <div className="flex flex-wrap items-center gap-2.5">
-      {renderStatus()}
-      {onRefresh && isOnline && !hasPendingChanges && !saving && !resetting && !syncConflict && (
-        <button
-          onClick={handleRefresh}
-          disabled={refreshing}
-          className="px-3 py-2 border-2 border-black bg-white hover:bg-gray-150 disabled:opacity-50 text-black shadow-[3px_3px_0px_0px_rgba(0,0,0,1)] hover:shadow-none hover:translate-x-[2px] hover:translate-y-[2px] transition-all text-xs font-black uppercase flex items-center justify-center cursor-pointer h-[38px] active:translate-x-[3px] active:translate-y-[3px] active:shadow-none"
-          title="Merge latest server changes into this device (keeps local-only items)"
+    <div ref={rootRef} className="relative">
+      <button
+        type="button"
+        onClick={() => setMenuOpen((o) => !o)}
+        className="flex items-center justify-center min-w-11 min-h-11 -my-1 rounded-md hover:bg-surface-container-low transition-colors cursor-pointer"
+        title={`${label} — ${detailLine}`}
+        aria-label={`Sync status: ${label}. ${detailLine}`}
+        aria-expanded={menuOpen}
+        aria-haspopup="menu"
+      >
+        <span
+          className={`w-2.5 h-2.5 rounded-full border border-black/20 ${DOT_CLASS[tone]} ${
+            pulse ? "animate-pulse" : ""
+          }`}
+        />
+        <ChevronDown
+          size={12}
+          className={`ml-0.5 text-on-surface-variant/70 transition-transform ${menuOpen ? "rotate-180" : ""}`}
+        />
+      </button>
+
+      {menuOpen && (
+        <div
+          role="menu"
+          className="absolute right-0 top-full mt-1 z-[60] w-56 rounded-lg border border-outline/15 bg-surface shadow-lg p-1.5 text-left"
         >
-          {refreshing ? "🔄 Pulling..." : "🔄 Pull Updates"}
-        </button>
+          <div className="px-2.5 py-2 border-b border-outline/10 mb-1">
+            <div className="flex items-center gap-2">
+              <span className={`w-2 h-2 rounded-full ${DOT_CLASS[tone]} ${pulse ? "animate-pulse" : ""}`} />
+              <span className="text-xs font-bold text-on-surface">{label}</span>
+            </div>
+            <p className="text-[10px] text-on-surface-variant mt-1 leading-snug">{detailLine}</p>
+          </div>
+
+          {store.hasPendingChanges && store.isOnline && !store.syncConflict && (
+            <button
+              type="button"
+              role="menuitem"
+              onClick={handleSave}
+              disabled={saving}
+              className="w-full text-left px-2.5 py-2 text-xs font-semibold rounded-md hover:bg-surface-container-low disabled:opacity-50 cursor-pointer"
+            >
+              {saving ? "Saving…" : "Save Now"}
+            </button>
+          )}
+
+          {store.isOnline && !store.syncConflict && (
+            <button
+              type="button"
+              role="menuitem"
+              onClick={handleResetToServer}
+              disabled={resetting || saving}
+              className="w-full text-left px-2.5 py-2 text-xs font-semibold rounded-md hover:bg-rose-50 text-rose-800 disabled:opacity-50 cursor-pointer"
+            >
+              {resetting ? "Resetting…" : "Reset to Server…"}
+            </button>
+          )}
+
+          {store.syncConflict && (
+            <p className="px-2.5 py-2 text-[10px] text-on-surface-variant leading-snug">
+              Resolve the conflict banner below first.
+            </p>
+          )}
+
+          {!store.isOnline && (
+            <p className="px-2.5 py-2 text-[10px] text-on-surface-variant leading-snug">
+              Reconnect to save or reset from the server.
+            </p>
+          )}
+        </div>
       )}
-      {onResetToServer && isOnline && !saving && !refreshing && !syncConflict && (
-        <button
-          onClick={handleResetToServer}
-          disabled={resetting}
-          className="px-3 py-2 border-2 border-black bg-white hover:bg-rose-50 disabled:opacity-50 text-black shadow-[3px_3px_0px_0px_rgba(0,0,0,1)] hover:shadow-none hover:translate-x-[2px] hover:translate-y-[2px] transition-all text-xs font-black uppercase flex items-center justify-center cursor-pointer h-[38px] active:translate-x-[3px] active:translate-y-[3px] active:shadow-none"
-          title="Replace this device's lists with the server snapshot"
-        >
-          {resetting ? "Resetting..." : "Reset to Server"}
-        </button>
-      )}
+    </div>
+  );
+}
+
+/** Full-width conflict resolution banner for rare sync conflicts. */
+export function SyncConflictBanner() {
+  const store = useOfflineStore();
+
+  if (!store.syncConflict || !store.isOnline) return null;
+
+  return (
+    <div className="px-4 pt-3">
+      <div className="mx-auto max-w-lg flex flex-col gap-2.5 p-3.5 border border-red-500/40 bg-red-50 text-black rounded-lg text-xs font-bold uppercase w-full">
+        <div className="flex items-center gap-2 font-black text-red-700">
+          <span className="w-2.5 h-2.5 rounded-full bg-red-600 border border-black animate-pulse" />
+          <span>Sync Conflict: Server list is newer</span>
+        </div>
+        <p className="text-[10px] text-gray-700 normal-case font-bold leading-normal">
+          Another device has saved changes you do not have locally. Keep your local edits (overwrites the server), or
+          replace this device with the full server list — local-only items will be removed.
+        </p>
+        <div className="flex flex-wrap items-center gap-2 mt-0.5">
+          <button
+            type="button"
+            onClick={() => void store.resolveConflict("local")}
+            className="px-2.5 py-1.5 bg-black text-white hover:bg-emerald-600 transition-colors border border-black text-[9px] font-black uppercase cursor-pointer rounded-md"
+          >
+            Keep Local (Overwrite)
+          </button>
+          <button
+            type="button"
+            onClick={() => {
+              if (!window.confirm(RESET_TO_SERVER_CONFIRM)) return;
+              void store.resolveConflict("server");
+            }}
+            className="px-2.5 py-1.5 bg-white text-black hover:bg-rose-100 transition-colors border border-black text-[9px] font-black uppercase cursor-pointer rounded-md"
+          >
+            Use Server (Discard Local)
+          </button>
+        </div>
+      </div>
     </div>
   );
 }

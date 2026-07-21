@@ -4,7 +4,6 @@ import { GroceryItem, PriceEntry } from "@/lib/types";
 import AddItemForm from "./AddItemForm";
 import GroceryItemRow, { abbreviateStoreName } from "./GroceryItemRow";
 import RegularItemsList from "./RegularItemsList";
-import SyncIndicator from "./SyncIndicator";
 import SyncAmbiguityResolver from "./SyncAmbiguityResolver";
 import PullToRefresh from "./PullToRefresh";
 
@@ -539,37 +538,13 @@ export default function GroceryList() {
           </div>
 
           {/* Savings Estimate Box */}
-          <div className="col-span-1 md:col-span-3 bg-[#f0fdf4] border-2 border-black p-5 shadow-[6px_6px_0px_0px_rgba(0,0,0,1)] flex flex-col justify-between min-h-[145px]">
+          <div className="col-span-1 md:col-span-6 bg-[#f0fdf4] border-2 border-black p-5 shadow-[6px_6px_0px_0px_rgba(0,0,0,1)] flex flex-col justify-between min-h-[145px]">
             <div>
               <h2 className="text-xs font-black uppercase text-[#166534] tracking-wider mb-1">Savings Estimate</h2>
               <span className="text-4xl font-black text-[#15803d]">${savingsEstimate.toFixed(2)}</span>
               <div className="mt-3 h-1 bg-[#166534] w-full opacity-25"></div>
             </div>
             <p className="text-[10px] font-black uppercase text-[#166534]">Favorable sale discounts</p>
-          </div>
-
-          {/* Sync status & online Box */}
-          <div className="col-span-1 md:col-span-3 bg-white border-2 border-black p-5 shadow-[6px_6px_0px_0px_rgba(0,0,0,1)] flex flex-col justify-between min-h-[145px]">
-            <div>
-              <span className="text-xs font-extrabold uppercase tracking-widest text-[#6b7280] mb-2 block">System Sync</span>
-              <div className="pt-0.5">
-                <SyncIndicator
-                  status={store.syncStatus}
-                  isOnline={store.isOnline}
-                  lastSynced={store.lastSynced}
-                  hasPendingChanges={store.hasPendingChanges}
-                  lastSavedBy={store.lastSavedBy}
-                  onSave={store.saveChanges}
-                  onRefresh={store.refreshFromServer}
-                  onResetToServer={store.resetToServer}
-                  syncConflict={store.syncConflict}
-                  onResolveConflict={store.resolveConflict}
-                />
-              </div>
-            </div>
-            <div className="text-[10px] font-black uppercase text-gray-500 tracking-wider">
-              {store.isOnline ? "● Live Connected" : "○ Local Only"}
-            </div>
           </div>
         </div>
 
