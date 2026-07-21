@@ -695,6 +695,58 @@ export default function AdminPage() {
     });
   };
 
+  const applyScrapedPrices = (scraped: any) => {
+    if (!scraped) return;
+    setCatalogItemForm((prev: any) => {
+      const updatedStores = { ...prev.stores };
+      const defaultStoreObj = {
+        url: "",
+        flipp_url: "",
+        upc: "",
+        regular_price: "",
+        sale_price: "",
+        is_on_sale: false,
+        valid_until: "",
+        track_pricing: true,
+        external_name: "",
+        is_verified: false
+      };
+      const currentStore = {
+        ...defaultStoreObj,
+        ...(updatedStores[selectedCatalogStore] || {})
+      };
+      
+      const reg = scraped.regular_price !== undefined && scraped.regular_price !== null ? String(scraped.regular_price) : "";
+      const sale = scraped.sale_price !== undefined && scraped.sale_price !== null ? String(scraped.sale_price) : "";
+      const isSale = scraped.is_on_sale === 1;
+      const validUntil = scraped.valid_until || "";
+      
+      updatedStores[selectedCatalogStore] = {
+        ...currentStore,
+        regular_price: reg,
+        sale_price: sale,
+        is_on_sale: isSale ? 1 : 0,
+        valid_until: validUntil,
+        is_verified: true
+      };
+
+      const updated = {
+        ...prev,
+        stores: updatedStores
+      };
+
+      if (scraped.unit) {
+        updated.unit = scraped.unit;
+      }
+      if (scraped.units !== undefined && scraped.units !== null) {
+        updated.units = scraped.units;
+      }
+
+      return updated;
+    });
+    showVisualMessage("Scraped values applied! Review and click Save Catalog Item to persist.");
+  };
+
   const removeStoreFromItem = (storeKey: string) => {
     if (confirm(`Remove store-specific price rules & tracking for "${storeKey}" on this item?`)) {
       setCatalogItemForm((prev: any) => {
@@ -2859,6 +2911,7 @@ export default function AdminPage() {
                     onClick={() => {
                       setEditingCatalogItem(null);
                       setIsAddingCatalogItem(false);
+                      setActiveAuditCorrection(null);
                     }}
                     className="p-1 border border-black bg-white hover:bg-gray-100"
                   >
@@ -3034,7 +3087,7 @@ export default function AdminPage() {
                         </div>
                       </div>
 
-                      <div className="mb-2">
+                                      <div className="mb-2">
                         {catalogItemForm.stores?.[selectedCatalogStore] ? (
                           <div className="bg-emerald-50 text-emerald-800 border border-emerald-300 text-[10px] font-bold px-2 py-1 flex items-center justify-between leading-normal">
                             <span>● "{dynamicStoreNames[selectedCatalogStore] || selectedCatalogStore}" pricing link is currently configured.</span>
@@ -3052,6 +3105,75 @@ export default function AdminPage() {
                           </div>
                         )}
                       </div>
+
+                      {/* Live Scraped Audit findings helper panel */}
+                      {activeAuditCorrection && 
+                       activeAuditCorrection.itemId === catalogItemForm.id && 
+                       activeAuditCorrection.storeKey === selectedCatalogStore && (
+                        <div className="mb-3 bg-amber-50 border-2 border-amber-500 p-3 text-black text-xs space-y-2">
+                          <div className="flex items-center justify-between border-b border-amber-300 pb-1">
+                            <span className="font-black uppercase tracking-wider text-[10px] text-amber-900 flex items-center gap-1">
+                              <span>🔍 Live Scraped Audit Findings</span>
+                            </span>
+                            <span className={`text-[9px] font-black uppercase px-1.5 py-0.5 border border-black ${
+                              activeAuditCorrection.status === "ERROR" ? "bg-red-200 text-red-900" : "bg-amber-200 text-amber-900"
+                            }`}>
+                              {activeAuditCorrection.status}
+                            </span>
+                          </div>
+
+                          {activeAuditCorrection.status === "ERROR" ? (
+                            <div className="text-[11px] leading-relaxed">
+                              <p className="font-bold text-red-700">Audit Scraper encountered an error:</p>
+                              <p className="font-mono bg-red-50 p-1 border border-red-200 text-red-900 break-words mt-1">
+                                {activeAuditCorrection.errorMessage || activeAuditCorrection.discrepancies?.[0] || "Unknown Error"}
+                              </p>
+                            </div>
+                          ) : (
+                            <div className="space-y-1.5 text-[11px]">
+                              <p className="font-bold text-amber-900">Scraped data to align / apply:</p>
+                              <div className="grid grid-cols-2 gap-x-3 gap-y-1 bg-white/65 p-2 border border-amber-200 font-mono">
+                                <div>
+                                  <span className="text-[9px] font-black text-gray-500 uppercase block">Regular Price</span>
+                                  <span className="font-bold text-black">${activeAuditCorrection.regular_price !== null ? activeAuditCorrection.regular_price.toFixed(2) : "None"}</span>
+                                </div>
+                                <div>
+                                  <span className="text-[9px] font-black text-gray-500 uppercase block">Sale Price</span>
+                                  <span className="font-bold text-black">${activeAuditCorrection.sale_price !== null ? activeAuditCorrection.sale_price.toFixed(2) : "None"}</span>
+                                </div>
+                                <div>
+                                  <span className="text-[9px] font-black text-gray-500 uppercase block">On Sale</span>
+                                  <span className="font-bold text-black">{activeAuditCorrection.is_on_sale === 1 ? "Yes" : "No"}</span>
+                                </div>
+                                <div>
+                                  <span className="text-[9px] font-black text-gray-500 uppercase block">Valid Until</span>
+                                  <span className="font-bold text-black">{activeAuditCorrection.valid_until || "None"}</span>
+                                </div>
+                                {activeAuditCorrection.unit && (
+                                  <div>
+                                    <span className="text-[9px] font-black text-gray-500 uppercase block">Unit</span>
+                                    <span className="font-bold text-black">{activeAuditCorrection.unit}</span>
+                                  </div>
+                                )}
+                                {activeAuditCorrection.units !== undefined && activeAuditCorrection.units !== null && (
+                                  <div>
+                                    <span className="text-[9px] font-black text-gray-500 uppercase block">Units (Size)</span>
+                                    <span className="font-bold text-black">{activeAuditCorrection.units}</span>
+                                  </div>
+                                )}
+                              </div>
+
+                              <button
+                                type="button"
+                                onClick={() => applyScrapedPrices(activeAuditCorrection)}
+                                className="w-full text-center py-1.5 px-3 border border-black bg-amber-400 hover:bg-amber-500 text-black font-black uppercase text-[10px] tracking-wider shadow-[1.5px_1.5px_0px_rgba(0,0,0,1)] hover:shadow-none hover:translate-x-px hover:translate-y-px transition-all cursor-pointer block"
+                              >
+                                Apply Scraped Prices
+                              </button>
+                            </div>
+                          )}
+                        </div>
+                      )}
 
                       <div className="space-y-2 text-xs">
                         <div>
@@ -3230,6 +3352,7 @@ export default function AdminPage() {
                     onClick={() => {
                       setEditingCatalogItem(null);
                       setIsAddingCatalogItem(false);
+                      setActiveAuditCorrection(null);
                     }}
                     className="text-xs font-black uppercase tracking-wider text-black bg-white hover:bg-gray-100 border-2 border-black px-4 py-2 shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] hover:shadow-none hover:translate-x-[1px] hover:translate-y-[1px] transition-all"
                   >

@@ -1,6 +1,23 @@
 [
   {
     "itemId": "catalog-1782220513890-y2b5l",
+    "itemName": "Romaine lettuce 3-pack (Test Verification Item)",
+    "storeKey": "metro",
+    "regular_price": null,
+    "sale_price": null,
+    "is_on_sale": 0,
+    "valid_until": "",
+    "unit": "unit",
+    "units": 3,
+    "in_flyer": 0,
+    "status": "ERROR",
+    "discrepancies": [
+      "Puppeteer timeout: Could not find selectors on Metro website"
+    ],
+    "errorMessage": "Puppeteer timeout: Could not find selectors on Metro website"
+  },
+  {
+    "itemId": "catalog-1782220513890-y2b5l",
     "itemName": "Romaine lettuce 3-pack",
     "storeKey": "foodbasics",
     "regular_price": 5.88,
