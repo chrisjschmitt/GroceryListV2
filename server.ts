@@ -2047,6 +2047,31 @@ async function startServer() {
     }
   });
 
+  // 6.7. GET /api/audit-updates
+  app.get("/api/audit-updates", async (req, res) => {
+    try {
+      const filePath = path.join(LOCAL_DIR, "audit-pricing-updates.json");
+      if (!fs.existsSync(filePath)) {
+        res.json([]);
+        return;
+      }
+      const dataStr = fs.readFileSync(filePath, "utf8");
+      if (!dataStr.trim()) {
+        res.json([]);
+        return;
+      }
+      const updates = JSON.parse(dataStr);
+      if (!Array.isArray(updates)) {
+        res.json([]);
+        return;
+      }
+      res.json(updates);
+    } catch (error) {
+      console.error("GET /api/audit-updates error:", error);
+      res.status(500).json({ error: "Failed to fetch price audit updates" });
+    }
+  });
+
   // 7. GET /api/scrape-config
   app.get("/api/scrape-config", async (req, res) => {
     try {

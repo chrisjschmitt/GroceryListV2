@@ -131,11 +131,13 @@ export default function AdminPage() {
     setPricesLoading(true);
     setCatalogLoading(true);
     setScrapeLoading(true);
+    setAuditLoading(true);
     try {
-      const [resPrices, resCatalog, resScrape] = await Promise.all([
+      const [resPrices, resCatalog, resScrape, resAudit] = await Promise.all([
         fetch("/api/prices?mongodbOnly=true"),
         fetch("/api/catalog"),
-        fetch("/api/scrape-config")
+        fetch("/api/scrape-config"),
+        fetch("/api/audit-updates")
       ]);
       if (resPrices.ok) {
         const data = await resPrices.json();
@@ -149,12 +151,17 @@ export default function AdminPage() {
         const data = await resScrape.json();
         setScrapeConfig(data || { stores: {} });
       }
+      if (resAudit.ok) {
+        const data = await resAudit.json();
+        setAuditUpdates(data || []);
+      }
     } catch (err) {
       console.error("Failed to refresh admin datasets:", err);
     } finally {
       setPricesLoading(false);
       setCatalogLoading(false);
       setScrapeLoading(false);
+      setAuditLoading(false);
     }
   };
 
@@ -410,6 +417,23 @@ export default function AdminPage() {
   const [catalogStoreFilter, setCatalogStoreFilter] = useState("all");
   const [catalogSourceFilter, setCatalogSourceFilter] = useState("all");
 
+  // Price Audit State
+  const [auditUpdates, setAuditUpdates] = useState<any[]>([]);
+  const [auditLoading, setAuditLoading] = useState(true);
+  const [auditStatusFilter, setAuditStatusFilter] = useState<"flagged" | "mismatch" | "error">("flagged");
+  const [resolvedAudits, setResolvedAudits] = useState<Set<string>>(new Set());
+  const [activeAuditCorrection, setActiveAuditCorrection] = useState<any>(null);
+
+  const filteredAuditUpdates = useMemo(() => {
+    return auditUpdates.filter((u: any) => {
+      if (u.status === "MATCH") return false;
+      if (auditStatusFilter === "flagged") return u.status === "MISMATCH" || u.status === "ERROR";
+      if (auditStatusFilter === "mismatch") return u.status === "MISMATCH";
+      if (auditStatusFilter === "error") return u.status === "ERROR";
+      return true;
+    });
+  }, [auditUpdates, auditStatusFilter]);
+
   const [editingCatalogItem, setEditingCatalogItem] = useState<any>(null);
   const [editCatIsCustom, setEditCatIsCustom] = useState(false);
   const [editCustomCat, setEditCustomCat] = useState("");
@@ -463,22 +487,30 @@ export default function AdminPage() {
     let cancelled = false;
     async function load() {
       try {
-        const [configRes, catalogRes, pricesRes, issuesRes] = await Promise.all([
+        const [configRes, catalogRes, pricesRes, issuesRes, auditRes] = await Promise.all([
           fetch("/api/scrape-config"),
           fetch("/api/catalog"),
           fetch("/api/prices?mongodbOnly=true"),
           fetch("/api/pricing-issues"),
+          fetch("/api/audit-updates"),
         ]);
         const configData = await configRes.json();
         const catalogData = await catalogRes.json();
         const pricesJson = await pricesRes.json();
         const issuesJson = await issuesRes.json();
+        let auditData = [];
+        try {
+          auditData = await auditRes.json();
+        } catch (e) {
+          console.warn("Failed to parse audit data JSON", e);
+        }
         if (!cancelled) {
           const normalizedConfig = ensureDefaultStores(configData);
           setScrapeConfig(normalizedConfig);
           setCatalog(catalogData || { stores: {}, items: [] });
           setPricesData(pricesJson.prices || {});
           setPricingIssues(issuesJson.issues || []);
+          setAuditUpdates(auditData || []);
         }
       } catch (err) {
         console.error("Error loading admin system datasets:", err);
@@ -488,6 +520,7 @@ export default function AdminPage() {
           setScrapeLoading(false);
           setCatalogLoading(false);
           setPricesLoading(false);
+          setAuditLoading(false);
         }
       }
     }
@@ -760,6 +793,14 @@ export default function AdminPage() {
     if (success) {
       setEditingCatalogItem(null);
       setIsAddingCatalogItem(false);
+      if (activeAuditCorrection) {
+        setResolvedAudits((prev) => {
+          const updated = new Set(prev);
+          updated.add(`${activeAuditCorrection.itemId}-${activeAuditCorrection.storeKey}`);
+          return updated;
+        });
+        setActiveAuditCorrection(null);
+      }
     }
   };
 
@@ -3361,6 +3402,134 @@ export default function AdminPage() {
               </div>
             )}
               </>
+            )}
+          </div>
+
+          {/* Price Audit Report Analyzer Section */}
+          <div className="bg-surface border-2 border-black p-6 rounded-xl shadow-[4px_4px_0px_rgba(0,0,0,1)] text-black mt-8">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-4 pb-1.5 border-b-2 border-black">
+              <h2 className="text-base font-black uppercase tracking-tight flex items-center gap-2">
+                <Eye className="w-5 h-5 text-indigo-600" /> Price Audit Report Analyzer (audit-pricing-updates.json)
+              </h2>
+              <div className="flex items-center gap-2">
+                <select
+                  value={auditStatusFilter}
+                  onChange={(e) => setAuditStatusFilter(e.target.value as any)}
+                  className="py-1.5 px-2 border-2 border-black bg-white font-black text-[11px] uppercase tracking-wider leading-relaxed text-black text-xs"
+                >
+                  <option value="flagged">All Flagged (Mismatch & Error)</option>
+                  <option value="mismatch">Mismatch Only</option>
+                  <option value="error">Error Only</option>
+                </select>
+                <button
+                  type="button"
+                  onClick={fetchPrices}
+                  disabled={auditLoading || catalogLoading}
+                  className="text-xs font-black uppercase tracking-wider text-black bg-white hover:bg-gray-150 border-2 border-black px-3 py-1.5 shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] hover:shadow-none hover:translate-x-[1px] hover:translate-y-[1px] transition-all flex items-center gap-1.5 cursor-pointer"
+                >
+                  <RefreshCw className={`w-3.5 h-3.5 ${(auditLoading || catalogLoading) ? "animate-spin" : ""}`} />
+                  <span>Refresh</span>
+                </button>
+              </div>
+            </div>
+
+            <p className="text-xs text-gray-500 mb-6 font-medium leading-relaxed">
+              Review items flagged with pricing discrepancies or scraping errors from the latest automated catalog audit. Open a correction window to reconcile live prices, urls, and sale status back to the catalog.
+            </p>
+
+            {auditLoading ? (
+              <div className="flex items-center justify-center py-12">
+                <RefreshCw className="animate-spin w-8 h-8 text-indigo-500" />
+                <span className="ml-2 font-bold text-sm">Loading audit updates...</span>
+              </div>
+            ) : filteredAuditUpdates.length > 0 ? (
+              <div className="space-y-3">
+                <div className="max-h-[500px] overflow-y-auto border-2 border-black rounded-sm custom-scrollbar bg-white p-2">
+                  <table className="w-full text-left text-xs border-collapse">
+                    <thead>
+                      <tr className="bg-indigo-50 border-b-2 border-black text-[10px] font-black uppercase text-indigo-900 tracking-wider">
+                        <th className="p-2 border-r border-black">Product & Store</th>
+                        <th className="p-2 border-r border-black">Audit Status</th>
+                        <th className="p-2 border-r border-black">Discrepancy Details</th>
+                        <th className="p-2 text-right">Actions</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {filteredAuditUpdates.map((update: any, idx: number) => {
+                        const isResolved = resolvedAudits.has(`${update.itemId}-${update.storeKey}`);
+                        return (
+                          <tr
+                            key={`${update.itemId}-${update.storeKey}-${idx}`}
+                            className={`border-b border-black hover:bg-indigo-50/10 text-black ${
+                              isResolved ? "opacity-40 bg-gray-50" : ""
+                            }`}
+                          >
+                            <td className="p-2.5 border-r border-black leading-normal align-top max-w-[200px]">
+                              <span className="font-extrabold text-xs block">{update.itemName}</span>
+                              <span className="text-[10px] text-indigo-850 font-bold block mt-0.5">
+                                {dynamicStoreNames[update.storeKey] || getStoreDisplayName(update.storeKey)}
+                              </span>
+                            </td>
+                            <td className="p-2.5 border-r border-black align-top">
+                              {isResolved ? (
+                                <span className="bg-emerald-100 text-emerald-800 border border-emerald-500 text-[9px] font-black uppercase px-2 py-0.5 rounded-md select-none inline-block">
+                                  Resolved ✓
+                                </span>
+                              ) : update.status === "ERROR" ? (
+                                <span className="bg-rose-100 text-rose-900 border border-black text-[9px] font-black uppercase px-2 py-0.5 rounded-md select-none inline-block">
+                                  ❌ ERROR
+                                </span>
+                              ) : (
+                                <span className="bg-amber-100 text-amber-900 border border-black text-[9px] font-black uppercase px-2 py-0.5 rounded-md select-none inline-block">
+                                  ⚠️ MISMATCH
+                                </span>
+                              )}
+                            </td>
+                            <td className="p-2.5 border-r border-black leading-relaxed align-top">
+                              {update.status === "ERROR" ? (
+                                <p className="text-rose-800 text-[11px] font-semibold break-all">
+                                  {update.errorMessage || update.discrepancies?.[0] || "Ingestion Error"}
+                                </p>
+                              ) : (
+                                <ul className="list-disc pl-4 space-y-0.5 text-[11px] font-medium text-gray-700">
+                                  {update.discrepancies?.map((d: string, dIdx: number) => (
+                                    <li key={dIdx} className="break-words">{d}</li>
+                                  ))}
+                                </ul>
+                              )}
+                            </td>
+                            <td className="p-2.5 text-right align-top">
+                              <div className="flex justify-end gap-1.5">
+                                <button
+                                  type="button"
+                                  disabled={isResolved}
+                                  onClick={() => {
+                                    const catalogItem = catalog?.items?.find((i: any) => i.id === update.itemId);
+                                    if (catalogItem) {
+                                      handleOpenEditCatalog(catalogItem);
+                                      setSelectedCatalogStore(update.storeKey);
+                                      setActiveAuditCorrection(update);
+                                    } else {
+                                      showVisualMessage(`Could not find catalog product ID: ${update.itemId}`);
+                                    }
+                                  }}
+                                  className="text-[10px] font-black uppercase bg-indigo-400 text-black border border-black px-2 py-1 shadow-[1.5px_1.5px_0px_rgba(0,0,0,1)] hover:shadow-none hover:translate-x-px hover:translate-y-px transition-all cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed"
+                                >
+                                  Correct Item
+                                </button>
+                              </div>
+                            </td>
+                          </tr>
+                        );
+                      })}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            ) : (
+              <div className="text-center py-10 border-2 border-dashed border-gray-300 bg-gray-50 rounded-lg">
+                <p className="text-sm font-bold text-gray-500">No flagged audit updates found matching filter.</p>
+              </div>
             )}
           </div>
 

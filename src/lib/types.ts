@@ -188,4 +188,20 @@ export interface PurchaseLogEntry {
   priceSnapshot?: PriceSnapshotEntry[]; // pricing snapshot of competitor stores
 }
 
+export interface AuditUpdate {
+  itemId: string;
+  itemName: string;
+  storeKey: string;
+  regular_price: number | null;
+  sale_price: number | null;
+  is_on_sale: number;
+  valid_until?: string;
+  unit?: string | null;
+  units?: number | null;
+  in_flyer?: number;
+  status: "MATCH" | "MISMATCH" | "ERROR";
+  discrepancies: string[];
+  errorMessage?: string;
+}
+
 
