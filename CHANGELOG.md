@@ -1,5 +1,9 @@
 # Changelog
 
+## v2.19.0 — 2026-07-21
+
+- CR-9: - [ ] Research ways to compact Catalog
+
 ## v2.18.0 — 2026-07-21
 
 - CR-8: - [ ] Consolidate Quick Add and Search List items on Grocery List
