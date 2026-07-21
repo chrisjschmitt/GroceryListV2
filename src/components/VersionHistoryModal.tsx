@@ -21,6 +21,24 @@ interface VersionEntry {
 
 const VERSIONS: VersionEntry[] = [
   {
+    version: "2.17.0",
+    date: "July 2026",
+    type: "minor",
+    title: "Compact Sync Chip & Reset to Server",
+    changes: [
+      {
+        icon: <Cloud className="w-4 h-4 text-emerald-500" />,
+        category: "UI / UX",
+        description: "Replaced the full-width sync banners and Pull Updates button with a compact header status chip (green/yellow/red) next to version, Help, and Admin. Tap the chip for Save Now and sync details."
+      },
+      {
+        icon: <RefreshCw className="w-4 h-4 text-emerald-500" />,
+        category: "Synchronization",
+        description: "Added Reset to Server to fully replace this device's lists with the server snapshot (no merge), so long-offline devices no longer keep stale local-only items after a pull. Conflict Use Server now performs the same true replace."
+      }
+    ]
+  },
+  {
     version: "2.16.1",
     date: "July 2026",
     type: "patch",
