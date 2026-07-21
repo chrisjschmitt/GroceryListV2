@@ -572,22 +572,20 @@ async function runAudit() {
       return;
     }
   } else if (analyzeOnly) {
-    console.log("\n2. Skipping browser capture. Loading existing screenshots for Gemini analysis...");
+    console.log("\n2. Skipping browser capture. Loading existing screenshots and cached audit data...");
     
     let previousUpdates: any[] = [];
-    if (retryErrors) {
-      const deltaPath = path.join(process.cwd(), "db-storage", "audit-pricing-updates.json");
-      if (fs.existsSync(deltaPath)) {
-        try {
-          previousUpdates = JSON.parse(fs.readFileSync(deltaPath, "utf8"));
-          console.log(`   Loaded ${previousUpdates.length} previous updates to filter/retry errors...`);
-        } catch (err: any) {
-          console.warn(`   ⚠️ Warning: Could not read previous audit updates: ${err.message}`);
-        }
-      } else {
-        console.warn(`   ⚠️ Warning: No previous audit updates file found at ${deltaPath}. Retrying all items.`);
+    const deltaPath = path.join(process.cwd(), "db-storage", "audit-pricing-updates.json");
+    if (fs.existsSync(deltaPath)) {
+      try {
+        previousUpdates = JSON.parse(fs.readFileSync(deltaPath, "utf8"));
+        console.log(`   Loaded ${previousUpdates.length} previous updates from db-storage/audit-pricing-updates.json...`);
+      } catch (err: any) {
+        console.warn(`   ⚠️ Warning: Could not read previous audit updates: ${err.message}`);
       }
     }
+
+    const forceReanalyze = runAll || args.includes("--force");
 
     for (let i = 0; i < targetLinks.length; i++) {
       const { item, storeKey, storeDetails } = targetLinks[i];
@@ -603,67 +601,66 @@ async function runAudit() {
       const catalogInFlyer = storeDetails.in_flyer === 1 || storeDetails.in_flyer === true;
 
       const hasScreenshot = fs.existsSync(screenshotPath);
-      if (hasScreenshot) {
-        let prevMatch = null;
-        if (retryErrors && previousUpdates.length > 0) {
-          prevMatch = previousUpdates.find((u: any) => u.itemId === item.id && u.storeKey === storeKey);
-        }
+      let prevMatch = previousUpdates.length > 0 
+        ? previousUpdates.find((u: any) => u.itemId === item.id && u.storeKey === storeKey)
+        : null;
 
-        if (prevMatch && prevMatch.status !== "ERROR") {
-          console.log(`   ├─ [SKIP] "${item.name}" (${storeKey}) was successfully audited in previous run (Status: ${prevMatch.status}).`);
-          auditResults.push({
-            itemId: item.id,
-            itemName: item.name,
-            storeKey,
-            url: storeDetails.url,
-            catalogRegular,
-            catalogSale,
-            catalogIsOnSale,
-            catalogValidUntil,
-            catalogUnit,
-            catalogUnits,
-            catalogInFlyer,
-            geminiRegular: prevMatch.regular_price,
-            geminiSale: prevMatch.sale_price,
-            geminiIsOnSale: prevMatch.is_on_sale === 1 || prevMatch.is_on_sale === true,
-            geminiValidUntil: prevMatch.valid_until || null,
-            geminiUnit: prevMatch.unit || null,
-            geminiUnits: prevMatch.units != null ? Number(prevMatch.units) : null,
-            geminiInFlyer: prevMatch.in_flyer === 1 || prevMatch.in_flyer === true,
-            screenshotFile: screenshotPath,
-            status: prevMatch.status,
-            discrepancies: prevMatch.discrepancies || [],
-            analyzed: true
-          });
-        } else {
-          if (prevMatch && prevMatch.status === "ERROR") {
-            console.log(`   ├─ [RETRY] "${item.name}" (${storeKey}) had ERROR/TIMEOUT in previous run. Will re-audit.`);
-          }
-          auditResults.push({
-            itemId: item.id,
-            itemName: item.name,
-            storeKey,
-            url: storeDetails.url,
-            catalogRegular,
-            catalogSale,
-            catalogIsOnSale,
-            catalogValidUntil,
-            catalogUnit,
-            catalogUnits,
-            catalogInFlyer,
-            geminiRegular: null,
-            geminiSale: null,
-            geminiIsOnSale: false,
-            geminiValidUntil: null,
-            geminiUnit: null,
-            geminiUnits: null,
-            geminiInFlyer: false,
-            screenshotFile: screenshotPath,
-            status: "MATCH",
-            discrepancies: [],
-            analyzed: false
-          });
+      // If we have cached audit data from audit-pricing-updates.json (which is tracked in git),
+      // use it unless force re-analysis is explicitly requested or missing/errored.
+      if (prevMatch && prevMatch.status !== "ERROR" && (!hasScreenshot || !forceReanalyze || retryErrors)) {
+        console.log(`   ├─ [CACHE HIT] "${item.name}" (${storeKey}) using data from audit-pricing-updates.json (Status: ${prevMatch.status}).`);
+        auditResults.push({
+          itemId: item.id,
+          itemName: item.name,
+          storeKey,
+          url: storeDetails.url,
+          catalogRegular,
+          catalogSale,
+          catalogIsOnSale,
+          catalogValidUntil,
+          catalogUnit,
+          catalogUnits,
+          catalogInFlyer,
+          geminiRegular: prevMatch.regular_price,
+          geminiSale: prevMatch.sale_price,
+          geminiIsOnSale: prevMatch.is_on_sale === 1 || prevMatch.is_on_sale === true,
+          geminiValidUntil: prevMatch.valid_until || null,
+          geminiUnit: prevMatch.unit || null,
+          geminiUnits: prevMatch.units != null ? Number(prevMatch.units) : null,
+          geminiInFlyer: prevMatch.in_flyer === 1 || prevMatch.in_flyer === true,
+          screenshotFile: hasScreenshot ? screenshotPath : "",
+          status: prevMatch.status,
+          discrepancies: prevMatch.discrepancies || [],
+          analyzed: true
+        });
+      } else if (hasScreenshot) {
+        if (prevMatch && prevMatch.status === "ERROR") {
+          console.log(`   ├─ [RETRY] "${item.name}" (${storeKey}) had ERROR/TIMEOUT in previous run. Will re-audit.`);
         }
+        auditResults.push({
+          itemId: item.id,
+          itemName: item.name,
+          storeKey,
+          url: storeDetails.url,
+          catalogRegular,
+          catalogSale,
+          catalogIsOnSale,
+          catalogValidUntil,
+          catalogUnit,
+          catalogUnits,
+          catalogInFlyer,
+          geminiRegular: null,
+          geminiSale: null,
+          geminiIsOnSale: false,
+          geminiValidUntil: null,
+          geminiUnit: null,
+          geminiUnits: null,
+          geminiInFlyer: false,
+          screenshotFile: screenshotPath,
+          status: "MATCH",
+          discrepancies: [],
+          analyzed: false
+        });
       } else {
         auditResults.push({
           itemId: item.id,
