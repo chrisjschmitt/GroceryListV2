@@ -1,5 +1,9 @@
 # Changelog
 
+## v2.18.0 — 2026-07-21
+
+- CR-8: - [ ] Consolidate Quick Add and Search List items on Grocery List
+
 ## v2.16.1 — 2026-07-17
 
 - Fix false tied-conflict prompts after grocery quantity edits
