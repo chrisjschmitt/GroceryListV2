@@ -561,6 +561,7 @@ export default function GroceryList() {
                   lastSavedBy={store.lastSavedBy}
                   onSave={store.saveChanges}
                   onRefresh={store.refreshFromServer}
+                  onResetToServer={store.resetToServer}
                   syncConflict={store.syncConflict}
                   onResolveConflict={store.resolveConflict}
                 />

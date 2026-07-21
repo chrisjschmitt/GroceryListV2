@@ -999,6 +999,7 @@ export default function ListsTab() {
           lastSavedBy={store.lastSavedBy}
           onSave={handleSaveChanges}
           onRefresh={store.refreshFromServer}
+          onResetToServer={store.resetToServer}
           syncConflict={store.syncConflict}
           onResolveConflict={store.resolveConflict}
           writeAcknowledgement={(store as any).writeAcknowledgement}

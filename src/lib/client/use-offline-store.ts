@@ -119,6 +119,8 @@ export interface OfflineStore {
   deleteRegularItem: (id: string) => Promise<void>;
   addSelectedToGroceryList: (items: RegularItem[]) => Promise<void>;
   refreshFromServer: (force?: boolean) => Promise<void>;
+  /** Replace local lists with the server snapshot (no merge). */
+  resetToServer: () => Promise<boolean>;
   syncConflict: boolean;
   resolveConflict: (choice: "local" | "server") => Promise<void>;
   groceryAmbiguities: any[];
@@ -422,10 +424,50 @@ export function useOfflineStoreState(): OfflineStore {
   useEffect(() => {
     saveChangesRef.current = saveChanges;
   }, [saveChanges]);
+  const resetToServer = useCallback(async (): Promise<boolean> => {
+    if (!navigator.onLine) return false;
+
+    try {
+      const result = await pullFromServer();
+      if (!result) return false;
+
+      setGroceryItems(result.groceryItems);
+      setServerGroceryItems(JSON.parse(JSON.stringify(result.groceryItems)));
+      serverGroceryItemsRef.current = result.groceryItems;
+      setGroceryAmbiguities([]);
+
+      setRegularItems(result.regularItems);
+      setServerRegularItems(JSON.parse(JSON.stringify(result.regularItems)));
+      serverRegularItemsRef.current = result.regularItems;
+      setRegularAmbiguities([]);
+
+      setPurchaseLogs(result.purchaseLogs);
+      setPrices(result.prices);
+      setWriteAcknowledgement(result.writeAcknowledgement);
+
+      await setLocalDirtyFlags({ grocery: false, regular: false });
+      setGroceryDirtyState(false);
+      setRegularDirtyState(false);
+      dirtyRef.current.clear();
+
+      if (result.syncMeta) {
+        setLastSynced(new Date(result.syncMeta.lastSavedTime));
+        setLastSavedBy(result.syncMeta.lastSavedBy || null);
+      }
+
+      setSyncConflict(false);
+      markSynced(result.syncMeta?.lastSavedBy || undefined);
+      return true;
+    } catch (err) {
+      console.error("Failed to reset to server:", err);
+      return false;
+    }
+  }, [markSynced]);
+
   const resolveConflict = useCallback(async (choice: "local" | "server") => {
     if (choice === "server") {
-      // Use server version (discard local)
-      await pullAndUpdate(true);
+      // Use server version (discard local) — true replace, not merge
+      await resetToServer();
     } else {
       // Keep local changes (push to server)
       setSyncConflict(false); // Clear temporarily to allow pushing
@@ -464,7 +506,7 @@ export function useOfflineStoreState(): OfflineStore {
         setSyncStatus("offline");
       }
     }
-  }, [pullAndUpdate, markSynced]);
+  }, [resetToServer, markSynced]);
 
   const resolveSingleAmbiguity = useCallback(async (listType: "grocery" | "regular", id: string, choice: "local" | "remote") => {
     if (listType === "grocery") {
@@ -1085,6 +1127,7 @@ export function useOfflineStoreState(): OfflineStore {
     deleteRegularItem,
     addSelectedToGroceryList,
     refreshFromServer: pullAndUpdate,
+    resetToServer,
     syncConflict,
     resolveConflict,
     groceryAmbiguities,
