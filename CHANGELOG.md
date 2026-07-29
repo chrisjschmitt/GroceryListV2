@@ -1,5 +1,9 @@
 # Changelog
 
+## v2.23.0 — 2026-07-29
+
+- CR-14: Run the Price Audit Scraper script every Thursday Morning
+
 ## v2.22.0 — 2026-07-29
 
 - CR-13: The audit-prices.ts --analyze script not working correctly
