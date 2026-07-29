@@ -1,5 +1,9 @@
 # Changelog
 
+## v2.22.0 — 2026-07-29
+
+- CR-13: The audit-prices.ts --analyze script not working correctly
+
 ## v2.21.0 — 2026-07-21
 
 - CR-11: No Data in Price Audit Report Analyser
