@@ -7,4 +7,9 @@ coverage/
 .env*
 !.env.example
 screenshots/
+screenshots-prev/
 db-storage/playwright-profile/
+db-storage/audit-prices.lock
+db-storage/audit-run-status.json
+logs/
+
