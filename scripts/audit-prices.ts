@@ -605,11 +605,17 @@ async function runAudit() {
         ? previousUpdates.find((u: any) => u.itemId === item.id && u.storeKey === storeKey)
         : null;
 
-      // If we have cached audit data from audit-pricing-updates.json (which is tracked in git),
-      // use it unless force re-analysis is explicitly requested or missing/errored.
-      if (prevMatch && prevMatch.status !== "ERROR" && (!hasScreenshot || !forceReanalyze || retryErrors)) {
-        console.log(`   ├─ [CACHE HIT] "${item.name}" (${storeKey}) using data from audit-pricing-updates.json (Status: ${prevMatch.status}).`);
-        auditResults.push({
+      // We only reuse cached Gemini extraction data if:
+      // - We have a prior non-ERROR record (prevMatch && prevMatch.status !== "ERROR"), AND
+      // - NOT force re-analyzing (!forceReanalyze), AND
+      // - EITHER:
+      //    a) --retry / --retry-errors was passed (user explicitly asked to only re-run error items), OR
+      //    b) screenshot file is missing on disk (!hasScreenshot)
+      const canUseCache = prevMatch && prevMatch.status !== "ERROR" && !forceReanalyze && (retryErrors || !hasScreenshot);
+
+      if (canUseCache) {
+        console.log(`   ├─ [CACHE HIT] "${item.name}" (${storeKey}) using cached Gemini data from audit-pricing-updates.json${!hasScreenshot ? " (screenshot missing)" : ""}.`);
+        const cachedResult: AuditResult = {
           itemId: item.id,
           itemName: item.name,
           storeKey,
@@ -621,18 +627,21 @@ async function runAudit() {
           catalogUnit,
           catalogUnits,
           catalogInFlyer,
-          geminiRegular: prevMatch.regular_price,
-          geminiSale: prevMatch.sale_price,
+          geminiRegular: prevMatch.regular_price ?? null,
+          geminiSale: prevMatch.sale_price ?? null,
           geminiIsOnSale: prevMatch.is_on_sale === 1 || prevMatch.is_on_sale === true,
           geminiValidUntil: prevMatch.valid_until || null,
           geminiUnit: prevMatch.unit || null,
           geminiUnits: prevMatch.units != null ? Number(prevMatch.units) : null,
           geminiInFlyer: prevMatch.in_flyer === 1 || prevMatch.in_flyer === true,
           screenshotFile: hasScreenshot ? screenshotPath : "",
-          status: prevMatch.status,
-          discrepancies: prevMatch.discrepancies || [],
+          status: "MATCH",
+          discrepancies: [],
           analyzed: true
-        });
+        };
+        // Re-evaluate discrepancy comparison against latest catalog prices
+        runDiscrepancyComparison(cachedResult);
+        auditResults.push(cachedResult);
       } else if (hasScreenshot) {
         if (prevMatch && prevMatch.status === "ERROR") {
           console.log(`   ├─ [RETRY] "${item.name}" (${storeKey}) had ERROR/TIMEOUT in previous run. Will re-audit.`);
@@ -662,6 +671,7 @@ async function runAudit() {
           analyzed: false
         });
       } else {
+        console.log(`   ├─ [MISSING SCREENSHOT] "${item.name}" (${storeKey}) screenshot file not found on disk.`);
         auditResults.push({
           itemId: item.id,
           itemName: item.name,
@@ -900,63 +910,7 @@ Extract regular price, sale price, sale status, flyer validity date, unit type, 
       console.log(`   ├─ Extracted unit:          ${result.geminiUnit ?? "--"} (${result.geminiUnits ?? "--"})`);
 
       // 5. Compare Gemini findings against Combined Catalog
-      const discrepancies: string[] = [];
-
-      // Regular price check
-      if (result.catalogRegular !== result.geminiRegular) {
-        discrepancies.push(`Regular Price mismatch: Catalog has $${result.catalogRegular ?? "--"}, Live has $${result.geminiRegular ?? "--"}`);
-      }
-
-      // Sale price check
-      if (result.catalogSale !== result.geminiSale) {
-        discrepancies.push(`Sale Price mismatch: Catalog has $${result.catalogSale ?? "--"}, Live has $${result.geminiSale ?? "--"}`);
-      }
-
-      // Flyer check
-      if (result.catalogInFlyer !== result.geminiInFlyer) {
-        discrepancies.push(`Flyer status mismatch: Catalog has ${result.catalogInFlyer ? "YES" : "NO"}, Live has ${result.geminiInFlyer ? "YES" : "NO"}`);
-      }
-
-      // Flyer expiration date check
-      const normCatalogDate = result.catalogValidUntil ? result.catalogValidUntil.replace(/\s+/g, "") : null;
-      const normGeminiDate = result.geminiValidUntil ? result.geminiValidUntil.replace(/\s+/g, "") : null;
-      if (normCatalogDate !== normGeminiDate) {
-        discrepancies.push(`Validity Date mismatch: Catalog has "${result.catalogValidUntil ?? "--"}", Live has "${result.geminiValidUntil ?? "--"}"`);
-      }
-
-      // Unit check
-      const normalizeUnit = (u: string | null) => {
-        if (!u) return null;
-        const lowered = u.trim().toLowerCase();
-        if (lowered === "each" || lowered === "count" || lowered === "pcs" || lowered === "pieces" || lowered === "pc") {
-          return "unit";
-        }
-        if (lowered === "lbs") {
-          return "lb";
-        }
-        return lowered;
-      };
-
-      const normCatalogUnit = normalizeUnit(result.catalogUnit);
-      const normGeminiUnit = normalizeUnit(result.geminiUnit);
-      if (normCatalogUnit !== normGeminiUnit) {
-        discrepancies.push(`Unit mismatch: Catalog has "${result.catalogUnit ?? "--"}", Live has "${result.geminiUnit ?? "--"}"`);
-      }
-
-      // Unit Quantity check
-      if (result.catalogUnits !== result.geminiUnits) {
-        discrepancies.push(`Unit Quantity mismatch: Catalog has ${result.catalogUnits ?? "--"}, Live has ${result.geminiUnits ?? "--"}`);
-      }
-
-      if (discrepancies.length > 0) {
-        result.status = "MISMATCH";
-        result.discrepancies = discrepancies;
-        console.log(`   └─ [DISCREPANCY FOUND]:`);
-        discrepancies.forEach(d => console.log(`      • ${d}`));
-      } else {
-        result.status = "MATCH";
-        console.log(`   └─ [OK] Prices, dates, and units match perfectly.`);
-      }
+      runDiscrepancyComparison(result);
 
     } catch (err: any) {
       console.error(`   └─ Gemini Analysis Error: ${err.message || String(err)}`);
@@ -1094,4 +1048,68 @@ function writeMarkdownReport(results: AuditResult[]) {
   console.log(`\n=== Audit Report successfully written to: ${reportPath} ===`);
 }
 
+function runDiscrepancyComparison(result: AuditResult) {
+  if (result.status === "ERROR") return;
+
+  const discrepancies: string[] = [];
+
+  // Regular price check
+  if (result.catalogRegular !== result.geminiRegular) {
+    discrepancies.push(`Regular Price mismatch: Catalog has $${result.catalogRegular ?? "--"}, Live has $${result.geminiRegular ?? "--"}`);
+  }
+
+  // Sale price check
+  if (result.catalogSale !== result.geminiSale) {
+    discrepancies.push(`Sale Price mismatch: Catalog has $${result.catalogSale ?? "--"}, Live has $${result.geminiSale ?? "--"}`);
+  }
+
+  // Flyer check
+  if (result.catalogInFlyer !== result.geminiInFlyer) {
+    discrepancies.push(`Flyer status mismatch: Catalog has ${result.catalogInFlyer ? "YES" : "NO"}, Live has ${result.geminiInFlyer ? "YES" : "NO"}`);
+  }
+
+  // Flyer expiration date check
+  const normCatalogDate = result.catalogValidUntil ? result.catalogValidUntil.replace(/\s+/g, "") : null;
+  const normGeminiDate = result.geminiValidUntil ? result.geminiValidUntil.replace(/\s+/g, "") : null;
+  if (normCatalogDate !== normGeminiDate) {
+    discrepancies.push(`Validity Date mismatch: Catalog has "${result.catalogValidUntil ?? "--"}", Live has "${result.geminiValidUntil ?? "--"}"`);
+  }
+
+  // Unit check
+  const normalizeUnit = (u: string | null) => {
+    if (!u) return null;
+    const lowered = u.trim().toLowerCase();
+    if (lowered === "each" || lowered === "count" || lowered === "pcs" || lowered === "pieces" || lowered === "pc") {
+      return "unit";
+    }
+    if (lowered === "lbs") {
+      return "lb";
+    }
+    return lowered;
+  };
+
+  const normCatalogUnit = normalizeUnit(result.catalogUnit);
+  const normGeminiUnit = normalizeUnit(result.geminiUnit);
+  if (normCatalogUnit !== normGeminiUnit) {
+    discrepancies.push(`Unit mismatch: Catalog has "${result.catalogUnit ?? "--"}", Live has "${result.geminiUnit ?? "--"}"`);
+  }
+
+  // Unit Quantity check
+  if (result.catalogUnits !== result.geminiUnits) {
+    discrepancies.push(`Unit Quantity mismatch: Catalog has ${result.catalogUnits ?? "--"}, Live has ${result.geminiUnits ?? "--"}`);
+  }
+
+  if (discrepancies.length > 0) {
+    result.status = "MISMATCH";
+    result.discrepancies = discrepancies;
+    console.log(`   └─ [DISCREPANCY FOUND]:`);
+    discrepancies.forEach(d => console.log(`      • ${d}`));
+  } else {
+    result.status = "MATCH";
+    result.discrepancies = [];
+    console.log(`   └─ [OK] Prices, dates, and units match perfectly.`);
+  }
+}
+
 runAudit();
+
