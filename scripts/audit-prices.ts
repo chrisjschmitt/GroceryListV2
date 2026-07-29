@@ -36,6 +36,185 @@ if (!GEMINI_KEY) {
 // Initialize Gemini Client
 const ai = new GoogleGenAI({ apiKey: GEMINI_KEY });
 
+// Status & Lock File Infrastructure
+interface AuditRunStatus {
+  startedAt: string | null;
+  finishedAt: string | null;
+  success: boolean;
+  lastSuccessAt: string | null;
+  stage: "idle" | "pruning" | "capturing" | "analyzing" | "saving" | "failed";
+  itemCounts: {
+    total: number;
+    captured: number;
+    analyzed: number;
+    matches: number;
+    mismatches: number;
+    errors: number;
+  };
+  truncated: boolean;
+  errorMessage: string | null;
+}
+
+const statusFilePath = path.join(process.cwd(), "db-storage", "audit-run-status.json");
+const lockFilePath = path.join(process.cwd(), "db-storage", "audit-prices.lock");
+let isLockOwner = false;
+
+function getExistingStatus(): AuditRunStatus {
+  try {
+    if (fs.existsSync(statusFilePath)) {
+      const content = fs.readFileSync(statusFilePath, "utf8");
+      if (content.trim()) {
+        return JSON.parse(content);
+      }
+    }
+  } catch {
+    // Ignore parse errors
+  }
+  return {
+    startedAt: null,
+    finishedAt: null,
+    success: false,
+    lastSuccessAt: null,
+    stage: "idle",
+    itemCounts: { total: 0, captured: 0, analyzed: 0, matches: 0, mismatches: 0, errors: 0 },
+    truncated: false,
+    errorMessage: null
+  };
+}
+
+function saveRunStatus(partial: Partial<AuditRunStatus>) {
+  try {
+    const existing = getExistingStatus();
+    const dbDir = path.join(process.cwd(), "db-storage");
+    if (!fs.existsSync(dbDir)) {
+      fs.mkdirSync(dbDir, { recursive: true });
+    }
+    const updated: AuditRunStatus = {
+      startedAt: partial.startedAt !== undefined ? partial.startedAt : existing.startedAt,
+      finishedAt: partial.finishedAt !== undefined ? partial.finishedAt : existing.finishedAt,
+      success: partial.success !== undefined ? partial.success : existing.success,
+      lastSuccessAt: partial.success === true && partial.finishedAt
+        ? partial.finishedAt
+        : (existing.lastSuccessAt || null),
+      stage: partial.stage !== undefined ? partial.stage : existing.stage,
+      itemCounts: partial.itemCounts !== undefined ? partial.itemCounts : existing.itemCounts,
+      truncated: partial.truncated !== undefined ? partial.truncated : existing.truncated,
+      errorMessage: partial.errorMessage !== undefined ? partial.errorMessage : existing.errorMessage
+    };
+    fs.writeFileSync(statusFilePath, JSON.stringify(updated, null, 2), "utf8");
+  } catch (err: any) {
+    console.error("Error saving run status:", err.message || String(err));
+  }
+}
+
+function acquireLock(): boolean {
+  if (fs.existsSync(lockFilePath)) {
+    try {
+      const lockData = JSON.parse(fs.readFileSync(lockFilePath, "utf8"));
+      const lockPid = lockData.pid;
+      if (lockPid) {
+        try {
+          process.kill(lockPid, 0);
+          console.error(`\n❌ [LOCK ERROR] Live lock file exists at db-storage/audit-prices.lock (PID ${lockPid}, started at ${lockData.timestamp || "unknown"}). Another audit is currently running. Exiting.`);
+          return false;
+        } catch (e: any) {
+          if (e.code === "ESRCH") {
+            console.warn(`   ⚠️ Found stale lock file from dead PID ${lockPid}. Overwriting lock.`);
+          } else {
+            console.error(`\n❌ [LOCK ERROR] Could not verify process PID ${lockPid}. Exiting.`);
+            return false;
+          }
+        }
+      }
+    } catch {
+      console.warn("   ⚠️ Unreadable lock file found. Overwriting lock.");
+    }
+  }
+
+  const dbDir = path.join(process.cwd(), "db-storage");
+  if (!fs.existsSync(dbDir)) {
+    fs.mkdirSync(dbDir, { recursive: true });
+  }
+
+  fs.writeFileSync(lockFilePath, JSON.stringify({ pid: process.pid, timestamp: new Date().toISOString() }, null, 2), "utf8");
+  isLockOwner = true;
+  return true;
+}
+
+function releaseLock() {
+  if (isLockOwner && fs.existsSync(lockFilePath)) {
+    try {
+      fs.unlinkSync(lockFilePath);
+      isLockOwner = false;
+    } catch {
+      // Ignore cleanup error
+    }
+  }
+}
+
+// Pruning screenshots
+function pruneScreenshots(): void {
+  const screenshotsDir = path.join(process.cwd(), "screenshots");
+  const prevDir = path.join(process.cwd(), "screenshots-prev");
+
+  console.log("\n[Pruning Screenshots]");
+  // Clean out any old images in screenshots-prev to keep exactly 1 previous run
+  if (fs.existsSync(prevDir)) {
+    const prevFiles = fs.readdirSync(prevDir);
+    for (const file of prevFiles) {
+      if (file.endsWith(".png")) {
+        try { fs.unlinkSync(path.join(prevDir, file)); } catch {}
+      }
+    }
+  } else {
+    fs.mkdirSync(prevDir, { recursive: true });
+  }
+
+  // Move current screenshots to screenshots-prev
+  if (fs.existsSync(screenshotsDir)) {
+    const files = fs.readdirSync(screenshotsDir);
+    let movedCount = 0;
+    for (const file of files) {
+      if (file.endsWith(".png")) {
+        const src = path.join(screenshotsDir, file);
+        const dest = path.join(prevDir, file);
+        try {
+          fs.renameSync(src, dest);
+          movedCount++;
+        } catch (err: any) {
+          console.warn(`   ⚠️ Could not move screenshot ${file}: ${err.message}`);
+        }
+      }
+    }
+    console.log(`   ├─ Moved ${movedCount} existing screenshot(s) to screenshots-prev/`);
+  } else {
+    fs.mkdirSync(screenshotsDir, { recursive: true });
+  }
+}
+
+function restorePrevScreenshots(): void {
+  const screenshotsDir = path.join(process.cwd(), "screenshots");
+  const prevDir = path.join(process.cwd(), "screenshots-prev");
+
+  if (fs.existsSync(prevDir)) {
+    const prevFiles = fs.readdirSync(prevDir);
+    let restoredCount = 0;
+    for (const file of prevFiles) {
+      if (file.endsWith(".png")) {
+        const src = path.join(prevDir, file);
+        const dest = path.join(screenshotsDir, file);
+        try {
+          fs.copyFileSync(src, dest);
+          restoredCount++;
+        } catch {}
+      }
+    }
+    if (restoredCount > 0) {
+      console.warn(`   ⚠️ Restored ${restoredCount} screenshot(s) from previous run after capture failure.`);
+    }
+  }
+}
+
 function normalizeStoreUrl(url: string): string {
   if (!url) return url;
   let normalized = url;
@@ -70,7 +249,7 @@ async function dismissCookieBanners(page: any) {
         await button.click();
         console.log(`   ├─ Dismissed cookie banner using selector: "${selector}"`);
         await page.waitForTimeout(1000);
-        break; // Stop checking once one cookie banner is successfully dismissed
+        break;
       }
     } catch {
       // Ignore
@@ -104,9 +283,9 @@ interface AuditResult {
   analyzed?: boolean;
 }
 
-async function handleCloudflareChallenge(page: any): Promise<boolean> {
-  const pageTitle = await page.title();
-  const pageContent = await page.content();
+async function handleCloudflareChallenge(page: any, unattended: boolean): Promise<boolean> {
+  const pageTitle = await page.title().catch(() => "");
+  const pageContent = await page.content().catch(() => "");
   const isChallenge = pageTitle.includes("Verify you are human") || 
                       pageTitle.includes("Just a moment...") ||
                       pageTitle.includes("Almost there") ||
@@ -115,6 +294,10 @@ async function handleCloudflareChallenge(page: any): Promise<boolean> {
 
   if (isChallenge) {
     console.warn("\n   ⚠️ [CLOUDFLARE CHALLENGE DETECTED]");
+    if (unattended) {
+      console.warn("   Unattended mode (--full): skipping stdin prompt and marking item as ERROR.");
+      return false;
+    }
     console.warn("   Please solve the verification challenge in the headful Chrome window.");
     console.warn("   Once solved and the actual product page loads, return here and press [ENTER] to continue...");
     
@@ -128,21 +311,112 @@ async function handleCloudflareChallenge(page: any): Promise<boolean> {
     });
     return true;
   }
-  return false;
+  return true;
+}
+
+async function callGeminiWithRetries(ai: GoogleGenAI, base64Image: string, userPrompt: string, systemInstruction: string): Promise<any> {
+  const maxRetries = 3;
+  const backoffs = [2000, 4000, 8000];
+  let attempts = 0;
+
+  while (true) {
+    try {
+      const response = await Promise.race([
+        ai.models.generateContent({
+          model: "gemini-3.5-flash",
+          contents: [
+            {
+              inlineData: {
+                data: base64Image,
+                mimeType: "image/png"
+              }
+            },
+            userPrompt
+          ],
+          config: {
+            systemInstruction,
+            responseMimeType: "application/json",
+            responseSchema: {
+              type: Type.OBJECT,
+              required: ["regular_price", "sale_price", "is_on_sale", "valid_until", "unit", "unit_quantity"],
+              properties: {
+                regular_price: {
+                  type: Type.NUMBER,
+                  description: "The standard regular price of the item, or null if not found."
+                },
+                sale_price: {
+                  type: Type.NUMBER,
+                  description: "The active sale price of the item, or null if not found."
+                },
+                is_on_sale: {
+                  type: Type.BOOLEAN,
+                  description: "Whether the item is currently discounted."
+                },
+                valid_until: {
+                  type: Type.STRING,
+                  description: " Flyer end date in format YYYY-MM-DD, or null if not found."
+                },
+                unit: {
+                  type: Type.STRING,
+                  description: "The measurement or packaging unit type (e.g., 'kg', 'g', 'ml', 'lb', 'unit', 'count', 'pack'), or null if not found."
+                },
+                unit_quantity: {
+                  type: Type.NUMBER,
+                  description: "The numeric size, weight, or quantity of units (e.g. 30 for 30 count, 3 for 3 units, 1 for per kg/lb, 450 for 450g), or null if not found."
+                }
+              }
+            }
+          }
+        }),
+        new Promise<any>((_, reject) => 
+          setTimeout(() => reject(new Error("Gemini request timed out after 15 seconds")), 15000)
+        )
+      ]);
+      return response;
+    } catch (err: any) {
+      if (attempts < maxRetries) {
+        const delayMs = backoffs[attempts];
+        attempts++;
+        console.warn(`   ⚠️ Gemini API call failed (attempt ${attempts}/${maxRetries}): ${err.message || String(err)}. Retrying in ${delayMs / 1000}s...`);
+        await new Promise(resolve => setTimeout(resolve, delayMs));
+      } else {
+        throw err;
+      }
+    }
+  }
 }
 
 async function runAudit() {
   const args = process.argv.slice(2);
+  const fullMode = args.includes("--full");
+  const headfulMode = args.includes("--headful");
   const applyMode = args.includes("--apply");
+  const setupMode = args.includes("--setup");
+  const forceReanalyze = args.includes("--force");
+  const retryErrors = args.includes("--retry-errors") || args.includes("--retry");
+  const analyzeOnly = (args.includes("--analyze") || retryErrors) && !fullMode;
+  const runAll = args.includes("--all") || fullMode;
+
+  let maxItems = Infinity;
+  const maxItemsArgIdx = args.findIndex(arg => arg.startsWith("--max-items"));
+  if (maxItemsArgIdx !== -1) {
+    const argVal = args[maxItemsArgIdx];
+    if (argVal.includes("=")) {
+      const val = parseInt(argVal.split("=")[1], 10);
+      if (!isNaN(val) && val > 0) maxItems = val;
+    } else if (maxItemsArgIdx + 1 < args.length) {
+      const val = parseInt(args[maxItemsArgIdx + 1], 10);
+      if (!isNaN(val) && val > 0) maxItems = val;
+    }
+  }
 
   if (applyMode) {
     console.log("\n=== Applying Catalog Updates to Production Vercel Blob ===");
     
-    // 1. Read local delta updates
     const deltaPath = path.join(process.cwd(), "db-storage", "audit-pricing-updates.json");
     if (!fs.existsSync(deltaPath)) {
       console.error(`Error: Delta updates file not found at: ${deltaPath}`);
-      console.error("Please run the audit first using: npx tsx scripts/audit-prices.ts --analyze");
+      console.error("Please run the audit first using: npx tsx scripts/audit-prices.ts --analyze or --full");
       process.exit(1);
     }
     
@@ -164,7 +438,6 @@ async function runAudit() {
 
     console.log(`Loaded ${updates.length} pricing update(s) from local cache.`);
 
-    // 2. Fetch the latest live catalog from MongoDB
     console.log("Fetching the latest production catalog from MongoDB...");
     let liveCatalog: any = null;
     try {
@@ -174,7 +447,6 @@ async function runAudit() {
       process.exit(1);
     }
 
-    // 3. Merge only the price changes into the live catalog
     console.log("Merging price updates into live catalog...");
     let appliedCount = 0;
     for (const update of updates) {
@@ -183,7 +455,7 @@ async function runAudit() {
         const storeLink = liveItem.stores[update.storeKey];
         if (storeLink) {
           if (update.status === "ERROR") {
-            storeLink.is_verified = false; // Uncheck verified url checkbox on error
+            storeLink.is_verified = false;
             appliedCount++;
             continue;
           }
@@ -194,9 +466,8 @@ async function runAudit() {
           if (update.in_flyer !== undefined) {
             storeLink.in_flyer = update.in_flyer;
           }
-          storeLink.is_verified = true; // Mark link as verified active
+          storeLink.is_verified = true;
 
-          // Update parent item's global unit and units if extracted
           if (update.unit) {
             liveItem.unit = update.unit;
           }
@@ -213,7 +484,6 @@ async function runAudit() {
       }
     }
 
-    // 4. Upload the safely merged catalog to MongoDB
     try {
       console.log(`Uploading safely merged catalog (${liveCatalog.items.length} total items, ${appliedCount} updated links) to MongoDB...`);
       await blobSetCombinedCatalog(liveCatalog);
@@ -236,6 +506,17 @@ async function runAudit() {
   } else {
     console.log("=== Starting Grocery Price Audit Scraper ===");
   }
+
+  const startedAt = new Date().toISOString();
+  saveRunStatus({
+    startedAt,
+    finishedAt: null,
+    success: false,
+    stage: fullMode ? "pruning" : (analyzeOnly ? "analyzing" : "capturing"),
+    errorMessage: null,
+    truncated: false
+  });
+
   console.log("1. Loading Combined Catalog...");
   
   let catalog: any = null;
@@ -250,19 +531,19 @@ async function runAudit() {
     }
   } catch (err: any) {
     console.error("Error loading Combined Catalog:", err.message || String(err));
+    saveRunStatus({ finishedAt: new Date().toISOString(), success: false, stage: "failed", errorMessage: err.message || String(err) });
     process.exit(1);
   }
 
-  // 2. Identify items that require scraping and have verified store links
-  const targetLinks: { item: any; storeKey: string; storeDetails: any }[] = [];
+  let targetLinks: { item: any; storeKey: string; storeDetails: any }[] = [];
   if (catalog && Array.isArray(catalog.items)) {
     for (const item of catalog.items) {
       if (item.requires_scraping === true) {
         for (const [storeKey, details] of Object.entries(item.stores || {})) {
           const s = details as any;
           const isVerified = s.is_verified === true || s.is_verified === 1 || String(s.is_verified) === "true";
-          const analyzeOnly = args.includes("--analyze");
-          if (s.url && (isVerified || analyzeOnly)) {
+          const analyzeOnlyMode = args.includes("--analyze");
+          if (s.url && (isVerified || analyzeOnlyMode)) {
             if (filterStoreKey && storeKey.toLowerCase().trim() !== filterStoreKey) {
               continue;
             }
@@ -274,24 +555,33 @@ async function runAudit() {
     }
   }
 
+  let truncated = false;
+  if (targetLinks.length > maxItems) {
+    console.warn(`\n⚠️ [MAX ITEMS CAP] Catalog identified ${targetLinks.length} target link(s), but --max-items=${maxItems} cap is set. Truncating run.`);
+    targetLinks = targetLinks.slice(0, maxItems);
+    truncated = true;
+  }
+
   console.log(`\nIdentified ${targetLinks.length} verified store link(s) requiring audit.`);
   if (targetLinks.length === 0) {
     console.log("No verified links require scraping. Exiting.");
+    saveRunStatus({
+      finishedAt: new Date().toISOString(),
+      success: true,
+      stage: "idle",
+      itemCounts: { total: 0, captured: 0, analyzed: 0, matches: 0, mismatches: 0, errors: 0 },
+      truncated,
+      errorMessage: null
+    });
     return;
   }
 
-  // Create screenshots directory
   const screenshotsDir = path.join(process.cwd(), "screenshots");
   if (!fs.existsSync(screenshotsDir)) {
     fs.mkdirSync(screenshotsDir, { recursive: true });
   }
 
-  const setupMode = args.includes("--setup");
-  const retryErrors = args.includes("--retry-errors") || args.includes("--retry");
-  const analyzeOnly = args.includes("--analyze") || retryErrors;
-  const runAll = args.includes("--all");
-  const screenshotsOnly = !analyzeOnly && !runAll && !setupMode;
-
+  const screenshotsOnly = !analyzeOnly && !runAll && !setupMode && !fullMode;
   const profileDir = path.join(process.cwd(), "db-storage", "playwright-profile");
   
   if (setupMode) {
@@ -299,7 +589,6 @@ async function runAudit() {
     console.log("Launching persistent browser profile directory...");
     console.log(`Profile location: ${profileDir}`);
     
-    // Launch persistent browser context
     const context = await chromium.launchPersistentContext(profileDir, {
       headless: false,
       channel: "chrome",
@@ -356,36 +645,58 @@ async function runAudit() {
 
     await context.close();
     console.log("Location profile configured and closed successfully!");
-    console.log("You can now run the scraper normally to capture Perth-specific pricing.");
+    saveRunStatus({ finishedAt: new Date().toISOString(), success: true, stage: "idle", errorMessage: null });
     return;
   }
 
-  const auditResults: AuditResult[] = [];
+  // Handle Pruning before capture in full mode or before full run
+  if (fullMode) {
+    saveRunStatus({ stage: "pruning" });
+    pruneScreenshots();
+  }
 
-  if (screenshotsOnly || runAll) {
-    // 3. Launch Playwright and capture screenshots
-    console.log("\n2. Launching headful browser using persistent profile for page captures...");
+  const auditResults: AuditResult[] = [];
+  let capturedCount = 0;
+  let captureErrorCount = 0;
+
+  if (screenshotsOnly || runAll || fullMode) {
+    saveRunStatus({
+      stage: "capturing",
+      itemCounts: { total: targetLinks.length, captured: 0, analyzed: 0, matches: 0, mismatches: 0, errors: 0 },
+      truncated
+    });
+
+    const isHeadless = fullMode ? !headfulMode : false;
+    console.log(`\n2. Launching browser (${isHeadless ? "headless" : "headful"}) using persistent profile for page captures...`);
     console.log(`Profile location: ${profileDir}`);
     
-    const context = await chromium.launchPersistentContext(profileDir, {
-      headless: false, // Running headful is the most reliable way to avoid Cloudflare/Akamai blocking locally
-      channel: "chrome",
-      userAgent: "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36",
-      viewport: { width: 1280, height: 800 },
-      locale: "en-CA",
-      timezoneId: "America/Toronto",
-      geolocation: { latitude: 44.9008, longitude: -76.2492 },
-      permissions: ["geolocation"],
-      args: [
-        "--disable-blink-features=AutomationControlled",
-        "--no-sandbox",
-        "--disable-infobars"
-      ]
-    });
+    let context: any = null;
+    try {
+      context = await chromium.launchPersistentContext(profileDir, {
+        headless: isHeadless,
+        channel: "chrome",
+        userAgent: "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36",
+        viewport: { width: 1280, height: 800 },
+        locale: "en-CA",
+        timezoneId: "America/Toronto",
+        geolocation: { latitude: 44.9008, longitude: -76.2492 },
+        permissions: ["geolocation"],
+        args: [
+          "--disable-blink-features=AutomationControlled",
+          "--no-sandbox",
+          "--disable-infobars"
+        ]
+      });
+    } catch (launchErr: any) {
+      console.error("Failed to launch Playwright browser:", launchErr.message);
+      if (fullMode) {
+        restorePrevScreenshots();
+      }
+      throw launchErr;
+    }
 
     const page = context.pages()[0] || await context.newPage();
 
-    // Mask webdriver indicator
     await page.addInitScript(() => {
       Object.defineProperty(navigator, 'webdriver', {
         get: () => undefined
@@ -408,16 +719,12 @@ async function runAudit() {
       const catalogUnits = item.units != null ? Number(item.units) : null;
       const catalogInFlyer = storeDetails.in_flyer === 1 || storeDetails.in_flyer === true;
 
-      console.log(`   ├─ Catalog regular price: $${catalogRegular ?? "--"}`);
-      console.log(`   ├─ Catalog sale price:    $${catalogSale ?? "--"} (On Sale: ${catalogIsOnSale ? "YES" : "NO"})`);
-      console.log(`   ├─ Catalog valid until:   ${catalogValidUntil ?? "--"}`);
-      console.log(`   ├─ Catalog unit:          ${catalogUnit ?? "--"} (${catalogUnits ?? "--"})`);
-
       const screenshotName = `${item.id}_${storeKey}.png`;
       const screenshotPath = path.join(screenshotsDir, screenshotName);
 
-      if (fs.existsSync(screenshotPath) && !runAll) {
+      if (fs.existsSync(screenshotPath) && !runAll && !fullMode) {
         console.log(`   ├─ [CACHE HIT] Screenshot already exists. Skipping browser navigation.`);
+        capturedCount++;
         auditResults.push({
           itemId: item.id,
           itemName: item.name,
@@ -441,12 +748,15 @@ async function runAudit() {
           status: "MATCH",
           discrepancies: []
         });
+        saveRunStatus({
+          itemCounts: { total: targetLinks.length, captured: capturedCount, analyzed: 0, matches: 0, mismatches: 0, errors: captureErrorCount },
+          truncated
+        });
         continue;
       }
 
-      // Add human-like sleep before browser navigation to avoid triggering Cloudflare rate-limits
       if (i > 0) {
-        const delay = Math.floor(Math.random() * 4000) + 3000; // 3 to 7 seconds random delay
+        const delay = Math.floor(Math.random() * 4000) + 3000;
         console.log(`   ├─ Sleeping for ${(delay / 1000).toFixed(1)}s to mimic human behavior...`);
         await page.waitForTimeout(delay);
       }
@@ -458,27 +768,18 @@ async function runAudit() {
         const elapsed = ((Date.now() - startTime) / 1000).toFixed(1);
         console.log(`   ├─ Page loaded successfully in ${elapsed}s. Waiting 5s for dynamic content hydration...`);
         
-        // Wait for dynamic loads/hydration
         await page.waitForTimeout(5000);
 
-        // Check for Cloudflare challenge and wait for user resolution
-        while (true) {
-          const wasChallenge = await handleCloudflareChallenge(page);
-          if (wasChallenge) {
-            // Wait 5s for the page to settle after manual resolution
-            await page.waitForTimeout(5000);
-          } else {
-            break;
-          }
+        const challengeOk = await handleCloudflareChallenge(page, fullMode);
+        if (!challengeOk) {
+          throw new Error("Cloudflare verification challenge detected in unattended mode.");
         }
 
-        // Check for HTTP 404 status
         const responseStatus = response ? response.status() : 200;
         if (responseStatus === 404) {
           throw new Error("Page not found (404 status).");
         }
 
-        // Check for Access Denied / blocked pages or soft 404s
         const pageTitle = await page.title();
         const pageContent = await page.content();
         
@@ -498,14 +799,13 @@ async function runAudit() {
           throw new Error("Product page not found (404/Generic Error).");
         }
 
-        // Dismiss cookie banners to ensure they do not cover prices or date details
         await dismissCookieBanners(page);
 
         console.log(`   ├─ Capturing screenshot viewport...`);
         await page.screenshot({ path: screenshotPath, fullPage: false });
         console.log(`   └─ [SUCCESS] Saved screenshot: ${screenshotName}`);
+        capturedCount++;
 
-        // Initialize template audit entry
         auditResults.push({
           itemId: item.id,
           itemName: item.name,
@@ -532,6 +832,7 @@ async function runAudit() {
 
       } catch (err: any) {
         console.error(`   └─ [ERROR] Scraper failed for this URL: ${err.message || String(err)}`);
+        captureErrorCount++;
         auditResults.push({
           itemId: item.id,
           itemName: item.name,
@@ -557,18 +858,25 @@ async function runAudit() {
           errorMessage: err.message || String(err)
         });
       }
+
+      saveRunStatus({
+        itemCounts: { total: targetLinks.length, captured: capturedCount, analyzed: 0, matches: 0, mismatches: 0, errors: captureErrorCount },
+        truncated
+      });
     }
 
     await context.close();
     console.log("\n3. Captures completed. Browser context closed.");
 
+    if (capturedCount === 0 && targetLinks.length > 0) {
+      restorePrevScreenshots();
+    }
+
     if (screenshotsOnly) {
       console.log("\n=== Screenshot Capture Phase Completed ===");
       console.log(`Captured screenshots for ${targetLinks.length} items.`);
       console.log(`Screenshots are saved in: ${screenshotsDir}`);
-      console.log("\nAs requested, the script has stopped before starting the Gemini API analysis.");
-      console.log("To run the Gemini API analysis using these screenshots, run:");
-      console.log("  npx tsx scripts/audit-prices.ts --analyze\n");
+      saveRunStatus({ finishedAt: new Date().toISOString(), success: true, stage: "idle", truncated, errorMessage: null });
       return;
     }
   } else if (analyzeOnly) {
@@ -585,8 +893,6 @@ async function runAudit() {
       }
     }
 
-    const forceReanalyze = runAll || args.includes("--force");
-
     for (let i = 0; i < targetLinks.length; i++) {
       const { item, storeKey, storeDetails } = targetLinks[i];
       const screenshotName = `${item.id}_${storeKey}.png`;
@@ -601,16 +907,12 @@ async function runAudit() {
       const catalogInFlyer = storeDetails.in_flyer === 1 || storeDetails.in_flyer === true;
 
       const hasScreenshot = fs.existsSync(screenshotPath);
+      if (hasScreenshot) capturedCount++;
+
       let prevMatch = previousUpdates.length > 0 
         ? previousUpdates.find((u: any) => u.itemId === item.id && u.storeKey === storeKey)
         : null;
 
-      // We only reuse cached Gemini extraction data if:
-      // - We have a prior non-ERROR record (prevMatch && prevMatch.status !== "ERROR"), AND
-      // - NOT force re-analyzing (!forceReanalyze), AND
-      // - EITHER:
-      //    a) --retry / --retry-errors was passed (user explicitly asked to only re-run error items), OR
-      //    b) screenshot file is missing on disk (!hasScreenshot)
       const canUseCache = prevMatch && prevMatch.status !== "ERROR" && !forceReanalyze && (retryErrors || !hasScreenshot);
 
       if (canUseCache) {
@@ -639,7 +941,6 @@ async function runAudit() {
           discrepancies: [],
           analyzed: true
         };
-        // Re-evaluate discrepancy comparison against latest catalog prices
         runDiscrepancyComparison(cachedResult);
         auditResults.push(cachedResult);
       } else if (hasScreenshot) {
@@ -672,6 +973,7 @@ async function runAudit() {
         });
       } else {
         console.log(`   ├─ [MISSING SCREENSHOT] "${item.name}" (${storeKey}) screenshot file not found on disk.`);
+        captureErrorCount++;
         auditResults.push({
           itemId: item.id,
           itemName: item.name,
@@ -703,7 +1005,8 @@ async function runAudit() {
 
   // 4. Inspect captured images using Gemini 3.5 Flash
   console.log("\n4. Analyzing images with Gemini 3.5 Flash API...");
-  
+  saveRunStatus({ stage: "analyzing" });
+
   const currentYear = new Date().getFullYear();
   const currentDateStr = new Date().toLocaleDateString("en-US", { year: "numeric", month: "long", day: "numeric" });
   const systemInstruction = `
@@ -725,6 +1028,8 @@ Please extract the following fields:
 Look for currency symbols ($, ¢). Be precise and double check your numbers and unit information.
 `;
 
+  let consecutiveFailures = 0;
+
   for (let i = 0; i < auditResults.length; i++) {
     const result = auditResults[i];
     if (result.analyzed || !result.screenshotFile) {
@@ -741,58 +1046,8 @@ Analyze this screenshot for the product "${result.itemName}" at store "${result.
 Extract regular price, sale price, sale status, flyer validity date, unit type, and unit quantity.
 `;
 
-      // Wrap in a 15-second timeout
-      const response = await Promise.race([
-        ai.models.generateContent({
-          model: "gemini-3.5-flash",
-          contents: [
-            {
-              inlineData: {
-                data: base64Image,
-                mimeType: "image/png"
-              }
-            },
-            userPrompt
-          ],
-          config: {
-            systemInstruction,
-            responseMimeType: "application/json",
-            responseSchema: {
-              type: Type.OBJECT,
-              required: ["regular_price", "sale_price", "is_on_sale", "valid_until", "unit", "unit_quantity"],
-              properties: {
-                regular_price: {
-                  type: Type.NUMBER,
-                  description: "The standard regular price of the item, or null if not found."
-                },
-                sale_price: {
-                  type: Type.NUMBER,
-                  description: "The active sale price of the item, or null if not found."
-                },
-                is_on_sale: {
-                  type: Type.BOOLEAN,
-                  description: "Whether the item is currently discounted."
-                },
-                valid_until: {
-                  type: Type.STRING,
-                  description: " Flyer end date in format YYYY-MM-DD, or null if not found."
-                },
-                unit: {
-                  type: Type.STRING,
-                  description: "The measurement or packaging unit type (e.g., 'kg', 'g', 'ml', 'lb', 'unit', 'count', 'pack'), or null if not found."
-                },
-                unit_quantity: {
-                  type: Type.NUMBER,
-                  description: "The numeric size, weight, or quantity of units (e.g. 30 for 30 count, 3 for 3 units, 1 for per kg/lb, 450 for 450g), or null if not found."
-                }
-              }
-            }
-          }
-        }),
-        new Promise<any>((_, reject) => 
-          setTimeout(() => reject(new Error("Gemini request timed out after 15 seconds")), 15000)
-        )
-      ]);
+      const response = await callGeminiWithRetries(ai, base64Image, userPrompt, systemInstruction);
+      consecutiveFailures = 0;
 
       const text = response.text || "{}";
       const parsed = JSON.parse(text);
@@ -810,7 +1065,6 @@ Extract regular price, sale price, sale status, flyer validity date, unit type, 
 
       let valDate = parsed.valid_until ? String(parsed.valid_until).trim() : null;
 
-      // If the model determined it is not on sale, or if the sale price is null, clean both and clear validity date
       if (!result.geminiIsOnSale || result.geminiSale === null) {
         result.geminiIsOnSale = false;
         result.geminiSale = null;
@@ -822,18 +1076,16 @@ Extract regular price, sale price, sale status, flyer validity date, unit type, 
         if (!dateRegex.test(valDate) || valDate.startsWith("0000") || valDate.startsWith("1970")) {
           valDate = null;
         } else {
-          // If the year extracted is less than the current year, correct it to the current year
           const parts = valDate.split("-");
           const year = parseInt(parts[0], 10);
-          const currentYear = new Date().getFullYear();
-          if (year < currentYear) {
-            valDate = `${currentYear}-${parts[1]}-${parts[2]}`;
+          const currentYearVal = new Date().getFullYear();
+          if (year < currentYearVal) {
+            valDate = `${currentYearVal}-${parts[1]}-${parts[2]}`;
           }
         }
       }
       result.geminiValidUntil = valDate;
 
-      // Check if product is in the flyer if it is on sale
       let inFlyer = false;
       if (result.geminiIsOnSale) {
         try {
@@ -860,7 +1112,7 @@ Extract regular price, sale price, sale status, flyer validity date, unit type, 
           const searchTerms = `${cleanStore} ${cleanItem}`.trim();
           let cleanPostal = postalCode.replace(/\s/g, "").toUpperCase();
           if (cleanStore === "FreshCo" && (cleanPostal === "K7H3C6" || cleanPostal === "K7A4S6")) {
-            cleanPostal = "K7C3Y4"; // Use Carleton Place postal code for FreshCo flyers
+            cleanPostal = "K7C3Y4";
           }
           
           const flippApiUrl = `https://backflipp.wishabi.com/flipp/items/search?locale=en-ca&postal_code=${encodeURIComponent(cleanPostal)}&q=${encodeURIComponent(searchTerms)}`;
@@ -903,33 +1155,65 @@ Extract regular price, sale price, sale status, flyer validity date, unit type, 
       if (result.geminiUnits !== null && (isNaN(result.geminiUnits) || result.geminiUnits <= 0)) {
         result.geminiUnits = null;
       }
+      result.analyzed = true;
 
       console.log(`   ├─ Extracted regular price: $${result.geminiRegular ?? "--"}`);
       console.log(`   ├─ Extracted sale price:    $${result.geminiSale ?? "--"} (On Sale: ${result.geminiIsOnSale ? "YES" : "NO"})`);
       console.log(`   ├─ Extracted valid until:   ${result.geminiValidUntil ?? "--"}`);
       console.log(`   ├─ Extracted unit:          ${result.geminiUnit ?? "--"} (${result.geminiUnits ?? "--"})`);
 
-      // 5. Compare Gemini findings against Combined Catalog
       runDiscrepancyComparison(result);
 
     } catch (err: any) {
+      consecutiveFailures++;
       console.error(`   └─ Gemini Analysis Error: ${err.message || String(err)}`);
       result.status = "ERROR";
       result.errorMessage = err.message || String(err);
+      result.analyzed = true;
+
+      if (consecutiveFailures >= 4) {
+        console.error("\n❌ [FATAL] 4 consecutive Gemini API failures detected. Aborting remaining Gemini analysis stage.");
+        for (let j = i + 1; j < auditResults.length; j++) {
+          if (!auditResults[j].analyzed && auditResults[j].screenshotFile) {
+            auditResults[j].status = "ERROR";
+            auditResults[j].errorMessage = "Analysis aborted due to 4 consecutive Gemini API failures";
+            auditResults[j].analyzed = true;
+          }
+        }
+        break;
+      }
     }
 
-    // Rate limiting delay (1.5s to prevent rate limits)
+    // Rate limiting delay (1.5s)
     if (i < auditResults.length - 1) {
       await new Promise(resolve => setTimeout(resolve, 1500));
     }
+
+    // Update status counts during analysis stage
+    const analyzedCount = auditResults.filter(r => r.analyzed).length;
+    const matchCount = auditResults.filter(r => r.status === "MATCH").length;
+    const mismatchCount = auditResults.filter(r => r.status === "MISMATCH").length;
+    const errCount = auditResults.filter(r => r.status === "ERROR").length;
+    saveRunStatus({
+      itemCounts: {
+        total: targetLinks.length,
+        captured: capturedCount,
+        analyzed: analyzedCount,
+        matches: matchCount,
+        mismatches: mismatchCount,
+        errors: errCount
+      },
+      truncated
+    });
   }
 
-  // Save updated catalog to a local JSON file
-  if (analyzeOnly || runAll) {
+  saveRunStatus({ stage: "saving" });
+
+  // Save updated catalog to local JSON file
+  if (analyzeOnly || runAll || fullMode) {
     console.log("\n5. Saving updated combined-catalog database locally...");
     const updatedCatalog = { ...catalog };
     
-    // Process results and update in-memory catalog
     let updatedCount = 0;
     for (const res of auditResults) {
       const item = updatedCatalog.items.find((i: any) => i.id === res.itemId);
@@ -937,7 +1221,7 @@ Extract regular price, sale price, sale status, flyer validity date, unit type, 
         const storeLink = item.stores[res.storeKey];
         if (storeLink) {
           if (res.status === "ERROR") {
-            storeLink.is_verified = false; // Uncheck verified url checkbox on error
+            storeLink.is_verified = false;
             continue;
           }
           storeLink.regular_price = res.geminiRegular;
@@ -945,9 +1229,8 @@ Extract regular price, sale price, sale status, flyer validity date, unit type, 
           storeLink.is_on_sale = res.geminiIsOnSale ? 1 : 0;
           storeLink.valid_until = res.geminiValidUntil || "";
           storeLink.in_flyer = res.geminiInFlyer ? 1 : 0;
-          storeLink.is_verified = true; // Mark link as verified active
+          storeLink.is_verified = true;
 
-          // Update global unit and units size on parent catalog item
           if (res.geminiUnit) {
             item.unit = res.geminiUnit;
           }
@@ -969,7 +1252,6 @@ Extract regular price, sale price, sale status, flyer validity date, unit type, 
     fs.writeFileSync(updatedPath, JSON.stringify(updatedCatalog, null, 2), "utf8");
     console.log(`   ├─ Full updated catalog saved to: db-storage/combined-catalog-updated.json`);
 
-    // Write a clean delta JSON file containing only the updates
     const updatesDelta = auditResults
       .filter(r => r.status === "MATCH" || r.status === "MISMATCH" || r.status === "ERROR")
       .map(r => ({
@@ -996,6 +1278,28 @@ Extract regular price, sale price, sale status, flyer validity date, unit type, 
 
   // 6. Write Markdown Report
   writeMarkdownReport(auditResults);
+
+  const finishedAt = new Date().toISOString();
+  const matchCount = auditResults.filter(r => r.status === "MATCH").length;
+  const mismatchCount = auditResults.filter(r => r.status === "MISMATCH").length;
+  const errCount = auditResults.filter(r => r.status === "ERROR").length;
+  const analyzedCount = auditResults.filter(r => r.analyzed).length;
+
+  saveRunStatus({
+    finishedAt,
+    success: true,
+    stage: "idle",
+    itemCounts: {
+      total: targetLinks.length,
+      captured: capturedCount,
+      analyzed: analyzedCount,
+      matches: matchCount,
+      mismatches: mismatchCount,
+      errors: errCount
+    },
+    truncated,
+    errorMessage: null
+  });
 }
 
 function writeMarkdownReport(results: AuditResult[]) {
@@ -1004,7 +1308,6 @@ function writeMarkdownReport(results: AuditResult[]) {
   let md = `# Combined Catalog Price Audit Report\n\n`;
   md += `**Date:** ${new Date().toLocaleString()}\n\n`;
   
-  // Status breakdown
   const total = results.length;
   const matches = results.filter(r => r.status === "MATCH").length;
   const mismatches = results.filter(r => r.status === "MISMATCH").length;
@@ -1053,29 +1356,24 @@ function runDiscrepancyComparison(result: AuditResult) {
 
   const discrepancies: string[] = [];
 
-  // Regular price check
   if (result.catalogRegular !== result.geminiRegular) {
     discrepancies.push(`Regular Price mismatch: Catalog has $${result.catalogRegular ?? "--"}, Live has $${result.geminiRegular ?? "--"}`);
   }
 
-  // Sale price check
   if (result.catalogSale !== result.geminiSale) {
     discrepancies.push(`Sale Price mismatch: Catalog has $${result.catalogSale ?? "--"}, Live has $${result.geminiSale ?? "--"}`);
   }
 
-  // Flyer check
   if (result.catalogInFlyer !== result.geminiInFlyer) {
     discrepancies.push(`Flyer status mismatch: Catalog has ${result.catalogInFlyer ? "YES" : "NO"}, Live has ${result.geminiInFlyer ? "YES" : "NO"}`);
   }
 
-  // Flyer expiration date check
   const normCatalogDate = result.catalogValidUntil ? result.catalogValidUntil.replace(/\s+/g, "") : null;
   const normGeminiDate = result.geminiValidUntil ? result.geminiValidUntil.replace(/\s+/g, "") : null;
   if (normCatalogDate !== normGeminiDate) {
     discrepancies.push(`Validity Date mismatch: Catalog has "${result.catalogValidUntil ?? "--"}", Live has "${result.geminiValidUntil ?? "--"}"`);
   }
 
-  // Unit check
   const normalizeUnit = (u: string | null) => {
     if (!u) return null;
     const lowered = u.trim().toLowerCase();
@@ -1094,7 +1392,6 @@ function runDiscrepancyComparison(result: AuditResult) {
     discrepancies.push(`Unit mismatch: Catalog has "${result.catalogUnit ?? "--"}", Live has "${result.geminiUnit ?? "--"}"`);
   }
 
-  // Unit Quantity check
   if (result.catalogUnits !== result.geminiUnits) {
     discrepancies.push(`Unit Quantity mismatch: Catalog has ${result.catalogUnits ?? "--"}, Live has ${result.geminiUnits ?? "--"}`);
   }
@@ -1111,5 +1408,54 @@ function runDiscrepancyComparison(result: AuditResult) {
   }
 }
 
-runAudit();
+// Global 30-minute execution timeout guardrail
+const globalTimeout = setTimeout(() => {
+  console.error("\n❌ [FATAL] Price audit script reached 30-minute global timeout.");
+  saveRunStatus({
+    finishedAt: new Date().toISOString(),
+    success: false,
+    stage: "failed",
+    errorMessage: "Execution exceeded 30-minute global timeout"
+  });
+  releaseLock();
+  process.exit(1);
+}, 30 * 60 * 1000);
+globalTimeout.unref();
 
+// Process Exit & Termination Handlers
+process.on("exit", () => {
+  releaseLock();
+});
+
+process.on("SIGINT", () => {
+  console.warn("\n⚠️ [SIGINT] Received interruption signal.");
+  saveRunStatus({ finishedAt: new Date().toISOString(), success: false, stage: "failed", errorMessage: "Interrupted by SIGINT" });
+  releaseLock();
+  process.exit(130);
+});
+
+process.on("SIGTERM", () => {
+  console.warn("\n⚠️ [SIGTERM] Received termination signal.");
+  saveRunStatus({ finishedAt: new Date().toISOString(), success: false, stage: "failed", errorMessage: "Interrupted by SIGTERM" });
+  releaseLock();
+  process.exit(143);
+});
+
+process.on("uncaughtException", (err) => {
+  console.error("\n❌ [UNCAUGHT EXCEPTION]:", err.message || String(err));
+  saveRunStatus({ finishedAt: new Date().toISOString(), success: false, stage: "failed", errorMessage: err.message || String(err) });
+  releaseLock();
+  process.exit(1);
+});
+
+// Entry Point Execution
+if (!acquireLock()) {
+  process.exit(1);
+}
+
+runAudit().catch((err: any) => {
+  console.error("\n❌ [FATAL ERROR]:", err.message || String(err));
+  saveRunStatus({ finishedAt: new Date().toISOString(), success: false, stage: "failed", errorMessage: err.message || String(err) });
+  releaseLock();
+  process.exit(1);
+});

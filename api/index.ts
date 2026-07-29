@@ -1990,6 +1990,10 @@ app.put("/api/catalog", async (req, res) => {
   }
 });
 
+const LOCAL_DIR = !!(process.env.VERCEL || process.env.NODE_ENV === "production")
+  ? path.join("/tmp", "db-storage")
+  : path.join(process.cwd(), "db-storage");
+
 // 6.7. GET /api/audit-updates
 app.get("/api/audit-updates", async (req, res) => {
   try {
@@ -2017,6 +2021,41 @@ app.get("/api/audit-updates", async (req, res) => {
     res.status(500).json({ error: "Failed to fetch price audit updates" });
   }
 });
+
+// 6.8. GET /api/audit-status
+app.get("/api/audit-status", async (req, res) => {
+  try {
+    let filePath = path.join(LOCAL_DIR, "audit-run-status.json");
+    if (!fs.existsSync(filePath)) {
+      filePath = path.join(process.cwd(), "db-storage", "audit-run-status.json");
+    }
+    const idleStatus = {
+      startedAt: null,
+      finishedAt: null,
+      success: false,
+      lastSuccessAt: null,
+      stage: "idle",
+      itemCounts: { total: 0, captured: 0, analyzed: 0, matches: 0, mismatches: 0, errors: 0 },
+      truncated: false,
+      errorMessage: null
+    };
+    if (!fs.existsSync(filePath)) {
+      res.json(idleStatus);
+      return;
+    }
+    const dataStr = fs.readFileSync(filePath, "utf8");
+    if (!dataStr.trim()) {
+      res.json(idleStatus);
+      return;
+    }
+    const status = JSON.parse(dataStr);
+    res.json(status);
+  } catch (error) {
+    console.error("GET /api/audit-status error:", error);
+    res.status(500).json({ error: "Failed to fetch price audit status" });
+  }
+});
+
 
 // 7. GET /api/scrape-config
 app.get("/api/scrape-config", async (req, res) => {
@@ -2060,10 +2099,6 @@ app.get("/api/diagnose", async (req, res) => {
 });
 
 // 10. POST /api/report-pricing-issue
-const LOCAL_DIR = !!(process.env.VERCEL || process.env.NODE_ENV === "production")
-  ? path.join("/tmp", "db-storage")
-  : path.join(process.cwd(), "db-storage");
-
 app.post("/api/report-pricing-issue", async (req, res) => {
   try {
     const { itemName, storeId, reportedPrice, lookupUrl } = req.body;

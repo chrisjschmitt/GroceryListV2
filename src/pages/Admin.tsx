@@ -133,11 +133,12 @@ export default function AdminPage() {
     setScrapeLoading(true);
     setAuditLoading(true);
     try {
-      const [resPrices, resCatalog, resScrape, resAudit] = await Promise.all([
+      const [resPrices, resCatalog, resScrape, resAudit, resStatus] = await Promise.all([
         fetch("/api/prices?mongodbOnly=true"),
         fetch("/api/catalog"),
         fetch("/api/scrape-config"),
-        fetch("/api/audit-updates")
+        fetch("/api/audit-updates"),
+        fetch("/api/audit-status")
       ]);
       if (resPrices.ok) {
         const data = await resPrices.json();
@@ -154,6 +155,10 @@ export default function AdminPage() {
       if (resAudit.ok) {
         const data = await resAudit.json();
         setAuditUpdates(data || []);
+      }
+      if (resStatus.ok) {
+        const data = await resStatus.json();
+        setAuditRunStatus(data || null);
       }
     } catch (err) {
       console.error("Failed to refresh admin datasets:", err);
@@ -419,10 +424,39 @@ export default function AdminPage() {
 
   // Price Audit State
   const [auditUpdates, setAuditUpdates] = useState<any[]>([]);
+  const [auditRunStatus, setAuditRunStatus] = useState<any>(null);
   const [auditLoading, setAuditLoading] = useState(true);
   const [auditStatusFilter, setAuditStatusFilter] = useState<"flagged" | "mismatch" | "error">("flagged");
   const [resolvedAudits, setResolvedAudits] = useState<Set<string>>(new Set());
   const [activeAuditCorrection, setActiveAuditCorrection] = useState<any>(null);
+
+  const auditStateBadge = useMemo(() => {
+    if (!auditRunStatus) return { label: "NONE", bg: "bg-gray-100 text-gray-700 border-gray-400" };
+    const isRunning = (auditRunStatus.startedAt && !auditRunStatus.finishedAt) || (auditRunStatus.stage && auditRunStatus.stage !== "idle" && auditRunStatus.stage !== "failed" && !auditRunStatus.finishedAt);
+    if (isRunning) {
+      return { label: `RUNNING (${(auditRunStatus.stage || "CAPTURING").toUpperCase()})`, bg: "bg-amber-100 text-amber-900 border-amber-500 animate-pulse" };
+    }
+    if (auditRunStatus.success === true) {
+      return { label: "SUCCESS", bg: "bg-emerald-100 text-emerald-900 border-emerald-500" };
+    }
+    if (auditRunStatus.success === false && (auditRunStatus.finishedAt || auditRunStatus.stage === "failed")) {
+      return { label: "FAILED", bg: "bg-rose-100 text-rose-900 border-rose-500" };
+    }
+    return { label: "NONE", bg: "bg-gray-100 text-gray-700 border-gray-400" };
+  }, [auditRunStatus]);
+
+  const auditDurationStr = useMemo(() => {
+    if (!auditRunStatus || !auditRunStatus.startedAt) return "--";
+    const start = new Date(auditRunStatus.startedAt).getTime();
+    const end = auditRunStatus.finishedAt ? new Date(auditRunStatus.finishedAt).getTime() : Date.now();
+    if (isNaN(start) || isNaN(end) || end < start) return "--";
+    const sec = Math.floor((end - start) / 1000);
+    const m = Math.floor(sec / 60);
+    const s = sec % 60;
+    if (m === 0) return `${s}s`;
+    return `${m}m ${s}s`;
+  }, [auditRunStatus]);
+
 
   const filteredAuditUpdates = useMemo(() => {
     return auditUpdates.filter((u: any) => {
@@ -487,12 +521,13 @@ export default function AdminPage() {
     let cancelled = false;
     async function load() {
       try {
-        const [configRes, catalogRes, pricesRes, issuesRes, auditRes] = await Promise.all([
+        const [configRes, catalogRes, pricesRes, issuesRes, auditRes, statusRes] = await Promise.all([
           fetch("/api/scrape-config"),
           fetch("/api/catalog"),
           fetch("/api/prices?mongodbOnly=true"),
           fetch("/api/pricing-issues"),
           fetch("/api/audit-updates"),
+          fetch("/api/audit-status"),
         ]);
         const configData = await configRes.json();
         const catalogData = await catalogRes.json();
@@ -504,6 +539,12 @@ export default function AdminPage() {
         } catch (e) {
           console.warn("Failed to parse audit data JSON", e);
         }
+        let statusData = null;
+        try {
+          statusData = await statusRes.json();
+        } catch (e) {
+          console.warn("Failed to parse audit status JSON", e);
+        }
         if (!cancelled) {
           const normalizedConfig = ensureDefaultStores(configData);
           setScrapeConfig(normalizedConfig);
@@ -511,6 +552,7 @@ export default function AdminPage() {
           setPricesData(pricesJson.prices || {});
           setPricingIssues(issuesJson.issues || []);
           setAuditUpdates(auditData || []);
+          setAuditRunStatus(statusData || null);
         }
       } catch (err) {
         console.error("Error loading admin system datasets:", err);
@@ -3525,6 +3567,62 @@ export default function AdminPage() {
               </div>
             )}
               </>
+            )}
+          </div>
+
+          {/* Audit Execution Status Card */}
+          <div className="bg-surface border-2 border-black p-4 sm:p-6 rounded-xl shadow-[4px_4px_0px_rgba(0,0,0,1)] text-black mt-8">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b-2 border-black pb-3 mb-4">
+              <div className="flex items-center gap-2">
+                <Terminal className="w-5 h-5 text-indigo-600" />
+                <h2 className="text-base font-black uppercase tracking-tight">Audit Execution Status</h2>
+              </div>
+              <div className="flex items-center gap-2">
+                <span className={`px-2.5 py-1 text-[11px] font-black uppercase tracking-wider border-2 border-black rounded-md ${auditStateBadge.bg}`}>
+                  {auditStateBadge.label}
+                </span>
+                {auditRunStatus?.truncated && (
+                  <span className="px-2.5 py-1 text-[11px] font-black uppercase tracking-wider border-2 border-black rounded-md bg-amber-200 text-amber-900" title="Run was capped via --max-items">
+                    Truncated
+                  </span>
+                )}
+              </div>
+            </div>
+
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 text-xs">
+              <div className="bg-white border-2 border-black p-3 rounded-lg shadow-[2px_2px_0px_rgba(0,0,0,1)]">
+                <div className="text-[10px] font-black uppercase text-gray-500 tracking-wider">Last Successful Run</div>
+                <div className="font-bold text-gray-900 mt-0.5 truncate">
+                  {auditRunStatus?.lastSuccessAt ? new Date(auditRunStatus.lastSuccessAt).toLocaleString() : "None"}
+                </div>
+              </div>
+              <div className="bg-white border-2 border-black p-3 rounded-lg shadow-[2px_2px_0px_rgba(0,0,0,1)]">
+                <div className="text-[10px] font-black uppercase text-gray-500 tracking-wider">Run Duration</div>
+                <div className="font-bold text-gray-900 mt-0.5">{auditDurationStr}</div>
+              </div>
+              <div className="bg-white border-2 border-black p-3 rounded-lg shadow-[2px_2px_0px_rgba(0,0,0,1)]">
+                <div className="text-[10px] font-black uppercase text-gray-500 tracking-wider">Total Audited</div>
+                <div className="font-bold text-gray-900 mt-0.5">
+                  {auditRunStatus?.itemCounts?.analyzed ?? 0} / {auditRunStatus?.itemCounts?.total ?? 0} items
+                </div>
+              </div>
+              <div className="bg-white border-2 border-black p-3 rounded-lg shadow-[2px_2px_0px_rgba(0,0,0,1)]">
+                <div className="text-[10px] font-black uppercase text-gray-500 tracking-wider">Results Breakdown</div>
+                <div className="flex items-center gap-1.5 mt-0.5 font-black text-[11px]">
+                  <span className="text-emerald-700">✓ {auditRunStatus?.itemCounts?.matches ?? 0}</span>
+                  <span className="text-amber-700">⚠ {auditRunStatus?.itemCounts?.mismatches ?? 0}</span>
+                  <span className="text-rose-700">✗ {auditRunStatus?.itemCounts?.errors ?? 0}</span>
+                </div>
+              </div>
+            </div>
+
+            {auditRunStatus?.success === false && auditRunStatus?.errorMessage && (
+              <div className="mt-4 p-3 bg-rose-50 border-2 border-rose-500 rounded-lg text-xs text-rose-900">
+                <div className="font-black uppercase tracking-wider flex items-center gap-1.5 text-[11px] text-rose-800 mb-1">
+                  <CircleAlert className="w-4 h-4" /> Run Failure Stage: {auditRunStatus.stage || "Failed"}
+                </div>
+                <p className="font-mono text-[11px] leading-relaxed break-words">{auditRunStatus.errorMessage}</p>
+              </div>
             )}
           </div>
 

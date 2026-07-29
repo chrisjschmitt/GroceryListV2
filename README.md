@@ -116,63 +116,100 @@ Open your browser and navigate to **[http://localhost:3000](http://localhost:300
 
 ## Price Audit Scraper
 
-The project includes an automated pricing auditor located in `scripts/audit-prices.ts`. This tool launches a headful browser to capture screenshots of target grocery product pages, analyzes them with **Gemini 3.5 Flash**, and compares live prices/promotional dates against your database catalog to generate discrepancy reports.
+The project includes an automated pricing auditor located in `scripts/audit-prices.ts`. This tool launches Playwright to capture screenshots of target grocery product pages, analyzes them with **Gemini 3.5 Flash**, and compares live prices/promotional dates against your database catalog to generate discrepancy reports.
 
-### Operations Workflow
+> [!NOTE]
+> Audit execution status (`GET /api/audit-status`) is visible on the local dev server only (`http://localhost:3000/admin`). On Vercel serverless production environments, the status API returns idle mode because cron scraping runs on local machine environments.
 
-Follow these steps to run pricing audits:
+### Operations & Unattended Automation Workflow
 
-#### 1. Configure Local Store Profiles (`--setup`)
+Follow these options to run pricing audits:
+
+#### 1. Automated Full Audit Run (`--full`)
+Run an end-to-end audit with zero manual stdin prompts (prunes previous run screenshots to `screenshots-prev/`, launches headless Playwright, runs Gemini vision analysis, performs discrepancy checks, and writes local cache files):
+```bash
+# Automated end-to-end unattended audit
+npx tsx scripts/audit-prices.ts --full
+
+# Headful debugging mode for manual inspection during a full run
+npx tsx scripts/audit-prices.ts --full --headful
+
+# Cap the audit run to N items (e.g. 5 items for testing)
+npx tsx scripts/audit-prices.ts --full --max-items=5
+```
+
+#### 2. Scheduled Cron Execution (`scripts/cron-audit.sh`)
+An executable wrapper script `scripts/cron-audit.sh` is provided for running automated audits via cron or launchd.
+
+##### Dry Run Verification:
+```bash
+./scripts/cron-audit.sh --dry-run
+```
+Verifies `.env.local` / `.env` credentials (`GEMINI_API_KEY`, `MONGODB_URI`), Node/NPX binary paths, and process lock status without launching Playwright or Gemini.
+
+##### Crontab Setup Example:
+To run the automated audit every Thursday at 4:00 AM (documentational example — do NOT install automatically):
+```cron
+0 4 * * 4 /path/to/GroceryListV2/scripts/cron-audit.sh
+```
+
+##### macOS `launchd` Alternative:
+Alternatively, on macOS, create a plist file at `~/Library/LaunchAgents/com.basketwise.audit.plist`:
+```xml
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+    <key>Label</key>
+    <string>com.basketwise.audit</string>
+    <key>ProgramArguments</key>
+    <array>
+        <string>/path/to/GroceryListV2/scripts/cron-audit.sh</string>
+    </array>
+    <key>StartCalendarInterval</key>
+    <dict>
+        <key>Weekday</key>
+        <integer>4</integer>
+        <key>Hour</key>
+        <integer>4</integer>
+        <key>Minute</key>
+        <integer>0</integer>
+    </dict>
+</dict>
+</plist>
+```
+
+#### 3. Log, Status & Lock Files
+- **Execution Log:** `logs/audit-cron.log` (automatically created and rotated when exceeding 2MB)
+- **Execution Status Record:** `db-storage/audit-run-status.json` (stores run duration, stage, item counts, truncation, and error details for Admin UI)
+- **Active Process Lock:** `db-storage/audit-prices.lock` (stores active process PID and start timestamp to prevent concurrent runs)
+- **Previous Screenshot Backup:** `screenshots-prev/` (holds 1 prior run of screenshots for safety)
+
+#### 4. Troubleshooting
+- **Stale Lock File:** If an audit process crashed or was killed forcefully, remove the lock file manually:
+  ```bash
+  rm db-storage/audit-prices.lock
+  ```
+- **Cloudflare Challenges:** In unattended mode (`--full`), if a Cloudflare challenge is detected, the item is marked as `ERROR` and the script continues automatically without hanging. For manual interactive resolution, run headful mode:
+  ```bash
+  npx tsx scripts/audit-prices.ts --headful
+  ```
+- **Gemini API Retries & Limits:** Built-in guardrails include max 3 retries with exponential backoff (2s/4s/8s), minimum 1.5s delay between requests, and automatic stage termination after 4 consecutive failures.
+
+#### 5. Configure Local Store Profiles (`--setup`)
 Configure your store postal code/locations (e.g. Perth, Ontario) and dismiss cookie banners:
 ```bash
 npx tsx scripts/audit-prices.ts --setup
 ```
 This opens all major store homepages in tabs. Set your local store/zip code in the browser window, then return to your terminal and press `[ENTER]`. Playwright will store your cookies and configuration under `db-storage/playwright-profile/` for all subsequent runs.
 
-#### 2. Capture Screenshots (Default Mode)
-Capture screenshots of target items:
-```bash
-# Capture screenshots for all stores
-npx tsx scripts/audit-prices.ts
-
-# Capture screenshots only for a specific store (e.g. Metro)
-npx tsx scripts/audit-prices.ts --store metro
-```
-* **Performance Caching:** The script automatically skips navigation for items that already have a screenshot saved under `screenshots/`. If you want to force-capture a specific item, simply delete its screenshot file from the `screenshots/` directory and rerun this command.
-* **Anti-Blocking Stability:** Mimics human browsing behavior by introducing a randomized delay (3 to 7 seconds) between page navigations.
-
-#### 3. Analyze and Audit (`--analyze`)
-Process the screenshots and run Gemini vision auditing:
-```bash
-# Analyze all captured screenshots
-npx tsx scripts/audit-prices.ts --analyze
-
-# Analyze only captured screenshots for a specific store (e.g. Metro)
-npx tsx scripts/audit-prices.ts --analyze --store metro
-
-# Retry only items that had errors or timed out in the previous run
-npx tsx scripts/audit-prices.ts --retry-errors
-```
-This runs the Gemini 3.5 Flash multimodal API to extract regular prices, sale prices, flyer validity dates, and sale status. It outputs:
-* **`price_audit_report.md`**: A detailed comparison markdown dashboard.
-* **`db-storage/audit-pricing-updates.json`**: A delta cache containing only the price updates/unverified flags.
-* **`db-storage/combined-catalog-updated.json`**: A full backup copy of the updated catalog.
-
-* **Retry Errors Optimization:** If the Gemini API requests time out or fail, you can run the script with `--retry-errors` (or `--retry`). This skips successfully audited items by reading the cached status from `db-storage/audit-pricing-updates.json` and only invokes Gemini on the items that failed.
-
-#### 4. Automated Weekly Flyer Validation
-During the `--analyze` phase, if the Gemini API identifies that an item is actively on sale, the script automatically queries the Flipp/Wishabi flyer search API for the store's configured postal code (from the database) to verify if the product is featured in the merchant's active weekly flyer. It sets the `in_flyer` boolean indicator to `true` (otherwise `false`) in the database metadata so the frontend can display visual flyer badges.
-
-#### 5. Deploy Updates to Production (`--apply`)
+#### 6. Deploy Updates to Production (`--apply`)
 Push the delta updates back into the live production database on MongoDB Atlas:
 ```bash
 npx tsx scripts/audit-prices.ts --apply
 ```
 The merge process downloads the latest live production catalog, applies only the delta modifications (to prevent stomping on concurrent changes), and saves it to MongoDB.
 
-#### 6. Scraper Error & Block Handling
-If a URL fails to load, returns an HTTP `404 Not Found` status, or triggers a bot manager screen/generic error (e.g. *"The page you requested could not be found"* or Akamai blocking), the script logs the status as `"ERROR"`. In this case, **no pricing updates** are written, and the link's `is_verified` state is automatically set to `false` (unchecked) when `--apply` is run, excluding it from future scrape cycles until manually re-evaluated and updated.
-* **Manual Verification Handler**: If the scraper encounters a Cloudflare puzzle/CAPTCHA, it plays a terminal beep sound and pauses. You can click the checkbox in the opened Chrome window and press `[ENTER]` in the terminal to resume navigation.
 
 ## Flipp Flyer Resolution Engine
 
