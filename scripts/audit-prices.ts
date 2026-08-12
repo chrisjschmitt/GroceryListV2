@@ -42,7 +42,7 @@ interface AuditRunStatus {
   finishedAt: string | null;
   success: boolean;
   lastSuccessAt: string | null;
-  stage: "idle" | "pruning" | "capturing" | "analyzing" | "saving" | "failed";
+  stage: "idle" | "pruning" | "capturing" | "analyzing" | "saving" | "applying" | "failed";
   itemCounts: {
     total: number;
     captured: number;
@@ -51,6 +51,7 @@ interface AuditRunStatus {
     mismatches: number;
     errors: number;
   };
+  appliedCount?: number;
   truncated: boolean;
   errorMessage: string | null;
 }
@@ -77,6 +78,7 @@ function getExistingStatus(): AuditRunStatus {
     lastSuccessAt: null,
     stage: "idle",
     itemCounts: { total: 0, captured: 0, analyzed: 0, matches: 0, mismatches: 0, errors: 0 },
+    appliedCount: 0,
     truncated: false,
     errorMessage: null
   };
@@ -98,6 +100,7 @@ function saveRunStatus(partial: Partial<AuditRunStatus>) {
         : (existing.lastSuccessAt || null),
       stage: partial.stage !== undefined ? partial.stage : existing.stage,
       itemCounts: partial.itemCounts !== undefined ? partial.itemCounts : existing.itemCounts,
+      appliedCount: partial.appliedCount !== undefined ? partial.appliedCount : existing.appliedCount,
       truncated: partial.truncated !== undefined ? partial.truncated : existing.truncated,
       errorMessage: partial.errorMessage !== undefined ? partial.errorMessage : existing.errorMessage
     };
@@ -386,6 +389,119 @@ async function callGeminiWithRetries(ai: GoogleGenAI, base64Image: string, userP
   }
 }
 
+interface ApplyUpdatesResult {
+  appliedCount: number;
+  totalPending: number;
+}
+
+async function applyCatalogUpdates(updatesList?: any[]): Promise<ApplyUpdatesResult> {
+  console.log("\n=== Applying Catalog Updates to Production MongoDB ===");
+
+  const deltaPath = path.join(process.cwd(), "db-storage", "audit-pricing-updates.json");
+  let allUpdates: any[] = [];
+
+  if (updatesList && Array.isArray(updatesList)) {
+    allUpdates = updatesList;
+  } else {
+    if (!fs.existsSync(deltaPath)) {
+      throw new Error(`Delta updates file not found at: ${deltaPath}\nPlease run the audit first using: npx tsx scripts/audit-prices.ts --analyze or --full`);
+    }
+    try {
+      allUpdates = JSON.parse(fs.readFileSync(deltaPath, "utf8"));
+      if (!Array.isArray(allUpdates)) {
+        throw new Error("Delta updates file must be a JSON array.");
+      }
+    } catch (err: any) {
+      throw new Error(`Error reading delta updates: ${err.message || String(err)}`);
+    }
+  }
+
+  const pendingUpdates = allUpdates.filter((u: any) => !u.applied);
+
+  if (pendingUpdates.length === 0) {
+    console.log("No pending updates to apply. Exiting.");
+    return { appliedCount: 0, totalPending: 0 };
+  }
+
+  console.log(`Loaded ${pendingUpdates.length} pending pricing update(s) (${allUpdates.length} total in audit record).`);
+
+  console.log("Fetching the latest production catalog from MongoDB...");
+  let liveCatalog: any = null;
+  try {
+    liveCatalog = await blobGetCombinedCatalog();
+  } catch (err: any) {
+    throw new Error(`Error fetching live catalog: ${err.message || String(err)}`);
+  }
+
+  if (!liveCatalog || !Array.isArray(liveCatalog.items)) {
+    throw new Error("Invalid or empty catalog returned from MongoDB.");
+  }
+
+  console.log("Merging price updates into live catalog...");
+  let appliedCount = 0;
+  for (const update of pendingUpdates) {
+    const liveItem = liveCatalog.items.find((item: any) => item.id === update.itemId);
+    if (liveItem) {
+      const storeLink = liveItem.stores?.[update.storeKey];
+      if (storeLink) {
+        if (update.status === "ERROR") {
+          storeLink.is_verified = false;
+          appliedCount++;
+          continue;
+        }
+        storeLink.regular_price = update.regular_price;
+        storeLink.sale_price = update.sale_price;
+        storeLink.is_on_sale = update.is_on_sale;
+        storeLink.valid_until = update.valid_until;
+        if (update.in_flyer !== undefined) {
+          storeLink.in_flyer = update.in_flyer;
+        }
+        storeLink.is_verified = true;
+
+        if (update.unit) {
+          liveItem.unit = update.unit;
+        }
+        if (update.units !== undefined && update.units !== null) {
+          liveItem.units = update.units;
+        }
+
+        appliedCount++;
+      } else {
+        console.warn(`   ⚠️ Warning: Store "${update.storeKey}" not found on live item "${update.itemName}" (${update.itemId}). Skipping.`);
+      }
+    } else {
+      console.warn(`   ⚠️ Warning: Item "${update.itemName}" (${update.itemId}) not found in the live catalog. Skipping.`);
+    }
+  }
+
+  try {
+    console.log(`Uploading safely merged catalog (${liveCatalog.items.length} total items, ${appliedCount} updated links) to MongoDB...`);
+    await blobSetCombinedCatalog(liveCatalog);
+    console.log("\n[SUCCESS] Production catalog successfully updated in MongoDB!");
+  } catch (err: any) {
+    throw new Error(`Error uploading catalog: ${err.message || String(err)}`);
+  }
+
+  const appliedAt = new Date().toISOString();
+  for (const update of pendingUpdates) {
+    update.applied = true;
+    update.appliedAt = appliedAt;
+  }
+
+  try {
+    const dbDir = path.join(process.cwd(), "db-storage");
+    if (!fs.existsSync(dbDir)) {
+      fs.mkdirSync(dbDir, { recursive: true });
+    }
+    fs.writeFileSync(deltaPath, JSON.stringify(allUpdates, null, 2), "utf8");
+    console.log(`   ├─ Marked ${pendingUpdates.length} update(s) as applied in db-storage/audit-pricing-updates.json`);
+  } catch (saveErr: any) {
+    console.warn(`   ⚠️ Warning: Could not update applied status in audit-pricing-updates.json: ${saveErr.message}`);
+  }
+
+  return { appliedCount, totalPending: pendingUpdates.length };
+}
+
 async function runAudit() {
   const args = process.argv.slice(2);
   const fullMode = args.includes("--full");
@@ -411,85 +527,10 @@ async function runAudit() {
   }
 
   if (applyMode) {
-    console.log("\n=== Applying Catalog Updates to Production Vercel Blob ===");
-    
-    const deltaPath = path.join(process.cwd(), "db-storage", "audit-pricing-updates.json");
-    if (!fs.existsSync(deltaPath)) {
-      console.error(`Error: Delta updates file not found at: ${deltaPath}`);
-      console.error("Please run the audit first using: npx tsx scripts/audit-prices.ts --analyze or --full");
-      process.exit(1);
-    }
-    
-    let updates: any[] = [];
     try {
-      updates = JSON.parse(fs.readFileSync(deltaPath, "utf8"));
-      if (!Array.isArray(updates)) {
-        throw new Error("Delta updates file must be a JSON array.");
-      }
+      await applyCatalogUpdates();
     } catch (err: any) {
-      console.error("Error reading delta updates:", err.message || String(err));
-      process.exit(1);
-    }
-
-    if (updates.length === 0) {
-      console.log("No updates to apply. Exiting.");
-      return;
-    }
-
-    console.log(`Loaded ${updates.length} pricing update(s) from local cache.`);
-
-    console.log("Fetching the latest production catalog from MongoDB...");
-    let liveCatalog: any = null;
-    try {
-      liveCatalog = await blobGetCombinedCatalog();
-    } catch (err: any) {
-      console.error("Error fetching live catalog:", err.message || String(err));
-      process.exit(1);
-    }
-
-    console.log("Merging price updates into live catalog...");
-    let appliedCount = 0;
-    for (const update of updates) {
-      const liveItem = liveCatalog.items.find((item: any) => item.id === update.itemId);
-      if (liveItem) {
-        const storeLink = liveItem.stores[update.storeKey];
-        if (storeLink) {
-          if (update.status === "ERROR") {
-            storeLink.is_verified = false;
-            appliedCount++;
-            continue;
-          }
-          storeLink.regular_price = update.regular_price;
-          storeLink.sale_price = update.sale_price;
-          storeLink.is_on_sale = update.is_on_sale;
-          storeLink.valid_until = update.valid_until;
-          if (update.in_flyer !== undefined) {
-            storeLink.in_flyer = update.in_flyer;
-          }
-          storeLink.is_verified = true;
-
-          if (update.unit) {
-            liveItem.unit = update.unit;
-          }
-          if (update.units !== undefined && update.units !== null) {
-            liveItem.units = update.units;
-          }
-
-          appliedCount++;
-        } else {
-          console.warn(`   ⚠️ Warning: Store "${update.storeKey}" not found on live item "${update.itemName}" (${update.itemId}). Skipping.`);
-        }
-      } else {
-        console.warn(`   ⚠️ Warning: Item "${update.itemName}" (${update.itemId}) not found in the live catalog. Skipping.`);
-      }
-    }
-
-    try {
-      console.log(`Uploading safely merged catalog (${liveCatalog.items.length} total items, ${appliedCount} updated links) to MongoDB...`);
-      await blobSetCombinedCatalog(liveCatalog);
-      console.log("\n[SUCCESS] Production catalog successfully updated in MongoDB!");
-    } catch (err: any) {
-      console.error("Error uploading catalog:", err.message || String(err));
+      console.error(err.message || String(err));
       process.exit(1);
     }
     return;
@@ -1273,11 +1314,34 @@ Extract regular price, sale price, sale status, flyer validity date, unit type, 
     fs.writeFileSync(deltaPath, JSON.stringify(updatesDelta, null, 2), "utf8");
     console.log(`   ├─ Delta changes list saved to: db-storage/audit-pricing-updates.json`);
     console.log(`   └─ Audited and updated pricing for ${updatedCount} store links.`);
-    console.log("\nOnce you verify these changes, push them to production using: npx tsx scripts/audit-prices.ts --apply");
+    if (!fullMode) {
+      console.log("\nOnce you verify these changes, push them to production using: npx tsx scripts/audit-prices.ts --apply");
+    }
   }
 
   // 6. Write Markdown Report
   writeMarkdownReport(auditResults);
+
+  // 7. Apply updates to MongoDB (Full Mode)
+  let appliedCount = 0;
+  if (fullMode) {
+    console.log("\n7. Applying catalog updates to MongoDB...");
+    saveRunStatus({ stage: "applying" });
+    try {
+      const applyRes = await applyCatalogUpdates();
+      appliedCount = applyRes.appliedCount;
+    } catch (err: any) {
+      console.error("\n❌ [APPLY ERROR] Failed to apply catalog updates to MongoDB:", err.message || String(err));
+      saveRunStatus({
+        finishedAt: new Date().toISOString(),
+        success: false,
+        stage: "failed",
+        errorMessage: `Failed to apply updates to MongoDB: ${err.message || String(err)}`
+      });
+      releaseLock();
+      process.exit(1);
+    }
+  }
 
   const finishedAt = new Date().toISOString();
   const matchCount = auditResults.filter(r => r.status === "MATCH").length;
@@ -1289,6 +1353,7 @@ Extract regular price, sale price, sale status, flyer validity date, unit type, 
     finishedAt,
     success: true,
     stage: "idle",
+    appliedCount: fullMode ? appliedCount : undefined,
     itemCounts: {
       total: targetLinks.length,
       captured: capturedCount,
