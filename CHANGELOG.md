@@ -1,5 +1,9 @@
 # Changelog
 
+## v2.24.0 — 2026-08-12
+
+- CR-17: Fix the pricing scraper script
+
 ## v2.23.0 — 2026-07-29
 
 - CR-14: Run the Price Audit Scraper script every Thursday Morning

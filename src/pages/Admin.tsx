@@ -460,6 +460,7 @@ export default function AdminPage() {
 
   const filteredAuditUpdates = useMemo(() => {
     return auditUpdates.filter((u: any) => {
+      if (u.applied) return false;
       if (u.status === "MATCH") return false;
       if (auditStatusFilter === "flagged") return u.status === "MISMATCH" || u.status === "ERROR";
       if (auditStatusFilter === "mismatch") return u.status === "MISMATCH";
